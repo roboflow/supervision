@@ -8,7 +8,8 @@ def create_batches(
     sequence: Iterable[V], batch_size: int
 ) -> Generator[list[V], None, None]:
     """Provides a generator that yields chunks of the input sequence of the size
-    specified by the `batch_size` parameter. The last chunk may be a smaller batch.
+    specified by the `batch_size` parameter. The last chunk may be a smaller batch. Each
+    full batch is yielded before the next item is consumed from the input.
 
     Args:
         sequence: The sequence to be split into batches.
@@ -32,10 +33,10 @@ def create_batches(
     batch_size = max(batch_size, 1)
     current_batch: list[V] = []
     for element in sequence:
+        current_batch.append(element)
         if len(current_batch) == batch_size:
             yield current_batch
             current_batch = []
-        current_batch.append(element)
     if current_batch:
         yield current_batch
 
