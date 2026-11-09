@@ -7,6 +7,10 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.ImageSink.save_image`, dataset exports and other image writes now support more non-`uint8` images when OpenCV is not installed. 16-bit grayscale, BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs with unsupported sample types, get a saturated 8-bit copy. Multi-channel TIFFs with types other than `uint8` can still fail without OpenCV. Previously these writes raised `TypeError`, or returned `False` for grayscale images. ([#2901](https://github.com/roboflow/supervision/pull/2901))
+
+- `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. ([#2900](https://github.com/roboflow/supervision/pull/2900))
+
 - `sv.KeyPoints.empty()` now holds empty `class_id`, `keypoint_confidence` and `detection_confidence` arrays, as `sv.Detections.empty()` does, instead of `None`. Pose connectors such as `sv.KeyPoints.from_ultralytics` return it for a frame without poses, so the documented filters `key_points[key_points.detection_confidence > 0.5]` and `key_points.visible = key_points.keypoint_confidence > 0.3` raised `TypeError: '>' not supported between instances of 'NoneType' and 'float'` on every such frame of a video. ([#2911](https://github.com/roboflow/supervision/pull/2911))
 
 - `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
