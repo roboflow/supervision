@@ -9,6 +9,12 @@ date_modified: 2026-10-31
 
 - `sv.KeyPoints.empty()` now holds empty `class_id`, `keypoint_confidence` and `detection_confidence` arrays, as `sv.Detections.empty()` does, instead of `None`. Pose connectors such as `sv.KeyPoints.from_ultralytics` return it for a frame without poses, so the documented filters `key_points[key_points.detection_confidence > 0.5]` and `key_points.visible = key_points.keypoint_confidence > 0.3` raised `TypeError: '>' not supported between instances of 'NoneType' and 'float'` on every such frame of a video. ([#2911](https://github.com/roboflow/supervision/pull/2911))
 
+- `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
+
+- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
+
+-
+
 ### 0.31.5 <small>Nov 5, 2026</small>
 
 - **Annotators**: annotating more image types and right-to-left labels.
