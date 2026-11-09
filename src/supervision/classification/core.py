@@ -65,6 +65,10 @@ class Classifications:
         Returns:
             A new Classifications object.
 
+        Note:
+            Bfloat16 probabilities are returned as float32 because NumPy has no
+            native bfloat16 dtype. Other dtypes keep their existing behavior.
+
         Example:
             ```python
             from PIL import Image
@@ -82,7 +86,10 @@ class Classifications:
             ```
         """
 
-        confidence = clip_results.softmax(dim=-1).cpu().detach().numpy()[0]
+        probabilities = clip_results.softmax(dim=-1).cpu().detach()
+        if str(probabilities.dtype) == "torch.bfloat16":
+            probabilities = probabilities.float()
+        confidence = probabilities.numpy()[0]
 
         if len(confidence) == 0:
             return cls(
@@ -131,6 +138,8 @@ class Classifications:
         Note:
             Returned confidences are softmax-normalized probabilities, so
             thresholds calibrated against raw logits may need recalibration.
+            Bfloat16 probabilities are returned as float32 because NumPy has no
+            native bfloat16 dtype. Other dtypes keep their existing behavior.
 
         Args:
             timm_results: The inference result from timm model.
@@ -161,7 +170,10 @@ class Classifications:
             classifications = sv.Classifications.from_timm(output)
             ```
         """
-        confidence = timm_results.softmax(dim=-1).cpu().detach().numpy()[0]
+        probabilities = timm_results.softmax(dim=-1).cpu().detach()
+        if str(probabilities.dtype) == "torch.bfloat16":
+            probabilities = probabilities.float()
+        confidence = probabilities.numpy()[0]
 
         if len(confidence) == 0:
             return cls(
