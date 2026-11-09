@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.KeyPoints.from_transformers` now gives every pose class ID `0` instead of numbering the poses of an image `0..N-1`. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and `sv.EdgeAnnotator` with per-class `edges` raised `ValueError` on the second person. Code that used the old ID as a per-person index can use `np.arange(len(key_points))`. ([#2914](https://github.com/roboflow/supervision/pull/2914))
 
+- Annotators now draw the requested colors on Pillow palette images (modes `P` and `PA`), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations ([#2907](https://github.com/roboflow/supervision/pull/2907)).
+
 - `sv.draw_image` now draws on grayscale scenes, shaped `(H, W)` or `(H, W, 1)`, and on BGRA scenes, like the other draw helpers, instead of raising a NumPy broadcast error. A grayscale scene receives the image's gray luminance, and on a BGRA scene the drawn pixels become opaque in proportion to the image's alpha and `opacity`. ([#2906](https://github.com/roboflow/supervision/pull/2906))
 
 - `sv.resize_image`, `sv.scale_image` and `sv.letterbox_image` now return `(H, W, 1)` for an `(H, W, 1)` grayscale image with OpenCV installed too, instead of `(H, W)`; the NumPy backend already kept the axis. `sv.tint_image` and `sv.grayscale_image` now accept `(H, W, 1)` images like `(H, W)` ones instead of raising. ([#2905](https://github.com/roboflow/supervision/pull/2905))
