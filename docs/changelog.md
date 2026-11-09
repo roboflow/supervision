@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts beyond the frame return empty masks instead of raising errors.
+- `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts beyond the frame return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
 
 - `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
 
