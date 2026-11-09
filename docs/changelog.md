@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- Preserve image transparency when `sv.JointAngleAnnotator` draws on BGRA images. ([#2899](https://github.com/roboflow/supervision/pull/2899))
+
 - Added `sv.joint_angles` and `sv.JointAngleAnnotator` for measuring and drawing joint angles from `sv.KeyPoints`. A joint is a `JointAngle` from `supervision.key_points.angles`: a name and three zero-based key point positions, for example hip, knee and ankle. `sv.joint_angles` returns the interior angle at the middle point in degrees, one row per skeleton and one column per joint. It returns `NaN` rather than a value when one of the three points is hidden by `visible`, non-finite or exactly `[0, 0]`, the points `KeyPoints.as_detections` also leaves out, or when an end point lies on the middle point. Angles are measured on x/y in the image plane, so a third coordinate is ignored and foreshortened limbs read differently from their 3D angle. `sv.JointAngleAnnotator` draws an arc inside each measurable joint of at least one degree, labels it with the angle unless `show_value=False`, and skips the joints `sv.joint_angles` returns as `NaN`. ([#2899](https://github.com/roboflow/supervision/pull/2899))
 
 - `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))

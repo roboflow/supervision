@@ -1125,6 +1125,11 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
 
         values = joint_angles(key_points, self.angles)
         xy = key_points.xy[..., :2].astype(np.float64)
+        # Drawing with BGR colors writes zero alpha on BGRA canvases. Keep the
+        # existing transparency while both the arc and text modify color channels.
+        alpha = (
+            scene[..., 3].copy() if scene.ndim == 3 and scene.shape[2] == 4 else None
+        )
         for skeleton_index, angle_index in zip(*np.nonzero(np.isfinite(values))):
             angle = self.angles[angle_index]
             vertex = xy[skeleton_index, angle.b]
@@ -1156,6 +1161,8 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
                     vertex=vertex,
                     bisector=np.radians(heading_a + sweep / 2.0),
                 )
+        if alpha is not None:
+            scene[..., 3] = alpha
         return scene
 
     @staticmethod

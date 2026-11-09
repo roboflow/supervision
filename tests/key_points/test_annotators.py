@@ -1108,6 +1108,20 @@ class TestJointAngleAnnotator:
         # Like the other annotators, a single-channel canvas takes the blue value.
         assert np.atleast_3d(result)[..., 0].max() == color.as_bgr()[0]
 
+    @pytest.mark.parametrize("show_value", [False, True])
+    def test_bgra_annotation_preserves_alpha(self, show_value: bool) -> None:
+        """Arc and label change color without changing BGRA transparency."""
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        scene[..., 3] = np.arange(100, dtype=np.uint8)[:, None] + 100
+        original = scene.copy()
+        annotator = sv.JointAngleAnnotator(angles=[JOINT], show_value=show_value)
+
+        result = annotator.annotate(scene=scene, key_points=_right_angle())
+
+        assert result is scene
+        np.testing.assert_array_equal(result[..., 3], original[..., 3])
+        assert np.any(result[..., :3] != original[..., :3])
+
     def test_grayscale_pil_scene_is_annotated_in_place(self) -> None:
         """A single-channel PIL scene is drawn on in place and keeps its mode."""
         scene = Image.new("L", (100, 100))
