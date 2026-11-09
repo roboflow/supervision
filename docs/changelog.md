@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.JSONSink` now preserves an exception raised inside a `with` block when writing or closing the JSON file also fails. The cleanup error is logged; it still propagates when the block succeeds. ([#2902](https://github.com/roboflow/supervision/pull/2902))
+
 - `sv.ImageSink.save_image`, dataset exports and other image writes now support more non-`uint8` images when OpenCV is not installed. 16-bit grayscale, BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs with unsupported sample types, get a saturated 8-bit copy. Multi-channel TIFFs with types other than `uint8` can still fail without OpenCV. Previously these writes raised `TypeError`, or returned `False` for grayscale images. ([#2901](https://github.com/roboflow/supervision/pull/2901))
 
 - `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. ([#2900](https://github.com/roboflow/supervision/pull/2900))
@@ -16,8 +18,6 @@ date_modified: 2026-10-31
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
-
--
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
