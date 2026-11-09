@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.KeyPoints.from_transformers` now gives every pose class ID `0` instead of numbering the poses of an image `0..N-1`. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and `sv.EdgeAnnotator` with per-class `edges` raised `ValueError` on the second person. Code that used the old ID as a per-person index can use `np.arange(len(key_points))`. ([#2914](https://github.com/roboflow/supervision/pull/2914))
 
+- `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
+
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
