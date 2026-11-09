@@ -35,21 +35,20 @@ def process_transformers_detection_result(
             class IDs, and data.
     """
     # Grounding DINO warns on reading `labels`, which repeats its `text_labels`;
-    # `dict.get` reads the entry without that warning.
-    labels = dict.get(detection_result, "labels")
+    # the base `dict` lookup reads the entry without that warning.
+    labels = dict.__getitem__(detection_result, "labels")
     text_labels = detection_result.get("text_labels")
-    class_ids = None
     if isinstance(labels, list):
-        text_labels = labels if text_labels is None else text_labels
-    elif labels is not None:
-        class_ids = labels.cpu().detach().numpy().astype(int)
-
-    if text_labels is not None:
-        data = {CLASS_NAME_DATA_FIELD: np.array(text_labels, dtype=str)}
-    elif class_ids is not None:
-        data = append_class_names_to_data(class_ids, id2label, {})
+        # Phrases rather than query indices, so there is no class ID to give.
+        class_ids = None
+        phrases = labels if text_labels is None else text_labels
+        data = {CLASS_NAME_DATA_FIELD: np.array(phrases, dtype=str)}
     else:
-        data = {}
+        class_ids = labels.cpu().detach().numpy().astype(int)
+        if text_labels is None:
+            data = append_class_names_to_data(class_ids, id2label, {})
+        else:
+            data = {CLASS_NAME_DATA_FIELD: np.array(text_labels, dtype=str)}
 
     return dict(
         xyxy=detection_result["boxes"].cpu().detach().numpy(),

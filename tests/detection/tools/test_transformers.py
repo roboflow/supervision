@@ -179,7 +179,13 @@ class TestProcessTransformersDetectionResult:
         assert out["class_id"] is None
         np.testing.assert_array_equal(out["data"][CLASS_NAME_DATA_FIELD], ["a cat"])
 
-    @pytest.mark.parametrize("id2label", [None, {0: "LABEL_0", 1: "LABEL_1"}])
+    @pytest.mark.parametrize(
+        "id2label",
+        [
+            pytest.param(None, id="no-id2label"),
+            pytest.param({0: "LABEL_0", 1: "LABEL_1"}, id="model-config-id2label"),
+        ],
+    )
     def test_text_labels_name_query_indices(
         self, id2label: dict[int, str] | None
     ) -> None:
