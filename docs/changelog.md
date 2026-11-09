@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_transformers` now reads zero-shot detections from `post_process_grounded_object_detection`. Grounding DINO results raised `AttributeError: 'list' object has no attribute 'cpu'`; they now load with their matched phrases as class names and `class_id=None`. OWL-ViT, OWLv2 and OmDet-Turbo detections keep the text query index as `class_id` and now take their class names from `text_labels`, where `id2label=model.config.id2label` named them `LABEL_0`, `LABEL_1`. ([#2913](https://github.com/roboflow/supervision/pull/2913))
+
 - `sv.Detections.from_transformers` now reads RF-DETR instance segmentation results requested with `return_binary_maps=True`. Binary maps are now paired with `segments_info` by position; indexing them by segment id raised `IndexError` for RF-DETR, which numbers segments from 1. An empty `(0, H, W)` stack of binary maps now gives empty `(0, H, W)` masks instead of raising `ValueError`. ([#2912](https://github.com/roboflow/supervision/pull/2912))
 
 - Annotators now draw the requested colors on Pillow palette images (modes `P` and `PA`), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations ([#2907](https://github.com/roboflow/supervision/pull/2907)).
