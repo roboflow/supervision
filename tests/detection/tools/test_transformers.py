@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -143,6 +145,109 @@ class TestProcessTransformersDetectionResult:
         assert len(out["class_id"]) == n_boxes
         if with_id2label and n_boxes > 0:
             assert CLASS_NAME_DATA_FIELD in out["data"]
+
+    @pytest.mark.parametrize(
+        "phrases",
+        [
+            pytest.param(["a cat", "a dog"], id="two-phrases"),
+            pytest.param([], id="no-detections"),
+        ],
+    )
+    def test_grounding_dino_phrases_become_class_names_without_warning(
+        self, phrases: list[str]
+    ) -> None:
+        """Grounding DINO phrases name detections, leave class IDs unset, no warning."""
+        result = _grounding_dino_result(phrases)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            out = process_transformers_detection_result(result, None)
+
+        assert out["class_id"] is None
+        np.testing.assert_array_equal(out["data"][CLASS_NAME_DATA_FIELD], phrases)
+
+    def test_phrase_labels_without_text_labels_become_class_names(self) -> None:
+        """Phrase `labels` from releases without `text_labels` still name detections."""
+        result = {
+            "boxes": _FakeDetachTensor(np.zeros((1, 4), dtype=np.float32)),
+            "scores": _FakeDetachTensor(np.array([0.9], dtype=np.float32)),
+            "labels": ["a cat"],
+        }
+
+        out = process_transformers_detection_result(result, None)
+
+        assert out["class_id"] is None
+        np.testing.assert_array_equal(out["data"][CLASS_NAME_DATA_FIELD], ["a cat"])
+
+    @pytest.mark.parametrize(
+        "id2label",
+        [
+            pytest.param(None, id="no-id2label"),
+            pytest.param({0: "LABEL_0", 1: "LABEL_1"}, id="model-config-id2label"),
+        ],
+    )
+    def test_text_labels_name_query_indices(
+        self, id2label: dict[int, str] | None
+    ) -> None:
+        """OWL-style `text_labels` name detections; `labels` keeps the query index."""
+        result = {
+            "boxes": _FakeDetachTensor(np.zeros((2, 4), dtype=np.float32)),
+            "scores": _FakeDetachTensor(np.array([0.9, 0.8], dtype=np.float32)),
+            "labels": _FakeDetachTensor(np.array([1, 0], dtype=np.int64)),
+            "text_labels": ["a dog", "a cat"],
+        }
+
+        out = process_transformers_detection_result(result, id2label)
+
+        np.testing.assert_array_equal(out["class_id"], [1, 0])
+        np.testing.assert_array_equal(
+            out["data"][CLASS_NAME_DATA_FIELD], ["a dog", "a cat"]
+        )
+
+    def test_grounding_dino_result_builds_detections(self) -> None:
+        """Detections.from_transformers accepts a Grounding DINO result."""
+        from supervision.detection.core import Detections
+
+        result = _grounding_dino_result(["a cat", "a dog"])
+
+        detections = Detections.from_transformers(result)
+
+        assert len(detections) == 2
+        assert detections.class_id is None
+        np.testing.assert_array_equal(
+            detections.data[CLASS_NAME_DATA_FIELD], ["a cat", "a dog"]
+        )
+
+
+class _GroundingDinoResultDict(dict[str, object]):
+    """Dict that warns when `labels` is read, as Grounding DINO results do."""
+
+    def __getitem__(self, key: str) -> object:
+        """Warn for `labels`, then read the entry."""
+        if key == "labels":
+            warnings.warn("`labels` holds text; use `text_labels`", FutureWarning)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default: object = None) -> object:
+        """Warn for `labels`, then read the entry or the default."""
+        if key == "labels":
+            warnings.warn("`labels` holds text; use `text_labels`", FutureWarning)
+        return super().get(key, default)
+
+
+def _grounding_dino_result(phrases: list[str]) -> _GroundingDinoResultDict:
+    """Build a `post_process_grounded_object_detection` result of Grounding DINO.
+
+    Grounding DINO reports the matched phrases in `text_labels` and repeats them in the
+    deprecated `labels` key instead of class indices.
+    """
+    count = len(phrases)
+    return _GroundingDinoResultDict(
+        boxes=_FakeDetachTensor(np.arange(count * 4, dtype=np.float32).reshape(-1, 4)),
+        scores=_FakeDetachTensor(np.full(count, 0.5, dtype=np.float32)),
+        text_labels=list(phrases),
+        labels=list(phrases),
+    )
 
 
 # ---------------------------------------------------------------------------
