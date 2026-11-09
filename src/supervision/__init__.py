@@ -163,6 +163,7 @@ from supervision.utils.image import (
     tint_image,
 )
 from supervision.utils.image_window import ImageWindow
+from supervision.utils.internal import SupervisionRecommendationWarning
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,
@@ -233,6 +234,7 @@ __all__ = [
     "Rect",
     "RichLabelAnnotator",
     "RoundBoxAnnotator",
+    "SupervisionRecommendationWarning",
     "TraceAnnotator",
     "TriangleAnnotator",
     "VertexAnnotator",

@@ -20,6 +20,7 @@ from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
+    warn_if_transformers_rf_detr_loaded,
 )
 from supervision.detection.utils._typing import (
     _DetectionDataType,
@@ -616,6 +617,16 @@ class Detections:
         Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
         holds one score per detection.
 
+        !!! tip "RF-DETR"
+
+            For RF-DETR, prefer the official
+            [`rfdetr`](https://github.com/roboflow/rf-detr) package maintained by
+            Roboflow: its `predict()` returns
+            :class:`~supervision.detection.core.Detections` directly. Converting
+            RF-DETR results from Transformers still works, but emits a
+            :class:`~supervision.utils.internal.SupervisionRecommendationWarning`
+            on every call.
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
@@ -656,6 +667,7 @@ class Detections:
             )
             ```
         """
+        warn_if_transformers_rf_detr_loaded()
 
         if (
             transformers_results.__class__.__name__ == "Tensor"

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import io
+import sys
+import warnings
 from typing import Any, cast
 
 import numpy as np
@@ -9,6 +11,40 @@ from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.utils.internal import SupervisionRecommendationWarning
+
+#: Transformers subpackage that holds RF-DETR; imported only once an RF-DETR model or
+#: processor is loaded.
+TRANSFORMERS_RF_DETR_MODULE = "transformers.models.rf_detr"
+
+#: Message recommending the official `rfdetr` package to Transformers RF-DETR users.
+RF_DETR_RECOMMENDATION_MESSAGE = (
+    "RF-DETR from Hugging Face Transformers appears to be in use. Roboflow, the"
+    " authors of RF-DETR, maintain the official `rfdetr` package"
+    " (`pip install rfdetr`). Its `predict()` returns `sv.Detections` directly,"
+    " keeps overlapping instance masks, and also offers keypoint detection and"
+    " built-in fine-tuning. See https://github.com/roboflow/rf-detr. Results from"
+    " Transformers remain fully supported here; to hide this message, filter"
+    " `sv.SupervisionRecommendationWarning`."
+)
+
+
+def warn_if_transformers_rf_detr_loaded() -> None:
+    """Recommend the official `rfdetr` package when Transformers RF-DETR is loaded.
+
+    Transformers imports a model's subpackage lazily, so its presence in `sys.modules`
+    means the caller loaded RF-DETR through Transformers. The result dictionaries alone
+    cannot tell RF-DETR apart from DETR-style models.
+    """
+    if TRANSFORMERS_RF_DETR_MODULE not in sys.modules:
+        return
+    # stacklevel 3 skips this helper and `Detections.from_transformers`, so the
+    # warning points at the user's call.
+    warnings.warn(
+        RF_DETR_RECOMMENDATION_MESSAGE,
+        category=SupervisionRecommendationWarning,
+        stacklevel=3,
+    )
 
 
 def process_transformers_detection_result(
