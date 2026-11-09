@@ -9,6 +9,10 @@ date_modified: 2026-10-31
 
 - `sv.KeyPoints.from_transformers` now gives every pose class ID `0` instead of numbering the poses of an image `0..N-1`. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and `sv.EdgeAnnotator` with per-class `edges` raised `ValueError` on the second person. Code that used the old ID as a per-person index can use `np.arange(len(key_points))`. ([#2914](https://github.com/roboflow/supervision/pull/2914))
 
+- **Masks and polygons**: the NumPy backend matches OpenCV.
+
+    - `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. ([#2900](https://github.com/roboflow/supervision/pull/2900))
+
 - `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
 
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
