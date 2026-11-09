@@ -356,6 +356,34 @@ class TestDrawImageSceneLayouts:
         np.testing.assert_array_equal(result, np.full((4, 4), 100, dtype=np.uint8))
 
     @pytest.mark.parametrize(
+        ("scene_pixel", "expected"),
+        [
+            pytest.param((0, 0, 0, 0), (255, 0, 0, 128), id="transparent-scene"),
+            pytest.param((0, 0, 255, 128), (170, 0, 85, 192), id="translucent-scene"),
+            pytest.param((0, 0, 255, 255), (128, 0, 127, 255), id="opaque-scene"),
+        ],
+    )
+    def test_translucent_image_on_bgra_scene_composites_straight_alpha(
+        self, scene_pixel: tuple[int, ...], expected: tuple[int, ...]
+    ) -> None:
+        """A translucent draw weights colors by alpha rather than darkening them."""
+        scene = np.full((4, 4, 4), scene_pixel, dtype=np.uint8)
+        image = np.full((4, 4, 4), (255, 0, 0, 128), dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(0, 0, 4, 4))
+
+        assert tuple(result[0, 0].tolist()) == expected
+
+    def test_invisible_image_keeps_transparent_bgra_scene(self) -> None:
+        """A fully transparent draw leaves even a transparent scene's color alone."""
+        scene = np.full((4, 4, 4), (9, 8, 7, 0), dtype=np.uint8)
+        image = np.full((4, 4, 4), (255, 0, 0, 0), dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(0, 0, 4, 4))
+
+        assert tuple(result[0, 0].tolist()) == (9, 8, 7, 0)
+
+    @pytest.mark.parametrize(
         ("opacity", "expected_alpha"),
         [pytest.param(1.0, 255, id="opaque"), pytest.param(0.0, 40, id="invisible")],
     )

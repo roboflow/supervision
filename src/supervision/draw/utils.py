@@ -408,6 +408,41 @@ def _overlay_in_scene_channels(
     return bgr
 
 
+def _composite_over_bgra(
+    scene: npt.NDArray[np.uint8],
+    overlay: npt.NDArray[np.uint8],
+    alpha: npt.NDArray[np.float32],
+) -> npt.NDArray[np.uint8]:
+    """Composite `overlay` over a straight-alpha BGRA region.
+
+    Colors are weighted by how much each layer shows and divided by the result's
+    alpha, so a translucent draw on a transparent scene keeps its color instead of
+    fading toward the scene's hidden one. Where the result has no alpha at all the
+    scene's color is kept.
+
+    Args:
+        scene: BGRA region of shape `(H, W, 4)`.
+        overlay: BGR pixels of shape `(H, W, 3)`.
+        alpha: Overlay coverage in `[0, 1]`, of shape `(H, W, 1)`.
+
+    Returns:
+        The composited BGRA region of shape `(H, W, 4)`.
+    """
+    scene_colors = scene[..., :3].astype(np.float32)
+    scene_weight = (1 - alpha) * (scene[..., 3:].astype(np.float32) / 255.0)
+    output_alpha = alpha + scene_weight
+    colors = np.divide(
+        alpha * overlay + scene_weight * scene_colors,
+        output_alpha,
+        out=scene_colors.copy(),
+        where=np.broadcast_to(output_alpha > 0, scene_colors.shape),
+    )
+    return cast(
+        npt.NDArray[np.uint8],
+        cv2.convertScaleAbs(np.dstack([colors, output_alpha * 255.0])),
+    )
+
+
 def draw_image(
     scene: npt.NDArray[np.uint8],
     image: str | npt.NDArray[np.uint8],
@@ -505,10 +540,15 @@ def draw_image(
     scene_channels = scene_roi.reshape(rect_height, rect_width, -1)
     overlay = _overlay_in_scene_channels(image_np[:, :, :3], scene_channels.shape[2])
     alpha_float = alpha_scaled.astype(np.float32) / 255.0
-    blended_roi = cv2.convertScaleAbs(
-        (1 - alpha_float[..., np.newaxis]) * scene_channels
-        + alpha_float[..., np.newaxis] * overlay
-    )
+    if scene_channels.shape[2] == 4:
+        blended_roi = _composite_over_bgra(
+            scene_channels, overlay[..., :3], alpha_float[..., np.newaxis]
+        )
+    else:
+        blended_roi = cv2.convertScaleAbs(
+            (1 - alpha_float[..., np.newaxis]) * scene_channels
+            + alpha_float[..., np.newaxis] * overlay
+        )
 
     # Update the scene; OpenCV drops the axis of a one-channel result.
     scene[rect_y : rect_y + rect_height, rect_x : rect_x + rect_width] = (
