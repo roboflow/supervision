@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.KeyPoints.from_yolo_nas` now keeps each pose's score as `detection_confidence`, as `sv.KeyPoints.from_ultralytics`, `from_inference` and `from_detectron2` do. It used to drop it, so `sv.KeyPoints.with_nms` raised `ValueError: KeyPoints detection_confidence must be given for NMS to be executed.` on YOLO-NAS poses, and `sv.KeyPoints.as_detections` reported the mean key point confidence instead of the model's score. ([#2909](https://github.com/roboflow/supervision/pull/2909))
 
+- `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
+
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
