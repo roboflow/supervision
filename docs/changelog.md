@@ -8,6 +8,7 @@ date_modified: 2026-10-31
 ### Unreleased <small>upcoming</small>
 
 - **Images**: grayscale arrays with a channel axis.
+
     - `sv.resize_image`, `sv.scale_image` and `sv.letterbox_image` now return `(H, W, 1)` for an `(H, W, 1)` grayscale image with OpenCV installed too, instead of `(H, W)`; the NumPy backend already kept the axis. `sv.tint_image` and `sv.grayscale_image` now accept `(H, W, 1)` images like `(H, W)` ones instead of raising. ([#2905](https://github.com/roboflow/supervision/pull/2905))
 
 - `sv.ColorPalette.from_matplotlib` now rounds palette colors to 8-bit values as Matplotlib's `to_hex` does, instead of truncating them. Channels stored as `n / 255` floats came out one level low, so the seventh `Accent` color was `#bf5b16` instead of `#bf5b17`; 8 of the 10 colors sampled by `from_matplotlib("viridis", 5)` and `from_matplotlib("plasma", 5)` were also one level off. ([#2903](https://github.com/roboflow/supervision/pull/2903))
