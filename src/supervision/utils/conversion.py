@@ -112,10 +112,10 @@ def _palette_index_patch(
     """Return the annotated pixels as indices into the palette of a `P` or `PA` scene.
 
     Pasting RGB pixels would index them with Pillow's web palette, and the scene's
-    own palette then shows those indices as other colors or black. Drawn colors join
-    the palette while it has room, as they do with `ImageDraw`; the others take the
-    nearest opaque entry, so an annotation never lands on a transparent index. A
-    full palette without any opaque entry cannot show a drawing, so it is an error.
+    own palette then shows those indices as other colors or black. RGB palettes can
+    grow into opaque slots unused by untouched pixels. RGBA palettes and colors
+    without an available slot use the nearest opaque entry. A palette without any
+    usable opaque entry cannot show a drawing, so it is an error.
 
     Args:
         scene: Pillow image in mode `P` or `PA`, whose palette may grow.
@@ -125,10 +125,12 @@ def _palette_index_patch(
     Returns:
         Image of the scene's mode whose changed pixels hold palette indices.
     """
-    colors, inverse = np.unique(
-        annotated[changed][:, ::-1], axis=0, return_inverse=True
-    )
-    colors = colors.astype(np.int32)
+    # Packing RGB keeps lexicographic color order while avoiding the structured
+    # three-channel sort used by unique(axis=0) on large blurred regions.
+    rgb = annotated[changed][:, ::-1].astype(np.int32)
+    packed = (rgb[:, 0] << 16) | (rgb[:, 1] << 8) | rgb[:, 2]
+    unique, inverse = np.unique(packed, return_inverse=True)
+    colors = np.column_stack((unique >> 16, (unique >> 8) & 255, unique & 255))
     entries = np.array(scene.getpalette("RGBA"), dtype=np.int32).reshape(-1, 4)
     palette = entries[:, :3]
     opaque = _opaque_palette_entries(scene)
@@ -137,10 +139,20 @@ def _palette_index_patch(
 
     known_colors = {tuple(color) for color in palette[opaque[: len(palette)]].tolist()}
     missing = [color for color in colors.tolist() if tuple(color) not in known_colors]
-    room = 256 - len(palette)
-    if missing and room > 0 and scene.palette.mode == "RGB":
-        palette = np.concatenate([palette, np.array(missing[:room], dtype=np.int32)])
-        scene.putpalette(palette.astype(np.uint8).tobytes())
+    if missing and scene.palette.mode == "RGB":
+        indices = np.asarray(scene)
+        if scene.mode == "PA":
+            indices = indices[:, :, 0]
+        available = opaque.copy()
+        available[: len(palette)] = False
+        # Undefined indices still used outside the drawing display black; adding
+        # a color there would recolor those pixels even though paste skips them.
+        available[indices[~changed]] = False
+        slots = np.flatnonzero(available)[: len(missing)]
+        if slots.size:
+            palette = np.pad(palette, ((0, int(slots[-1]) + 1 - len(palette)), (0, 0)))
+            palette[slots] = missing[: len(slots)]
+            scene.putpalette(palette.astype(np.uint8).tobytes())
 
     candidates = np.flatnonzero(opaque[: len(palette)])
     if candidates.size == 0:
@@ -149,14 +161,20 @@ def _palette_index_patch(
             "opaque entry to draw with."
         )
     nearest = np.empty(len(colors), dtype=np.intp)
+    candidate_colors = palette[candidates]
+    squared_norms = (candidate_colors**2).sum(axis=1)
     # A blurred or iconified region can hold far more colors than the palette, so
     # comparing them in batches keeps the distance table small.
     for start in range(0, len(colors), _PALETTE_MATCH_BATCH_SIZE):
         batch = colors[start : start + _PALETTE_MATCH_BATCH_SIZE]
-        deltas = batch[:, np.newaxis] - palette[candidates][np.newaxis]
-        nearest[start : start + len(batch)] = candidates[
-            (deltas**2).sum(axis=2).argmin(axis=1)
-        ]
+        # Squared norms and an integer dot product give the same exact distance
+        # and first-index tie order without a three-channel distance temporary.
+        distances = (
+            (batch**2).sum(axis=1)[:, np.newaxis]
+            + squared_norms
+            - 2 * (batch @ candidate_colors.T)
+        )
+        nearest[start : start + len(batch)] = candidates[distances.argmin(axis=1)]
     indices = np.zeros(changed.shape, dtype=np.uint8)
     indices[changed] = nearest[inverse.reshape(-1)]
 

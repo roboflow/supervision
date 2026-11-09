@@ -7,7 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Annotators now draw the requested colors on Pillow palette images (modes `P` and `PA`), instead of other colors or black. Drawn colors are added to the palette while it has room and otherwise take the nearest opaque entry ([#2907](https://github.com/roboflow/supervision/pull/2907)).
+- Annotators now draw the requested colors on Pillow palette images (modes `P` and `PA`), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations ([#2907](https://github.com/roboflow/supervision/pull/2907)).
+
 - **Annotators**: heat maps more closely match OpenCV colors without OpenCV installed.
 
     - `sv.HeatMapAnnotator` now draws colors closer to OpenCV without OpenCV installed. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now follows OpenCV's float32 arithmetic and the 32-pixel AVX2 block rounding used by x86-64 wheels. Linux wheels fuse a multiply-add, so a few colors can still differ by one level. Builds using other block sizes can also differ by one level near row ends. ([#2904](https://github.com/roboflow/supervision/pull/2904))

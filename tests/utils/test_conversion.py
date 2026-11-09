@@ -425,6 +425,71 @@ def _draw_box(scene: Image.Image, color: Color) -> None:
 
 
 class TestAnnotatePalettePillowScene:
+    @pytest.mark.parametrize("mode", ["P", "PA"])
+    def test_preserves_undefined_indices_outside_drawing(self, mode: str) -> None:
+        """Adding a color preserves the appearance of undefined background indices."""
+        scene = _indexed_scene([10, 20, 30, 200, 100, 50], index=2)
+        scene = scene.convert(mode)
+        background = scene.convert("RGBA").getpixel((18, 18))
+
+        _draw_box(scene, Color.GREEN)
+
+        assert scene.convert("RGBA").getpixel((18, 18)) == background
+        assert scene.convert("RGBA").getpixel((2, 7)) == (0, 255, 0, 255)
+
+    @pytest.mark.parametrize(
+        "transparency",
+        [
+            pytest.param(2, id="reserved-gif-index"),
+            pytest.param(b"\xff\xff\x00\x80", id="reserved-png-alpha"),
+        ],
+    )
+    def test_skips_transparent_slots_beyond_palette(
+        self, transparency: int | bytes
+    ) -> None:
+        """New colors use an opaque slot beyond transparency metadata."""
+        scene = _indexed_scene([10, 20, 30, 200, 100, 50])
+        scene.info["transparency"] = transparency
+
+        _draw_box(scene, Color.GREEN)
+
+        assert scene.convert("RGBA").getpixel((2, 7)) == (0, 255, 0, 255)
+        assert scene.convert("RGBA").getpixel((18, 18)) == (10, 20, 30, 255)
+
+    def test_matches_exact_nearest_color_with_first_index_ties(self) -> None:
+        """A full palette matches brute-force distances, including duplicate colors."""
+        rng = np.random.default_rng(123)
+        palette = rng.integers(0, 256, (256, 3), dtype=np.uint8)
+        palette[1] = palette[0]
+        scene = Image.new("P", (80, 80))
+        scene.putpalette(palette.tobytes())
+        annotated = rng.integers(0, 256, (80, 80, 3), dtype=np.uint8)
+        annotated[0, 0] = palette[0, ::-1]
+        changed = np.ones((80, 80), dtype=bool)
+        rgb = annotated[:, :, ::-1].astype(np.int32)
+        expected = (
+            ((rgb[:, :, np.newaxis] - palette.astype(np.int32)) ** 2)
+            .sum(axis=3)
+            .argmin(axis=2)
+        )
+
+        patch = _palette_index_patch(scene, annotated, changed)
+
+        np.testing.assert_array_equal(np.asarray(patch), expected)
+        assert patch.getpixel((0, 0)) == 0
+
+    def test_rgba_palette_uses_existing_opaque_entries(self) -> None:
+        """RGBA palettes retain their entries and match the nearest opaque color."""
+        scene = Image.new("P", (20, 20))
+        palette = bytes([10, 20, 30, 255, 0, 255, 0, 0, 0, 250, 0, 255])
+        scene.putpalette(palette, rawmode="RGBA")
+
+        _draw_box(scene, Color.GREEN)
+
+        assert scene.palette.mode == "RGBA"
+        assert scene.getpalette("RGBA") == list(palette)
+        assert scene.convert("RGBA").getpixel((2, 7)) == (0, 250, 0, 255)
+
     @pytest.mark.parametrize(
         "palette",
         [
