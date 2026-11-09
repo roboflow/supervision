@@ -7,7 +7,7 @@ import urllib.parse
 from hashlib import md5
 from pathlib import Path
 from types import TracebackType
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -208,6 +208,25 @@ def crop_image(
     )
 
 
+def _keep_single_channel_axis(
+    result: npt.NDArray[Any], image: npt.NDArray[Any]
+) -> npt.NDArray[Any]:
+    """Give ``result`` back the channel axis of an ``(H, W, 1)`` ``image``.
+
+    OpenCV's ``resize`` and ``copyMakeBorder`` return ``(H, W)`` for an ``(H, W, 1)``
+    input, while the NumPy fallback keeps the axis, so the shape would otherwise depend
+    on whether OpenCV is installed.
+    """
+    if image.ndim == 3 and image.shape[2] == 1 and result.ndim == 2:
+        return result[..., np.newaxis]
+    return result
+
+
+def _is_single_channel(image: npt.NDArray[Any]) -> bool:
+    """Return whether ``image`` is grayscale, shaped ``(H, W)`` or ``(H, W, 1)``."""
+    return image.ndim == 2 or (image.ndim == 3 and image.shape[2] == 1)
+
+
 @ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
@@ -263,10 +282,8 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     # image that still exists, so clamp there instead.
     width_new = max(1, int(width_old * scale_factor))
     height_new = max(1, int(height_old * scale_factor))
-    return cast(
-        npt.NDArray[np.uint8],
-        cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
-    )
+    resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
 
 @ensure_cv2_image_for_standalone_function
@@ -339,10 +356,8 @@ def resize_image(
     else:
         width_new, height_new = resolution_wh
 
-    return cast(
-        npt.NDArray[np.uint8],
-        cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
-    )
+    resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
 
 @ensure_cv2_image_for_standalone_function
@@ -357,7 +372,7 @@ def letterbox_image(
     Args:
         image: The image to resize and pad. Accepts BGR arrays of shape
             ``(H, W, 3)``, BGRA arrays of shape ``(H, W, 4)``, grayscale
-            arrays of shape ``(H, W)``, or a PIL ``Image``.
+            arrays of shape ``(H, W)`` or ``(H, W, 1)``, or a PIL ``Image``.
         resolution_wh: Target resolution as `(width, height)`.
         color: Padding color. If tuple, should be in BGR format.
             Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
@@ -402,20 +417,18 @@ def letterbox_image(
     padding_bottom = resolution_wh[1] - height_new - padding_top
     padding_left = (resolution_wh[0] - width_new) // 2
     padding_right = resolution_wh[0] - width_new - padding_left
-    image_with_borders = cast(
-        npt.NDArray[np.uint8],
-        cv2.copyMakeBorder(
-            resized_image,
-            padding_top,
-            padding_bottom,
-            padding_left,
-            padding_right,
-            cv2.BORDER_CONSTANT,
-            value=color,
-        ),
+    image_with_borders = cv2.copyMakeBorder(
+        resized_image,
+        padding_top,
+        padding_bottom,
+        padding_left,
+        padding_right,
+        cv2.BORDER_CONSTANT,
+        value=color,
     )
-
-    return image_with_borders
+    return cast(
+        npt.NDArray[np.uint8], _keep_single_channel_axis(image_with_borders, image)
+    )
 
 
 def _match_overlay_to_scene_channels(
@@ -509,7 +522,8 @@ def tint_image(
 
     Args:
         image: The image to tint. Accepts BGR arrays of shape ``(H, W, 3)``,
-            grayscale arrays of shape ``(H, W)``, or a PIL ``Image``.
+            grayscale arrays of shape ``(H, W)`` or ``(H, W, 1)``, or a PIL
+            ``Image``.
         color: Overlay tint color. Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
         opacity: Blend ratio between overlay and image (0.0-1.0).
             Defaults to `0.5`.
@@ -544,7 +558,7 @@ def tint_image(
         raise ValueError("opacity must be between 0.0 and 1.0")
 
     assert isinstance(image, np.ndarray)
-    if image.ndim == 2:
+    if _is_single_channel(image):
         # A three-channel overlay cannot be blended into a single-channel image.
         image = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
@@ -566,8 +580,8 @@ def grayscale_image(image: ImageType) -> ImageType:
 
     Args:
         image: The image to convert to grayscale. Accepts BGR arrays of shape
-            ``(H, W, 3)``, grayscale arrays of shape ``(H, W)``, or a PIL
-            ``Image``.
+            ``(H, W, 3)``, grayscale arrays of shape ``(H, W)`` or ``(H, W, 1)``,
+            or a PIL ``Image``.
 
     Returns:
         3-channel grayscale image
@@ -587,7 +601,7 @@ def grayscale_image(image: ImageType) -> ImageType:
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     assert isinstance(image, np.ndarray)
-    if image.ndim == 2:
+    if _is_single_channel(image):
         return cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
     grayscaled = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
     return cast(npt.NDArray[np.uint8], cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR))
