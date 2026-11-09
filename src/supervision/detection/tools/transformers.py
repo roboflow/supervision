@@ -159,13 +159,16 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
     scores = np.array([segment["score"] for segment in segments_info], dtype=float)
     class_ids = np.array([segment["label_id"] for segment in segments_info], dtype=int)
     if len(segments_info) == 0:
-        masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+        # An empty binary-map stack is `(0, H, W)`; only its last two axes are the
+        # image, as for a segment-id map.
+        masks = np.empty((0, *segmentation_array.shape[-2:]), dtype=bool)
     elif segmentation_array.ndim == 3:
-        # Binary maps are stacked in the order segment ids were assigned, so each
-        # segment's `id` indexes its own map. Reading the maps directly also keeps
-        # pixels shared by overlapping instances, which a segment-id map drops.
-        segment_ids = [segment["id"] for segment in segments_info]
-        masks = segmentation_array[segment_ids].astype(bool)
+        # Binary maps are stacked in `segments_info` order, so the k-th entry owns
+        # the k-th map. Segment ids cannot index the stack: Mask2Former and
+        # MaskFormer number them from 0, RF-DETR from 1. Reading the maps directly
+        # also keeps pixels shared by overlapping instances, which a segment-id map
+        # drops.
+        masks = segmentation_array.astype(bool)
     else:
         masks = np.array(
             [segmentation_array == segment["id"] for segment in segments_info]
