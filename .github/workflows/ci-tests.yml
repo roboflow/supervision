@@ -96,8 +96,12 @@ jobs:
 
   with-torch:
     name: Testing w/ tensors (CPU)
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
     env:
       OMP_NUM_THREADS: "1"
       UV_TORCH_BACKEND: cpu
@@ -120,8 +124,8 @@ jobs:
       - name: Confirm CPU PyTorch is installed
         run: python -c "import torch; assert torch.version.cuda is None"
 
-      - name: Run classification tensor regressions
-        run: python -m pytest tests/classification/test_core.py::TestClassificationTensorPrecision --strict-markers -rs
+      - name: Run the test suite with PyTorch
+        run: python -m pytest src/ tests/ --strict-markers -rs
 
   clean-wheel:
     name: Clean Wheel on ${{ matrix.os }} / Python ${{ matrix.python-version }}
@@ -172,7 +176,7 @@ jobs:
     if: always()
     steps:
       - name: 📋 Display test result
-        run: echo "tests=${{ needs.run-tests.result }}, classification=${{ needs.with-torch.result }}, clean-wheel=${{ needs.clean-wheel.result }}"
+        run: echo "tests=${{ needs.run-tests.result }}, with-torch=${{ needs.with-torch.result }}, clean-wheel=${{ needs.clean-wheel.result }}"
       - name: ❌ Fail guardian on test failure
         if: needs.run-tests.result == 'failure' || needs.with-torch.result == 'failure' || needs.clean-wheel.result == 'failure'
         run: exit 1
