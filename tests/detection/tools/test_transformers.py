@@ -381,9 +381,18 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         assert out["mask"].shape == (0, 2, 2)
         assert out["confidence"].shape == (0,)
 
-    def test_binary_maps_produce_one_mask_per_segment(self) -> None:
+    @pytest.mark.parametrize(
+        "first_segment_id",
+        [
+            pytest.param(0, id="mask2former-ids-from-0"),
+            pytest.param(1, id="rf-detr-ids-from-1"),
+        ],
+    )
+    def test_binary_maps_produce_one_mask_per_segment(
+        self, first_segment_id: int
+    ) -> None:
         """Stacked binary maps keep one mask per segment, overlaps included."""
-        binary_maps, seg_result = _instance_binary_maps_result()
+        binary_maps, seg_result = _instance_binary_maps_result(first_segment_id)
 
         out = process_transformers_v5_semantic_or_instance_segmentation_result(
             seg_result, None
@@ -391,6 +400,21 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
 
         np.testing.assert_array_equal(out["mask"], binary_maps.astype(bool))
         np.testing.assert_array_equal(out["xyxy"], [[0, 0, 1, 1], [1, 1, 3, 3]])
+        np.testing.assert_array_equal(out["class_id"], [3, 5])
+
+    def test_empty_binary_maps_stack_returns_zero_detections(self) -> None:
+        """A `(0, H, W)` binary-map stack yields `(0, H, W)` masks."""
+        seg_result = {
+            "segmentation": _FakeDetachTensor(np.zeros((0, 2, 3), dtype=bool)),
+            "segments_info": [],
+        }
+
+        out = process_transformers_v5_semantic_or_instance_segmentation_result(
+            seg_result, None
+        )
+
+        assert out["mask"].shape == (0, 2, 3)
+        assert out["xyxy"].shape == (0, 4)
 
     def test_binary_maps_build_detections(self) -> None:
         """Detections.from_transformers accepts a `return_binary_maps=True` result."""
@@ -408,12 +432,15 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         )
 
 
-def _instance_binary_maps_result() -> tuple[np.ndarray, dict[str, object]]:
+def _instance_binary_maps_result(
+    first_segment_id: int = 0,
+) -> tuple[np.ndarray, dict[str, object]]:
     """Build a v5 instance result as `return_binary_maps=True` returns it.
 
-    Mask2Former and MaskFormer then stack one 0/1 map per kept instance instead of a
-    segment-id map, in the order the instances were assigned their ids. The two maps
-    overlap at pixel (1, 1), which a segment-id map cannot represent.
+    Mask2Former, MaskFormer and RF-DETR then stack one 0/1 map per kept instance instead
+    of a segment-id map, in `segments_info` order. Mask2Former and MaskFormer number
+    segments from 0 and RF-DETR from 1, set by `first_segment_id`. The two maps overlap
+    at pixel (1, 1), which a segment-id map cannot represent.
     """
     binary_maps = np.zeros((2, 4, 4), dtype=np.float32)
     binary_maps[0, 0:2, 0:2] = 1
@@ -421,8 +448,8 @@ def _instance_binary_maps_result() -> tuple[np.ndarray, dict[str, object]]:
     seg_result = {
         "segmentation": _FakeDetachTensor(binary_maps),
         "segments_info": [
-            {"id": 0, "label_id": 3, "was_fused": False, "score": 0.9},
-            {"id": 1, "label_id": 5, "was_fused": False, "score": 0.8},
+            {"id": first_segment_id, "label_id": 3, "score": 0.9},
+            {"id": first_segment_id + 1, "label_id": 5, "score": 0.8},
         ],
     }
     return binary_maps, seg_result
