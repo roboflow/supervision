@@ -1534,6 +1534,24 @@ class TestLabelAnnotator:
         assert np.min(background_rows) < np.min(text_rows)
         assert np.max(text_rows) < np.max(background_rows)
 
+    @pytest.mark.parametrize("annotator_class", [LabelAnnotator, RichLabelAnnotator])
+    def test_integer_zero_label_is_drawn_like_its_text(
+        self, annotator_class: type[LabelAnnotator | RichLabelAnnotator]
+    ) -> None:
+        """Integer label `0` is drawn the same as the string label `"0"`."""
+        scene = np.zeros((80, 100, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[10, 40, 90, 70]], class_id=[0])
+        annotator = annotator_class()
+
+        result = annotator.annotate(
+            scene=scene.copy(), detections=detections, labels=cast(list[str], [0])
+        )
+
+        expected = annotator.annotate(
+            scene=scene.copy(), detections=detections, labels=["0"]
+        )
+        assert np.array_equal(result, expected)
+
 
 class TestRichLabelAnnotator:
     """Tests for RichLabelAnnotator class."""
