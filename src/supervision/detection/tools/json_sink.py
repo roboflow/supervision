@@ -4,11 +4,15 @@ import io
 import json
 import os
 from copy import deepcopy
+from types import TracebackType
 from typing import Any
 
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
 
 
 class JSONSink:
@@ -64,11 +68,17 @@ class JSONSink:
 
     def __exit__(
         self,
-        exc_type: type | None,
-        exc_val: Exception | None,
-        exc_tb: Any | None,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
-        self.write_and_close()
+        """Close the JSON sink while preserving an exception from the managed block."""
+        try:
+            self.write_and_close()
+        except Exception:
+            if exc_val is None:
+                raise
+            logger.exception("Failed to close JSON sink while handling an error.")
 
     def open(self) -> None:
         """Open the JSON file for writing."""
