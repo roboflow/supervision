@@ -9,6 +9,10 @@ date_modified: 2026-10-31
 
 - `sv.DetectionsSmoother` now returns detections with a negative `tracker_id` (tracks a tracker has not confirmed yet) unchanged instead of averaging them into one phantom box. Several unconfirmed detections in a frame shared one history, so they were averaged together and came back as a single row, e.g. two objects at `x=0` and `x=100` returned one box at `x=50`. ([#2926](https://github.com/roboflow/supervision/pull/2926))
 
+- `sv.DetectionsSmoother` now returns all tracked boxes when only some smoothed tracks retain oriented corners. Such frames use the smoothed axis-aligned bounds for every track instead of raising a merge error. ([#2923](https://github.com/roboflow/supervision/pull/2923))
+
+- `sv.Detections.from_transformers` now suggests the official [`rfdetr`](https://github.com/roboflow/rf-detr) package when a result has no recognized fields, and recommends it in the API documentation. Its `predict()` returns `sv.Detections` directly. ([#2921](https://github.com/roboflow/supervision/pull/2921))
+
 - Selecting key points from `sv.KeyPoints.empty()`, as in `key_points[:, [0, 1]]` on a frame without poses, now returns an empty result instead of raising `IndexError`. [#2920](https://github.com/roboflow/supervision/pull/2920)
 
 - `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
@@ -46,6 +50,8 @@ date_modified: 2026-10-31
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
+
+- `sv.xywh_to_xyxy` now promotes integer coordinates before adding widths and heights. A `uint8` box `[200, 20, 100, 40]` now becomes `[200, 20, 300, 60]`, preserving its 100-pixel crop instead of wrapping the right edge to 44. Integer inputs return `int64`, or `float64` when a corner exceeds its range; floating-point dtypes stay unchanged. ([#2922](https://github.com/roboflow/supervision/pull/2922))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
