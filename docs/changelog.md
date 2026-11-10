@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.KeyPoints` now accepts a zero-dimensional NumPy integer row index combined with a list or boolean mask of keypoints, preserving coordinates and aligned fields instead of raising `ValueError`.
+
 - `sv.DetectionsSmoother` now returns detections with a negative `tracker_id` (tracks a tracker has not confirmed yet) unchanged instead of averaging them into one phantom box. Several unconfirmed detections in a frame shared one history, so they were averaged together and came back as a single row, e.g. two objects at `x=0` and `x=100` returned one box at `x=50`. For oriented boxes, unconfirmed corners remain intact; confirmed tracks without compatible corner history use their smoothed axis-aligned bounds. ([#2926](https://github.com/roboflow/supervision/pull/2926))
 
 - `sv.PolygonZone` now excludes negative subpixel anchors before rounding, so an anchor just outside the top or left edge cannot be counted as pixel zero. Direct and camera-mapped anchors use the same bounds check. ([#2924](https://github.com/roboflow/supervision/pull/2924))
