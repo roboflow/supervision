@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionsSmoother` now returns detections with a negative `tracker_id` (tracks a tracker has not confirmed yet) unchanged instead of averaging them into one phantom box. Several unconfirmed detections in a frame shared one history, so they were averaged together and came back as a single row, e.g. two objects at `x=0` and `x=100` returned one box at `x=50`. ([#NNNN](https://github.com/roboflow/supervision/pull/NNNN))
+
 - Selecting key points from `sv.KeyPoints.empty()`, as in `key_points[:, [0, 1]]` on a frame without poses, now returns an empty result instead of raising `IndexError`. [#2920](https://github.com/roboflow/supervision/pull/2920)
 
 - `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
