@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
+import supervision as sv
 from supervision.detection.utils.converters import (
     _base48_decode,
     _base48_encode,
@@ -50,6 +51,150 @@ from supervision.detection.utils.converters import (
 def test_xywh_to_xyxy(xywh: np.ndarray, expected_result: np.ndarray) -> None:
     result = xywh_to_xyxy(xywh)
     np.testing.assert_array_equal(result, expected_result)
+
+
+class TestXywhToXyxy:
+    @pytest.mark.parametrize(
+        ("xywh", "expected"),
+        [
+            pytest.param(
+                np.array([[200, 20, 100, 40]], dtype=np.uint8),
+                [[200, 20, 300, 60]],
+                id="unsigned-overflow",
+            ),
+            pytest.param(
+                np.array([[100, 10, 60, 20]], dtype=np.int8),
+                [[100, 10, 160, 30]],
+                id="signed-overflow",
+            ),
+            pytest.param(
+                np.array([[200, 220, 100, 80], [10, 20, 0, 0]], dtype=np.uint8),
+                [[200, 220, 300, 300], [10, 20, 10, 20]],
+                id="multiple-rows-both-axes-and-zero-extents",
+            ),
+            pytest.param(
+                np.array([[-100, -20, 120, 40]], dtype=np.int8),
+                [[-100, -20, 20, 20]],
+                id="negative-origins",
+            ),
+            pytest.param(
+                np.array([[2**53 + 1, 2**63 - 2, 3, 1]], dtype=np.int64),
+                [[2**53 + 1, 2**63 - 2, 2**53 + 4, 2**63 - 1]],
+                id="exact-int64-beyond-float-precision",
+            ),
+            pytest.param(
+                np.array([[2**63 - 5, 0, 4, 0]], dtype=np.uint64),
+                [[2**63 - 5, 0, 2**63 - 1, 0]],
+                id="uint64-corners-fit-int64",
+            ),
+        ],
+    )
+    def test_preserves_integer_geometry(
+        self, xywh: np.ndarray, expected: list[list[int]]
+    ) -> None:
+        """Integer corners remain exact and the source array stays unchanged."""
+        original = xywh.copy()
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.int64))
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(xywh, original)
+        assert not np.shares_memory(result, xywh)
+
+    @pytest.mark.parametrize(
+        ("xywh", "expected"),
+        [
+            pytest.param(
+                np.array([[2**63 - 1, 0, 1, 0]], dtype=np.int64),
+                [[2**63 - 1, 0, 2**63, 0]],
+                id="above-int64-maximum",
+            ),
+            pytest.param(
+                np.array([[-(2**63), 0, -1, 0]], dtype=np.int64),
+                [[-(2**63), 0, -(2**63) - 1, 0]],
+                id="below-int64-minimum",
+            ),
+            pytest.param(
+                np.array([[2**64 - 1, 0, 2**64 - 1, 0]], dtype=np.uint64),
+                [[2**64 - 1, 0, 2**65 - 2, 0]],
+                id="uint64-maximum-does-not-wrap",
+            ),
+        ],
+    )
+    def test_returns_float64_outside_int64(
+        self, xywh: np.ndarray, expected: list[list[int]]
+    ) -> None:
+        """Corners outside int64 use float64 instead of wrapping."""
+        original = xywh.copy()
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.float64))
+        assert result.dtype == np.float64
+        np.testing.assert_array_equal(xywh, original)
+
+    @pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+    def test_preserves_floating_dtype(self, dtype: str) -> None:
+        """Floating boxes retain their dtype, fractions, and source values."""
+        xywh = np.array([[10.5, -20.25, 30.25, 40.5]], dtype=dtype)
+        original = xywh.copy()
+        expected = np.array([[10.5, -20.25, 40.75, 20.25]], dtype=dtype)
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, expected)
+        assert result.dtype == xywh.dtype
+        np.testing.assert_array_equal(xywh, original)
+        assert not np.shares_memory(result, xywh)
+
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    def test_preserves_non_native_floating_byte_order(self, dtype: str) -> None:
+        """Floating boxes retain their non-native byte order and coordinates."""
+        non_native_dtype = np.dtype(dtype).newbyteorder("S")
+        xywh = np.array([[10.5, -20.25, 30.25, 40.5]], dtype=non_native_dtype)
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, [[10.5, -20.25, 40.75, 20.25]])
+        assert result.dtype == non_native_dtype
+
+    @pytest.mark.parametrize(
+        ("dtype", "expected_dtype"),
+        [
+            pytest.param("uint8", "int64", id="empty-uint8"),
+            pytest.param("int64", "int64", id="empty-int64"),
+            pytest.param("uint64", "int64", id="empty-uint64"),
+            pytest.param("float32", "float32", id="empty-float32"),
+        ],
+    )
+    def test_preserves_empty_shape(self, dtype: str, expected_dtype: str) -> None:
+        """Empty batches keep four coordinate columns and the documented dtype."""
+        xywh = np.empty((0, 4), dtype=dtype)
+
+        result = xywh_to_xyxy(xywh)
+
+        assert result.shape == (0, 4)
+        assert result.dtype == np.dtype(expected_dtype)
+
+    def test_keeps_the_full_crop(self) -> None:
+        """A valid uint8 box yields its full 100-pixel-wide public image crop."""
+        image = np.arange(80 * 320, dtype=np.uint16).astype(np.uint8).reshape(80, 320)
+        xywh = np.array([[200, 20, 100, 40]], dtype=np.uint8)
+
+        crop = sv.crop_image(image, sv.xywh_to_xyxy(xywh)[0])
+
+        np.testing.assert_array_equal(crop, image[20:60, 200:300])
+        assert crop.shape == (40, 100)
+
+    def test_matches_the_expected_box_overlap(self) -> None:
+        """Public IoU sees the converted uint8 box as the expected rectangle."""
+        xywh = np.array([[200, 20, 100, 40]], dtype=np.uint8)
+        expected = np.array([[200, 20, 300, 60]], dtype=np.int64)
+
+        overlap = sv.box_iou_batch(sv.xywh_to_xyxy(xywh), expected)
+
+        np.testing.assert_array_equal(overlap, [[1.0]])
 
 
 @pytest.mark.parametrize(

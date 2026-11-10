@@ -113,6 +113,9 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     Returns:
         A numpy array of shape `(N, 4)` where each row corresponds
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+            Integer inputs produce `int64` output, or `float64` if a corner exceeds
+            the `int64` range; the latter may round integer values. Floating-point
+            inputs preserve their dtype.
 
     Examples:
         ```pycon
@@ -128,9 +131,16 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
         ```
     """
-    xyxy = xywh.copy()
-    xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
-    xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+    # Import at call time: boxes imports converters through compact_mask.
+    from supervision.detection.utils.boxes import _add_integer_offset
+
+    bottom_right = _add_integer_offset(xywh[:, :2], xywh[:, 2:])
+    output_dtype = (
+        xywh.dtype if np.issubdtype(xywh.dtype, np.floating) else bottom_right.dtype
+    )
+    xyxy = np.empty_like(xywh, dtype=output_dtype)
+    xyxy[:, :2] = xywh[:, :2]
+    xyxy[:, 2:] = bottom_right
     return cast(npt.NDArray[np.number], np.asarray(xyxy))
 
 
