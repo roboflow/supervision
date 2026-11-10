@@ -157,6 +157,10 @@ class DetectionsSmoother:
         Detections with a negative `tracker_id` belong to tracks the tracker has not
         confirmed yet and may share one ID, so they are not smoothed and have no
         history. They are returned unchanged, after the smoothed tracks.
+        When the current frame has oriented corners but confirmed tracks cannot
+        retain smoothed corners, all confirmed tracks use corners of their
+        axis-aligned smoothed bounds so unconfirmed detections retain their original
+        oriented geometry.
 
         Args:
             detections: The detections to add to the smoother.
@@ -196,8 +200,16 @@ class DetectionsSmoother:
             # data keys, and smoothing can drop confidence or oriented corners.
             if unsmoothed.confidence is None:
                 smoothed.confidence = None
-            if ORIENTED_BOX_COORDINATES not in smoothed.data:
-                unsmoothed.data.pop(ORIENTED_BOX_COORDINATES, None)
+            if ORIENTED_BOX_COORDINATES in unsmoothed.data:
+                # A merged data field needs one row per detection. If history cannot
+                # supply oriented corners, use the smoothed axis-aligned envelope.
+                if ORIENTED_BOX_COORDINATES not in smoothed.data:
+                    smoothed.data[ORIENTED_BOX_COORDINATES] = smoothed.xyxy[
+                        :, [[0, 1], [2, 1], [2, 3], [0, 3]]
+                    ]
+                unsmoothed.data[ORIENTED_BOX_COORDINATES] = np.asarray(
+                    unsmoothed.data[ORIENTED_BOX_COORDINATES]
+                )
         return Detections.merge([smoothed, unsmoothed])
 
     def _age_tracks(self, active_ids: set[int]) -> None:

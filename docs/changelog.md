@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionsSmoother` now returns detections with a negative `tracker_id` (tracks a tracker has not confirmed yet) unchanged instead of averaging them into one phantom box. Several unconfirmed detections in a frame shared one history, so they were averaged together and came back as a single row, e.g. two objects at `x=0` and `x=100` returned one box at `x=50`. ([#2926](https://github.com/roboflow/supervision/pull/2926))
+- `sv.DetectionsSmoother` now returns detections with a negative `tracker_id` (tracks a tracker has not confirmed yet) unchanged instead of averaging them into one phantom box. Several unconfirmed detections in a frame shared one history, so they were averaged together and came back as a single row, e.g. two objects at `x=0` and `x=100` returned one box at `x=50`. For oriented boxes, unconfirmed corners remain intact; confirmed tracks without compatible corner history use their smoothed axis-aligned bounds. ([#2926](https://github.com/roboflow/supervision/pull/2926))
 
 - `sv.DetectionsSmoother` now returns all tracked boxes when only some smoothed tracks retain oriented corners. Such frames use the smoothed axis-aligned bounds for every track instead of raising a merge error. ([#2923](https://github.com/roboflow/supervision/pull/2923))
 

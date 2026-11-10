@@ -800,8 +800,8 @@ class TestDetectionsSmootherUnconfirmedTracks:
 
         assert result == frame
 
-    def test_unconfirmed_oriented_boxes_follow_smoothed_data_keys(self) -> None:
-        """Corners dropped from a smoothed track are dropped from the rest too."""
+    def test_unconfirmed_oriented_boxes_keep_corners_with_mixed_history(self) -> None:
+        """Unconfirmed corners survive when a confirmed track lacks smoothed corners."""
         smoother = DetectionsSmoother(length=2)
         smoother.update_with_detections(
             Detections(
@@ -812,15 +812,41 @@ class TestDetectionsSmootherUnconfirmedTracks:
         oriented = TestDetectionsSmootherOrientedBoxes._obb(100.0, 0.0)
         unconfirmed = TestDetectionsSmootherOrientedBoxes._obb(300.0, 0.0)
         unconfirmed.tracker_id = np.array([-1])
+        unconfirmed.data[ORIENTED_BOX_COORDINATES] = np.array(
+            [[[300, -10], [310, 0], [300, 10], [290, 0]]], dtype=np.float32
+        )
 
         result = smoother.update_with_detections(
             Detections.merge([oriented, unconfirmed])
         )
 
-        assert ORIENTED_BOX_COORDINATES not in result.data
+        np.testing.assert_array_equal(
+            result.data[ORIENTED_BOX_COORDINATES][1],
+            unconfirmed.data[ORIENTED_BOX_COORDINATES][0],
+        )
+        np.testing.assert_array_equal(
+            result.data[ORIENTED_BOX_COORDINATES][0],
+            [[40, -10], [60, -10], [60, 10], [40, 10]],
+        )
         assert result.tracker_id is not None
         assert result.tracker_id.tolist() == [1, -1]
         assert_allclose(result.xyxy, [[40, -10, 60, 10], [290, -10, 310, 10]])
+
+    def test_list_oriented_corners_merge_with_unconfirmed_rows(self) -> None:
+        """List-valued corners merge when confirmed and unconfirmed IDs coexist."""
+        oriented = TestDetectionsSmootherOrientedBoxes._obb(0.0, 0.0)
+        unconfirmed = TestDetectionsSmootherOrientedBoxes._obb(100.0, 0.0)
+        unconfirmed.tracker_id = np.array([-1])
+        frame = Detections.merge([oriented, unconfirmed])
+        frame.data[ORIENTED_BOX_COORDINATES] = np.asarray(
+            frame.data[ORIENTED_BOX_COORDINATES]
+        ).tolist()
+
+        result = DetectionsSmoother(length=2).update_with_detections(frame)
+
+        np.testing.assert_array_equal(
+            result.data[ORIENTED_BOX_COORDINATES], frame.data[ORIENTED_BOX_COORDINATES]
+        )
 
     def test_unconfirmed_detections_without_confidence_keep_all_rows(self) -> None:
         """A confidence-less unconfirmed row does not make the merge raise."""
