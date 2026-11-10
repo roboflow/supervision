@@ -706,6 +706,34 @@ class TestDetectionsSmootherOrientedBoxes:
         assert ORIENTED_BOX_COORDINATES not in result.data
         assert_allclose(result.xyxy, np.array([[40.0, -10.0, 60.0, 10.0]]))
 
+    def test_mixed_track_history_returns_all_boxes(self) -> None:
+        """An axis-aligned track does not prevent an oriented track from merging."""
+        smoother = DetectionsSmoother(length=2)
+        previous_frame = self._obb(0.0, 0.0)
+        del previous_frame.data[ORIENTED_BOX_COORDINATES]
+        smoother.update_with_detections(previous_frame)
+        existing_track = self._obb(100.0, 0.0)
+        new_track = self._obb(300.0, 0.0)
+        new_track.tracker_id = np.array([2])
+        new_track.class_id = np.array([1])
+        current_frame = Detections.merge([existing_track, new_track])
+        current_frame.data["label"] = np.array(["existing", "new"])
+        current_frame.metadata["source"] = "camera"
+
+        result = smoother.update_with_detections(current_frame)
+
+        assert_allclose(result.xyxy, [[40, -10, 60, 10], [290, -10, 310, 10]])
+        assert result.tracker_id is not None
+        assert result.tracker_id.tolist() == [1, 2]
+        assert result.class_id is not None
+        assert result.class_id.tolist() == [0, 1]
+        assert list(result.data["label"]) == ["existing", "new"]
+        assert result.metadata == {"source": "camera"}
+        assert ORIENTED_BOX_COORDINATES not in result.data
+        oriented_track = smoother.get_track(2)
+        assert oriented_track is not None
+        assert ORIENTED_BOX_COORDINATES in oriented_track.data
+
     def test_detections_without_oriented_boxes_are_unaffected(self) -> None:
         """The common axis-aligned case must not gain the key."""
         smoother = DetectionsSmoother(length=2)
