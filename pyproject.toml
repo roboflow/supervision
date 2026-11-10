@@ -279,6 +279,7 @@ overrides = [
     "tests.metrics.test_size_bucket_regressions",
     "tests.metrics.test_sklearn_parity",
     "tests.metrics.utils.*",
+    "tests.test_docstring_examples",
     "tests.test_public_api",
     "tests.test_validate_deprecations",
     "tests.utils.conftest",
