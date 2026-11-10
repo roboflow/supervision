@@ -357,6 +357,8 @@ def test_fallback_convert_scale_abs_matches_opencv() -> None:
     [
         pytest.param(np.uint8, -1.3, 0.0, id="uint8-negative-alpha"),
         pytest.param(np.uint8, 2.7, -0.5, id="uint8-negative-beta"),
+        pytest.param(np.uint8, 1.3, 0.1, id="uint8-fused-offset"),
+        pytest.param(np.uint8, 1.7, 0.3, id="uint8-fused-offset-2"),
         pytest.param(np.int16, 1.3, 0.0, id="int16"),
         pytest.param(np.float32, -1.3, 0.0, id="float32"),
         pytest.param(np.float64, 1.3, 0.0, id="float64"),
@@ -367,7 +369,8 @@ def test_fallback_convert_scale_abs_rounds_in_float32_like_opencv(
 ) -> None:
     """Round in float32, so `.5` ties in float64 land where OpenCV puts them."""
     # 95 * 1.3 is 123.5 in float64 but 123.49999 in float32: OpenCV gives 123.
-    ties = np.array([95, 190, 90, 195, 170], dtype=np.float64)
+    # 38 * 1.3 + 0.1 rounds to 50 with OpenCV's fused multiply-add, 49 without it.
+    ties = np.array([95, 190, 90, 195, 170, 38], dtype=np.float64)
     noise = np.random.default_rng(0).uniform(-300, 300, size=200)
     source = np.concatenate([ties, noise]).reshape(1, -1)
     if np.issubdtype(dtype, np.integer):
