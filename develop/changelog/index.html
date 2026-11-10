@@ -3128,6 +3128,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0316-nov-10-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.31.6 Nov 10, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0315-nov-5-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3799,6 +3810,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0316-nov-10-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.31.6 Nov 10, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0315-nov-5-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4410,78 +4432,47 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
+<p>-</p>
+<h3 id="0316-nov-10-2026">0.31.6 <small>Nov 10, 2026</small><a class="headerlink" href="#0316-nov-10-2026" title="Permanent link">&para;</a></h3>
 <ul>
-<li>
-<p><code>sv.DetectionsSmoother</code> now returns detections with a negative <code>tracker_id</code> (tracks a tracker has not confirmed yet) unchanged instead of averaging them into one phantom box. Several unconfirmed detections in a frame shared one history, so they were averaged together and came back as a single row, e.g. two objects at <code>x=0</code> and <code>x=100</code> returned one box at <code>x=50</code>. For oriented boxes, unconfirmed corners remain intact; confirmed tracks without compatible corner history use their smoothed axis-aligned bounds. (<a href="https://github.com/roboflow/supervision/pull/2926">#2926</a>)</p>
+<li><strong>Annotators and colors</strong>: drawing on more image types, falsy labels and exact colors.<ul>
+<li><code>sv.RichLabelAnnotator</code> now annotates grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow grayscale image (<code>1</code>, <code>L</code>, <code>LA</code>, <code>I</code>, <code>F</code> or <code>I;16</code>), instead of raising <code>TypeError</code> or <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2916">#2916</a>)</li>
+<li>Annotators now draw the requested colors on Pillow palette images (modes <code>P</code> and <code>PA</code>), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations. (<a href="https://github.com/roboflow/supervision/pull/2907">#2907</a>)</li>
+<li><code>sv.draw_image</code> now draws on grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code>, and on BGRA scenes, like the other draw helpers, instead of raising a NumPy broadcast error. A grayscale scene receives the image's gray luminance, and on a BGRA scene the drawn pixels become opaque in proportion to the image's alpha and <code>opacity</code>. (<a href="https://github.com/roboflow/supervision/pull/2906">#2906</a>)</li>
+<li><code>sv.LabelAnnotator</code> and <code>sv.RichLabelAnnotator</code> now draw labels such as <code>0</code>, <code>np.int64(0)</code>, <code>0.0</code>, and <code>False</code> as text instead of empty background boxes. (<a href="https://github.com/roboflow/supervision/pull/2892">#2892</a>)</li>
+<li><code>sv.HeatMapAnnotator</code> now draws colors closer to OpenCV without OpenCV installed. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now follows OpenCV's float32 arithmetic and the 32-pixel AVX2 block rounding used by x86-64 wheels. Linux wheels fuse a multiply-add, so a few colors can still differ by one level. Builds using other block sizes can also differ by one level near row ends. (<a href="https://github.com/roboflow/supervision/pull/2904">#2904</a>)</li>
+<li><code>sv.ColorPalette.from_matplotlib</code> now rounds palette colors to 8-bit values as Matplotlib's <code>to_hex</code> does, instead of truncating them. Channels stored as <code>n / 255</code> floats came out one level low, so the seventh <code>Accent</code> color was <code>#bf5b16</code> instead of <code>#bf5b17</code>; 8 of the 10 colors sampled by <code>from_matplotlib("viridis", 5)</code> and <code>from_matplotlib("plasma", 5)</code> were also one level off. (<a href="https://github.com/roboflow/supervision/pull/2903">#2903</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>sv.PolygonZone</code> now excludes negative subpixel anchors before rounding, so an anchor just outside the top or left edge cannot be counted as pixel zero. Direct and camera-mapped anchors use the same bounds check. (<a href="https://github.com/roboflow/supervision/pull/2924">#2924</a>)</p>
+<li><strong>Model connectors</strong>: Transformers results load correctly.<ul>
+<li><code>sv.Detections.from_transformers</code> now suggests the official <a href="https://github.com/roboflow/rf-detr"><code>rfdetr</code></a> package when a result has no recognized fields, and recommends it in the API documentation. Its <code>predict()</code> returns <code>sv.Detections</code> directly. (<a href="https://github.com/roboflow/supervision/pull/2921">#2921</a>)</li>
+<li><code>sv.Detections.from_transformers</code> now reads zero-shot detections from <code>post_process_grounded_object_detection</code>. Grounding DINO results raised <code>AttributeError: 'list' object has no attribute 'cpu'</code>; they now load with their matched phrases as class names and <code>class_id=None</code>. OWL-ViT, OWLv2 and OmDet-Turbo detections keep the text query index as <code>class_id</code> and now take their class names from <code>text_labels</code>, where <code>id2label=model.config.id2label</code> named them <code>LABEL_0</code>, <code>LABEL_1</code>. (<a href="https://github.com/roboflow/supervision/pull/2913">#2913</a>)</li>
+<li><code>sv.Detections.from_transformers</code> now reads RF-DETR instance segmentation results requested with <code>return_binary_maps=True</code>. Binary maps are now paired with <code>segments_info</code> by position; indexing them by segment id raised <code>IndexError</code> for RF-DETR, which numbers segments from 1. An empty <code>(0, H, W)</code> stack of binary maps now gives empty <code>(0, H, W)</code> masks instead of raising <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2912">#2912</a>)</li>
+<li><code>sv.Classifications.from_clip</code> and <code>sv.Classifications.from_timm</code> now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. (<a href="https://github.com/roboflow/supervision/pull/2894">#2894</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>sv.DetectionsSmoother</code> now returns all tracked boxes when only some smoothed tracks retain oriented corners. Such frames use the smoothed axis-aligned bounds for every track instead of raising a merge error. (<a href="https://github.com/roboflow/supervision/pull/2923">#2923</a>)</p>
+<li><strong>Key points</strong>: empty frames and pose connectors behave like detections.<ul>
+<li><code>sv.KeyPoints.from_transformers</code> now gives every pose class ID <code>0</code> instead of numbering the poses of an image <code>0..N-1</code>. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and <code>sv.EdgeAnnotator</code> with per-class <code>edges</code> defined only for class <code>0</code> raised <code>ValueError</code> on the second person. Code that used the old ID as a per-person index can use <code>np.arange(len(key_points))</code>. (<a href="https://github.com/roboflow/supervision/pull/2914">#2914</a>)</li>
+<li><code>sv.KeyPoints.empty()</code> now holds empty <code>class_id</code>, <code>keypoint_confidence</code> and <code>detection_confidence</code> arrays, as <code>sv.Detections.empty()</code> does, instead of <code>None</code>. Pose connectors such as <code>sv.KeyPoints.from_ultralytics</code> return it for a frame without poses, so the documented filters <code>key_points[key_points.detection_confidence &gt; 0.5]</code> and <code>key_points.visible = key_points.keypoint_confidence &gt; 0.3</code> raised <code>TypeError: '&gt;' not supported between instances of 'NoneType' and 'float'</code> on every such frame of a video. (<a href="https://github.com/roboflow/supervision/pull/2911">#2911</a>)</li>
+<li>Selecting key points from <code>sv.KeyPoints.empty()</code>, as in <code>key_points[:, [0, 1]]</code> on a frame without poses, now returns an empty result instead of raising <code>IndexError</code>. (<a href="https://github.com/roboflow/supervision/pull/2920">#2920</a>)</li>
+<li><code>sv.KeyPoints.from_yolo_nas</code> now keeps each pose's score as <code>detection_confidence</code>, as <code>sv.KeyPoints.from_ultralytics</code>, <code>from_inference</code> and <code>from_detectron2</code> do. It used to drop it, so <code>sv.KeyPoints.with_nms</code> raised <code>ValueError: KeyPoints detection_confidence must be given for NMS to be executed.</code> on YOLO-NAS poses, and <code>sv.KeyPoints.as_detections</code> reported the mean key point confidence instead of the model's score. (<a href="https://github.com/roboflow/supervision/pull/2909">#2909</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>sv.Detections.from_transformers</code> now suggests the official <a href="https://github.com/roboflow/rf-detr"><code>rfdetr</code></a> package when a result has no recognized fields, and recommends it in the API documentation. Its <code>predict()</code> returns <code>sv.Detections</code> directly. (<a href="https://github.com/roboflow/supervision/pull/2921">#2921</a>)</p>
+<li><strong>Detections, tracking and zones</strong>: smoothing, zone counting and box math in edge cases.<ul>
+<li><code>sv.DetectionsSmoother</code> now returns detections with a negative <code>tracker_id</code> (tracks a tracker has not confirmed yet) unchanged instead of averaging them into one phantom box. Several unconfirmed detections in a frame shared one history, so they were averaged together and came back as a single row, e.g. two objects at <code>x=0</code> and <code>x=100</code> returned one box at <code>x=50</code>. For oriented boxes, unconfirmed corners remain intact; confirmed tracks without compatible corner history use their smoothed axis-aligned bounds. (<a href="https://github.com/roboflow/supervision/pull/2926">#2926</a>)</li>
+<li><code>sv.DetectionsSmoother</code> now returns all tracked boxes when only some smoothed tracks retain oriented corners. Such frames use the smoothed axis-aligned bounds for every track instead of raising a merge error. (<a href="https://github.com/roboflow/supervision/pull/2923">#2923</a>)</li>
+<li><code>sv.PolygonZone</code> now excludes negative subpixel anchors before rounding, so an anchor just outside the top or left edge cannot be counted as pixel zero. Direct and camera-mapped anchors use the same bounds check. (<a href="https://github.com/roboflow/supervision/pull/2924">#2924</a>)</li>
+<li><code>sv.xywh_to_xyxy</code> now promotes integer coordinates before adding widths and heights. A <code>uint8</code> box <code>[200, 20, 100, 40]</code> now becomes <code>[200, 20, 300, 60]</code>, preserving its 100-pixel crop instead of wrapping the right edge to 44. Integer inputs return <code>int64</code>, or <code>float64</code> when a corner exceeds its range; floating-point dtypes stay unchanged. (<a href="https://github.com/roboflow/supervision/pull/2922">#2922</a>)</li>
+<li><code>sv.move_masks</code> now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. (<a href="https://github.com/roboflow/supervision/pull/2918">#2918</a>)</li>
+<li><code>sv.JSONSink</code> now preserves an exception raised inside a <code>with</code> block when writing or closing the JSON file also fails. The cleanup error is logged; it still propagates when the block succeeds. (<a href="https://github.com/roboflow/supervision/pull/2902">#2902</a>)</li>
+</ul>
 </li>
-<li>
-<p>Selecting key points from <code>sv.KeyPoints.empty()</code>, as in <code>key_points[:, [0, 1]]</code> on a frame without poses, now returns an empty result instead of raising <code>IndexError</code>. <a href="https://github.com/roboflow/supervision/pull/2920">#2920</a></p>
-</li>
-<li>
-<p><code>sv.move_masks</code> now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. (<a href="https://github.com/roboflow/supervision/pull/2918">#2918</a>)</p>
-</li>
-<li>
-<p><code>sv.RichLabelAnnotator</code> now annotates grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow grayscale image (<code>1</code>, <code>L</code>, <code>LA</code>, <code>I</code>, <code>F</code> or <code>I;16</code>), instead of raising <code>TypeError</code> or <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2916">#2916</a>)</p>
-</li>
-<li>
-<p><code>sv.KeyPoints.from_transformers</code> now gives every pose class ID <code>0</code> instead of numbering the poses of an image <code>0..N-1</code>. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and <code>sv.EdgeAnnotator</code> with per-class <code>edges</code> defined only for class <code>0</code> raised <code>ValueError</code> on the second person. Code that used the old ID as a per-person index can use <code>np.arange(len(key_points))</code>. (<a href="https://github.com/roboflow/supervision/pull/2914">#2914</a>)</p>
-</li>
-<li>
-<p><code>sv.Detections.from_transformers</code> now reads zero-shot detections from <code>post_process_grounded_object_detection</code>. Grounding DINO results raised <code>AttributeError: 'list' object has no attribute 'cpu'</code>; they now load with their matched phrases as class names and <code>class_id=None</code>. OWL-ViT, OWLv2 and OmDet-Turbo detections keep the text query index as <code>class_id</code> and now take their class names from <code>text_labels</code>, where <code>id2label=model.config.id2label</code> named them <code>LABEL_0</code>, <code>LABEL_1</code>. (<a href="https://github.com/roboflow/supervision/pull/2913">#2913</a>)</p>
-</li>
-<li>
-<p><code>sv.Detections.from_transformers</code> now reads RF-DETR instance segmentation results requested with <code>return_binary_maps=True</code>. Binary maps are now paired with <code>segments_info</code> by position; indexing them by segment id raised <code>IndexError</code> for RF-DETR, which numbers segments from 1. An empty <code>(0, H, W)</code> stack of binary maps now gives empty <code>(0, H, W)</code> masks instead of raising <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2912">#2912</a>)</p>
-</li>
-<li>
-<p>Annotators now draw the requested colors on Pillow palette images (modes <code>P</code> and <code>PA</code>), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations (<a href="https://github.com/roboflow/supervision/pull/2907">#2907</a>).</p>
-</li>
-<li>
-<p><code>sv.draw_image</code> now draws on grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code>, and on BGRA scenes, like the other draw helpers, instead of raising a NumPy broadcast error. A grayscale scene receives the image's gray luminance, and on a BGRA scene the drawn pixels become opaque in proportion to the image's alpha and <code>opacity</code>. (<a href="https://github.com/roboflow/supervision/pull/2906">#2906</a>)</p>
-</li>
-<li>
-<p><code>sv.resize_image</code>, <code>sv.scale_image</code> and <code>sv.letterbox_image</code> now return <code>(H, W, 1)</code> for an <code>(H, W, 1)</code> grayscale image with OpenCV installed too, instead of <code>(H, W)</code>; the NumPy backend already kept the axis. <code>sv.tint_image</code> and <code>sv.grayscale_image</code> now accept <code>(H, W, 1)</code> images like <code>(H, W)</code> ones instead of raising. (<a href="https://github.com/roboflow/supervision/pull/2905">#2905</a>)</p>
-</li>
-<li>
-<p><code>sv.HeatMapAnnotator</code> now draws colors closer to OpenCV without OpenCV installed. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now follows OpenCV's float32 arithmetic and the 32-pixel AVX2 block rounding used by x86-64 wheels. Linux wheels fuse a multiply-add, so a few colors can still differ by one level. Builds using other block sizes can also differ by one level near row ends. (<a href="https://github.com/roboflow/supervision/pull/2904">#2904</a>)</p>
-</li>
-<li>
-<p><code>sv.ColorPalette.from_matplotlib</code> now rounds palette colors to 8-bit values as Matplotlib's <code>to_hex</code> does, instead of truncating them. Channels stored as <code>n / 255</code> floats came out one level low, so the seventh <code>Accent</code> color was <code>#bf5b16</code> instead of <code>#bf5b17</code>; 8 of the 10 colors sampled by <code>from_matplotlib("viridis", 5)</code> and <code>from_matplotlib("plasma", 5)</code> were also one level off. (<a href="https://github.com/roboflow/supervision/pull/2903">#2903</a>)</p>
-</li>
-<li>
-<p><code>sv.JSONSink</code> now preserves an exception raised inside a <code>with</code> block when writing or closing the JSON file also fails. The cleanup error is logged; it still propagates when the block succeeds. (<a href="https://github.com/roboflow/supervision/pull/2902">#2902</a>)</p>
-</li>
-<li>
-<p><code>sv.ImageSink.save_image</code>, dataset exports and other image writes now support more non-<code>uint8</code> images when OpenCV is not installed. 16-bit grayscale, BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs with unsupported sample types, get a saturated 8-bit copy. Multi-channel TIFFs with types other than <code>uint8</code> can still fail without OpenCV. Previously these writes raised <code>TypeError</code>, or returned <code>False</code> for grayscale images. (<a href="https://github.com/roboflow/supervision/pull/2901">#2901</a>)</p>
-</li>
-<li>
-<p><code>sv.mask_to_polygons</code> now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's <code>RETR_TREE</code> order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now <code>int32</code>, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. (<a href="https://github.com/roboflow/supervision/pull/2900">#2900</a>)</p>
-</li>
-<li>
-<p><code>sv.KeyPoints.empty()</code> now holds empty <code>class_id</code>, <code>keypoint_confidence</code> and <code>detection_confidence</code> arrays, as <code>sv.Detections.empty()</code> does, instead of <code>None</code>. Pose connectors such as <code>sv.KeyPoints.from_ultralytics</code> return it for a frame without poses, so the documented filters <code>key_points[key_points.detection_confidence &gt; 0.5]</code> and <code>key_points.visible = key_points.keypoint_confidence &gt; 0.3</code> raised <code>TypeError: '&gt;' not supported between instances of 'NoneType' and 'float'</code> on every such frame of a video. (<a href="https://github.com/roboflow/supervision/pull/2911">#2911</a>)</p>
-</li>
-<li>
-<p><code>sv.KeyPoints.from_yolo_nas</code> now keeps each pose's score as <code>detection_confidence</code>, as <code>sv.KeyPoints.from_ultralytics</code>, <code>from_inference</code> and <code>from_detectron2</code> do. It used to drop it, so <code>sv.KeyPoints.with_nms</code> raised <code>ValueError: KeyPoints detection_confidence must be given for NMS to be executed.</code> on YOLO-NAS poses, and <code>sv.KeyPoints.as_detections</code> reported the mean key point confidence instead of the model's score. (<a href="https://github.com/roboflow/supervision/pull/2909">#2909</a>)</p>
-</li>
-<li>
-<p><code>sv.Classifications.from_clip</code> and <code>sv.Classifications.from_timm</code> now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. (<a href="https://github.com/roboflow/supervision/pull/2894">#2894</a>)</p>
-</li>
-<li>
-<p><code>create_batches</code> now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. (<a href="https://github.com/roboflow/supervision/pull/2893">#2893</a>)</p>
-</li>
-<li>
-<p><code>sv.LabelAnnotator</code> and <code>sv.RichLabelAnnotator</code> now draw labels such as <code>0</code>, <code>np.int64(0)</code>, <code>0.0</code>, and <code>False</code> as text instead of empty background boxes. (<a href="https://github.com/roboflow/supervision/pull/2892">#2892</a>)</p>
-</li>
-<li>
-<p><code>sv.xywh_to_xyxy</code> now promotes integer coordinates before adding widths and heights. A <code>uint8</code> box <code>[200, 20, 100, 40]</code> now becomes <code>[200, 20, 300, 60]</code>, preserving its 100-pixel crop instead of wrapping the right edge to 44. Integer inputs return <code>int64</code>, or <code>float64</code> when a corner exceeds its range; floating-point dtypes stay unchanged. (<a href="https://github.com/roboflow/supervision/pull/2922">#2922</a>)</p>
+<li><strong>Images, files and the cv2-free fallback</strong>: image shapes, writes and contours match OpenCV.<ul>
+<li><code>sv.resize_image</code>, <code>sv.scale_image</code> and <code>sv.letterbox_image</code> now return <code>(H, W, 1)</code> for an <code>(H, W, 1)</code> grayscale image with OpenCV installed too, instead of <code>(H, W)</code>; the NumPy backend already kept the axis. <code>sv.tint_image</code> and <code>sv.grayscale_image</code> now accept <code>(H, W, 1)</code> images like <code>(H, W)</code> ones instead of raising. (<a href="https://github.com/roboflow/supervision/pull/2905">#2905</a>)</li>
+<li><code>sv.ImageSink.save_image</code>, dataset exports and other image writes now support more non-<code>uint8</code> images when OpenCV is not installed. 16-bit grayscale, BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs with unsupported sample types, get a saturated 8-bit copy. Multi-channel TIFFs with types other than <code>uint8</code> can still fail without OpenCV. Previously these writes raised <code>TypeError</code>, or returned <code>False</code> for grayscale images. (<a href="https://github.com/roboflow/supervision/pull/2901">#2901</a>)</li>
+<li><code>sv.mask_to_polygons</code> now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's <code>RETR_TREE</code> order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now <code>int32</code>, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. (<a href="https://github.com/roboflow/supervision/pull/2900">#2900</a>)</li>
+<li><code>create_batches</code> now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. (<a href="https://github.com/roboflow/supervision/pull/2893">#2893</a>)</li>
+</ul>
 </li>
 </ul>
 <h3 id="0315-nov-5-2026">0.31.5 <small>Nov 5, 2026</small><a class="headerlink" href="#0315-nov-5-2026" title="Permanent link">&para;</a></h3>
@@ -6798,7 +6789,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 10, 2026 10:08:40 UTC">November 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 10, 2026 13:55:11 UTC">November 10, 2026</span>
   </span>
 
     
