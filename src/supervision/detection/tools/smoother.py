@@ -263,6 +263,19 @@ class DetectionsSmoother:
             track_ids: Optional set of track IDs to include in the output. When
                 provided, tracks absent from the current frame are excluded from the
                 emitted detections but their history stays cached.
+
+        Returns:
+            The merged smoothed detections. Oriented-box corners are included only
+            when every returned track has them.
+
+        Example:
+            ```pycon
+            >>> import supervision as sv
+            >>> smoother = sv.DetectionsSmoother(length=2)
+            >>> len(smoother.get_smoothed_detections())
+            0
+
+            ```
         """
         tracked_detections = []
         for track_id in self.tracks:
@@ -278,6 +291,15 @@ class DetectionsSmoother:
         if tracked_detections and any(d.confidence is None for d in tracked_detections):
             for d in tracked_detections:
                 d.confidence = None
+
+        oriented_tracks = [
+            track
+            for track in tracked_detections
+            if ORIENTED_BOX_COORDINATES in track.data
+        ]
+        if len(oriented_tracks) != len(tracked_detections):
+            for track in oriented_tracks:
+                del track.data[ORIENTED_BOX_COORDINATES]
 
         detections = Detections.merge(tracked_detections)
         if len(detections) == 0:
