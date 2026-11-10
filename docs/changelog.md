@@ -47,6 +47,8 @@ date_modified: 2026-10-31
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
 
+- `sv.xywh_to_xyxy` now promotes integer coordinates before adding widths and heights. A `uint8` box `[200, 20, 100, 40]` now becomes `[200, 20, 300, 60]`, preserving its 100-pixel crop instead of wrapping the right edge to 44. Integer inputs return `int64`, or `float64` when a corner exceeds its range; floating-point dtypes stay unchanged. ([#2922](https://github.com/roboflow/supervision/pull/2922))
+
 ### 0.31.5 <small>Nov 5, 2026</small>
 
 - **Annotators**: annotating more image types and right-to-left labels.
