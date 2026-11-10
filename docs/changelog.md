@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` with `approximation_percentage > 0` no longer abort the export with `ValueError: No foreground-contained seam found for a mask hole.` when simplifying a ragged mask removes every outline vertex its hole could be joined to. Such a mask is now joined from its traced contours, so it keeps its hole and is written unsimplified; `as_coco` joins `iscrowd=0` annotations the same way instead of warning and writing the hole as a separate part, which COCO readers fill. ([#NNNN](https://github.com/roboflow/supervision/pull/NNNN))
 
 ### 0.31.6 <small>Nov 10, 2026</small>
 

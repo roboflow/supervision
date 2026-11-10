@@ -1654,6 +1654,52 @@ class TestAsYoloMaskWithHole:
         assert len(result) == 1
         np.testing.assert_array_equal(result.mask, mask)
 
+    def test_simplified_export_keeps_hole_behind_thin_walls(
+        self, tmp_path: Path
+    ) -> None:
+        """A ragged mask exports with simplification instead of raising."""
+        rows = [
+            ".......",
+            ".#.###.",
+            ".#####.",
+            "...###.",
+            ".#..##.",
+            ".####..",
+            "..#..#.",
+            "..#.#..",
+            ".#####.",
+            ".......",
+        ]
+        mask = np.array([[[pixel == "#" for pixel in row] for row in rows]])
+        image_path = str(tmp_path / "source" / "ragged.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (7, 10)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[1, 1, 5, 8]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["blob"], images=[image_path], annotations={image_path: detections}
+        )
+
+        dataset.as_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+            approximation_percentage=0.5,
+        )
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+            force_masks=True,
+        )
+
+        result = next(iter(reloaded.annotations.values()))
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.mask, mask)
+
 
 class TestAsYoloMultiSegmentMask:
     """Tests for exporting masks consisting of disconnected segments to YOLO."""
