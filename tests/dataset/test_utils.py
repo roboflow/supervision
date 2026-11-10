@@ -376,6 +376,22 @@ class TestApproximateMaskWithPolygons:
         assert len(simplified) == len(exact) == 1
         assert len(simplified[0]) < len(exact[0])
 
+    @pytest.mark.parametrize("approximation_percentage", [0.5, 0.75])
+    def test_bridges_traced_contours_when_simplified_ones_have_no_seam(
+        self, approximation_percentage: float, ragged_mask_with_hole: np.ndarray
+    ) -> None:
+        """A hole the simplified outline cannot reach is bridged, not raised."""
+        mask = ragged_mask_with_hole
+
+        polygons = approximate_mask_with_polygons(
+            mask,
+            approximation_percentage=approximation_percentage,
+            bridge_holes=True,
+        )
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (7, 10)), mask)
+
 
 class TestIsSegmentInsideMask:
     """Tests for `_is_segment_inside_mask`."""
