@@ -554,6 +554,47 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
 class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
+    @pytest.mark.parametrize("method", ["select", "__getitem__"])
+    @pytest.mark.parametrize("row", [0, -1])
+    @pytest.mark.parametrize(
+        "anchors",
+        [
+            pytest.param([2, 0], id="integer-list"),
+            pytest.param(np.array([2, 0]), id="integer-array"),
+            pytest.param([True, False, True], id="boolean-list"),
+            pytest.param(np.array([True, False, True]), id="boolean-array"),
+        ],
+    )
+    def test_scalar_array_row_with_multiple_anchors(
+        self, method: str, row: int, anchors: Any
+    ) -> None:
+        """Scalar array rows retain aligned fields when selecting multiple joints."""
+        xy = np.arange(18, dtype=np.float32).reshape(2, 3, 3)
+        keypoint_confidence = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
+        visible = np.array([[True, False, True], [False, True, False]])
+        key_points = KeyPoints(
+            xy=xy,
+            keypoint_confidence=keypoint_confidence,
+            visible=visible,
+            class_id=np.array([2, 3]),
+            detection_confidence=np.array([0.7, 0.8]),
+            data={"names": ["first", "second"], "id": np.array([10, 20])},
+        )
+
+        result = getattr(key_points, method)((np.array(row), anchors))
+
+        np.testing.assert_array_equal(result.xy, xy[row, anchors][None, ...])
+        np.testing.assert_array_equal(
+            result.keypoint_confidence, keypoint_confidence[row, anchors][None, ...]
+        )
+        np.testing.assert_array_equal(result.visible, visible[row, anchors][None, ...])
+        np.testing.assert_array_equal(result.class_id, [2 if row == 0 else 3])
+        np.testing.assert_array_equal(
+            result.detection_confidence, [0.7 if row == 0 else 0.8]
+        )
+        np.testing.assert_array_equal(result.data["id"], [10 if row == 0 else 20])
+        assert result.data["names"] == ["first" if row == 0 else "second"]
+
     @pytest.mark.parametrize(
         "anchor_index",
         [
