@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionsSmoother` now returns all tracked boxes when only some smoothed tracks retain oriented corners. Such frames use the smoothed axis-aligned bounds for every track instead of raising a merge error.
+
 - Selecting key points from `sv.KeyPoints.empty()`, as in `key_points[:, [0, 1]]` on a frame without poses, now returns an empty result instead of raising `IndexError`. [#2920](https://github.com/roboflow/supervision/pull/2920)
 
 - `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
