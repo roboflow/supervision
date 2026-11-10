@@ -1289,6 +1289,10 @@ class KeyPoints:
 
         Supports detection-level (skeleton) filtering, keypoint-level (anchor)
         filtering, combined tuple indexing, and data field access by string key.
+        For a result from :meth:`~supervision.key_points.core.KeyPoints.empty`,
+        anchor selection such as `key_points[:, [0, 1]]` returns an empty result
+        when the skeleton selector is valid. Out-of-range skeleton indexes, such
+        as `key_points[0]`, still raise `IndexError`.
 
         Args:
             index: The index, indices, or key to access a subset of the KeyPoints
