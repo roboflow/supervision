@@ -1860,8 +1860,8 @@ class TestFromTransformers:
         np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
         np.testing.assert_array_equal(key_points.class_id, [0])
 
-    def test_multiple_poses_are_stacked_with_sequential_class_ids(self) -> None:
-        """Several poses stack into one `(N, K, 2)` array with ids `0..N-1`."""
+    def test_multiple_poses_are_stacked_with_one_shared_class_id(self) -> None:
+        """Several poses stack into one `(N, K, 2)` array, all with class ID `0`."""
         results = [
             {
                 "keypoints": _FakeTensor(
@@ -1881,7 +1881,7 @@ class TestFromTransformers:
 
         assert key_points.xy.shape == (2, 2, 2)
         assert key_points.xy.dtype == np.float32
-        np.testing.assert_array_equal(key_points.class_id, [0, 1])
+        np.testing.assert_array_equal(key_points.class_id, [0, 0])
 
 
 class _FakeDetectron2Instances:
