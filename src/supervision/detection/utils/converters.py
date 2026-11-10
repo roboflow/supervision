@@ -113,6 +113,9 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     Returns:
         A numpy array of shape `(N, 4)` where each row corresponds
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+            Integer inputs produce `int64` output, or `float64` if a corner exceeds
+            the `int64` range; the latter may round integer values. Floating-point
+            inputs preserve their dtype.
 
     Examples:
         ```pycon
@@ -128,9 +131,16 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
         ```
     """
-    xyxy = xywh.copy()
-    xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
-    xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+    # Import at call time: boxes imports converters through compact_mask.
+    from supervision.detection.utils.boxes import _add_integer_offset
+
+    bottom_right = _add_integer_offset(xywh[:, :2], xywh[:, 2:])
+    output_dtype = (
+        xywh.dtype if np.issubdtype(xywh.dtype, np.floating) else bottom_right.dtype
+    )
+    xyxy = np.empty_like(xywh, dtype=output_dtype)
+    xyxy[:, :2] = xywh[:, :2]
+    xyxy[:, 2:] = bottom_right
     return cast(npt.NDArray[np.number], np.asarray(xyxy))
 
 
@@ -410,7 +420,9 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
         A list of polygons, where each polygon is represented by a NumPy array
             of shape `(N, 2)`, containing the `x`, `y` coordinates of the
             points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
-            are excluded from the output.
+            are excluded from the output. Polygons follow OpenCV's `RETR_TREE`
+            order with and without OpenCV installed: each outline is followed by
+            its holes, and sibling outlines come last-found first.
 
     Examples:
         ```pycon

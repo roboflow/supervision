@@ -478,6 +478,33 @@ def _color_for_canvas(
     return color_bgr
 
 
+def _pillow_fill(color: Color, mode: str) -> float | tuple[int, ...]:
+    """Return `color` as the fill Pillow's `ImageDraw` accepts for a scene of `mode`.
+
+    Pillow rejects an RGB tuple on grayscale modes. Those take the first (blue) BGR
+    channel, as :func:`~supervision.annotators.core._color_for_canvas` does, so rich
+    labels match what the other annotators draw on the same scene. Integer modes
+    deeper than 8 bits scale it by 257, the mapping of 0-255 onto 0-65535 that
+    :func:`~supervision.utils.conversion.ensure_cv2_image_for_class_method` applies.
+
+    Args:
+        color: Color to draw.
+        mode: Pillow mode of the scene.
+
+    Returns:
+        Fill value for `ImageDraw` on an image of that mode.
+    """
+    if mode == "1":
+        return 255 if color.b >= 128 else 0
+    if mode in ("L", "F"):
+        return color.b
+    if mode == "LA":
+        return (color.b, 255)
+    if mode == "I" or mode.startswith("I;16"):
+        return color.b * 257
+    return color.as_rgb()
+
+
 def _paint_masks_by_area(
     canvas: npt.NDArray[np.uint8],
     detections: Detections,
@@ -1781,7 +1808,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         Args:
             scene: The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale scenes, shaped `(H, W)` or
+                `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`,
+                `I`, `F` or `I;16`), are supported.
             detections: Object detections to annotate.
             labels: Custom labels for each detection.
             custom_color_lookup: Custom color lookup array.
@@ -1947,6 +1976,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None,
     ) -> None:
+        """Draw each label's background and text in a fill valid for `scene.mode`."""
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
             f"labels ({len(labels)}) and detections ({len(detections)}) "
@@ -1980,7 +2010,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             draw.rounded_rectangle(
                 tuple(box_xyxy),
                 radius=self.border_radius,
-                fill=background_color.as_rgb(),
+                fill=_pillow_fill(background_color, scene.mode),
                 outline=None,
             )
 
@@ -2010,7 +2040,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                         xy=(x_position, y_position),
                         text=line,
                         font=self.font,
-                        fill=text_color.as_rgb(),
+                        fill=_pillow_fill(text_color, scene.mode),
                     )
 
                 # Move to the next line position

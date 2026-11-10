@@ -210,6 +210,73 @@ class TestPolygonZoneTrigger:
         result = zone.trigger(detections)
         assert not result[0]
 
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(None, id="direct"),
+            pytest.param(_ShiftTransform(0, 0), id="identity"),
+        ],
+    )
+    def test_rejects_negative_subpixel_anchors(
+        self, transform: _ShiftTransform | None
+    ) -> None:
+        """A negative subpixel anchor stays outside when its nearest pixel is zero."""
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [20, 0], [20, 20], [0, 20]]),
+            triggering_anchors=[sv.Position.TOP_LEFT],
+        )
+        detections = sv.Detections(
+            xyxy=np.array(
+                [
+                    [-0.4, 5.0, 4.0, 8.0],
+                    [5.0, -0.4, 8.0, 4.0],
+                    [0.0, 5.0, 4.0, 8.0],
+                    [5.0, 0.0, 8.0, 4.0],
+                    [0.4, 5.0, 4.0, 8.0],
+                    [20.0, 5.0, 24.0, 8.0],
+                    [22.0, 5.0, 24.0, 8.0],
+                ]
+            )
+        )
+
+        in_zone = zone.trigger(detections, coord_transform=transform)
+
+        np.testing.assert_array_equal(
+            in_zone, [False, False, True, True, True, True, False]
+        )
+        assert zone.current_count == 4
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    def test_oversized_anchors_are_excluded_without_warning(self) -> None:
+        """Finite coordinates outside the integer range are excluded without warning."""
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [20, 0], [20, 20], [0, 20]]),
+            triggering_anchors=[sv.Position.TOP_LEFT],
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[1e30, 5.0, 1e30, 8.0], [5.0, -1e30, 8.0, 5.0]])
+        )
+
+        in_zone = zone.trigger(detections)
+
+        np.testing.assert_array_equal(in_zone, [False, False])
+        assert zone.current_count == 0
+
+    def test_float16_anchor_on_wide_polygon_boundary_is_included(self) -> None:
+        """The mask width keeps its integer precision for float16 anchors."""
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [8192, 0], [8192, 8], [0, 8]]),
+            triggering_anchors=[sv.Position.BOTTOM_RIGHT],
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[8190, 1, 8192, 5]], dtype=np.float16)
+        )
+
+        in_zone = zone.trigger(detections)
+
+        np.testing.assert_array_equal(in_zone, [True])
+        assert zone.current_count == 1
+
     def test_anchor_on_polygon_boundary_included(self) -> None:
         """An anchor landing exactly on a polygon corner is counted as inside."""
         polygon = np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
@@ -417,6 +484,10 @@ class TestPolygonZoneTriggerWithCoordTransform:
             pytest.param((160.0, 45.0), id="beyond-mask-width"),
             pytest.param((45.0, -1e30), id="far-beyond-int-range"),
             pytest.param((np.nan, np.nan), id="nan"),
+            pytest.param(
+                (np.uint64(0x7FF0000000000001).view(np.float64), 45.0),
+                id="signaling-nan",
+            ),
             pytest.param((np.inf, 45.0), id="inf"),
         ],
     )
