@@ -1199,6 +1199,12 @@ class KeyPoints:
 
         if isinstance(i, int):
             i = [i]
+        elif (
+            isinstance(i, np.ndarray)
+            and i.ndim == 0
+            and np.issubdtype(i.dtype, np.integer)
+        ):
+            i = i.reshape(1)
 
         if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
             i = np.array(i)
