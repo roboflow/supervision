@@ -222,7 +222,7 @@ def _sort_box_corners(
 
 
 def _add_integer_offset(
-    coordinates: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+    coordinates: npt.NDArray[np.number], offset: npt.NDArray[np.number]
 ) -> npt.NDArray[np.number]:
     """Add an offset to coordinates without wrapping integer values.
 
@@ -233,7 +233,7 @@ def _add_integer_offset(
 
     Args:
         coordinates: Coordinate array to translate.
-        offset: Integer offset, broadcastable to the shape of `coordinates`.
+        offset: Numeric offset, broadcastable to the shape of `coordinates`.
 
     Returns:
         Translated coordinates.
