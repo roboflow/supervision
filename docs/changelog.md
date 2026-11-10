@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionDataset.from_yolo(..., compact_masks=True)` now keeps segmentation masks as `sv.CompactMask`, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and `force_masks=True` can also produce compact box masks. ([#2834](https://github.com/roboflow/supervision/pull/2834))
+
 - Selecting key points from `sv.KeyPoints.empty()`, as in `key_points[:, [0, 1]]` on a frame without poses, now returns an empty result instead of raising `IndexError`. [#2920](https://github.com/roboflow/supervision/pull/2920)
 
 - `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
