@@ -15,11 +15,17 @@ def process_transformers_detection_result(
     detection_result: dict[str, Any], id2label: dict[int, str] | None
 ) -> dict[str, Any]:
     """Process the result of Transformers object detection functions such as
-    `post_process` (v4) and `post_process_detection` (v5).
+    `post_process` (v4), `post_process_detection` (v5) and
+    `post_process_grounded_object_detection`.
+
+    Zero-shot detectors name their detections in `text_labels`, which then sets the
+    class names instead of `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo give the index
+    of the matched text query in `labels`, used as the class ID. Grounding DINO gives
+    the matched phrases in `labels` instead, so its class IDs are `None`.
 
     Args:
         detection_result: Dictionary containing detection results with keys
-            'boxes', 'labels', and 'scores'.
+            'boxes', 'labels', and 'scores', and optionally 'text_labels'.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -28,8 +34,21 @@ def process_transformers_detection_result(
         Processed detection result including bounding boxes, confidence scores,
             class IDs, and data.
     """
-    class_ids = detection_result["labels"].cpu().detach().numpy().astype(int)
-    data = append_class_names_to_data(class_ids, id2label, {})
+    # Grounding DINO warns on reading `labels`, which repeats its `text_labels`;
+    # the base `dict` lookup reads the entry without that warning.
+    labels = dict.__getitem__(detection_result, "labels")
+    text_labels = detection_result.get("text_labels")
+    if isinstance(labels, list):
+        # Phrases rather than query indices, so there is no class ID to give.
+        class_ids = None
+        phrases = labels if text_labels is None else text_labels
+        data = {CLASS_NAME_DATA_FIELD: np.array(phrases, dtype=str)}
+    else:
+        class_ids = labels.cpu().detach().numpy().astype(int)
+        if text_labels is None:
+            data = append_class_names_to_data(class_ids, id2label, {})
+        else:
+            data = {CLASS_NAME_DATA_FIELD: np.array(text_labels, dtype=str)}
 
     return dict(
         xyxy=detection_result["boxes"].cpu().detach().numpy(),
@@ -140,13 +159,16 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
     scores = np.array([segment["score"] for segment in segments_info], dtype=float)
     class_ids = np.array([segment["label_id"] for segment in segments_info], dtype=int)
     if len(segments_info) == 0:
-        masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+        # An empty binary-map stack is `(0, H, W)`; only its last two axes are the
+        # image, as for a segment-id map.
+        masks = np.empty((0, *segmentation_array.shape[-2:]), dtype=bool)
     elif segmentation_array.ndim == 3:
-        # Binary maps are stacked in the order segment ids were assigned, so each
-        # segment's `id` indexes its own map. Reading the maps directly also keeps
-        # pixels shared by overlapping instances, which a segment-id map drops.
-        segment_ids = [segment["id"] for segment in segments_info]
-        masks = segmentation_array[segment_ids].astype(bool)
+        # Binary maps are stacked in `segments_info` order, so the k-th entry owns
+        # the k-th map. Segment ids cannot index the stack: Mask2Former and
+        # MaskFormer number them from 0, RF-DETR from 1. Reading the maps directly
+        # also keeps pixels shared by overlapping instances, which a segment-id map
+        # drops.
+        masks = segmentation_array.astype(bool)
     else:
         masks = np.array(
             [segmentation_array == segment["id"] for segment in segments_info]

@@ -736,6 +736,16 @@ def test_key_points_empty():
     assert empty_key_points.xy.shape == (0, 0, 2)
 
 
+@pytest.mark.parametrize("field", ["detection_confidence", "keypoint_confidence"])
+def test_key_points_empty_filters_by_confidence(field: str) -> None:
+    """A frame without poses filters by confidence like a frame with poses."""
+    key_points = KeyPoints.empty()
+
+    filtered = key_points[getattr(key_points, field) > 0.5]
+
+    assert filtered.is_empty()
+
+
 def test_key_points_is_empty():
     """Test the is_empty method for KeyPoints objects."""
     empty_key_points = KeyPoints.empty()
@@ -1826,8 +1836,8 @@ class TestFromTransformers:
         np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
         np.testing.assert_array_equal(key_points.class_id, [0])
 
-    def test_multiple_poses_are_stacked_with_sequential_class_ids(self) -> None:
-        """Several poses stack into one `(N, K, 2)` array with ids `0..N-1`."""
+    def test_multiple_poses_are_stacked_with_one_shared_class_id(self) -> None:
+        """Several poses stack into one `(N, K, 2)` array, all with class ID `0`."""
         results = [
             {
                 "keypoints": _FakeTensor(
@@ -1847,7 +1857,7 @@ class TestFromTransformers:
 
         assert key_points.xy.shape == (2, 2, 2)
         assert key_points.xy.dtype == np.float32
-        np.testing.assert_array_equal(key_points.class_id, [0, 1])
+        np.testing.assert_array_equal(key_points.class_id, [0, 0])
 
 
 class _FakeDetectron2Instances:
