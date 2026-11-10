@@ -148,6 +148,17 @@ class TestXywhToXyxy:
         np.testing.assert_array_equal(xywh, original)
         assert not np.shares_memory(result, xywh)
 
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    def test_preserves_non_native_floating_byte_order(self, dtype: str) -> None:
+        """Floating boxes retain their non-native byte order and coordinates."""
+        non_native_dtype = np.dtype(dtype).newbyteorder("S")
+        xywh = np.array([[10.5, -20.25, 30.25, 40.5]], dtype=non_native_dtype)
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, [[10.5, -20.25, 40.75, 20.25]])
+        assert result.dtype == non_native_dtype
+
     @pytest.mark.parametrize(
         ("dtype", "expected_dtype"),
         [

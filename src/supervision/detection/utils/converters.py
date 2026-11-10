@@ -135,7 +135,10 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     from supervision.detection.utils.boxes import _add_integer_offset
 
     bottom_right = _add_integer_offset(xywh[:, :2], xywh[:, 2:])
-    xyxy = np.empty_like(xywh, dtype=bottom_right.dtype)
+    output_dtype = (
+        xywh.dtype if np.issubdtype(xywh.dtype, np.floating) else bottom_right.dtype
+    )
+    xyxy = np.empty_like(xywh, dtype=output_dtype)
     xyxy[:, :2] = xywh[:, :2]
     xyxy[:, 2:] = bottom_right
     return cast(npt.NDArray[np.number], np.asarray(xyxy))
