@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
+
 - `sv.RichLabelAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`, `I`, `F` or `I;16`), instead of raising `TypeError` or `ValueError`. ([#2916](https://github.com/roboflow/supervision/pull/2916))
 
 - `sv.KeyPoints.from_transformers` now gives every pose class ID `0` instead of numbering the poses of an image `0..N-1`. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and `sv.EdgeAnnotator` with per-class `edges` defined only for class `0` raised `ValueError` on the second person. Code that used the old ID as a per-person index can use `np.arange(len(key_points))`. ([#2914](https://github.com/roboflow/supervision/pull/2914))
