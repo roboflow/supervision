@@ -80,29 +80,34 @@ def move_masks(
 
         ```
     """
-    mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
+    # Slice bounds must not overflow an integer offset or frame dimension's dtype.
+    dx, dy, width, height = (
+        value.item() if isinstance(value, np.integer) else value
+        for value in (offset[0], offset[1], resolution_wh[0], resolution_wh[1])
+    )
+    mask_array = np.full((masks.shape[0], height, width), False)
 
-    if offset[0] < 0:
-        source_x_start = -offset[0]
-        source_x_end = min(masks.shape[2], resolution_wh[0] - offset[0])
+    if dx < 0:
+        source_x_start = -dx
+        source_x_end = min(masks.shape[2], width - dx)
         destination_x_start = 0
-        destination_x_end = min(resolution_wh[0], masks.shape[2] + offset[0])
+        destination_x_end = min(width, masks.shape[2] + dx)
     else:
         source_x_start = 0
-        source_x_end = min(masks.shape[2], resolution_wh[0] - offset[0])
-        destination_x_start = offset[0]
-        destination_x_end = offset[0] + source_x_end - source_x_start
+        source_x_end = min(masks.shape[2], width - dx)
+        destination_x_start = dx
+        destination_x_end = dx + source_x_end - source_x_start
 
-    if offset[1] < 0:
-        source_y_start = -offset[1]
-        source_y_end = min(masks.shape[1], resolution_wh[1] - offset[1])
+    if dy < 0:
+        source_y_start = -dy
+        source_y_end = min(masks.shape[1], height - dy)
         destination_y_start = 0
-        destination_y_end = min(resolution_wh[1], masks.shape[1] + offset[1])
+        destination_y_end = min(height, masks.shape[1] + dy)
     else:
         source_y_start = 0
-        source_y_end = min(masks.shape[1], resolution_wh[1] - offset[1])
-        destination_y_start = offset[1]
-        destination_y_end = offset[1] + source_y_end - source_y_start
+        source_y_end = min(masks.shape[1], height - dy)
+        destination_y_start = dy
+        destination_y_end = dy + source_y_end - source_y_start
 
     if source_x_end > source_x_start and source_y_end > source_y_start:
         mask_array[
