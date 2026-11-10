@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.Detections.from_ultralytics` now loads Ultralytics semantic segmentation results (`task="semantic"`), which returned empty `Detections`. Each class present in `Results.semantic_mask` becomes one detection with a mask of all its pixels and its class name, without confidence. As in Ultralytics' `Results.summary`, IDs missing from `names`, such as the `255` written by `classes` filtering, are skipped, and a single-class model's `0` background is left out. ([#2915](https://github.com/roboflow/supervision/pull/2915))
 
+- `sv.PolygonZone` now excludes negative subpixel anchors before rounding, so an anchor just outside the top or left edge cannot be counted as pixel zero. Direct and camera-mapped anchors use the same bounds check. ([#2924](https://github.com/roboflow/supervision/pull/2924))
+
 - `sv.DetectionsSmoother` now returns all tracked boxes when only some smoothed tracks retain oriented corners. Such frames use the smoothed axis-aligned bounds for every track instead of raising a merge error. ([#2923](https://github.com/roboflow/supervision/pull/2923))
 
 - `sv.Detections.from_transformers` now suggests the official [`rfdetr`](https://github.com/roboflow/rf-detr) package when a result has no recognized fields, and recommends it in the API documentation. Its `predict()` returns `sv.Detections` directly. ([#2921](https://github.com/roboflow/supervision/pull/2921))
