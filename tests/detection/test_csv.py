@@ -1,4 +1,6 @@
 import csv
+import errno
+import io
 import json
 import os
 from functools import partial
@@ -544,7 +546,8 @@ def test_csv_sink_manual(
     assert_csv_equal(file_name, expected_result)
 
 
-def assert_csv_equal(file_name, expected_rows) -> None:
+def assert_csv_equal(file_name: str, expected_rows: list[list[Any]]) -> None:
+    """Assert a CSV sink file holds the expected rows, then delete it."""
     with open(file_name, newline="") as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
@@ -645,6 +648,84 @@ class TestCSVSinkLifecycle:
                 "second_label": "second",
             }
         ]
+
+
+def _run_empty_csv_session(sink: CSVSink, body_error: BaseException | None) -> None:
+    """Exit an empty CSV session, optionally raising a processing error."""
+    with sink:
+        sink.append(sv.Detections.empty())
+        if body_error is not None:
+            raise body_error
+
+
+class TestCSVSinkExitErrors:
+    @pytest.mark.parametrize("failure_phase", ["header", "flush"])
+    @pytest.mark.parametrize(
+        "body_error_type",
+        [
+            None,
+            pytest.param(ValueError, id="callback"),
+            pytest.param(KeyboardInterrupt, id="interrupt"),
+            pytest.param(SystemExit, id="system-exit"),
+        ],
+    )
+    def test_reports_cleanup_failure_without_replacing_body_error(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        failure_phase: str,
+        body_error_type: type[BaseException] | None,
+    ) -> None:
+        """Keep the block error when deferred-header writing or flushing fails."""
+        buffer = io.BytesIO()
+        stream = io.TextIOWrapper(
+            buffer, encoding="utf-8", write_through=failure_phase == "header"
+        )
+        cleanup_error = OSError(errno.ENOSPC, "No space left on device")
+        monkeypatch.setattr(buffer, "write", Mock(side_effect=cleanup_error))
+        monkeypatch.setattr(
+            csv_sink_module, "open", Mock(return_value=stream), raising=False
+        )
+        monkeypatch.setattr(csv_sink_module.logger, "handlers", [caplog.handler])
+        body_error = (
+            None if body_error_type is None else body_error_type("processing failed")
+        )
+        expected_error = cleanup_error if body_error is None else body_error
+        sink = CSVSink(str(tmp_path / "detections.csv"))
+
+        with pytest.raises(type(expected_error)) as caught:
+            _run_empty_csv_session(sink, body_error)
+
+        assert caught.value is expected_error
+        assert stream.closed
+        assert buffer.closed
+        if body_error is None:
+            assert not caplog.records
+        else:
+            assert len(caplog.records) == 1
+            record = caplog.records[0]
+            assert (
+                record.getMessage()
+                == "Failed to close CSV sink while handling an error."
+            )
+            assert record.exc_info is not None
+            assert record.exc_info[1] is cleanup_error
+
+    def test_preserves_body_error_when_close_succeeds(self, tmp_path: Path) -> None:
+        """Closing the CSV after a processing error still writes its deferred header."""
+        path = tmp_path / "detections.csv"
+        sink = CSVSink(str(path))
+        body_error = ValueError("processing failed")
+
+        with pytest.raises(ValueError, match="processing failed") as caught:
+            _run_empty_csv_session(sink, body_error)
+
+        assert caught.value is body_error
+        assert sink.file is not None
+        assert sink.file.closed
+        with path.open(encoding="utf-8", newline="") as file:
+            assert list(csv.reader(file)) == [csv_sink_module.BASE_HEADER]
 
 
 class TestCSVSinkEmptyBatches:

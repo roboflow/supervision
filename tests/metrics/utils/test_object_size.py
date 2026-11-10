@@ -14,6 +14,7 @@ from supervision.metrics.utils.object_size import (
     SIZE_THRESHOLDS,
     ObjectSizeCategory,
     get_bbox_size_category,
+    get_detection_areas,
     get_detection_size_category,
     get_mask_size_category,
     get_obb_size_category,
@@ -163,6 +164,57 @@ def test_detection_size_category_preserves_int64_skinny_polygon_area() -> None:
     )
 
     np.testing.assert_array_equal(result, [ObjectSizeCategory.LARGE.value])
+
+
+class TestFloatingOrientedBoxAreas:
+    """Translated floating boxes keep their geometric areas and size categories."""
+
+    @pytest.mark.parametrize(
+        ("origin", "width", "height", "expected_category"),
+        [
+            pytest.param(
+                (10**10, 10**10),
+                50.0,
+                50.0,
+                ObjectSizeCategory.MEDIUM.value,
+                id="medium-large-origin",
+            ),
+            pytest.param(
+                (500000, 9000000),
+                31.99999,
+                32.0,
+                ObjectSizeCategory.SMALL.value,
+                id="utm-origin-below-boundary",
+            ),
+        ],
+    )
+    def test_preserves_rectangle_area_and_category(
+        self,
+        origin: tuple[int, int],
+        width: float,
+        height: float,
+        expected_category: int,
+    ) -> None:
+        """Local side lengths determine area without absolute-coordinate products."""
+        corners = (
+            np.array(
+                [[[0, 0], [width, 0], [width, height], [0, height]]], dtype=np.float64
+            )
+            + origin
+        )
+        detections = Detections(
+            xyxy=np.array([[0, 0, width, height]], dtype=np.float64),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        expected_area = (corners[0, 1, 0] - corners[0, 0, 0]) * (
+            corners[0, 3, 1] - corners[0, 0, 1]
+        )
+
+        areas = get_detection_areas(detections, MetricTarget.ORIENTED_BOUNDING_BOXES)
+        categories = get_obb_size_category(corners)
+
+        np.testing.assert_array_equal(areas, [expected_area])
+        np.testing.assert_array_equal(categories, [expected_category])
 
 
 def test_obb_size_category_promotes_float16_area_products() -> None:

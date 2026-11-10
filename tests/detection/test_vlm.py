@@ -1,6 +1,8 @@
 import base64
 import io
 import json
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
 from typing import Any
@@ -266,19 +268,19 @@ def test_from_qwen_3_vl(
     ],
 )
 def test_from_paligemma(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
     expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray],
 ) -> None:
     with exception:
-        result = from_paligemma(
+        parsed = from_paligemma(
             result=result, resolution_wh=resolution_wh, classes=classes
         )
-        np.testing.assert_array_equal(result[0], expected_results[0])
-        np.testing.assert_array_equal(result[1], expected_results[1])
-        np.testing.assert_array_equal(result[2], expected_results[2])
+        np.testing.assert_array_equal(parsed[0], expected_results[0])
+        np.testing.assert_array_equal(parsed[1], expected_results[1])
+        np.testing.assert_array_equal(parsed[2], expected_results[2])
 
 
 _QWEN_DOG_AND_CAT = (
@@ -321,8 +323,11 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # empty list
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 10, 100, 100]}, {"label": "missing box"},
-            {"bbox_2d": [50, 60, 110, 120], "unused": "something"} ] ```""",
+            (
+                '```json [ {"bbox_2d": [10, 10, 100, 100]}, {"label": "missing box"},\n'
+                '            {"bbox_2d": [50, 60, 110, 12'
+                '0], "unused": "something"} ] ```'
+            ),
             (640, 640),
             (1280, 720),
             None,
@@ -330,7 +335,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # missing keys
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            ('```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (640, 640),
             (1280, 720),
             None,
@@ -342,8 +347,11 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # single box no classes
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [100,
-            200, 300, 400], "label": "cat"} ] ```""",
+            (
+                '```json [ {"bbox_2d": [0, 0, 64, 64], "l'
+                'abel": "dog"}, {"bbox_2d": [100,\n'
+                '            200, 300, 400], "label": "cat"} ] ```'
+            ),
             (640, 640),
             (640, 640),
             None,
@@ -355,7 +363,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # multiple no classes
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "bird"} ] ```""",
+            ('```json [ {"bbox_2d": [10, 20, 110, 120], "label": "bird"} ] ```'),
             (640, 640),
             (1280, 720),
             ["cat", "dog"],
@@ -363,10 +371,13 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # class mismatch
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"}, {"bbox_2d":
-
-            [50, 100, 150, 200], "label": "dog"} ] ```
-            """,
+            (
+                '```json [ {"bbox_2d": [10, 20, 110, 120]'
+                ', "label": "cat"}, {"bbox_2d":\n'
+                "\n"
+                '            [50, 100, 150, 200], "label": "dog"} ] ```\n'
+                "            "
+            ),
             (640, 640),
             (640, 480),
             ["cat", "dog"],
@@ -378,7 +389,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # partial filtering
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [-10, 0, 700, 700], "label": "dog"} ] ```""",
+            ('```json [ {"bbox_2d": [-10, 0, 700, 700], "label": "dog"} ] ```'),
             (640, 640),
             (1280, 720),
             None,
@@ -390,7 +401,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # out-of-bounds box
         (
             does_not_raise(),
-            """[ {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'} ]""",
+            ("[ {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'} ]"),
             (640, 640),
             (1280, 720),
             None,
@@ -402,8 +413,13 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # python-style list, single quotes, no fences
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [10,
-            20, 110, 120], "label": "cat"}, {"bbox_2d": [30, 40, 130, 140], "label":""",
+            (
+                '```json [ {"bbox_2d": [0, 0, 64, 64], "l'
+                'abel": "dog"}, {"bbox_2d": [10,\n'
+                '            20, 110, 120], "label": "cat'
+                '"}, {"bbox_2d": [30, 40, 130, 140], "lab'
+                'el":'
+            ),
             (640, 640),
             (640, 640),
             None,
@@ -481,7 +497,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
                     r"Got \(0, 640\)"
                 ),
             ),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            ('```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (0, 640),
             (1280, 720),
             None,
@@ -495,7 +511,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
                     r"Got \(1280, -100\)"
                 ),
             ),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "dog"} ] ```""",
+            ('```json [ {"bbox_2d": [10, 20, 110, 120], "label": "dog"} ] ```'),
             (640, 640),
             (1280, -100),
             None,
@@ -504,12 +520,12 @@ _QWEN_DOG_AND_CAT_RESULT = (
     ],
 )
 def test_from_qwen_2_5_vl(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     input_wh: tuple[int, int],
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
-    expected_results,
+    expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray] | None,
 ) -> None:
     """from_qwen_2_5_vl parses, scales and filters boxes, recovering truncated JSON."""
     with exception:
@@ -551,7 +567,7 @@ def test_from_qwen_2_5_vl(
         ),  # empty JSON array
         (
             does_not_raise(),
-            """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat"} ] ```""",
+            ('```json [ {"box_2d": [100, 200, 300, 400], "label": "cat"} ] ```'),
             (1000, 500),
             None,
             (
@@ -562,8 +578,11 @@ def test_from_qwen_2_5_vl(
         ),  # single valid box with coordinate scaling
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```""",
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat"}, {"box_2d": [50,\n'
+                '            100, 150, 200], "label": "dog"} ] ```'
+            ),
             (640, 480),
             None,
             (
@@ -574,15 +593,18 @@ def test_from_qwen_2_5_vl(
         ),  # multiple valid boxes without class filtering
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (640, 480),
             ["dog", "person"],
             (np.empty((0, 4)), np.empty(0, dtype=int), np.empty(0, dtype=str)),
         ),  # class mismatch with filter
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```""",
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat"}, {"box_2d": [50,\n'
+                '            100, 150, 200], "label": "dog"} ] ```'
+            ),
             (640, 480),
             ["person", "dog"],
             (
@@ -593,8 +615,11 @@ def test_from_qwen_2_5_vl(
         ),  # partial class filtering
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```""",
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat"}, {"box_2d": [50,\n'
+                '            100, 150, 200], "label": "dog"} ] ```'
+            ),
             (640, 480),
             ["cat", "dog"],
             (
@@ -611,7 +636,7 @@ def test_from_qwen_2_5_vl(
                     r"Got \(0, 480\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (0, 480),
             None,
             None,
@@ -624,7 +649,7 @@ def test_from_qwen_2_5_vl(
                     r"Got \(640, -100\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (640, -100),
             None,
             None,
@@ -632,7 +657,7 @@ def test_from_qwen_2_5_vl(
     ],
 )
 def test_from_google_gemini(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
@@ -746,10 +771,10 @@ def test_from_google_gemini(
     ],
 )
 def test_from_moondream(
-    exception,
-    result: dict,
+    exception: AbstractContextManager[object],
+    result: dict[str, Any],
     resolution_wh: tuple[int, int],
-    expected_results,
+    expected_results: np.ndarray | None,
 ) -> None:
     with exception:
         xyxy = from_moondream(
@@ -988,12 +1013,12 @@ def test_from_moondream(
     ],
 )
 def test_florence_2(
-    florence_result: dict,
+    florence_result: dict[str, Any],
     resolution_wh: tuple[int, int],
     expected_results: tuple[
         np.ndarray, np.ndarray | None, np.ndarray | None, np.ndarray | None
     ],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = from_florence_2(florence_result, resolution_wh)
@@ -1257,7 +1282,7 @@ class TestFromFlorence2Segmentation:
         np.testing.assert_array_equal(
             detections.xyxy, np.array([[1, 1, 7, 3], [1, 6, 3, 8]], dtype=np.float32)
         )
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask.shape == (2, 10, 10)
         assert detections.mask[0].sum() == 18
         assert detections.mask[1].sum() == 9
@@ -1307,10 +1332,13 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat", "confidence":
-
-            0.8} ] ```
-            """,
+            (
+                '```json [ {"box_2d": [100, 200, 300, 400'
+                '], "label": "cat", "confidence":\n'
+                "\n"
+                "            0.8} ] ```\n"
+                "            "
+            ),
             (1000, 500),
             None,
             (
@@ -1323,11 +1351,16 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
-
-            0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
-            ```
-            """,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat", "confidence":\n'
+                "\n"
+                '            0.8}, {"box_2d": [50, 100, 1'
+                '50, 200], "label": "dog", "confidence": '
+                "0.9} ]\n"
+                "            ```\n"
+                "            "
+            ),
             (640, 480),
             None,
             (
@@ -1340,10 +1373,13 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
-
-            0.8} ] ```
-            """,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat", "confidence":\n'
+                "\n"
+                "            0.8} ] ```\n"
+                "            "
+            ),
             (640, 480),
             ["dog", "person"],
             (
@@ -1356,11 +1392,16 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
-
-            0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
-            ```
-            """,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat", "confidence":\n'
+                "\n"
+                '            0.8}, {"box_2d": [50, 100, 1'
+                '50, 200], "label": "dog", "confidence": '
+                "0.9} ]\n"
+                "            ```\n"
+                "            "
+            ),
             (640, 480),
             ["person", "dog"],
             (
@@ -1373,11 +1414,16 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
-
-            0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
-            ```
-            """,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat", "confidence":\n'
+                "\n"
+                '            0.8}, {"box_2d": [50, 100, 1'
+                '50, 200], "label": "dog", "confidence": '
+                "0.9} ]\n"
+                "            ```\n"
+                "            "
+            ),
             (640, 480),
             ["cat", "dog"],
             (
@@ -1396,7 +1442,7 @@ class TestFromFlorence2Segmentation:
                     r"Got \(0, 480\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (0, 480),
             None,
             None,
@@ -1409,7 +1455,7 @@ class TestFromFlorence2Segmentation:
                     r"Got \(640, -100\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (640, -100),
             None,
             None,
@@ -1419,7 +1465,8 @@ class TestFromFlorence2Segmentation:
             (
                 '```json [ {"box_2d": [10, 20, 110, 120], "mask": '
                 '"data:image/png;base64,'
-                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjA"
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACo"
+                "WZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjA"
                 'AAAAElFTkSuQmCC", "label": "cat"} ] ```'
             ),
             (10, 10),
@@ -1437,11 +1484,13 @@ class TestFromFlorence2Segmentation:
             (
                 '```json [ {"box_2d": [100, 100, 200, 200], "mask": '
                 '"data:image/png;base64,'
-                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXp"
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACo"
+                "WZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXp"
                 'jAAAAAElFTkSuQmCC", "label": "cat", "confidence": 0.8}, '
                 '{"box_2d": [300, 300, 400, 400], "mask": '
                 '"data:image/png;base64,'
-                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpj"
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACo"
+                "WZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpj"
                 'AAAAAElFTkSuQmCC", "label": "dog", "confidence": 0.9} ] ```'
             ),
             (10, 10),
@@ -1459,7 +1508,7 @@ class TestFromFlorence2Segmentation:
     ],
 )
 def test_from_google_gemini_2_5(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
@@ -1483,6 +1532,7 @@ def test_from_google_gemini_2_5(
         assert xyxy.shape == expected_results[0].shape
         assert np.allclose(xyxy, expected_results[0])
 
+        assert class_id is not None
         assert class_id.shape == expected_results[1].shape
         assert np.array_equal(class_id, expected_results[1])
 
@@ -1581,7 +1631,7 @@ def test_from_google_gemini_2_5(
     ],
 )
 def test_from_deepseek_vl_2(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
@@ -1604,6 +1654,8 @@ def test_from_deepseek_vl_2(
             return
 
         assert np.allclose(detections.xyxy, expected_detections.xyxy, atol=1e-1)
+        assert detections.class_id is not None
+        assert expected_detections.class_id is not None
         assert np.array_equal(detections.class_id, expected_detections.class_id)
         assert np.array_equal(
             detections.data[CLASS_NAME_DATA_FIELD],
@@ -1633,7 +1685,7 @@ def test_from_deepseek_vl_2_empty_parse_returns_empty_detections(
     assert detections.xyxy.shape == (0, 4)
 
 
-def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
+def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned() -> None:
     """A non-data-URI mask must not skip the item's confidence and desync arrays."""
     result = (
         '[{"box_2d": [10, 10, 100, 100], "label": "cat", "mask": "bad", '
@@ -1728,7 +1780,7 @@ class TestGeminiMasksForBoxesOutsideImage:
 
         detections = Detections.from_vlm(vlm, result, resolution_wh=self.resolution_wh)
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         np.testing.assert_array_equal(detections.mask, expected)
 
     @pytest.mark.parametrize(
@@ -1750,7 +1802,7 @@ class TestGeminiMasksForBoxesOutsideImage:
             VLM.GOOGLE_GEMINI_2_5, result, resolution_wh=self.resolution_wh
         )
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask.shape == (1, 800, 1000)
         assert not detections.mask.any()
 
@@ -1784,7 +1836,7 @@ class TestGeminiMasksForBoxesOutsideImage:
             VLM.GOOGLE_GEMINI_2_5, result, resolution_wh=self.resolution_wh
         )
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask[0, :, slice(*expected_columns)].all()
 
     def test_out_of_range_box_does_not_drop_the_other_detections(self) -> None:
@@ -1807,8 +1859,7 @@ class TestGeminiMasksForBoxesOutsideImage:
         reference = Detections.from_vlm(
             VLM.GOOGLE_GEMINI_2_5, in_range_only, resolution_wh=self.resolution_wh
         )
-
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert reference.mask is not None
         assert detections.mask.shape == (4, 800, 1000)
         np.testing.assert_array_equal(detections.mask[[0, 3]], reference.mask)
@@ -1826,7 +1877,6 @@ class TestGeminiMasksForBoxesOutsideImage:
         reference = Detections.from_vlm(
             VLM.GOOGLE_GEMINI_2_5, box_only, resolution_wh=self.resolution_wh
         )
-
         np.testing.assert_array_equal(detections.xyxy, reference.xyxy)
 
 
@@ -1858,7 +1908,7 @@ def test_from_vlm_unsupported_future_enum_raises(
     )
 
     with pytest.raises(ValueError, match="Unsupported VLM value"):
-        Detections.from_vlm(vlm=FakeVLM.FUTURE, result="ignored")
+        Detections.from_vlm(vlm=FakeVLM.FUTURE, result="ignored")  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
@@ -1914,9 +1964,11 @@ def test_from_vlm_unsupported_future_enum_raises(
         ),
     ],
 )
-def test_vlm_parsers_degrade_on_malformed_json(parser, result):
+def test_vlm_parsers_degrade_on_malformed_json(
+    parser: Callable[..., tuple[np.ndarray, ...]], result: str
+) -> None:
     """Valid JSON of the wrong shape should yield empty results, not raise."""
-    kwargs: dict = {"resolution_wh": (640, 480)}
+    kwargs: dict[str, Any] = {"resolution_wh": (640, 480)}
     if parser is from_qwen_2_5_vl:
         kwargs["input_wh"] = (640, 480)
 
@@ -1925,7 +1977,7 @@ def test_vlm_parsers_degrade_on_malformed_json(parser, result):
     assert xyxy.shape == (0, 4)
 
 
-def test_from_google_gemini_2_5_recovers_malformed_array():
+def test_from_google_gemini_2_5_recovers_malformed_array() -> None:
     """A single broken entry must not discard the whole array; recover the rest."""
     result = (
         "```json\n"
@@ -1944,7 +1996,7 @@ def test_from_google_gemini_2_5_recovers_malformed_array():
     assert list(class_name) == ["cat", "dog"]
 
 
-def test_from_google_gemini_2_0_recovers_malformed_array():
+def test_from_google_gemini_2_0_recovers_malformed_array() -> None:
     """The 2.0 parser must also salvage valid entries around a broken one."""
     result = (
         "```json\n"
@@ -1963,7 +2015,7 @@ def test_from_google_gemini_2_0_recovers_malformed_array():
     assert list(class_name) == ["cat", "dog"]
 
 
-def test_from_google_gemini_3_5_parses_detections():
+def test_from_google_gemini_3_5_parses_detections() -> None:
     """The 3.5 parser reuses the 2.5 format and returns boxes rescaled to resolution."""
     result = (
         "```json\n"
@@ -1981,7 +2033,7 @@ def test_from_google_gemini_3_5_parses_detections():
     assert list(class_name) == ["cat", "dog"]
 
 
-def test_from_google_gemini_3_5_recovers_malformed_array():
+def test_from_google_gemini_3_5_recovers_malformed_array() -> None:
     """The 3.5 parser must salvage valid entries around a broken one, like 2.5."""
     result = (
         "```json\n"
@@ -2018,7 +2070,7 @@ def test_from_vlm_google_gemini_3_6_parses_polygon_segmentation() -> None:
     np.testing.assert_array_equal(
         detections.data[CLASS_NAME_DATA_FIELD], ["wooden bowl"]
     )
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 80, 100)
     assert detections.mask.dtype == np.bool_
     assert detections.mask[0, 40, 50]
@@ -2042,7 +2094,7 @@ def test_from_vlm_google_gemini_3_6_class_filter_can_remove_all_items() -> None:
     )
     assert len(detections) == 0
     assert detections.xyxy.shape == (0, 4)
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (0, 80, 100)
 
 
@@ -2061,7 +2113,7 @@ def test_from_vlm_google_gemini_3_7_parses_structured_output() -> None:
     )
     np.testing.assert_allclose(detections.xyxy, [[20.0, 20.0, 80.0, 60.0]])
     np.testing.assert_array_equal(detections.data[CLASS_NAME_DATA_FIELD], ["glass"])
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 80, 100)
 
 
@@ -2088,7 +2140,7 @@ def test_from_vlm_google_gemini_3_6_masks_survive_when_filtered_item_lacks_mask(
         resolution_wh=(100, 80),
         classes=["cat"],
     )
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 80, 100)
 
 
@@ -2124,7 +2176,7 @@ def test_from_vlm_google_gemini_3_6_class_filter_partial_keeps_masks_aligned() -
     )
 
     assert len(detections) == 2
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (2, 80, 100)
     # first surviving item's own region (top-left) must be set, not the dropped
     # "dog" item's region (top-right) nor the second surviving item's (bottom-left)
@@ -2163,7 +2215,7 @@ def test_from_vlm_google_gemini_3_6_malformed_polygon_degrades_to_empty_mask(
         result=result,
         resolution_wh=(100, 80),
     )
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 80, 100)
     assert not detections.mask.any()
 
@@ -2190,8 +2242,58 @@ def test_from_vlm_google_gemini_3_7_class_filter_can_remove_all_items() -> None:
     )
     assert len(detections) == 0
     assert detections.xyxy.shape == (0, 4)
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (0, 80, 100)
+
+
+_GEMINI_BOX_RESULT = '[{"box_2d": [100, 100, 900, 900], "label": "cat"}]'
+_GEMINI_STRUCTURED_RESULT = (
+    '{"boxes": [{"box_2d": [100, 100, 900, 900], "label": "cat"}]}'
+)
+
+
+@pytest.mark.parametrize(
+    ("vlm", "result", "classes"),
+    [
+        pytest.param(
+            VLM.GOOGLE_GEMINI_2_5,
+            _GEMINI_BOX_RESULT,
+            ["dog"],
+            id="gemini-2.5-every-item-filtered-out",
+        ),
+        pytest.param(
+            VLM.GOOGLE_GEMINI_3_5,
+            _GEMINI_BOX_RESULT,
+            ["dog"],
+            id="gemini-3.5-every-item-filtered-out",
+        ),
+        pytest.param(
+            VLM.GOOGLE_GEMINI_3_6,
+            _GEMINI_STRUCTURED_RESULT,
+            ["dog"],
+            id="gemini-3.6-every-item-filtered-out",
+        ),
+        pytest.param(
+            VLM.GOOGLE_GEMINI_3_7,
+            _GEMINI_STRUCTURED_RESULT,
+            ["dog"],
+            id="gemini-3.7-every-item-filtered-out",
+        ),
+        pytest.param(
+            VLM.DEEPSEEK_VL_2, "no tags here", None, id="deepseek-vl-2-no-tags"
+        ),
+    ],
+)
+def test_from_vlm_empty_outcome_keeps_class_id_integer(
+    vlm: VLM, result: str, classes: list[str] | None
+) -> None:
+    """An empty parse must not leave `class_id` as a float array."""
+    detections = Detections.from_vlm(
+        vlm=vlm, result=result, resolution_wh=(100, 100), classes=classes
+    )
+    assert len(detections) == 0
+    assert detections.class_id is not None
+    assert detections.class_id.dtype == int
 
 
 class TestFromVlmCornerOrdering:
@@ -2257,7 +2359,7 @@ class TestFromVlmCornerOrdering:
         ],
     )
     def test_transposed_model_corners_are_ordered(
-        self, vlm: VLM, result: object, kwargs: dict
+        self, vlm: VLM, result: str | dict[str, Any], kwargs: dict[str, Any]
     ) -> None:
         """A model that emits a corner pair backwards still yields a valid box."""
         detections = Detections.from_vlm(
@@ -2285,7 +2387,7 @@ class TestFromVlmCornerOrdering:
 
         detections = Detections.from_vlm(vlm, result, resolution_wh=(1000, 800))
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         np.testing.assert_array_equal(
             detections.xyxy, np.array([[200, 80, 300, 320]], dtype=np.float64)
         )
@@ -2503,3 +2605,77 @@ class TestFromKosmos2:
         """Malformed results and resolutions must fail loudly, not silently."""
         with exception:
             Detections.from_vlm(vlm=VLM.KOSMOS_2, result=result, **kwargs)
+
+
+class TestPaliGemmaPunctuatedLabels:
+    """Open-vocabulary labels retain punctuation during detection parsing."""
+
+    @pytest.mark.parametrize(
+        "label", ["person (left)", "cat/dog", "person's hand", "v2.0"]
+    )
+    def test_preserves_class_filter_matches(self, label: str) -> None:
+        """A punctuated label remains intact and matches its requested class."""
+        response = (
+            f"<loc0000><loc0000><loc0512><loc0512> {label}; "
+            "<loc0000><loc0000><loc0256><loc0256> other"
+        )
+
+        boxes, class_ids, names = from_paligemma(response, (100, 100), [label])
+        np.testing.assert_array_equal(boxes, [[0, 0, 50, 50]])
+        np.testing.assert_array_equal(class_ids, [0])
+        np.testing.assert_array_equal(names, [label])
+
+    def test_keeps_multiple_unfiltered_labels_and_token_boundary(self) -> None:
+        """Punctuation is preserved across detection and end-of-sequence boundaries."""
+        response = (
+            "<loc0000><loc0000><loc0512><loc0512> cat/dog; "
+            "<loc0000><loc0000><loc0256><loc0256> person (left)</s>"
+        )
+
+        boxes, class_ids, names = from_paligemma(response, (100, 100))
+        np.testing.assert_array_equal(boxes, [[0, 0, 50, 50], [0, 0, 25, 25]])
+        assert class_ids is None
+        np.testing.assert_array_equal(names, ["cat/dog", "person (left)"])
+
+
+class TestQwenMalformedBoxes:
+    """Malformed model boxes do not discard other detections in the response."""
+
+    @pytest.mark.parametrize(
+        "box",
+        [
+            None,
+            pytest.param([], id="empty"),
+            pytest.param([1, 2], id="short"),
+            pytest.param([1, 2, 3, 4, 5], id="long"),
+            pytest.param([0, 0, float("nan"), 10], id="nan"),
+            pytest.param([0, 0, float("inf"), 10], id="infinite"),
+            "bad",
+        ],
+    )
+    def test_keeps_valid_sibling(self, box: Any) -> None:
+        """A malformed box is skipped without dropping a valid sibling box."""
+        response = json.dumps(
+            [
+                {"bbox_2d": [10, 20, 30, 40], "label": "cat"},
+                {"bbox_2d": box, "label": "dog"},
+            ]
+        )
+
+        boxes, class_ids, names = from_qwen_2_5_vl(
+            response, (100, 100), (200, 300), classes=["cat", "dog"]
+        )
+        np.testing.assert_array_equal(boxes, [[20, 60, 60, 120]])
+        np.testing.assert_array_equal(class_ids, [0])
+        np.testing.assert_array_equal(names, ["cat"])
+
+    def test_returns_empty_when_no_box_is_valid(self) -> None:
+        """A response with only malformed boxes returns the standard empty arrays."""
+        response = json.dumps([{"bbox_2d": None, "label": "dog"}])
+
+        boxes, class_ids, names = from_qwen_2_5_vl(response, (100, 100), (100, 100))
+
+        assert boxes.shape == (0, 4)
+        assert class_ids is not None
+        assert class_ids.shape == (0,)
+        assert names.shape == (0,)

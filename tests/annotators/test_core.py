@@ -1,5 +1,7 @@
 """Tests for supervision/annotators/core.py."""
 
+import importlib
+import sys
 import warnings
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -9,7 +11,7 @@ from unittest.mock import patch
 import numpy as np
 import numpy.typing as npt
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont, features
 
 import supervision.annotators.core as annotators_core
 from supervision import _cv2 as cv2
@@ -41,9 +43,11 @@ from supervision.annotators.core import (
     _paint_masks_by_area,
 )
 from supervision.annotators.utils import ColorLookup
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import spread_out_boxes
+from supervision.detection.utils.converters import xyxy_to_mask, xyxy_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 from tests.helpers import _create_detections, assert_image_mostly_same
@@ -191,6 +195,15 @@ def test_hex_color_support_across_annotators(
         color = getattr(annotator, attribute_name)
         assert isinstance(color, Color)
         assert color.as_rgb() == expected_rgb
+
+
+@pytest.mark.parametrize("hex_color", ["#f0f", "f0f", "#f0f8", "#FFF"])
+def test_short_hex_color_matches_color_from_hex(hex_color: str) -> None:
+    """Annotators accept the short hex forms that Color.from_hex documents."""
+    annotator = BoxAnnotator(color=hex_color)
+
+    assert isinstance(annotator.color, Color)
+    assert annotator.color.as_rgb() == Color.from_hex(hex_color).as_rgb()
 
 
 class TestBoxAnnotator:
@@ -1241,6 +1254,78 @@ class TestHeatMapAnnotator:
 
         assert np.array_equal(reused_result, fresh_result)
 
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_grayscale_matches_color_scene(self, channel_axis: bool) -> None:
+        """A grayscale scene is annotated like the gray luminance of its BGR copy.
+
+        The two paths round at different steps (blend then convert, or convert then
+        blend), so pixels may differ by one gray level.
+        """
+        gray = np.arange(60 * 80, dtype=np.uint8).reshape(60, 80)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        expected = cv2.cvtColor(
+            HeatMapAnnotator().annotate(scene=color_scene, detections=detections),
+            cv2.COLOR_BGR2GRAY,
+        )
+
+        result = HeatMapAnnotator().annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_allclose(
+            result.reshape(60, 80).astype(np.int16),
+            expected.astype(np.int16),
+            atol=1,
+        )
+        assert not np.array_equal(result.reshape(60, 80), gray)
+
+    def test_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (80, 60), color=100)
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+
+        result = HeatMapAnnotator().annotate(scene=image, detections=detections)
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.size == image.size
+        assert result.getpixel((40, 40)) != 100
+        assert result.getpixel((2, 2)) == 100
+
+
+class TestCenterOfMassPosition:
+    """Tests for annotators anchored at `Position.CENTER_OF_MASS`."""
+
+    @pytest.mark.parametrize(
+        ("annotator_class", "position_argument"),
+        [
+            pytest.param(CropAnnotator, "position", id="crop"),
+            pytest.param(DotAnnotator, "position", id="dot"),
+            pytest.param(HeatMapAnnotator, "position", id="heat-map"),
+            pytest.param(IconAnnotator, "icon_position", id="icon"),
+            pytest.param(LabelAnnotator, "text_position", id="label"),
+            pytest.param(PercentageBarAnnotator, "position", id="percentage-bar"),
+            pytest.param(RichLabelAnnotator, "text_position", id="rich-label"),
+            pytest.param(TriangleAnnotator, "position", id="triangle"),
+        ],
+    )
+    def test_empty_detections_leave_scene_unchanged(
+        self,
+        annotator_class: Callable[..., Any],
+        position_argument: str,
+        test_image: np.ndarray,
+    ) -> None:
+        """A frame with no detections has no anchors, so it must not demand a mask."""
+        annotator = annotator_class(**{position_argument: Position.CENTER_OF_MASS})
+
+        result = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert np.array_equal(result, test_image)
+
 
 class TestEllipseAnnotator:
     """Tests for EllipseAnnotator class."""
@@ -1449,6 +1534,24 @@ class TestLabelAnnotator:
         assert np.min(background_rows) < np.min(text_rows)
         assert np.max(text_rows) < np.max(background_rows)
 
+    @pytest.mark.parametrize("annotator_class", [LabelAnnotator, RichLabelAnnotator])
+    def test_integer_zero_label_is_drawn_like_its_text(
+        self, annotator_class: type[LabelAnnotator | RichLabelAnnotator]
+    ) -> None:
+        """Integer label `0` is drawn the same as the string label `"0"`."""
+        scene = np.zeros((80, 100, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[10, 40, 90, 70]], class_id=[0])
+        annotator = annotator_class()
+
+        result = annotator.annotate(
+            scene=scene.copy(), detections=detections, labels=cast(list[str], [0])
+        )
+
+        expected = annotator.annotate(
+            scene=scene.copy(), detections=detections, labels=["0"]
+        )
+        assert np.array_equal(result, expected)
+
 
 class TestRichLabelAnnotator:
     """Tests for RichLabelAnnotator class."""
@@ -1468,6 +1571,56 @@ class TestRichLabelAnnotator:
             scene=test_image.copy(), detections=detections, labels=["test"]
         )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.95)
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((100, 100), id="two-dimensional"),
+            pytest.param((100, 100, 1), id="singleton-channel"),
+        ],
+    )
+    def test_array_grayscale_scene_draws_blue_channel(
+        self, shape: tuple[int, ...]
+    ) -> None:
+        """A grayscale array gets the blue channel of the background, in its shape."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        color = Color(r=10, g=20, b=200)
+        scene = np.zeros(shape, dtype=np.uint8)
+
+        result = RichLabelAnnotator(color=color).annotate(
+            scene=scene, detections=detections, labels=["a"]
+        )
+
+        assert result is scene
+        assert result.shape == shape
+        assert 200 in result
+
+    @pytest.mark.parametrize(
+        ("mode", "expected"),
+        [
+            pytest.param("1", 255, id="one-bit"),
+            pytest.param("L", 200, id="eight-bit"),
+            pytest.param("LA", (200, 255), id="eight-bit-alpha"),
+            pytest.param("I", 200 * 257, id="signed-32-bit"),
+            pytest.param("I;16", 200 * 257, id="sixteen-bit"),
+            pytest.param("F", 200.0, id="float"),
+        ],
+    )
+    def test_pillow_grayscale_scene_draws_label_background(
+        self, mode: str, expected: float | tuple[int, ...]
+    ) -> None:
+        """Every Pillow grayscale mode draws the background in its own value range."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            color=Color(r=10, g=20, b=200), text_position=Position.TOP_LEFT
+        )
+        scene = Image.new(mode, (100, 100))
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=["a"])
+
+        assert result is scene
+        assert result.mode == mode
+        assert result.getpixel((21, 39)) == expected
 
     def test_smart_position_spreads_boxes_once(
         self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
@@ -1502,6 +1655,173 @@ class TestRichLabelAnnotator:
         )
 
         assert calls == 1
+
+    @pytest.mark.parametrize(
+        ("label", "expected_khatt_calls"),
+        [
+            pytest.param("سيارة 0.92", 1, id="arabic"),
+            pytest.param("מכונית 0.92", 1, id="hebrew"),
+            pytest.param("car 0.92", 0, id="latin"),
+        ],
+    )
+    def test_right_to_left_labels_are_drawn_with_khatt(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        test_image: np.ndarray,
+        label: str,
+        expected_khatt_calls: int,
+    ) -> None:
+        """Arabic and Hebrew lines are shaped by khatt; other lines stay with Pillow."""
+        khatt = pytest.importorskip("khatt")
+        drawn: list[str] = []
+        original_draw_text = khatt.draw_text
+
+        def recording_draw_text(
+            image: Image.Image, xy: Any, text: str, **kw: Any
+        ) -> Image.Image:
+            """Record the drawn text while retaining the original behavior."""
+            drawn.append(text)
+            return original_draw_text(image, xy, text, **kw)
+
+        monkeypatch.setattr(khatt, "draw_text", recording_draw_text)
+        detections = _create_detections(xyxy=[[10, 40, 90, 90]], class_id=[0])
+
+        RichLabelAnnotator(font_size=16).annotate(
+            scene=test_image.copy(), detections=detections, labels=[label]
+        )
+
+        assert drawn == [label] * expected_khatt_calls
+
+    def test_right_to_left_labels_keep_a_font_pillow_resolved(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """A font Pillow found by name, e.g. in a system font directory, is used."""
+        khatt = pytest.importorskip("khatt")
+        resolved = str(khatt.fonts.font_path("noto-naskh"))
+        original_truetype = ImageFont.truetype
+
+        def resolving_truetype(font: Any, size: float = 10, **kw: Any) -> Any:
+            """Load the font from another path, as Pillow does for system fonts."""
+            return original_truetype(resolved, size, **kw)
+
+        fonts: list[str] = []
+        original_draw_text = khatt.draw_text
+
+        def recording_draw_text(
+            image: Image.Image, xy: Any, text: str, **kw: Any
+        ) -> Image.Image:
+            """Record the font khatt draws with."""
+            fonts.append(kw["font"])
+            return original_draw_text(image, xy, text, **kw)
+
+        monkeypatch.setattr(ImageFont, "truetype", resolving_truetype)
+        monkeypatch.setattr(khatt, "draw_text", recording_draw_text)
+        detections = _create_detections(xyxy=[[10, 40, 90, 90]], class_id=[0])
+
+        RichLabelAnnotator(
+            font_path="NotoNaskhArabic-Regular.ttf", font_size=16
+        ).annotate(scene=test_image.copy(), detections=detections, labels=["سيارة"])
+
+        assert fonts == [resolved]
+
+    def test_right_to_left_labels_on_palette_images_stay_with_pillow(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """Palette scenes are measured and drawn by Pillow alone, so the two agree."""
+        khatt = pytest.importorskip("khatt")
+
+        def fail(*args: Any, **kwargs: Any) -> NoReturn:
+            """Fail when khatt is used."""
+            pytest.fail("khatt used on a palette image")
+
+        monkeypatch.setattr(khatt, "draw_text", fail)
+        monkeypatch.setattr(khatt, "text_bbox", fail)
+        detections = _create_detections(xyxy=[[10, 40, 90, 90]], class_id=[0])
+        scene = Image.fromarray(test_image).convert("P")
+
+        result = RichLabelAnnotator(font_size=16).annotate(
+            scene=scene, detections=detections, labels=["سيارة 0.92"]
+        )
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "P"
+
+    @pytest.mark.parametrize(
+        ("label", "max_line_length"),
+        [
+            pytest.param("سيارة 0.92", None, id="one-line"),
+            pytest.param("سيارة إسعاف مسرعة 0.92", 6, id="wrapped"),
+        ],
+    )
+    def test_right_to_left_label_stays_inside_background(
+        self, label: str, max_line_length: int | None
+    ) -> None:
+        """Shaped Arabic text is drawn inside the background box sized for it."""
+        pytest.importorskip("khatt")
+        scene = np.zeros((300, 300, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[20, 200, 280, 280]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            color=Color.BLUE,
+            text_color=Color.WHITE,
+            font_size=24,
+            max_line_length=max_line_length,
+        )
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=[label])
+
+        background = np.all(result == Color.BLUE.as_bgr(), axis=-1)
+        text = result[..., 1] > 128
+        rows, cols = np.where(background)
+        text_rows, text_cols = np.where(text)
+        assert text_rows.size > 0
+        assert rows.min() < text_rows.min()
+        assert text_rows.max() < rows.max()
+        assert cols.min() < text_cols.min()
+        assert text_cols.max() < cols.max()
+
+    def test_right_to_left_label_falls_back_to_pillow_without_rtl_extra(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """Without khatt installed, Arabic labels are still drawn (by Pillow)."""
+        monkeypatch.setitem(sys.modules, "khatt", None)
+        detections = _create_detections(xyxy=[[10, 40, 90, 90]], class_id=[0])
+
+        result = RichLabelAnnotator(font_size=16).annotate(
+            scene=test_image.copy(), detections=detections, labels=["سيارة"]
+        )
+
+        assert not np.array_equal(test_image, result)
+
+    def test_palette_rtl_warns_when_raqm_is_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Warn when a palette image cannot use khatt or Pillow shaping."""
+        warnings_seen: list[str] = []
+        monkeypatch.setattr(features, "check", lambda _: False)
+        monkeypatch.setattr(annotators_core.logger, "warning", warnings_seen.append)
+        annotators_core._warn_unshaped_rtl_text.cache_clear()
+        draw = ImageDraw.Draw(Image.new("P", (20, 20)))
+
+        RichLabelAnnotator()._rtl_engine(draw, "سيارة")
+
+        assert len(warnings_seen) == 1
+        assert "Convert the image to RGB or RGBA" in warnings_seen[0]
+        annotators_core._warn_unshaped_rtl_text.cache_clear()
+
+    def test_rtl_engine_propagates_nested_import_errors(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Expose a broken khatt dependency instead of treating it as absent."""
+
+        def broken_import(name: str) -> Any:
+            """Simulate a missing dependency inside khatt."""
+            raise ModuleNotFoundError("missing dependency", name="dependency")
+
+        monkeypatch.setattr(importlib, "import_module", broken_import)
+        draw = ImageDraw.Draw(Image.new("RGB", (20, 20)))
+
+        with pytest.raises(ModuleNotFoundError, match="missing dependency"):
+            RichLabelAnnotator()._rtl_engine(draw, "سيارة")
 
 
 class TestBlurAnnotator:
@@ -2250,6 +2570,47 @@ class TestBackgroundOverlayAnnotator:
         )
         assert np.array_equal(result_bool, result_uint8)
 
+    @pytest.mark.parametrize("use_mask", [False, True])
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_grayscale_matches_color_scene(
+        self, use_mask: bool, channel_axis: bool
+    ) -> None:
+        """A grayscale scene is annotated like the first channel of its BGR copy."""
+        gray = np.arange(30 * 40, dtype=np.uint8).reshape(30, 40)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        mask = np.zeros((30, 40), dtype=bool)
+        mask[8:20, 10:26] = True
+        detections = _create_detections(
+            xyxy=[[10, 8, 26, 20]], mask=[mask] if use_mask else None
+        )
+        annotator = BackgroundOverlayAnnotator(
+            color=Color(r=10, g=20, b=200), opacity=0.5
+        )
+        expected = annotator.annotate(scene=color_scene, detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_array_equal(result.reshape(30, 40), expected[..., 0])
+        assert not np.array_equal(result.reshape(30, 40), gray)
+
+    def test_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (40, 30), color=200)
+        detections = _create_detections(xyxy=[[10, 8, 26, 20]])
+        annotator = BackgroundOverlayAnnotator(
+            color=Color(r=10, g=20, b=0), opacity=0.5
+        )
+
+        result = annotator.annotate(scene=image, detections=detections)
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.getpixel((18, 12)) == 200
+        assert result.getpixel((2, 2)) == 100
+
 
 class TestComparisonAnnotator:
     """Tests for ComparisonAnnotator class."""
@@ -2389,6 +2750,85 @@ class TestComparisonAnnotator:
         )
 
         np.testing.assert_array_equal(result, expected)
+
+
+class TestSingleChannelComparisonAnnotator:
+    """Verify ComparisonAnnotator on grayscale scenes."""
+
+    @staticmethod
+    def _detection_pair(geometry: str) -> tuple[Detections, Detections]:
+        """Return two overlapping detections inside a 30x40 scene."""
+        detection_pair = []
+        for xyxy in ([[4, 3, 20, 18]], [[12, 10, 34, 26]]):
+            boxes = np.array(xyxy, dtype=np.float32)
+            detections = Detections(xyxy=boxes, class_id=np.array([0]))
+            if geometry == "mask":
+                detections.mask = xyxy_to_mask(boxes, resolution_wh=(40, 30))
+            elif geometry == "oriented_box":
+                detections.data[ORIENTED_BOX_COORDINATES] = xyxy_to_polygons(boxes)
+            detection_pair.append(detections)
+        return detection_pair[0], detection_pair[1]
+
+    @pytest.mark.parametrize("geometry", ["box", "mask", "oriented_box"])
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_grayscale_matches_color_scene(
+        self, geometry: str, channel_axis: bool
+    ) -> None:
+        """A grayscale scene is annotated like the first channel of its BGR copy."""
+        gray = np.arange(30 * 40, dtype=np.uint8).reshape(30, 40)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        detections_1, detections_2 = self._detection_pair(geometry)
+        annotator = ComparisonAnnotator(
+            color_1=Color(r=10, g=20, b=60),
+            color_2=Color(r=10, g=20, b=120),
+            color_overlap=Color(r=10, g=20, b=240),
+        )
+        expected = annotator.annotate(
+            scene=color_scene, detections_1=detections_1, detections_2=detections_2
+        )
+
+        result = annotator.annotate(
+            scene=scene, detections_1=detections_1, detections_2=detections_2
+        )
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_array_equal(result.reshape(30, 40), expected[..., 0])
+        assert not np.array_equal(result.reshape(30, 40), gray)
+
+    def test_grayscale_draws_labels(self) -> None:
+        """Legend labels on a grayscale scene match the first BGR channel."""
+        gray = np.full((60, 160), 90, dtype=np.uint8)
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        detections_1, detections_2 = self._detection_pair("box")
+        annotator = ComparisonAnnotator(
+            label_1="model", label_2="truth", label_overlap="both", label_scale=0.4
+        )
+        expected = annotator.annotate(
+            scene=color_scene, detections_1=detections_1, detections_2=detections_2
+        )
+
+        result = annotator.annotate(
+            scene=gray.copy(), detections_1=detections_1, detections_2=detections_2
+        )
+
+        np.testing.assert_array_equal(result, expected[..., 0])
+
+    def test_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (40, 30), color=200)
+        detections_1, detections_2 = self._detection_pair("box")
+        annotator = ComparisonAnnotator(color_1=Color(r=0, g=0, b=0), opacity=1.0)
+
+        result = annotator.annotate(
+            scene=image, detections_1=detections_1, detections_2=detections_2
+        )
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.getpixel((6, 5)) == 0
+        assert result.getpixel((38, 28)) == 200
 
 
 class TestTraceAnnotatorReset:

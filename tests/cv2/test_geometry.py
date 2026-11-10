@@ -361,3 +361,63 @@ def test_approx_poly_dp_matches_opencv_on_random_contours(
     mismatches = _approx_poly_dp_mismatches(contours, epsilons, closed, repeat_first)
 
     assert not mismatches, "\n".join(mismatches[:5])
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_intersection_excludes_strictly_nested_polygons(reverse: bool) -> None:
+    """Exclude either polygon when it is strictly contained and nesting is disabled."""
+    outer = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+    inner = np.array([[2, 2], [4, 2], [4, 4], [2, 4]], dtype=np.float32)
+    first, second = (inner, outer) if reverse else (outer, inner)
+
+    area, polygon = _intersect_convex_convex(p1=first, p2=second, handleNested=False)
+
+    assert area == 0
+    assert polygon.size == 0
+
+
+@_requires_opencv
+@pytest.mark.parametrize("handle_nested", [False, True])
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        pytest.param(
+            [[0, 0], [10, 0], [10, 10], [0, 10]],
+            [[2, 2], [4, 2], [4, 4], [2, 4]],
+            id="strictly-nested",
+        ),
+        pytest.param(
+            [[2, 2], [2, 4], [4, 4], [4, 2]],
+            [[0, 0], [0, 10], [10, 10], [10, 0]],
+            id="nested-reversed-order-and-winding",
+        ),
+        pytest.param(
+            [[0, 0], [10, 0], [10, 10], [0, 10]],
+            [[0, 2], [4, 2], [4, 4], [0, 4]],
+            id="shared-edge",
+        ),
+        pytest.param(
+            [[0, 0], [10, 0], [10, 10], [0, 10]],
+            [[0, 5], [3, 3], [3, 7]],
+            id="vertex-on-edge",
+        ),
+        pytest.param(
+            [[0, 0], [4, 0], [4, 4], [0, 4]],
+            [[2, 0], [6, 0], [6, 4], [2, 4]],
+            id="partial-overlap",
+        ),
+    ],
+)
+def test_intersection_nesting_flag_matches_opencv(
+    first: list[list[int]], second: list[list[int]], handle_nested: bool
+) -> None:
+    """Match OpenCV's nesting flag for containment and boundary contact."""
+    p1 = np.array(first, dtype=np.float32)
+    p2 = np.array(second, dtype=np.float32)
+
+    actual_area, _ = _intersect_convex_convex(p1=p1, p2=p2, handleNested=handle_nested)
+    expected_area, _ = cv2.intersectConvexConvex(
+        p1=p1, p2=p2, handleNested=handle_nested
+    )
+
+    assert actual_area == pytest.approx(expected_area, abs=1e-9)

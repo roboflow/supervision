@@ -10,6 +10,9 @@ import pytest
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 
+TileCallback = Callable[[np.ndarray], Detections]
+RecordingCallbackFactory = Callable[[list[np.ndarray]], TileCallback]
+
 
 class _FakeCRS:
     """Minimal rasterio-style CRS stub exposing only `is_projected`."""
@@ -46,7 +49,7 @@ class _ConcurrencyCheckDataset:
     def __init__(self, image_hwc: np.ndarray):
         self._image = image_hwc
         self.height, self.width = image_hwc.shape[:2]
-        self.crs = None
+        self.crs: object | None = None
         self._lock = threading.Lock()
         self._active = 0
         self.peak_concurrent = 0
@@ -64,13 +67,16 @@ class _ConcurrencyCheckDataset:
         return result
 
 
+RasterDatasetFactory = Callable[..., _FakeRasterDataset]
+
+
 def _sortable(detections: Detections) -> np.ndarray:
     """Sort detection boxes so two runs can be compared order-independently."""
     return np.array(sorted(detections.xyxy.tolist()), dtype=float)
 
 
 @pytest.fixture
-def fn_make_raster_dataset() -> Callable[..., _FakeRasterDataset]:
+def fn_make_raster_dataset() -> RasterDatasetFactory:
     """Factory: create a _FakeRasterDataset from a numpy image array."""
 
     def factory(image_hwc: np.ndarray, crs: object | None = None) -> _FakeRasterDataset:
@@ -80,7 +86,7 @@ def fn_make_raster_dataset() -> Callable[..., _FakeRasterDataset]:
 
 
 @pytest.fixture
-def fn_fixed_detection_callback() -> Callable[[np.ndarray], Detections]:
+def fn_fixed_detection_callback() -> TileCallback:
     """Return a constant single-box detection for every tile."""
 
     def callback(_: np.ndarray) -> Detections:
@@ -94,10 +100,10 @@ def fn_fixed_detection_callback() -> Callable[[np.ndarray], Detections]:
 
 
 @pytest.fixture
-def fn_make_recording_callback() -> Callable[[list[np.ndarray]], Callable]:
+def fn_make_recording_callback() -> RecordingCallbackFactory:
     """Factory: given a sink list, return a callback that records each tile."""
 
-    def factory(sink: list[np.ndarray]) -> Callable[[np.ndarray], Detections]:
+    def factory(sink: list[np.ndarray]) -> TileCallback:
         def callback(tile: np.ndarray) -> Detections:
             sink.append(tile.copy())
             return Detections.empty()
@@ -110,8 +116,8 @@ def fn_make_recording_callback() -> Callable[[list[np.ndarray]], Callable]:
 class TestInferenceSlicerGeoTIFF:
     def test_windowed_raster_matches_in_memory_array(
         self,
-        fn_make_raster_dataset: Callable,
-        fn_fixed_detection_callback: Callable,
+        fn_make_raster_dataset: RasterDatasetFactory,
+        fn_fixed_detection_callback: TileCallback,
     ) -> None:
         """Raster and array paths produce identical merged detections."""
         # Arrange
@@ -140,8 +146,8 @@ class TestInferenceSlicerGeoTIFF:
     )
     def test_raster_tiles_match_array_tiles(
         self,
-        fn_make_raster_dataset: Callable,
-        fn_make_recording_callback: Callable,
+        fn_make_raster_dataset: RasterDatasetFactory,
+        fn_make_recording_callback: RecordingCallbackFactory,
         seed: int,
         image_shape: tuple[int, int, int],
         slice_wh: int,
@@ -177,7 +183,7 @@ class TestInferenceSlicerGeoTIFF:
             assert np.array_equal(array_tile, raster_tile)
 
     def test_windowed_raster_preserves_band_dtype(
-        self, fn_make_raster_dataset: Callable
+        self, fn_make_raster_dataset: RasterDatasetFactory
     ) -> None:
         """Tiles read from a dataset keep the source dtype (e.g. uint16)."""
         # Arrange
@@ -209,8 +215,8 @@ class TestInferenceSlicerGeoTIFF:
     )
     def test_crs_allows_slicing(
         self,
-        fn_make_raster_dataset: Callable,
-        fn_fixed_detection_callback: Callable,
+        fn_make_raster_dataset: RasterDatasetFactory,
+        fn_fixed_detection_callback: TileCallback,
         crs: object | None,
     ) -> None:
         """None CRS and projected CRS both allow slicing without error."""
@@ -228,8 +234,8 @@ class TestInferenceSlicerGeoTIFF:
 
     def test_geographic_crs_raises(
         self,
-        fn_make_raster_dataset: Callable,
-        fn_fixed_detection_callback: Callable,
+        fn_make_raster_dataset: RasterDatasetFactory,
+        fn_fixed_detection_callback: TileCallback,
     ) -> None:
         """Dataset with a geographic (non-projected) CRS raises ValueError."""
         image = np.zeros((128, 128, 3), dtype=np.uint8)
@@ -244,7 +250,7 @@ class TestInferenceSlicerGeoTIFF:
             slicer(dataset)
 
     def test_single_band_raster_produces_hwc1_tiles(
-        self, fn_make_raster_dataset: Callable
+        self, fn_make_raster_dataset: RasterDatasetFactory
     ) -> None:
         """Single-band raster tiles arrive at the callback as (H, W, 1) arrays."""
         image = np.zeros((128, 128, 1), dtype=np.uint8)
@@ -264,7 +270,7 @@ class TestInferenceSlicerGeoTIFF:
         assert all(tile.ndim == 3 and tile.shape[2] == 1 for tile in seen)
 
     def test_raster_smaller_than_slice_produces_single_tile(
-        self, fn_make_raster_dataset: Callable
+        self, fn_make_raster_dataset: RasterDatasetFactory
     ) -> None:
         """Raster smaller than slice_wh is processed as exactly one tile."""
         image = np.zeros((48, 64, 3), dtype=np.uint8)
@@ -283,7 +289,7 @@ class TestInferenceSlicerGeoTIFF:
         assert tile_count[0] == 1
 
     def test_compact_masks_with_windowed_raster(
-        self, fn_make_raster_dataset: Callable
+        self, fn_make_raster_dataset: RasterDatasetFactory
     ) -> None:
         """compact_masks=True correctly moves and compresses masks from raster tiles."""
         rng = np.random.default_rng(17)
@@ -313,7 +319,7 @@ class TestInferenceSlicerGeoTIFF:
         assert len(detections) > 0
 
     def test_thread_workers_with_raster_serializes_reads(
-        self, fn_fixed_detection_callback: Callable
+        self, fn_fixed_detection_callback: TileCallback
     ) -> None:
         """Raster reads are serialized even when thread_workers > 1."""
         rng = np.random.default_rng(3)
@@ -332,11 +338,10 @@ class TestInferenceSlicerGeoTIFF:
         assert dataset.peak_concurrent == 1
 
     def test_real_rasterio_memoryfile_integration(
-        self, fn_fixed_detection_callback: Callable
+        self, fn_fixed_detection_callback: TileCallback
     ) -> None:
         """Real rasterio MemoryFile produces same detections as the array path."""
-        pytest.importorskip("rasterio")
-        from rasterio.io import MemoryFile
+        rasterio_io = pytest.importorskip("rasterio.io")
 
         # Arrange
         rng = np.random.default_rng(123)
@@ -359,7 +364,7 @@ class TestInferenceSlicerGeoTIFF:
         }
 
         # Act
-        with MemoryFile() as memfile:
+        with rasterio_io.MemoryFile() as memfile:
             with memfile.open(**profile) as dst:
                 dst.write(bands)
             with memfile.open() as dataset:

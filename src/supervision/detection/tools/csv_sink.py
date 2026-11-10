@@ -5,6 +5,7 @@ import io
 import json
 import os
 from collections.abc import Iterable
+from types import TracebackType
 from typing import Any, Protocol
 
 import numpy as np
@@ -96,11 +97,17 @@ class CSVSink:
 
     def __exit__(
         self,
-        exc_type: type | None,
-        exc_val: Exception | None,
-        exc_tb: Any | None,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
-        self.close()
+        """Close the CSV while preserving an exception from the managed block."""
+        try:
+            self.close()
+        except Exception:
+            if exc_val is None:
+                raise
+            logger.exception("Failed to close CSV sink while handling an error.")
 
     def open(self) -> None:
         """Open the CSV file for writing as UTF-8, independent of the system locale."""
@@ -125,9 +132,7 @@ class CSVSink:
         if self.file is None or self.file.closed:
             return
 
-        # close() also runs from __exit__, so a writer raising here would both leak
-        # the file handle and replace the with-body's own exception. Closing in a
-        # finally keeps the handle released and lets the original error surface.
+        # A deferred-header write failure must still release the file handle.
         try:
             if not self.header_written and self.deferred_field_names and self.writer:
                 self.field_names = self.deferred_field_names

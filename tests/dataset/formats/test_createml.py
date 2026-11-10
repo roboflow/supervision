@@ -3,6 +3,7 @@
 import json
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -81,7 +82,7 @@ class TestCreatemlAnnotationsToDetections:
     )
     def test_converts_annotations(
         self,
-        image_annotations: list[dict],
+        image_annotations: list[dict[str, Any]],
         class_to_index: dict[str, int],
         expected_result: Detections,
     ) -> None:
@@ -121,7 +122,7 @@ class TestCreatemlAnnotationsToDetections:
     )
     def test_raises_on_malformed_annotation(
         self,
-        image_annotations: list[dict],
+        image_annotations: list[dict[str, Any]],
         class_to_index: dict[str, int],
     ) -> None:
         """Raises ValueError with 'Malformed' for any missing required field."""
@@ -157,6 +158,23 @@ class TestDetectionsToCreatemlAnnotations:
 
         with pytest.raises(ValueError, match="class_id"):
             detections_to_createml_annotations(detections=detections, classes=["dog"])
+
+    @pytest.mark.parametrize("class_id", [-1, 2])
+    def test_raises_when_class_id_is_out_of_range(self, class_id: int) -> None:
+        """An out-of-range class_id raises instead of exporting a wrong label.
+
+        A negative id used to index ``classes`` from the end, so -1 was silently written
+        as the last class.
+        """
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([class_id], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match="out of range"):
+            detections_to_createml_annotations(
+                detections=detections, classes=["cat", "dog"]
+            )
 
 
 class TestLoadCreatemlAnnotations:
@@ -217,10 +235,11 @@ class TestLoadCreatemlAnnotations:
 
         original_resolve = Path.resolve
 
-        def fake_resolve(self: Path, *args: object, **kwargs: object) -> Path:
+        def fake_resolve(self: Path, strict: bool = False) -> Path:
+            """Raise OSError for the bad image path, delegate for every other path."""
             if self == tmp_path / "bad.jpg":
                 raise OSError("unresolvable path")
-            return original_resolve(self, *args, **kwargs)
+            return original_resolve(self, strict)
 
         monkeypatch.setattr(Path, "resolve", fake_resolve)
 
@@ -345,7 +364,7 @@ class TestLoadCreatemlAnnotations:
     def test_raises_on_malformed_json(
         self,
         tmp_path: Path,
-        payload: dict | list,
+        payload: dict[str, Any] | list[Any],
         match: str,
     ) -> None:
         """Raises ValueError for malformed JSON: bad root, missing key, duplicate."""

@@ -165,6 +165,11 @@ def test_resolve_color_accepts_palette_from_src_namespace() -> None:
         (12345, None, ["12345"], DoesNotRaise()),  # plain integer
         (-6789, None, ["-6789"], DoesNotRaise()),  # negative integer
         (np.int64(1000), None, ["1000"], DoesNotRaise()),  # NumPy int64
+        pytest.param(0, None, ["0"], DoesNotRaise(), id="integer-zero"),
+        pytest.param(0, 10, ["0"], DoesNotRaise(), id="integer-zero-wrapped"),
+        pytest.param(np.int64(0), None, ["0"], DoesNotRaise(), id="numpy-int-zero"),
+        pytest.param(0.0, None, ["0.0"], DoesNotRaise(), id="float-zero"),
+        pytest.param(False, None, ["False"], DoesNotRaise(), id="boolean-false"),
         ([1, 2, 3], None, ["[1, 2, 3]"], DoesNotRaise()),  # list to string
         (
             "When you play the game of thrones, you win or you die.\nFear cuts deeper than swords.\nA mind needs books as a sword needs a whetstone.",  # noqa: E501
@@ -258,6 +263,10 @@ def test_trace_put_requires_tracker_id_before_mutation() -> None:
         ("00FF0080", (0, 255, 0, 128)),
         ("  #ff00ff80  ", (255, 0, 255, 128)),
         ("abcdef", (171, 205, 239, 255)),
+        pytest.param("#F0F", (255, 0, 255, 255), id="shorthand-rgb-prefixed"),
+        pytest.param("f0f", (255, 0, 255, 255), id="shorthand-rgb-no-prefix"),
+        pytest.param("#F0F8", (255, 0, 255, 136), id="shorthand-rgba-prefixed"),
+        pytest.param("  #fff  ", (255, 255, 255, 255), id="shorthand-rgb-whitespace"),
     ],
 )
 def test_hex_to_rgba_valid(
@@ -271,7 +280,9 @@ def test_hex_to_rgba_valid(
     [
         pytest.param("#FF00F", id="five-digits"),
         pytest.param("#GGHHII", id="non-hex-digits"),
-        pytest.param("#FFF", id="short-form"),
+        pytest.param("#FF", id="two-digits"),
+        pytest.param("#GGG", id="short-form-non-hex-digits"),
+        pytest.param("##FFF", id="short-form-multiple-prefixes"),
         pytest.param("1234567", id="seven-digits"),
         pytest.param("##000000", id="multiple-prefixes"),
     ],

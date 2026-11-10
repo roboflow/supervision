@@ -64,7 +64,8 @@ def _random_person(
     """Draw a 17-point person of the given height with its box at `origin`."""
     jitter = rng.normal(0.0, 0.02, size=PERSON_TEMPLATE.shape)
     xy = (PERSON_TEMPLATE + jitter) * np.array([0.45 * height, height]) + origin
-    return xy.astype(np.float32)
+    person: npt.NDArray[np.float32] = xy.astype(np.float32)
+    return person
 
 
 def _make_synthetic_pose_images(seed: int = 7) -> list[SyntheticPoseImage]:
@@ -167,6 +168,7 @@ def _to_coco(
         image_id = index + 1
         targets, predictions = image.targets, image.predictions
         for target_index in range(len(targets)):
+            assert targets.class_id is not None
             xy = targets.xy[target_index].astype(np.float64)
             visible = np.ones(len(xy), dtype=bool)
             if targets.visible is not None:
@@ -191,6 +193,8 @@ def _to_coco(
                 }
             )
         for pred_index in range(len(predictions)):
+            assert predictions.class_id is not None
+            assert predictions.detection_confidence is not None
             xy = predictions.xy[pred_index].astype(np.float64)
             record = {
                 "image_id": image_id,
@@ -285,10 +289,10 @@ class TestKeyPointOksBatch:
     ) -> None:
         """Without visible points, distance is measured to the expanded box.
 
-        The box `(0, 0, 10, 10)` expands to `[-10, 20] x [-10, 20]`, as in
-        `pycocotools` `computeOks`, and the mean runs over all keypoints.
+        The box `(0, 0, 10, 10)` expands to `[-10, 20] x [-10, 20]`, as in `pycocotools`
+        `computeOks`, and the mean runs over all keypoints.
         """
-        keypoints_true = np.zeros((1, 3, 2))
+        keypoints_true = np.zeros((1, 3, 2), dtype=np.float32)
         area, sigma = 50.0, 0.1
         target = KeyPoints(
             xy=keypoints_true,
@@ -552,8 +556,8 @@ class TestKeyPointMeanAveragePrecision:
     ) -> None:
         """With a box, a prediction on a hidden target is ignored, not a false positive.
 
-        As in `pycocotools`, the hidden target is an ignore region in every size
-        bucket, whatever its area, so it is neither a miss nor a match.
+        As in `pycocotools`, the hidden target is an ignore region in every size bucket,
+        whatever its area, so it is neither a miss nor a match.
         """
         hidden_target = _triangle_key_points(
             offset=300.0, visible=np.zeros((1, 3), dtype=bool)
@@ -624,9 +628,9 @@ class TestKeyPointMeanAveragePrecision:
 
         The false positive sits in its own image, next to one with a match.
 
-        Its keypoints span a medium box, so without a box it is a medium false
-        positive. A large box moves it out of the medium bucket, as the
-        `bbox` of a COCO result entry does in `pycocotools`.
+        Its keypoints span a medium box, so without a box it is a medium false positive.
+        A large box moves it out of the medium bucket, as the `bbox` of a COCO result
+        entry does in `pycocotools`.
         """
         target = _triangle_key_points()
         target.data["area"] = np.array([5000.0])
@@ -908,6 +912,7 @@ class TestKeyPointMeanAveragePrecisionMaxDetections:
         before it can be counted, so the target is a miss and AP is 0.
         """
         false_positives = _false_positives(num_false_positives)
+        assert false_positives.detection_confidence is not None
         match = _triangle_key_points(confidence=0.5)
         predictions = KeyPoints(
             xy=np.concatenate([false_positives.xy, match.xy]),
@@ -928,6 +933,8 @@ class TestKeyPointMeanAveragePrecisionMaxDetections:
         """
         match = _triangle_key_points(confidence=0.5)
         false_positives = _false_positives(20, class_id=1)
+        assert false_positives.class_id is not None
+        assert false_positives.detection_confidence is not None
         predictions = KeyPoints(
             xy=np.concatenate([false_positives.xy, match.xy]),
             class_id=np.append(false_positives.class_id, 0),
@@ -1047,6 +1054,8 @@ class TestKeyPointMeanAveragePrecisionParity:
         )
 
         expected_stats = evaluator.stats
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
         actual_stats = np.array(
             [
                 result.map50_95,
@@ -1136,8 +1145,8 @@ class TestKeyPointMeanAveragePrecisionCategories:
     ) -> None:
         """Class-agnostic skeletons share class -1, or keep 0 when no input has IDs.
 
-        This mirrors `MeanAveragePrecision`, and an unlabelled target still matches
-        a labelled prediction in the mixed case.
+        This mirrors `MeanAveragePrecision`, and an unlabelled target still matches a
+        labelled prediction in the mixed case.
         """
         prediction = _triangle_key_points(confidence=0.9)
         prediction.class_id = prediction_class_id
@@ -1174,8 +1183,8 @@ class TestKeyPointMeanAveragePrecisionResult:
         """The summary prints three overall OKS lines, then medium and large.
 
         An exact match scores 1 overall and for the medium bucket its keypoints span,
-        and -1 for the large bucket, which holds no target. This is the example in
-        the `__str__` docstring.
+        and -1 for the large bucket, which holds no target. This is the example in the
+        `__str__` docstring.
         """
         result = _exact_match_result()
 
@@ -1329,7 +1338,7 @@ class TestKeyPointMeanAveragePrecisionNonFiniteKeypoints:
         ],
     )
     def test_non_finite_target_keypoint_is_unlabelled(
-        self, value: float, data: dict[str, npt.NDArray[np.float64]]
+        self, value: float, data: dict[str, npt.NDArray[Any] | list[Any]]
     ) -> None:
         """A non-finite target keypoint is left out, like one with `visible=False`.
 
@@ -1362,7 +1371,7 @@ class TestKeyPointMeanAveragePrecisionNonFiniteKeypoints:
         ],
     )
     def test_target_with_only_non_finite_keypoints_is_hidden(
-        self, data: dict[str, npt.NDArray[np.float64]], expected_map50: float
+        self, data: dict[str, npt.NDArray[Any] | list[Any]], expected_map50: float
     ) -> None:
         """A target with only non-finite keypoints counts as one without visible ones.
 

@@ -243,7 +243,8 @@ def _iter_resolved_colors(
 
 def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     """Wrap `text` to the specified maximum line length, respecting existing newlines.
-    Falls back to str() if `text` is not already a string.
+    Falls back to str() if `text` is not already a string, so falsy values such as `0`
+    are kept as text. `None` and empty text give a single empty line.
 
     Args:
         text: The text (or object) to wrap.
@@ -252,11 +253,14 @@ def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     Returns:
         Wrapped lines.
     """
-    if not text:
+    if text is None:
         return [""]
 
     if not isinstance(text, str):
         text = str(text)
+
+    if not text:
+        return [""]
 
     if max_line_length is None:
         return text.splitlines() or [""]
@@ -517,7 +521,8 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
     """Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
 
     Args:
-        hex_color: A hex color string.
+        hex_color: A 3-, 4-, 6- or 8-digit hex color string, with an optional
+            leading "#".
 
     Returns:
         RGBA values in range 0-255.
@@ -532,10 +537,14 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
         (255, 0, 255, 255)
         >>> hex_to_rgba("#FF00FF80")
         (255, 0, 255, 128)
+        >>> hex_to_rgba("#F0F8")
+        (255, 0, 255, 136)
 
         ```
     """
     hex_color = hex_color.strip().removeprefix("#")
+    if len(hex_color) in (3, 4):
+        hex_color = "".join(digit * 2 for digit in hex_color)
     if len(hex_color) == 6:
         hex_color += "FF"  # default full opacity
     if len(hex_color) != 8:

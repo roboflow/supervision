@@ -55,6 +55,7 @@ def evaluate_detections(
         image = {"id": image_id}
         if metric_target == MetricTarget.MASKS:
             masks = target.mask if target.mask is not None else prediction.mask
+            assert masks is not None
             image.update(height=masks.shape[1], width=masks.shape[2])
         images.append(image)
         for detections, records, is_target in (
@@ -62,6 +63,7 @@ def evaluate_detections(
             (prediction, results, False),
         ):
             for index in range(len(detections)):
+                assert detections.class_id is not None
                 category = int(detections.class_id[index])
                 categories.add(category)
                 x1, y1, x2, y2 = detections.xyxy[index].astype(float)
@@ -71,6 +73,7 @@ def evaluate_detections(
                 }
                 area = (x2 - x1) * (y2 - y1)
                 if metric_target == MetricTarget.MASKS:
+                    assert detections.mask is not None
                     encoded = mask_utils.encode(
                         np.asfortranarray(detections.mask[index], dtype=np.uint8)
                     )
@@ -91,6 +94,7 @@ def evaluate_detections(
                         ),
                     )
                 else:
+                    assert detections.confidence is not None
                     record["score"] = float(detections.confidence[index])
                 records.append(record)
     dataset = {

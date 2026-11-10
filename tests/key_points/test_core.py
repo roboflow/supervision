@@ -1,4 +1,5 @@
 from contextlib import nullcontext as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -554,6 +555,78 @@ class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
     @pytest.mark.parametrize("method", ["select", "__getitem__"])
+    @pytest.mark.parametrize("row", [0, -1])
+    @pytest.mark.parametrize(
+        "anchors",
+        [
+            pytest.param([2, 0], id="integer-list"),
+            pytest.param(np.array([2, 0]), id="integer-array"),
+            pytest.param([True, False, True], id="boolean-list"),
+            pytest.param(np.array([True, False, True]), id="boolean-array"),
+        ],
+    )
+    def test_scalar_array_row_with_multiple_anchors(
+        self, method: str, row: int, anchors: Any
+    ) -> None:
+        """Scalar array rows retain aligned fields when selecting multiple joints."""
+        xy = np.arange(18, dtype=np.float32).reshape(2, 3, 3)
+        keypoint_confidence = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
+        visible = np.array([[True, False, True], [False, True, False]])
+        key_points = KeyPoints(
+            xy=xy,
+            keypoint_confidence=keypoint_confidence,
+            visible=visible,
+            class_id=np.array([2, 3]),
+            detection_confidence=np.array([0.7, 0.8]),
+            data={"names": ["first", "second"], "id": np.array([10, 20])},
+        )
+
+        result = getattr(key_points, method)((np.array(row), anchors))
+
+        np.testing.assert_array_equal(result.xy, xy[row, anchors][None, ...])
+        np.testing.assert_array_equal(
+            result.keypoint_confidence, keypoint_confidence[row, anchors][None, ...]
+        )
+        np.testing.assert_array_equal(result.visible, visible[row, anchors][None, ...])
+        np.testing.assert_array_equal(result.class_id, [2 if row == 0 else 3])
+        np.testing.assert_array_equal(
+            result.detection_confidence, [0.7 if row == 0 else 0.8]
+        )
+        np.testing.assert_array_equal(result.data["id"], [10 if row == 0 else 20])
+        assert result.data["names"] == ["first" if row == 0 else "second"]
+
+    @pytest.mark.parametrize(
+        "anchor_index",
+        [
+            pytest.param([0, 1], id="list"),
+            pytest.param(0, id="integer"),
+            pytest.param(np.int64(0), id="numpy-integer"),
+            pytest.param(np.array([0, 1]), id="integer-array"),
+            pytest.param([True, False], id="boolean-list"),
+            pytest.param(np.array([True, False]), id="boolean-array"),
+        ],
+    )
+    def test_keypoint_selection_on_empty_result_stays_empty(
+        self, anchor_index: Any
+    ) -> None:
+        """Selecting joints on a frame without poses returns an empty result."""
+        key_points = KeyPoints.empty()
+
+        result = key_points[:, anchor_index]
+
+        assert isinstance(result, KeyPoints)
+        assert result.is_empty()
+        assert result.xy.shape == (0, 0, 2)
+
+    @pytest.mark.parametrize("empty", [True, False])
+    def test_zero_step_anchor_slice_raises(self, empty: bool) -> None:
+        """Reject a zero-step anchor slice for empty and populated results."""
+        key_points = KeyPoints.empty() if empty else KeyPoints(xy=np.zeros((1, 2, 2)))
+
+        with pytest.raises(ValueError, match="slice step cannot be zero"):
+            key_points[:, ::0]
+
+    @pytest.mark.parametrize("method", ["select", "__getitem__"])
     @pytest.mark.parametrize("coordinate_count", [2, 3])
     @pytest.mark.parametrize("with_fields", [False, True])
     @pytest.mark.parametrize(
@@ -736,6 +809,16 @@ def test_key_points_empty():
     assert empty_key_points.xy.shape == (0, 0, 2)
 
 
+@pytest.mark.parametrize("field", ["detection_confidence", "keypoint_confidence"])
+def test_key_points_empty_filters_by_confidence(field: str) -> None:
+    """A frame without poses filters by confidence like a frame with poses."""
+    key_points = KeyPoints.empty()
+
+    filtered = key_points[getattr(key_points, field) > 0.5]
+
+    assert filtered.is_empty()
+
+
 def test_key_points_is_empty():
     """Test the is_empty method for KeyPoints objects."""
     empty_key_points = KeyPoints.empty()
@@ -810,6 +893,75 @@ def test_key_points_as_detections(
     assert np.array_equal(detections.xyxy, expected_xyxy)
     assert np.allclose(detections.confidence, expected_confidence)
     assert np.array_equal(detections.class_id, expected_class_id)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [pytest.param(np.float32, id="float32"), pytest.param(np.float64, id="float64")],
+)
+@pytest.mark.parametrize("depth", [1.0, np.nan, np.inf, -np.inf])
+@pytest.mark.parametrize("with_visibility", [False, True])
+class TestKeyPointsImageSpaceBoxes:
+    def test_conversion_ignores_extra_coordinate(
+        self,
+        dtype: type[np.float32] | type[np.float64],
+        depth: float,
+        with_visibility: bool,
+    ) -> None:
+        """Missing points and valid x/y bounds do not depend on depth."""
+        xy = np.array([[[0, 0], [10, 10], [20, 20]]], dtype=dtype)
+        extra = np.full((1, 3, 1), depth, dtype=dtype)
+        extra[:, 0] = 1
+        coordinates = np.concatenate((xy, extra), axis=2)
+        visible = np.ones((1, 3), dtype=bool) if with_visibility else None
+        key_points = KeyPoints(
+            xy=coordinates,
+            visible=visible,
+            class_id=np.array([3]),
+            data={"name": np.array(["person"])},
+        )
+        original = coordinates.copy()
+
+        detections = key_points.as_detections(selected_keypoint_indices=[0, 1, 2])
+
+        np.testing.assert_array_equal(detections.xyxy, [[10, 10, 20, 20]])
+        np.testing.assert_array_equal(detections.class_id, [3])
+        np.testing.assert_array_equal(detections.data["name"], ["person"])
+        np.testing.assert_array_equal(coordinates, original)
+
+    def test_suppression_ignores_extra_coordinate(
+        self,
+        dtype: type[np.float32] | type[np.float64],
+        depth: float,
+        with_visibility: bool,
+    ) -> None:
+        """NMS suppresses duplicate image boxes while retaining distant skeletons."""
+        xy = np.array(
+            [
+                [[0, 0], [100, 100], [120, 120]],
+                [[0, 0], [102, 102], [122, 122]],
+                [[0, 0], [140, 140], [160, 160]],
+            ],
+            dtype=dtype,
+        )
+        extra = np.full((3, 3, 1), depth, dtype=dtype)
+        extra[:, 0] = 1
+        coordinates = np.concatenate((xy, extra), axis=2)
+        visible = np.ones((3, 3), dtype=bool) if with_visibility else None
+        key_points = KeyPoints(
+            xy=coordinates,
+            visible=visible,
+            class_id=np.zeros(3, dtype=int),
+            detection_confidence=np.array([0.9, 0.8, 0.7]),
+            data={"name": np.array(["first", "duplicate", "distant"])},
+        )
+        original = coordinates.copy()
+
+        result = key_points.with_nms(threshold=0.5)
+
+        np.testing.assert_array_equal(result.xy, coordinates[[0, 2]])
+        np.testing.assert_array_equal(result.data["name"], ["first", "distant"])
+        np.testing.assert_array_equal(coordinates, original)
 
 
 def test_key_points_as_detections_empty():
@@ -1757,8 +1909,8 @@ class TestFromTransformers:
         np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
         np.testing.assert_array_equal(key_points.class_id, [0])
 
-    def test_multiple_poses_are_stacked_with_sequential_class_ids(self) -> None:
-        """Several poses stack into one `(N, K, 2)` array with ids `0..N-1`."""
+    def test_multiple_poses_are_stacked_with_one_shared_class_id(self) -> None:
+        """Several poses stack into one `(N, K, 2)` array, all with class ID `0`."""
         results = [
             {
                 "keypoints": _FakeTensor(
@@ -1778,7 +1930,7 @@ class TestFromTransformers:
 
         assert key_points.xy.shape == (2, 2, 2)
         assert key_points.xy.dtype == np.float32
-        np.testing.assert_array_equal(key_points.class_id, [0, 1])
+        np.testing.assert_array_equal(key_points.class_id, [0, 0])
 
 
 class _FakeDetectron2Instances:
@@ -1829,6 +1981,7 @@ class TestFromDetectron2:
             _FakeYoloNasKeyPointResults(
                 _FakeYoloNasKeyPoint(
                     poses=[[[100.0, 150.0, 0.9], [120.0, 160.0, 0.85]]],
+                    scores=[0.95],
                     labels=[1],
                 ),
             ),
@@ -1836,12 +1989,14 @@ class TestFromDetectron2:
                 xy=[[[100.0, 150.0], [120.0, 160.0]]],
                 confidence=[[0.9, 0.85]],
                 class_id=[1],
+                detection_confidence=[0.95],
             ),
         ),
         (
             _FakeYoloNasKeyPointResults(
                 _FakeYoloNasKeyPoint(
                     poses=[],
+                    scores=[],
                 ),
             ),
             KeyPoints.empty(),

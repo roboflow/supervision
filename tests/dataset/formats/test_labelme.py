@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -17,7 +18,10 @@ from supervision.dataset.formats.labelme import (
 from supervision.detection.core import Detections
 
 
-def _rectangle(label: str, x1: float, y1: float, x2: float, y2: float) -> dict:
+def _rectangle(
+    label: str, x1: float, y1: float, x2: float, y2: float
+) -> dict[str, Any]:
+    """Build a LabelMe rectangle shape dict for the given label and corners."""
     return {
         "label": label,
         "points": [[x1, y1], [x2, y2]],
@@ -25,14 +29,19 @@ def _rectangle(label: str, x1: float, y1: float, x2: float, y2: float) -> dict:
     }
 
 
-def _polygon(label: str, points: list[list[float]]) -> dict:
+def _polygon(label: str, points: list[list[float]]) -> dict[str, Any]:
+    """Build a LabelMe polygon shape dict for the given label and points."""
     return {"label": label, "points": points, "shape_type": "polygon"}
 
 
 def _write_labelme(
-    path: Path, image_name: str, shapes: list[dict], wh=(64, 48)
+    path: Path,
+    image_name: str,
+    shapes: list[dict[str, Any]],
+    wh: tuple[int, int] = (64, 48),
 ) -> None:
-    payload = {
+    """Write a minimal LabelMe JSON annotation file for one image."""
+    payload: dict[str, Any] = {
         "version": "5.5.0",
         "flags": {},
         "shapes": shapes,
@@ -94,7 +103,7 @@ class TestLabelmeShapesToDetections:
         np.testing.assert_array_almost_equal(
             result.xyxy, np.array([[10, 10, 30, 30]], dtype=np.float32)
         )
-        assert result.mask is not None
+        assert isinstance(result.mask, np.ndarray)
         assert result.mask.shape == (1, 48, 64)
         assert result.mask[0, 15:25, 15:25].all()
 
@@ -124,7 +133,7 @@ class TestLabelmeShapesToDetections:
         ],
     )
     def test_explicit_group_combines_shapes(
-        self, shapes: list[dict], with_masks: bool, group_id: int
+        self, shapes: list[dict[str, Any]], with_masks: bool, group_id: int
     ) -> None:
         """Shapes sharing a label and group form one box and a union mask."""
         shapes = [dict(shape, group_id=group_id) for shape in shapes]
@@ -204,8 +213,8 @@ class TestLabelmeShapesToDetections:
     )
     def test_keeps_distinct_instances(
         self,
-        first_fields: dict,
-        second_fields: dict,
+        first_fields: dict[str, Any],
+        second_fields: dict[str, Any],
         expected_class_ids: list[int],
     ) -> None:
         """Ungrouped shapes, distinct groups, and distinct labels stay independent."""
@@ -299,7 +308,7 @@ class TestLoadLabelmeAnnotations:
         )
 
         detections = annotations[str(tmp_path / "a.jpg")]
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask.shape == (1, 48, 64)
         assert detections.mask[0, 15:25, 15:25].all()
 
@@ -423,7 +432,7 @@ class TestLoadLabelmeAnnotations:
         )
 
         detections = annotations[str(tmp_path / "a.jpg")]
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask.shape == (1, 48, 64)
         assert detections.mask[0, 15:25, 15:25].all()
 
@@ -443,7 +452,7 @@ class TestLoadLabelmeAnnotations:
         ],
     )
     def test_requires_image_dims_when_mask_needed(
-        self, tmp_path: Path, shapes: list[dict], force_masks: bool
+        self, tmp_path: Path, shapes: list[dict[str, Any]], force_masks: bool
     ) -> None:
         """ValueError raised when mask rasterisation required but image dims missing."""
         payload = {"shapes": shapes, "imagePath": "a.jpg"}
@@ -475,7 +484,7 @@ class TestLoadLabelmeAnnotations:
         detections = annotations[str(tmp_path / "a.jpg")]
         assert classes == ["cat", "dog"]
         assert len(detections) == 2
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask.shape == (2, 48, 64)
         np.testing.assert_array_almost_equal(
             detections.xyxy,

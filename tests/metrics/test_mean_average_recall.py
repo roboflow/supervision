@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -5,7 +7,39 @@ from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
+from supervision.metrics.utils.object_size import get_detection_areas
 from tests.metrics.coco_reference import evaluate_detections
+
+
+class TestMeanAverageRecallScalarMetadata:
+    """Size buckets preserve data shared by every target."""
+
+    @pytest.mark.parametrize("value", ["camera-a", 7, True])
+    def test_shared_target_data_does_not_change_recall(
+        self, value: str | int | bool
+    ) -> None:
+        """A shared scalar does not stop recall for small and large objects."""
+        boxes = np.array([[0, 0, 10, 10], [0, 0, 100, 100]], dtype=np.float32)
+        predictions = Detections(
+            xyxy=boxes.copy(),
+            confidence=np.array([0.9, 0.8]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=boxes.copy(),
+            class_id=np.array([0, 0]),
+            data={"source": np.array(value)},
+        )
+
+        result = MeanAverageRecall().update(predictions, targets).compute()
+
+        assert result.small_objects is not None
+        assert result.large_objects is not None
+        np.testing.assert_allclose(result.recall_scores, [0.5, 1, 1])
+        np.testing.assert_allclose(result.small_objects.recall_scores, 1)
+        np.testing.assert_allclose(result.large_objects.recall_scores, [0, 1, 1])
+        np.testing.assert_array_equal(targets.data["source"], np.array(value))
+        np.testing.assert_array_equal(targets.xyxy, boxes)
 
 
 class TestMeanAverageRecallConfidenceMatching:
@@ -57,6 +91,7 @@ class TestMeanAverageRecallConfidenceMatching:
         if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             reference_target = MetricTarget.BOXES
         reference = evaluate_detections(predictions, targets, reference_target)
+        assert result.large_objects is not None
         np.testing.assert_allclose(result.recall_scores, reference.stats[6:9])
         np.testing.assert_allclose(
             result.large_objects.recall_scores,
@@ -73,7 +108,7 @@ class TestMeanAverageRecallConfidenceMatching:
     ) -> None:
         """COCO's last-target tie preserves later matches beside ignored regions."""
         target_boxes = [[0, 0, 10, 10], [10, 0, 20, 10]]
-        target_data = {}
+        target_data: dict[str, np.ndarray | list[Any]] = {}
         if ignore_field is not None:
             target_boxes.append([0, 0, 20, 10])
             target_data[ignore_field] = np.array([0, 0, 1])
@@ -99,6 +134,7 @@ class TestMeanAverageRecallConfidenceMatching:
 
         result = MeanAverageRecall(metric_target).update(predictions, targets).compute()
 
+        assert result.small_objects is not None
         np.testing.assert_allclose(result.recall_scores, [0.05, 0.55, 0.55])
         np.testing.assert_allclose(
             result.small_objects.recall_scores, [0.05, 0.55, 0.55]
@@ -106,7 +142,7 @@ class TestMeanAverageRecallConfidenceMatching:
 
 
 @pytest.fixture
-def complex_scenario_targets():
+def complex_scenario_targets() -> list[np.ndarray]:
     """Ground truth for complex multi-image scenario.
 
     15 images with varying object counts and classes.
@@ -243,7 +279,7 @@ def complex_scenario_targets():
 
 
 @pytest.fixture
-def complex_scenario_predictions():
+def complex_scenario_predictions() -> list[np.ndarray]:
     """Predictions for complex multi-image scenario.
 
     15 images with varying detection quality:
@@ -381,7 +417,7 @@ def complex_scenario_predictions():
 
 
 @pytest.fixture
-def two_class_two_image_detections():
+def two_class_two_image_detections() -> tuple[list[Detections], list[Detections]]:
     """Scenario: 2 images, each with one perfect detection per class.
 
     The most confident class differs between the images, so an image-wide
@@ -420,7 +456,7 @@ def two_class_two_image_detections():
 
 
 @pytest.fixture
-def three_class_single_image_detections():
+def three_class_single_image_detections() -> tuple[list[Detections], list[Detections]]:
     """Scenario: 1 image with 3 classes, one perfect detection per class.
 
     An image-wide detection limit would count only the most confident of them,
@@ -460,7 +496,7 @@ def three_class_single_image_detections():
     ["predictions_class_id", "targets_class_id", "predictions_confidence"],
 )
 def test_compute_value_error_for_missing_required_fields_after_update(
-    missing_attribute,
+    missing_attribute: str,
 ) -> None:
     """Raises ValueError when required detection fields are missing."""
     metric = MeanAverageRecall()
@@ -670,7 +706,9 @@ def test_medium_bucket_scores_target_matched_small_prediction() -> None:
     "missing_attribute",
     ["predictions_class_id", "targets_class_id", "predictions_confidence"],
 )
-def test_compute_value_error_for_missing_required_fields(missing_attribute) -> None:
+def test_compute_value_error_for_missing_required_fields(
+    missing_attribute: str,
+) -> None:
     """Test compute raises ValueError when required fields are missing."""
     metric = MeanAverageRecall()
     boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
@@ -841,7 +879,7 @@ def test_rank_within_class_counts_predictions_of_the_same_class(
     assert ranks.tolist() == expected_ranks
 
 
-def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
+def test_dataset_split_integration(yolo_dataset_two_classes: dict[str, Any]) -> None:
     """Test mAR with a roboflow-format dataset loaded from disk.
 
     Uses a synthetic YOLO-format dataset loaded via DetectionDataset.from_yolo()
@@ -884,6 +922,7 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
             pred_xyxy = np.clip(pred_xyxy + offset, 0, 640)
 
             # Generate decreasing confidence scores
+            assert gt_detections.class_id is not None
             num_preds = len(pred_xyxy)
             confidences = np.linspace(0.95, 0.65, num_preds, dtype=np.float32)
 
@@ -955,7 +994,7 @@ def test_mar_at_k_ignores_predictions_ranked_below_each_limit() -> None:
     assert result.mAR_at_100 == pytest.approx(1.0)
 
 
-def test_greedy_matching_two_valid_pairs():
+def test_greedy_matching_two_valid_pairs() -> None:
     """Greedy matching finds both TPs; np.unique style missed the second pair.
 
     IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
@@ -977,3 +1016,49 @@ def test_greedy_matching_two_valid_pairs():
     # the first threshold has 2 TPs. mAR@100 = (1.0 + 0.5*9) / 10 = 0.55.
     # The buggy np.unique algorithm gave 0.5 (only 1 TP even at iou=0.5).
     assert result.mAR_at_100 == pytest.approx(0.55)
+
+
+class TestMeanAverageRecallCocoSizeBuckets:
+    """MAR size buckets must match inclusive COCO / mAP ranges (issue #2846)."""
+
+    @pytest.mark.parametrize(
+        ("xyxy", "expected_recall"),
+        [
+            pytest.param([[0, 0, 32, 32]], [1.0, 1.0, 0.0], id="at-32"),
+            pytest.param([[0, 0, 96, 96]], [0.0, 1.0, 1.0], id="at-96"),
+            pytest.param(
+                [[0, 0, 32, 32], [0, 0, 96, 96]],
+                [1.0, 1.0, 1.0],
+                id="both-boundaries",
+            ),
+        ],
+    )
+    def test_boundary_area_belongs_to_both_coco_size_buckets(
+        self, xyxy: list[list[float]], expected_recall: list[float]
+    ) -> None:
+        """Boundary-sized boxes count in both neighbouring COCO buckets."""
+        boxes = np.array(xyxy, dtype=np.float32)
+        class_id = np.zeros(len(boxes), dtype=np.int32)
+        confidence = np.ones(len(boxes), dtype=np.float32)
+        predictions = Detections(xyxy=boxes, confidence=confidence, class_id=class_id)
+        targets = Detections(xyxy=boxes.copy(), class_id=class_id.copy())
+
+        result = MeanAverageRecall().update(predictions, targets).compute()
+
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+        np.testing.assert_allclose(
+            [
+                result.small_objects.mAR_at_100,
+                result.medium_objects.mAR_at_100,
+                result.large_objects.mAR_at_100,
+            ],
+            expected_recall,
+        )
+
+    def test_float16_box_area_does_not_overflow(self) -> None:
+        """A float16 256x256 box has a finite area and stays in the large bucket."""
+        boxes = np.array([[0, 0, 256, 256]], dtype=np.float16)
+        areas = get_detection_areas(Detections(xyxy=boxes))
+        np.testing.assert_allclose(areas, [65536.0])

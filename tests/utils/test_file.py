@@ -1,6 +1,7 @@
 import json
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 from typing import Any
@@ -68,7 +69,7 @@ class TestNormalizeHttpUrl:
 
 
 class TestDownloadToFile:
-    def test_writes_response_content_to_target(self, tmp_path) -> None:
+    def test_writes_response_content_to_target(self, tmp_path: Path) -> None:
         """Non-streaming download writes response bytes to the target path."""
         # given
         target = tmp_path / "subdir" / "file.bin"
@@ -91,7 +92,7 @@ class TestDownloadToFile:
         assert list(target.parent.iterdir()) == [target]
         response.close.assert_called_once()
 
-    def test_raises_and_leaves_no_file_on_http_error(self, tmp_path) -> None:
+    def test_raises_and_leaves_no_file_on_http_error(self, tmp_path: Path) -> None:
         """HTTP error status raises and leaves no file behind."""
         # given
         target = tmp_path / "file.bin"
@@ -129,7 +130,8 @@ Line 4
 
 
 @pytest.fixture(scope="module", autouse=True)
-def setup_and_teardown_files():
+def setup_and_teardown_files() -> Iterator[None]:
+    """Create the text fixtures used by the read tests and remove them after."""
     with open("file_1.txt", "w") as file:
         file.write(FILE_1_CONTENT)
     with open("file_2.txt", "w") as file:
@@ -164,8 +166,9 @@ def test_read_txt_file(
     file_name: str,
     skip_empty: bool,
     expected_result: list[str] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Text files are read line by line, optionally skipping empty lines."""
     with exception:
         result = read_txt_file(file_name, skip_empty)
         assert result == expected_result

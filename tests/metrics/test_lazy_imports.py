@@ -8,6 +8,7 @@ from types import ModuleType
 from unittest.mock import MagicMock
 
 import numpy as np
+import pytest
 
 from supervision.detection.core import Detections
 
@@ -29,7 +30,7 @@ def _clear_metric_modules() -> None:
 def _make_pyplot_stub() -> ModuleType:
     """Build a minimal pyplot stub for plot smoke tests."""
     pyplot = ModuleType("matplotlib.pyplot")
-    pyplot.rcParams = {}
+    setattr(pyplot, "rcParams", {})
 
     figure = MagicMock(name="figure")
     axis = MagicMock(name="axis")
@@ -39,10 +40,10 @@ def _make_pyplot_stub() -> ModuleType:
     bar.get_width.return_value = 1.0
     axis.bar.return_value = [bar]
 
-    pyplot.subplots = MagicMock(return_value=(figure, axis))
-    pyplot.tight_layout = MagicMock()
-    pyplot.show = MagicMock()
-    pyplot.setp = MagicMock()
+    setattr(pyplot, "subplots", MagicMock(return_value=(figure, axis)))
+    setattr(pyplot, "tight_layout", MagicMock())
+    setattr(pyplot, "show", MagicMock())
+    setattr(pyplot, "setp", MagicMock())
 
     return pyplot
 
@@ -57,7 +58,9 @@ def test_metrics_package_import_keeps_pyplot_lazy() -> None:
     assert "matplotlib.pyplot" not in sys.modules
 
 
-def test_precision_plot_imports_pyplot_on_demand(monkeypatch) -> None:
+def test_precision_plot_imports_pyplot_on_demand(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Precision.plot should import pyplot only when plotting is requested."""
     sys.modules.pop("matplotlib.pyplot", None)
     _clear_metric_modules()

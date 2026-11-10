@@ -41,7 +41,7 @@ def _create_detections(
     confidence: Sequence[float] | np.ndarray | None = None,
     class_id: Sequence[int] | np.ndarray | None = None,
     tracker_id: Sequence[int] | np.ndarray | None = None,
-    data: Mapping[str, Sequence[Any] | np.ndarray] | None = None,
+    data: Mapping[str, Any] | None = None,
 ) -> Detections:
     """Create a Detections object from list-based inputs.
 
@@ -78,7 +78,7 @@ def _create_detections(
     """
 
     def convert_data(
-        data: Mapping[str, Sequence[Any] | np.ndarray],
+        data: Mapping[str, Any],
     ) -> dict[str, np.ndarray | list[Any]]:
         """Convert each metadata value to a NumPy array."""
         return {k: np.array(v) for k, v in data.items()}
@@ -407,8 +407,10 @@ class _FakeYoloNasResults:
 class _FakeYoloNasKeyPoint:
     """YOLO-NAS-like key point struct."""
 
-    def __init__(self, poses: Any, labels: Any = None) -> None:
+    def __init__(self, poses: Any, scores: Any, labels: Any = None) -> None:
+        """Store `(N, K, 3)` poses with one score and optional label per pose."""
         self.poses = np.array(poses, dtype=np.float32)
+        self.scores = np.array(scores, dtype=np.float32)
         if labels is not None:
             self.labels = np.array(labels, dtype=int)
 

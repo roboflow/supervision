@@ -1,4 +1,5 @@
 import warnings
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -189,7 +190,7 @@ def _create_image(fill_value: int) -> npt.NDArray[np.uint8]:
 def test_dataset_merge(
     dataset_list: list[DetectionDataset],
     expected_result: DetectionDataset | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     """Verify that multiple DetectionDataset objects can be successfully merged.
 
@@ -200,6 +201,47 @@ def test_dataset_merge(
     with exception:
         result = DetectionDataset.merge(dataset_list=dataset_list)
         assert result == expected_result
+
+
+class TestMergeUnlabeledDetections:
+    def test_preserves_unlabeled_and_remaps_labeled_annotations(self) -> None:
+        """Merge datasets even when an annotation has no class IDs."""
+        unlabeled = Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            confidence=np.array([0.75]),
+            data={"source": np.array(["camera"])},
+        )
+        first = DetectionDataset(
+            classes=["cat"],
+            images=["unlabeled.png"],
+            annotations={"unlabeled.png": unlabeled},
+        )
+        second = DetectionDataset(
+            classes=["dog"],
+            images=["labeled.png"],
+            annotations={
+                "labeled.png": _create_detections(xyxy=[[1, 1, 2, 2]], class_id=[0])
+            },
+        )
+
+        merged = DetectionDataset.merge([first, second])
+
+        assert merged.classes == ["cat", "dog"]
+        assert merged.annotations["unlabeled.png"].class_id is None
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].xyxy, unlabeled.xyxy
+        )
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].confidence, [0.75]
+        )
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].data["source"], ["camera"]
+        )
+        assert not np.shares_memory(
+            merged.annotations["unlabeled.png"].xyxy,
+            first.annotations["unlabeled.png"].xyxy,
+        )
+        np.testing.assert_array_equal(merged.annotations["labeled.png"].class_id, [1])
 
 
 class TestClassNamePopulation:

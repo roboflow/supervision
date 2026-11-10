@@ -99,6 +99,64 @@ def test_connected_components_with_stats_matches_high_component_image() -> None:
 
 
 @pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param(
+            np.array([[0, 0, 0, 0, 1], [0, 1, 0, 0, 0]], dtype=np.uint8),
+            id="lower-row-start-precedes-upper-row-start",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1],
+                ],
+                dtype=np.uint8,
+            ),
+            id="mixed-row-starts",
+        ),
+        pytest.param(
+            np.indices((7, 9)).sum(axis=0).astype(np.uint8) % 3 == 0,
+            id="diagonal-stripes",
+        ),
+    ],
+)
+def test_eight_way_labels_follow_opencv_block_order(source: np.ndarray) -> None:
+    """Number eight-way components in the 2x2 block order OpenCV scans them."""
+    source = source.astype(np.uint8)
+
+    actual = _connected_components_with_stats(source, connectivity=8)
+    expected = cv2.connectedComponentsWithStats(source, connectivity=8)
+
+    assert actual[0] == expected[0]
+    np.testing.assert_array_equal(actual[1], expected[1])
+    np.testing.assert_array_equal(actual[2], expected[2])
+    np.testing.assert_allclose(actual[3], expected[3], atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("connectivity", [4, 8])
+def test_random_masks_match_opencv(connectivity: int) -> None:
+    """Match OpenCV labels on random masks, including one large enough to split."""
+    rng = np.random.default_rng(2026)
+    shapes = [(int(rng.integers(2, 40)), int(rng.integers(2, 40))) for _ in range(100)]
+    shapes.append((600, 700))
+
+    for height, width in shapes:
+        source = (rng.random((height, width)) > rng.uniform(0.3, 0.9)).astype(np.uint8)
+        source[0, 0] = 0
+
+        actual_count, actual_labels = _connected_components(
+            source, connectivity=connectivity
+        )
+        expected_count, expected_labels = cv2.connectedComponents(
+            source, connectivity=connectivity
+        )
+
+        assert actual_count == expected_count
+        np.testing.assert_array_equal(actual_labels, expected_labels)
+
+
+@pytest.mark.parametrize(
     ("source", "expected"),
     [
         pytest.param(
