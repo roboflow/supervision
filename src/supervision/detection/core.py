@@ -634,6 +634,14 @@ class Detections:
         Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
         holds one score per detection.
 
+        !!! tip "RF-DETR"
+
+            For RF-DETR, prefer the official
+            [`rfdetr`](https://github.com/roboflow/rf-detr) package maintained by
+            Roboflow: its `predict()` returns
+            :class:`~supervision.detection.core.Detections` directly. RF-DETR
+            results from Transformers can also be converted here.
+
         For zero-shot object detection, pass the result of
         `post_process_grounded_object_detection`. Class names come from its
         `text_labels` rather than `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo set
@@ -680,7 +688,6 @@ class Detections:
             )
             ```
         """
-
         if (
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
@@ -707,7 +714,8 @@ class Detections:
             raise ValueError(
                 "The provided Transformers results do not contain any valid fields."
                 " Expected fields are 'boxes', 'masks', 'segments_info' or"
-                " 'segmentation'."
+                " 'segmentation'. If you are using RF-DETR, consider the official"
+                " `rfdetr` package, whose predict() returns Detections directly."
             )
 
     @classmethod

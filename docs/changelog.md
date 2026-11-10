@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.Detections.from_ultralytics` now loads Ultralytics semantic segmentation results (`task="semantic"`), which returned empty `Detections`. Each class present in `Results.semantic_mask` becomes one detection with a mask of all its pixels and its class name, without confidence. As in Ultralytics' `Results.summary`, IDs missing from `names`, such as the `255` written by `classes` filtering, are skipped, and a single-class model's `0` background is left out. ([#2915](https://github.com/roboflow/supervision/pull/2915))
 
+- `sv.Detections.from_transformers` now suggests the official [`rfdetr`](https://github.com/roboflow/rf-detr) package when a result has no recognized fields, and recommends it in the API documentation. Its `predict()` returns `sv.Detections` directly. ([#2921](https://github.com/roboflow/supervision/pull/2921))
+
 - Selecting key points from `sv.KeyPoints.empty()`, as in `key_points[:, [0, 1]]` on a frame without poses, now returns an empty result instead of raising `IndexError`. [#2920](https://github.com/roboflow/supervision/pull/2920)
 
 - `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
