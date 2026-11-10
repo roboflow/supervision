@@ -11,6 +11,8 @@ from supervision.draw.base import ImageType
 
 F = TypeVar("F", bound=Callable[..., Any])
 
+_PALETTE_MATCH_BATCH_SIZE = 4096
+
 
 def ensure_cv2_image_for_class_method(
     annotate_func: F,
@@ -74,9 +76,112 @@ def _paste_annotated_pixels(
         # pillow_to_cv2 kept the high byte of these deep integer modes; scaling by
         # 257 maps 0-255 back onto 0-65535 so drawn pixels keep their brightness.
         patch = Image.fromarray(annotated.astype(np.int32) * 257)
+    elif scene.mode in ("P", "PA"):
+        patch = _palette_index_patch(scene, annotated, changed)
     else:
         patch = cv2_to_pillow(annotated)
     scene.paste(patch, mask=Image.fromarray(changed))
+
+
+def _opaque_palette_entries(scene: Image.Image) -> npt.NDArray[np.bool_]:
+    """Return which of the 256 palette indices of `scene` its `info` leaves opaque.
+
+    Args:
+        scene: Pillow image in mode `P` or `PA`.
+
+    Returns:
+        Boolean array of shape `(256,)`, `False` at the transparent indices named by
+        `scene.info["transparency"]`, one index as in GIF or an alpha per index as
+        in PNG.
+    """
+    opaque = np.ones(256, dtype=bool)
+    transparency = scene.info.get("transparency")
+    if isinstance(transparency, int) and 0 <= transparency < 256:
+        opaque[transparency] = False
+    elif isinstance(transparency, bytes):
+        alphas = np.frombuffer(transparency, dtype=np.uint8)[:256]
+        opaque[: len(alphas)] = alphas == 255
+    return opaque
+
+
+def _palette_index_patch(
+    scene: Image.Image,
+    annotated: npt.NDArray[np.uint8],
+    changed: npt.NDArray[np.bool_],
+) -> Image.Image:
+    """Return the annotated pixels as indices into the palette of a `P` or `PA` scene.
+
+    Pasting RGB pixels would index them with Pillow's web palette, and the scene's
+    own palette then shows those indices as other colors or black. RGB palettes can
+    grow into opaque slots unused by untouched pixels. RGBA palettes and colors
+    without an available slot use the nearest opaque entry. A palette without any
+    usable opaque entry cannot show a drawing, so it is an error.
+
+    Args:
+        scene: Pillow image in mode `P` or `PA`, whose palette may grow.
+        annotated: Annotated `(H, W, 3)` BGR copy of `scene`.
+        changed: Boolean `(H, W)` array of the pixels the annotator drew.
+
+    Returns:
+        Image of the scene's mode whose changed pixels hold palette indices.
+    """
+    # Packing RGB keeps lexicographic color order while avoiding the structured
+    # three-channel sort used by unique(axis=0) on large blurred regions.
+    rgb = annotated[changed][:, ::-1].astype(np.int32)
+    packed = (rgb[:, 0] << 16) | (rgb[:, 1] << 8) | rgb[:, 2]
+    unique, inverse = np.unique(packed, return_inverse=True)
+    colors = np.column_stack((unique >> 16, (unique >> 8) & 255, unique & 255))
+    entries = np.array(scene.getpalette("RGBA"), dtype=np.int32).reshape(-1, 4)
+    palette = entries[:, :3]
+    opaque = _opaque_palette_entries(scene)
+    # A palette that holds alpha per entry cannot take RGB additions below.
+    opaque[: len(entries)] &= entries[:, 3] == 255
+
+    known_colors = {tuple(color) for color in palette[opaque[: len(palette)]].tolist()}
+    missing = [color for color in colors.tolist() if tuple(color) not in known_colors]
+    if missing and scene.palette.mode == "RGB":
+        indices = np.asarray(scene)
+        if scene.mode == "PA":
+            indices = indices[:, :, 0]
+        available = opaque.copy()
+        available[: len(palette)] = False
+        # Undefined indices still used outside the drawing display black; adding
+        # a color there would recolor those pixels even though paste skips them.
+        available[indices[~changed]] = False
+        slots = np.flatnonzero(available)[: len(missing)]
+        if slots.size:
+            palette = np.pad(palette, ((0, int(slots[-1]) + 1 - len(palette)), (0, 0)))
+            palette[slots] = missing[: len(slots)]
+            scene.putpalette(palette.astype(np.uint8).tobytes())
+
+    candidates = np.flatnonzero(opaque[: len(palette)])
+    if candidates.size == 0:
+        raise ValueError(
+            "Cannot draw on this palette image: its palette is full and has no "
+            "opaque entry to draw with."
+        )
+    nearest = np.empty(len(colors), dtype=np.intp)
+    candidate_colors = palette[candidates]
+    squared_norms = (candidate_colors**2).sum(axis=1)
+    # A blurred or iconified region can hold far more colors than the palette, so
+    # comparing them in batches keeps the distance table small.
+    for start in range(0, len(colors), _PALETTE_MATCH_BATCH_SIZE):
+        batch = colors[start : start + _PALETTE_MATCH_BATCH_SIZE]
+        # Squared norms and an integer dot product give the same exact distance
+        # and first-index tie order without a three-channel distance temporary.
+        distances = (
+            (batch**2).sum(axis=1)[:, np.newaxis]
+            + squared_norms
+            - 2 * (batch @ candidate_colors.T)
+        )
+        nearest[start : start + len(batch)] = candidates[distances.argmin(axis=1)]
+    indices = np.zeros(changed.shape, dtype=np.uint8)
+    indices[changed] = nearest[inverse.reshape(-1)]
+
+    patch = Image.fromarray(indices)
+    if scene.mode == "PA":
+        patch = Image.merge("PA", (patch, Image.new("L", scene.size, 255)))
+    return patch
 
 
 def ensure_cv2_image_for_standalone_function(
@@ -121,9 +226,14 @@ def ensure_pil_image_for_class_method(
     @functools.wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> Any:
         if isinstance(scene, np.ndarray):
-            scene_pil = cv2_to_pillow(scene)
+            # A view without the singleton axis, so (H, W, 1) grayscale converts
+            # like (H, W) and the result is still written into `scene`.
+            canvas = (
+                scene[:, :, 0] if scene.ndim == 3 and scene.shape[2] == 1 else scene
+            )
+            scene_pil = cv2_to_pillow(canvas)
             annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
-            np.copyto(scene, pillow_to_cv2(annotated_pil))
+            np.copyto(canvas, pillow_to_cv2(annotated_pil))
             return scene
 
         if isinstance(scene, Image.Image):

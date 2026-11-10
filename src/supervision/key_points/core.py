@@ -839,7 +839,7 @@ class KeyPoints:
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
             the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, detection confidences, and confidences of each keypoint.
 
         Examples:
             ```python
@@ -863,6 +863,7 @@ class KeyPoints:
 
         xy = yolo_nas_results.prediction.poses[:, :, :2]
         confidence = yolo_nas_results.prediction.poses[:, :, 2]
+        detection_confidence = yolo_nas_results.prediction.scores
 
         # yolo_nas_results treats params differently.
         # prediction.labels may not exist, whereas class_names might be None
@@ -882,6 +883,7 @@ class KeyPoints:
         return cls(
             xy=xy,
             keypoint_confidence=confidence,
+            detection_confidence=detection_confidence,
             class_id=class_id,
             data=data,
         )
@@ -954,8 +956,9 @@ class KeyPoints:
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
-            the keypoint coordinates, class IDs,
-                class names, and confidences of each keypoint. An empty
+            the keypoint coordinates and confidences of each pose. Every pose has
+                class ID `0`: the post-processor estimates poses for boxes of one
+                object category and reports no class of its own. An empty
                 `transformers_results` returns
                 :meth:`~supervision.key_points.core.KeyPoints.empty`.
 
@@ -1028,7 +1031,7 @@ class KeyPoints:
             return cls(
                 xy=np.stack(xy).astype(np.float32),
                 keypoint_confidence=np.stack(scores).astype(np.float32),
-                class_id=np.arange(len(xy)).astype(int),
+                class_id=np.zeros(len(xy), dtype=int),
             )
         else:
             return cls.empty()
@@ -1186,6 +1189,13 @@ class KeyPoints:
             index = (index, slice(None))
 
         i, j = index
+
+        # `KeyPoints.empty()`, which connectors return for a frame without poses, has
+        # no keypoint axis to index, so selecting keypoints from it stays empty.
+        if self.xy.shape[:2] == (0, 0):
+            if isinstance(j, slice):
+                j.indices(0)
+            j = slice(None)
 
         if isinstance(i, int):
             i = [i]
@@ -1409,10 +1419,17 @@ class KeyPoints:
             >>> key_points = sv.KeyPoints.empty()
             >>> len(key_points)
             0
+            >>> key_points.detection_confidence
+            array([], dtype=float32)
 
             ```
         """
-        return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
+        return cls(
+            xy=np.empty((0, 0, 2), dtype=np.float32),
+            class_id=np.array([], dtype=int),
+            keypoint_confidence=np.empty((0, 0), dtype=np.float32),
+            detection_confidence=np.array([], dtype=np.float32),
+        )
 
     def is_empty(self) -> bool:
         """Returns `True` if the :class:`~supervision.key_points.core.KeyPoints` object

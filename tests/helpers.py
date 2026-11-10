@@ -407,8 +407,10 @@ class _FakeYoloNasResults:
 class _FakeYoloNasKeyPoint:
     """YOLO-NAS-like key point struct."""
 
-    def __init__(self, poses: Any, labels: Any = None) -> None:
+    def __init__(self, poses: Any, scores: Any, labels: Any = None) -> None:
+        """Store `(N, K, 3)` poses with one score and optional label per pose."""
         self.poses = np.array(poses, dtype=np.float32)
+        self.scores = np.array(scores, dtype=np.float32)
         if labels is not None:
             self.labels = np.array(labels, dtype=int)
 

@@ -706,6 +706,34 @@ class TestDetectionsSmootherOrientedBoxes:
         assert ORIENTED_BOX_COORDINATES not in result.data
         assert_allclose(result.xyxy, np.array([[40.0, -10.0, 60.0, 10.0]]))
 
+    def test_mixed_track_history_returns_all_boxes(self) -> None:
+        """An axis-aligned track does not prevent an oriented track from merging."""
+        smoother = DetectionsSmoother(length=2)
+        previous_frame = self._obb(0.0, 0.0)
+        del previous_frame.data[ORIENTED_BOX_COORDINATES]
+        smoother.update_with_detections(previous_frame)
+        existing_track = self._obb(100.0, 0.0)
+        new_track = self._obb(300.0, 0.0)
+        new_track.tracker_id = np.array([2])
+        new_track.class_id = np.array([1])
+        current_frame = Detections.merge([existing_track, new_track])
+        current_frame.data["label"] = np.array(["existing", "new"])
+        current_frame.metadata["source"] = "camera"
+
+        result = smoother.update_with_detections(current_frame)
+
+        assert_allclose(result.xyxy, [[40, -10, 60, 10], [290, -10, 310, 10]])
+        assert result.tracker_id is not None
+        assert result.tracker_id.tolist() == [1, 2]
+        assert result.class_id is not None
+        assert result.class_id.tolist() == [0, 1]
+        assert list(result.data["label"]) == ["existing", "new"]
+        assert result.metadata == {"source": "camera"}
+        assert ORIENTED_BOX_COORDINATES not in result.data
+        oriented_track = smoother.get_track(2)
+        assert oriented_track is not None
+        assert ORIENTED_BOX_COORDINATES in oriented_track.data
+
     def test_detections_without_oriented_boxes_are_unaffected(self) -> None:
         """The common axis-aligned case must not gain the key."""
         smoother = DetectionsSmoother(length=2)
@@ -720,3 +748,117 @@ class TestDetectionsSmootherOrientedBoxes:
 
         assert ORIENTED_BOX_COORDINATES not in result.data
         assert_allclose(result.xyxy[0], np.array([50.0, 0.0, 70.0, 20.0]))
+
+
+class TestDetectionsSmootherUnconfirmedTracks:
+    """Detections with a negative `tracker_id` are left unsmoothed."""
+
+    @staticmethod
+    def _frame(x: float) -> Detections:
+        """Build two unconfirmed boxes far apart beside confirmed track 7 at `x`."""
+        return Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [100, 100, 110, 110], [x, 50, x + 10, 60]],
+                dtype=np.float32,
+            ),
+            confidence=np.array([0.5, 0.6, 0.9]),
+            tracker_id=np.array([-1, -1, 7]),
+        )
+
+    def test_unconfirmed_detections_are_returned_unchanged(self) -> None:
+        """Distinct unconfirmed boxes are neither averaged nor merged into one row."""
+        smoother = DetectionsSmoother(length=3)
+        result = Detections.empty()
+
+        for x in (0.0, 30.0):
+            result = smoother.update_with_detections(self._frame(x))
+
+        assert result.tracker_id is not None
+        assert result.tracker_id.tolist() == [7, -1, -1]
+        assert_allclose(
+            result.xyxy,
+            [[15, 50, 25, 60], [0, 0, 10, 10], [100, 100, 110, 110]],
+        )
+        assert result.confidence is not None
+        assert_allclose(result.confidence, [0.9, 0.5, 0.6])
+
+    def test_unconfirmed_detections_leave_no_history(self) -> None:
+        """A negative ID is not kept as a track between frames."""
+        smoother = DetectionsSmoother(length=3)
+
+        smoother.update_with_detections(self._frame(0.0))
+
+        assert smoother.get_track(-1) is None
+        assert list(smoother.tracks) == [7]
+
+    def test_frame_of_only_unconfirmed_detections_is_returned_unchanged(self) -> None:
+        """Without confirmed tracks the frame passes through as it came in."""
+        smoother = DetectionsSmoother(length=3)
+        frame = self._frame(0.0).select(slice(0, 2))
+
+        result = smoother.update_with_detections(frame)
+
+        assert result == frame
+
+    def test_unconfirmed_oriented_boxes_keep_corners_with_mixed_history(self) -> None:
+        """Unconfirmed corners survive when a confirmed track lacks smoothed corners."""
+        smoother = DetectionsSmoother(length=2)
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[-10.0, -10.0, 10.0, 10.0]], dtype=np.float32),
+                tracker_id=np.array([1]),
+            )
+        )
+        oriented = TestDetectionsSmootherOrientedBoxes._obb(100.0, 0.0)
+        unconfirmed = TestDetectionsSmootherOrientedBoxes._obb(300.0, 0.0)
+        unconfirmed.tracker_id = np.array([-1])
+        unconfirmed.data[ORIENTED_BOX_COORDINATES] = np.array(
+            [[[300, -10], [310, 0], [300, 10], [290, 0]]], dtype=np.float32
+        )
+
+        result = smoother.update_with_detections(
+            Detections.merge([oriented, unconfirmed])
+        )
+
+        np.testing.assert_array_equal(
+            result.data[ORIENTED_BOX_COORDINATES][1],
+            unconfirmed.data[ORIENTED_BOX_COORDINATES][0],
+        )
+        np.testing.assert_array_equal(
+            result.data[ORIENTED_BOX_COORDINATES][0],
+            [[40, -10], [60, -10], [60, 10], [40, 10]],
+        )
+        assert result.tracker_id is not None
+        assert result.tracker_id.tolist() == [1, -1]
+        assert_allclose(result.xyxy, [[40, -10, 60, 10], [290, -10, 310, 10]])
+
+    def test_list_oriented_corners_merge_with_unconfirmed_rows(self) -> None:
+        """List-valued corners merge when confirmed and unconfirmed IDs coexist."""
+        oriented = TestDetectionsSmootherOrientedBoxes._obb(0.0, 0.0)
+        unconfirmed = TestDetectionsSmootherOrientedBoxes._obb(100.0, 0.0)
+        unconfirmed.tracker_id = np.array([-1])
+        frame = Detections.merge([oriented, unconfirmed])
+        frame.data[ORIENTED_BOX_COORDINATES] = np.asarray(
+            frame.data[ORIENTED_BOX_COORDINATES]
+        ).tolist()
+
+        result = DetectionsSmoother(length=2).update_with_detections(frame)
+
+        np.testing.assert_array_equal(
+            result.data[ORIENTED_BOX_COORDINATES], frame.data[ORIENTED_BOX_COORDINATES]
+        )
+
+    def test_unconfirmed_detections_without_confidence_keep_all_rows(self) -> None:
+        """A confidence-less unconfirmed row does not make the merge raise."""
+        smoother = DetectionsSmoother(length=3)
+        smoother.update_with_detections(_track(0, 0.9))
+        frame = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [100, 100, 110, 110]], dtype=np.float32),
+            tracker_id=np.array([7, -1]),
+        )
+
+        result = smoother.update_with_detections(frame)
+
+        assert result.tracker_id is not None
+        assert result.tracker_id.tolist() == [7, -1]
+        assert result.confidence is None
