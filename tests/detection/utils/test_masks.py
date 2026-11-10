@@ -496,6 +496,86 @@ def test_move_masks(
         np.testing.assert_array_equal(result, expected_result)
 
 
+class TestMoveMasksIntegerOffsets:
+    @pytest.mark.parametrize("dtype_name", ["int8", "uint8"])
+    @pytest.mark.parametrize(
+        "offset_values",
+        [pytest.param((0, 0), id="zero"), pytest.param((1, 2), id="positive")],
+    )
+    def test_moves_masks_into_larger_frames(
+        self, dtype_name: str, offset_values: tuple[int, int]
+    ) -> None:
+        """Narrow offsets do not restrict the dimensions of the destination frame."""
+        masks = np.zeros((2, 300, 400), dtype=bool)
+        masks[0, 2, 3] = True
+        masks[1, 295, 395] = True
+        offset = np.array(offset_values, dtype=dtype_name)
+        dx, dy = offset_values
+        expected = np.zeros((2, 480, 640), dtype=bool)
+        expected[0, 2 + dy, 3 + dx] = True
+        expected[1, 295 + dy, 395 + dx] = True
+
+        result = move_masks(masks, offset, resolution_wh=(640, 480))
+
+        np.testing.assert_array_equal(result, expected)
+        assert result.dtype == np.bool_
+        assert masks.sum() == 2
+        np.testing.assert_array_equal(offset, offset_values)
+
+    @pytest.mark.parametrize(
+        ("dtype_name", "offset_values", "expected_wh"),
+        [
+            pytest.param("int8", (-128, 0), (72, 200), id="minimum-int8-x"),
+            pytest.param("int8", (0, -128), (200, 72), id="minimum-int8-y"),
+            pytest.param("uint8", (250, 0), (0, 0), id="unsigned-outside-x"),
+            pytest.param("uint8", (0, 250), (0, 0), id="unsigned-outside-y"),
+            pytest.param("int64", (-(2**63), 0), (0, 0), id="minimum-int64"),
+            pytest.param("uint64", (2**64 - 1, 0), (0, 0), id="maximum-uint64"),
+        ],
+    )
+    def test_clips_shifts_at_integer_boundaries(
+        self,
+        dtype_name: str,
+        offset_values: tuple[int, int],
+        expected_wh: tuple[int, int],
+    ) -> None:
+        """Boundary offsets retain only the foreground inside the destination."""
+        masks = np.ones((2, 200, 200), dtype=bool)
+        offset = np.array(offset_values, dtype=dtype_name)
+        width, height = expected_wh
+        expected = np.zeros_like(masks)
+        expected[:, :height, :width] = True
+
+        with np.errstate(over="raise"):
+            result = move_masks(masks, offset, resolution_wh=(200, 200))
+
+        np.testing.assert_array_equal(result, expected)
+        assert masks.all()
+        np.testing.assert_array_equal(offset, offset_values)
+
+    @pytest.mark.parametrize("dtype_name", ["float32", "float64"])
+    def test_rejects_floating_offsets(self, dtype_name: str) -> None:
+        """Floating offsets still require integer slice indices, without truncation."""
+        masks = np.ones((1, 2, 3), dtype=bool)
+        offset = np.array([1.5, 2.0], dtype=dtype_name)
+
+        with pytest.raises(TypeError, match="slice indices must be integers"):
+            move_masks(masks, offset, resolution_wh=(8, 9))
+
+    @pytest.mark.parametrize(
+        "dtype_name", ["int16", "uint16", "int32", "uint32", "int64", "uint64"]
+    )
+    def test_accepts_numpy_frame_dimensions(self, dtype_name: str) -> None:
+        """A large offset stays outside a frame whose dimensions use NumPy scalars."""
+        masks = np.ones((1, 2, 3), dtype=bool)
+        width, height = np.array([9, 8], dtype=dtype_name)
+        offset = np.array([2**40, 0], dtype=np.int64)
+
+        result = move_masks(masks, offset, resolution_wh=(width, height))
+
+        np.testing.assert_array_equal(result, np.zeros((1, 8, 9), dtype=bool))
+
+
 @pytest.mark.parametrize(
     ("masks", "expected_result", "exception"),
     [

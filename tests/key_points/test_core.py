@@ -1,4 +1,5 @@
 from contextlib import nullcontext as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -553,6 +554,37 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
 class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
+    @pytest.mark.parametrize(
+        "anchor_index",
+        [
+            pytest.param([0, 1], id="list"),
+            pytest.param(0, id="integer"),
+            pytest.param(np.int64(0), id="numpy-integer"),
+            pytest.param(np.array([0, 1]), id="integer-array"),
+            pytest.param([True, False], id="boolean-list"),
+            pytest.param(np.array([True, False]), id="boolean-array"),
+        ],
+    )
+    def test_keypoint_selection_on_empty_result_stays_empty(
+        self, anchor_index: Any
+    ) -> None:
+        """Selecting joints on a frame without poses returns an empty result."""
+        key_points = KeyPoints.empty()
+
+        result = key_points[:, anchor_index]
+
+        assert isinstance(result, KeyPoints)
+        assert result.is_empty()
+        assert result.xy.shape == (0, 0, 2)
+
+    @pytest.mark.parametrize("empty", [True, False])
+    def test_zero_step_anchor_slice_raises(self, empty: bool) -> None:
+        """Reject a zero-step anchor slice for empty and populated results."""
+        key_points = KeyPoints.empty() if empty else KeyPoints(xy=np.zeros((1, 2, 2)))
+
+        with pytest.raises(ValueError, match="slice step cannot be zero"):
+            key_points[:, ::0]
+
     @pytest.mark.parametrize("method", ["select", "__getitem__"])
     @pytest.mark.parametrize("coordinate_count", [2, 3])
     @pytest.mark.parametrize("with_fields", [False, True])
@@ -734,6 +766,16 @@ def test_key_points_empty():
     assert len(empty_key_points) == 0
     assert empty_key_points.is_empty()
     assert empty_key_points.xy.shape == (0, 0, 2)
+
+
+@pytest.mark.parametrize("field", ["detection_confidence", "keypoint_confidence"])
+def test_key_points_empty_filters_by_confidence(field: str) -> None:
+    """A frame without poses filters by confidence like a frame with poses."""
+    key_points = KeyPoints.empty()
+
+    filtered = key_points[getattr(key_points, field) > 0.5]
+
+    assert filtered.is_empty()
 
 
 def test_key_points_is_empty():
@@ -1826,8 +1868,8 @@ class TestFromTransformers:
         np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
         np.testing.assert_array_equal(key_points.class_id, [0])
 
-    def test_multiple_poses_are_stacked_with_sequential_class_ids(self) -> None:
-        """Several poses stack into one `(N, K, 2)` array with ids `0..N-1`."""
+    def test_multiple_poses_are_stacked_with_one_shared_class_id(self) -> None:
+        """Several poses stack into one `(N, K, 2)` array, all with class ID `0`."""
         results = [
             {
                 "keypoints": _FakeTensor(
@@ -1847,7 +1889,7 @@ class TestFromTransformers:
 
         assert key_points.xy.shape == (2, 2, 2)
         assert key_points.xy.dtype == np.float32
-        np.testing.assert_array_equal(key_points.class_id, [0, 1])
+        np.testing.assert_array_equal(key_points.class_id, [0, 0])
 
 
 class _FakeDetectron2Instances:
@@ -1898,6 +1940,7 @@ class TestFromDetectron2:
             _FakeYoloNasKeyPointResults(
                 _FakeYoloNasKeyPoint(
                     poses=[[[100.0, 150.0, 0.9], [120.0, 160.0, 0.85]]],
+                    scores=[0.95],
                     labels=[1],
                 ),
             ),
@@ -1905,12 +1948,14 @@ class TestFromDetectron2:
                 xy=[[[100.0, 150.0], [120.0, 160.0]]],
                 confidence=[[0.9, 0.85]],
                 class_id=[1],
+                detection_confidence=[0.95],
             ),
         ),
         (
             _FakeYoloNasKeyPointResults(
                 _FakeYoloNasKeyPoint(
                     poses=[],
+                    scores=[],
                 ),
             ),
             KeyPoints.empty(),
