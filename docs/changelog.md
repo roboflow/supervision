@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.Detections.from_transformers` now suggests the official [`rfdetr`](https://github.com/roboflow/rf-detr) package when a result has no recognized fields, and recommends it in the API documentation. Its `predict()` returns `sv.Detections` directly. ([#2921](https://github.com/roboflow/supervision/pull/2921))
 
+- Selecting key points from `sv.KeyPoints.empty()`, as in `key_points[:, [0, 1]]` on a frame without poses, now returns an empty result instead of raising `IndexError`. [#2920](https://github.com/roboflow/supervision/pull/2920)
+
 - `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
 
 - `sv.RichLabelAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`, `I`, `F` or `I;16`), instead of raising `TypeError` or `ValueError`. ([#2916](https://github.com/roboflow/supervision/pull/2916))
