@@ -7,6 +7,10 @@ description: API reference for supervision's annotator classes — draw bounding
 
 Annotators accept detections and apply box or mask visualizations to the detections. Annotators have many available styles.
 
+!!! note "Pillow scenes"
+
+    Annotators also accept a `PIL.Image.Image` as `scene`. They update it in place and change only the pixels they draw, so transparency and 16-bit depth of untouched pixels stay intact. On palette images (modes `P` and `PA`), RGB palettes add drawn colors in opaque slots unused by untouched pixels; RGBA palettes and colors without a free slot use the nearest opaque entry. A palette that is full and has no opaque entry raises `ValueError`.
+
 === "Outlines"
 
     === "Box"
