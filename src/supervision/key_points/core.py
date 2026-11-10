@@ -1190,6 +1190,13 @@ class KeyPoints:
 
         i, j = index
 
+        # `KeyPoints.empty()`, which connectors return for a frame without poses, has
+        # no keypoint axis to index, so selecting keypoints from it stays empty.
+        if self.xy.shape[:2] == (0, 0):
+            if isinstance(j, slice):
+                j.indices(0)
+            j = slice(None)
+
         if isinstance(i, int):
             i = [i]
 
