@@ -577,6 +577,14 @@ class TestKeyPointsSelect:
         assert result.is_empty()
         assert result.xy.shape == (0, 0, 2)
 
+    @pytest.mark.parametrize("empty", [True, False])
+    def test_zero_step_anchor_slice_raises(self, empty: bool) -> None:
+        """Reject a zero-step anchor slice for empty and populated results."""
+        key_points = KeyPoints.empty() if empty else KeyPoints(xy=np.zeros((1, 2, 2)))
+
+        with pytest.raises(ValueError, match="slice step cannot be zero"):
+            key_points[:, ::0]
+
     @pytest.mark.parametrize("method", ["select", "__getitem__"])
     @pytest.mark.parametrize("coordinate_count", [2, 3])
     @pytest.mark.parametrize("with_fields", [False, True])
