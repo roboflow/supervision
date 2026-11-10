@@ -152,27 +152,6 @@ def _c_shape_mask() -> np.ndarray:
     return mask
 
 
-def _ragged_mask_with_hole() -> np.ndarray:
-    """Build a ragged blob whose 3-pixel hole sits behind walls one pixel thick.
-
-    Simplifying its outline drops every outer vertex a straight seam from the hole could
-    reach without crossing background.
-    """
-    rows = [
-        ".......",
-        ".#.###.",
-        ".#####.",
-        "...###.",
-        ".#..##.",
-        ".####..",
-        "..#..#.",
-        "..#.#..",
-        ".#####.",
-        ".......",
-    ]
-    return np.array([[pixel == "#" for pixel in row] for row in rows])
-
-
 def _grid_of_holes_mask(rows: int, columns: int) -> np.ndarray:
     """Build a solid block with a `rows` x `columns` grid of 3x3 holes, 6 apart."""
     mask = np.zeros((rows * 6 + 10, columns * 6 + 10), dtype=bool)
@@ -399,10 +378,10 @@ class TestApproximateMaskWithPolygons:
 
     @pytest.mark.parametrize("approximation_percentage", [0.5, 0.75])
     def test_bridges_traced_contours_when_simplified_ones_have_no_seam(
-        self, approximation_percentage: float
+        self, approximation_percentage: float, ragged_mask_with_hole: np.ndarray
     ) -> None:
         """A hole the simplified outline cannot reach is bridged, not raised."""
-        mask = _ragged_mask_with_hole()
+        mask = ragged_mask_with_hole
 
         polygons = approximate_mask_with_polygons(
             mask,

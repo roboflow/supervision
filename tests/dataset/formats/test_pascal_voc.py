@@ -1005,22 +1005,10 @@ class TestAsPascalVocMaskWithHole:
         np.testing.assert_array_equal(result.mask, mask)
 
     def test_simplified_export_keeps_hole_behind_thin_walls(
-        self, tmp_path: Path
+        self, tmp_path: Path, ragged_mask_with_hole: np.ndarray
     ) -> None:
         """A ragged mask exports with simplification instead of raising."""
-        rows = [
-            ".......",
-            ".#.###.",
-            ".#####.",
-            "...###.",
-            ".#..##.",
-            ".####..",
-            "..#..#.",
-            "..#.#..",
-            ".#####.",
-            ".......",
-        ]
-        mask = np.array([[[pixel == "#" for pixel in row] for row in rows]])
+        mask = ragged_mask_with_hole[np.newaxis, ...]
         image_path = str(tmp_path / "source" / "ragged.png")
         Path(image_path).parent.mkdir()
         cv2.imwrite(image_path, np.zeros((10, 7, 3), dtype=np.uint8))
