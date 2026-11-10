@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 import sys
 import types
 import warnings
@@ -13,7 +12,6 @@ import pytest
 import supervision as sv
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.tools.transformers import (
-    TRANSFORMERS_RF_DETR_MODULE,
     append_class_names_to_data,
     png_string_to_segmentation_array,
     process_transformers_detection_result,
@@ -22,10 +20,6 @@ from supervision.detection.tools.transformers import (
     process_transformers_v5_panoptic_segmentation_result,
     process_transformers_v5_segmentation_result,
     process_transformers_v5_semantic_or_instance_segmentation_result,
-)
-from supervision.utils.internal import (
-    SupervisionRecommendationWarning,
-    SupervisionWarnings,
 )
 from tests.helpers import _FakeDetachTensor, make_panoptic_png
 
@@ -623,122 +617,31 @@ class TestProcessTransformersV5SegmentationResult:
         np.testing.assert_array_equal(out["class_id"], [0, 1])
 
 
-# ---------------------------------------------------------------------------
-# warn_if_transformers_rf_detr_loaded
-# ---------------------------------------------------------------------------
+class TestFromTransformersRecommendations:
+    """Verify recommendations do not depend on imported model modules."""
 
+    def test_invalid_result_suggests_rfdetr_conditionally(self) -> None:
+        """An unsupported result suggests the official package to RF-DETR users."""
+        with pytest.raises(ValueError, match=r"If you are using RF-DETR.*rfdetr"):
+            sv.Detections.from_transformers({})
 
-def _box_detection_result() -> dict[str, _FakeDetachTensor]:
-    """Build a one-box v5 detection result shaped like any DETR-style processor."""
-    return {
-        "boxes": _FakeDetachTensor(np.array([[1, 2, 3, 4]], dtype=np.float32)),
-        "scores": _FakeDetachTensor(np.array([0.9], dtype=np.float32)),
-        "labels": _FakeDetachTensor(np.array([7], dtype=np.int64)),
-    }
-
-
-#: Fresh-interpreter script converting one RF-DETR-like result twice from the same
-#: source line and printing how many recommendation warnings were shown.
-_REPEATED_RECOMMENDATION_SCRIPT = """
-import sys, types, warnings
-import numpy as np
-
-sys.modules["transformers.models.rf_detr"] = types.ModuleType("rf_detr")
-import supervision as sv
-
-class Tensor:
-    def __init__(self, arr): self.arr = arr
-    def cpu(self): return self
-    def detach(self): return self
-    def numpy(self): return self.arr
-
-result = {
-    "boxes": Tensor(np.array([[1, 2, 3, 4]], dtype=np.float32)),
-    "scores": Tensor(np.array([0.9])),
-    "labels": Tensor(np.array([7])),
-}
-with warnings.catch_warnings(record=True) as records:
-    for _ in range(2):
-        sv.Detections.from_transformers(result)
-print(sum(r.category is sv.SupervisionRecommendationWarning for r in records))
-"""
-
-
-@pytest.fixture
-def rf_detr_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Pretend Transformers has imported its RF-DETR subpackage."""
-    monkeypatch.setitem(
-        sys.modules,
-        TRANSFORMERS_RF_DETR_MODULE,
-        types.ModuleType(TRANSFORMERS_RF_DETR_MODULE),
-    )
-
-
-class TestWarnIfTransformersRfDetrLoaded:
-    """from_transformers recommends the official rfdetr package for RF-DETR."""
-
-    @pytest.mark.usefixtures("rf_detr_loaded")
-    def test_warns_when_rf_detr_module_loaded(self) -> None:
-        """A loaded Transformers RF-DETR module triggers the recommendation."""
-        result = _box_detection_result()
-
-        with pytest.warns(SupervisionRecommendationWarning, match="`rfdetr`"):
-            sv.Detections.from_transformers(result)
-
-    def test_silent_without_rf_detr_module(
+    def test_other_model_result_does_not_warn_when_rf_detr_is_loaded(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Other Transformers models convert without the recommendation."""
-        monkeypatch.delitem(sys.modules, TRANSFORMERS_RF_DETR_MODULE, raising=False)
-        result = _box_detection_result()
+        """A loaded RF-DETR module does not warn for a generic detection result."""
+        monkeypatch.setitem(
+            sys.modules,
+            "transformers.models.rf_detr",
+            types.ModuleType("transformers.models.rf_detr"),
+        )
+        result = {
+            "boxes": _FakeDetachTensor(np.array([[1, 2, 3, 4]], dtype=np.float32)),
+            "scores": _FakeDetachTensor(np.array([0.9], dtype=np.float32)),
+            "labels": _FakeDetachTensor(np.array([7], dtype=np.int64)),
+        }
 
-        with warnings.catch_warnings(record=True) as records:
-            warnings.simplefilter("always")
-            sv.Detections.from_transformers(result)
-
-        assert not [
-            r for r in records if r.category is SupervisionRecommendationWarning
-        ]
-
-    def test_warns_on_every_call(self) -> None:
-        """The import-time `always` filter repeats the warning on each call.
-
-        Runs in a fresh interpreter because pytest discards warning filters registered
-        while it collects tests. Both calls warn from one source line, where Python's
-        `default` action would show the warning only once.
-        """
-        command = [sys.executable, "-c", _REPEATED_RECOMMENDATION_SCRIPT]
-
-        completed = subprocess.run(command, capture_output=True, text=True, check=True)
-
-        assert completed.stdout.strip() == "2"
-
-    @pytest.mark.usefixtures("rf_detr_loaded")
-    def test_warning_points_at_caller(self) -> None:
-        """The warning location is the user's from_transformers call."""
-        result = _box_detection_result()
-
-        with pytest.warns(SupervisionRecommendationWarning) as records:
-            sv.Detections.from_transformers(result)
-
-        assert records[0].filename == __file__
-
-    @pytest.mark.usefixtures("rf_detr_loaded")
-    def test_conversion_unchanged(self) -> None:
-        """The recommendation does not alter the converted detections."""
-        result = _box_detection_result()
-
-        with pytest.warns(SupervisionRecommendationWarning):
-            detections = sv.Detections.from_transformers(result, {7: "person"})
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            detections = sv.Detections.from_transformers(result)
 
         np.testing.assert_array_equal(detections.xyxy, [[1, 2, 3, 4]])
-        np.testing.assert_array_equal(detections.class_id, [7])
-        np.testing.assert_array_equal(detections.data["class_name"], ["person"])
-
-    def test_not_silenced_with_deprecations(self) -> None:
-        """Hiding deprecation warnings does not hide recommendations."""
-        is_deprecation_category = issubclass(
-            SupervisionRecommendationWarning, SupervisionWarnings
-        )
-
-        assert not is_deprecation_category

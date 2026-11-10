@@ -48,19 +48,6 @@ else:
     warnings.simplefilter("always", SupervisionWarnings)
 
 
-class SupervisionRecommendationWarning(Warning):
-    """Supervision warning category for usage recommendations.
-
-    Recommendations point to a better-suited tool without changing behavior. They are
-    shown on every occurrence and are independent of the deprecation-warning environment
-    variable. Hide them with an `"ignore"` entry in `warnings.filterwarnings` for this
-    category.
-    """
-
-
-warnings.simplefilter("always", SupervisionRecommendationWarning)
-
-
 def warn_deprecated(message: str) -> None:
     """Issue a warning that a function is deprecated.
 

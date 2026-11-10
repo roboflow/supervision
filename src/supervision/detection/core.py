@@ -20,7 +20,6 @@ from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
-    warn_if_transformers_rf_detr_loaded,
 )
 from supervision.detection.utils._typing import (
     _DetectionDataType,
@@ -622,10 +621,8 @@ class Detections:
             For RF-DETR, prefer the official
             [`rfdetr`](https://github.com/roboflow/rf-detr) package maintained by
             Roboflow: its `predict()` returns
-            :class:`~supervision.detection.core.Detections` directly. Converting
-            RF-DETR results from Transformers still works, but emits a
-            :class:`~supervision.utils.internal.SupervisionRecommendationWarning`
-            on every call.
+            :class:`~supervision.detection.core.Detections` directly. RF-DETR
+            results from Transformers can also be converted here.
 
         For zero-shot object detection, pass the result of
         `post_process_grounded_object_detection`. Class names come from its
@@ -673,8 +670,6 @@ class Detections:
             )
             ```
         """
-        warn_if_transformers_rf_detr_loaded()
-
         if (
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
@@ -701,7 +696,8 @@ class Detections:
             raise ValueError(
                 "The provided Transformers results do not contain any valid fields."
                 " Expected fields are 'boxes', 'masks', 'segments_info' or"
-                " 'segmentation'."
+                " 'segmentation'. If you are using RF-DETR, consider the official"
+                " `rfdetr` package, whose predict() returns Detections directly."
             )
 
     @classmethod

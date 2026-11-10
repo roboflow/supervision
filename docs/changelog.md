@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_transformers` now emits a `sv.SupervisionRecommendationWarning` on every call when RF-DETR was loaded through Hugging Face Transformers, recommending the official [`rfdetr`](https://github.com/roboflow/rf-detr) package, whose `predict()` returns `sv.Detections` directly. Conversion results are unchanged. The new warning category is independent of `SUPERVISION_DEPRECATION_WARNING`; hide it with a standard `warnings.filterwarnings("ignore", category=sv.SupervisionRecommendationWarning)`.
+- `sv.Detections.from_transformers` now suggests the official [`rfdetr`](https://github.com/roboflow/rf-detr) package when a result has no recognized fields, and recommends it in the API documentation. Its `predict()` returns `sv.Detections` directly. ([#2921](https://github.com/roboflow/supervision/pull/2921))
 
 - `sv.move_masks` now computes slice bounds without integer overflow, so narrow integer offsets work with larger frames and shifts with no overlap return empty masks instead of raising errors. ([#2918](https://github.com/roboflow/supervision/pull/2918))
 
