@@ -1,4 +1,5 @@
 from contextlib import nullcontext as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -552,6 +553,37 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
 
 class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
+
+    @pytest.mark.parametrize(
+        "anchor_index",
+        [
+            pytest.param([0, 1], id="list"),
+            pytest.param(0, id="integer"),
+            pytest.param(np.int64(0), id="numpy-integer"),
+            pytest.param(np.array([0, 1]), id="integer-array"),
+            pytest.param([True, False], id="boolean-list"),
+            pytest.param(np.array([True, False]), id="boolean-array"),
+        ],
+    )
+    def test_keypoint_selection_on_empty_result_stays_empty(
+        self, anchor_index: Any
+    ) -> None:
+        """Selecting joints on a frame without poses returns an empty result."""
+        key_points = KeyPoints.empty()
+
+        result = key_points[:, anchor_index]
+
+        assert isinstance(result, KeyPoints)
+        assert result.is_empty()
+        assert result.xy.shape == (0, 0, 2)
+
+    @pytest.mark.parametrize("empty", [True, False])
+    def test_zero_step_anchor_slice_raises(self, empty: bool) -> None:
+        """Reject a zero-step anchor slice for empty and populated results."""
+        key_points = KeyPoints.empty() if empty else KeyPoints(xy=np.zeros((1, 2, 2)))
+
+        with pytest.raises(ValueError, match="slice step cannot be zero"):
+            key_points[:, ::0]
 
     @pytest.mark.parametrize("method", ["select", "__getitem__"])
     @pytest.mark.parametrize("coordinate_count", [2, 3])
