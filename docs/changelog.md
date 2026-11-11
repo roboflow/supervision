@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.KeyPoints` now rejects nonempty one-dimensional boolean selection masks whose length does not match the number of skeletons or keypoints, instead of silently selecting a subset.
+- `sv.KeyPoints` now rejects nonempty one-dimensional boolean selection masks whose length does not match the number of skeletons or keypoints, instead of silently selecting a subset. ([#2943](https://github.com/roboflow/supervision/pull/2943))
 
 - `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. `as_coco` also tries this for `iscrowd=0` annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (`iscrowd=1`) for an exact mask. ([#2933](https://github.com/roboflow/supervision/pull/2933))
 
