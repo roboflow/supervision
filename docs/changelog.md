@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep a label wider or taller than the frame at its left and top edges, as they already did for labels starting outside the frame. A label starting inside the frame was shifted past the left (or top) edge, cutting off its first characters (or lines) on small frames. ([#2940](https://github.com/roboflow/supervision/pull/2940))
+- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep an oversized label at the frame's left and top edges instead of shifting it past those edges. Shaped right-to-left text in `RichLabelAnnotator` retains its leading characters at the visible right edge. ([#2940](https://github.com/roboflow/supervision/pull/2940))
 
 - The OpenCV-free `contourArea` fallback now returns exactly what `cv2.contourArea` returns: it adds the shoelace terms in OpenCV's order and reads integer points as float32, as OpenCV does. It previously differed in the last bits for many float32 contours, and by more for integer coordinates above 2\*\*24, which could flip `sv.filter_polygons_by_area` at a `min_area` or `max_area` boundary between backends. ([#2936](https://github.com/roboflow/supervision/pull/2936))
 
