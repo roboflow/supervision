@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.KeyPoints.__setitem__` now raises `ValueError` when the value's length does not match the number of objects, as `sv.Detections.__setitem__` already does. Previously a wrong-length list or array was stored silently and only failed later, in `as_detections()`, `merge`, or when selecting objects. ([#PR_NUMBER](https://github.com/roboflow/supervision/pull/PR_NUMBER))
+
 - `sv.metrics.MeanAveragePrecision` with `MetricTarget.ORIENTED_BOUNDING_BOXES` now uses the COCO crowd IoU for targets with `data["iscrowd"]` set: the intersection over the prediction area, as for boxes and masks. It used the standard IoU, so a prediction inside a crowd region was a false positive instead of being ignored. Positive detection areas are used without an added epsilon, preserving exact threshold matches and small boxes. In one axis-aligned scene, oriented-box mAP@50 now matches box mAP at 1.0; it was 0.333. ([#2941](https://github.com/roboflow/supervision/pull/2941))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep an oversized label at the frame's left and top edges instead of shifting it past those edges. Shaped right-to-left text in `RichLabelAnnotator` retains its leading characters at the visible right edge. ([#2940](https://github.com/roboflow/supervision/pull/2940))
