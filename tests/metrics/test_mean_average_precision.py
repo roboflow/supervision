@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 
 import supervision.metrics.mean_average_precision as mean_average_precision
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
@@ -15,6 +15,7 @@ from supervision.metrics.mean_average_precision import (
     COCOEvaluator,
     EvaluationDataset,
     MeanAveragePrecision,
+    MeanAveragePrecisionResult,
     _TypeCocoDict,
 )
 from tests.metrics.coco_reference import evaluate_detections
@@ -1532,3 +1533,86 @@ class TestMeanAveragePrecisionPycocotoolsParity:
 
         reference = evaluate_detections(predictions, targets, MetricTarget.MASKS)
         assert result.map50_95 == pytest.approx(reference.stats[0])
+
+
+def _rectangle_detections(
+    xyxy: list[list[int]],
+    confidence: list[float] | None = None,
+    area: list[float] | None = None,
+) -> Detections:
+    """Build class 0 `Detections` whose masks fill their integer boxes."""
+    masks = np.zeros((len(xyxy), 128, 128), dtype=bool)
+    for index, (x_min, y_min, x_max, y_max) in enumerate(xyxy):
+        masks[index, y_min:y_max, x_min:x_max] = True
+    return Detections(
+        xyxy=np.array(xyxy, dtype=np.float64),
+        mask=masks,
+        class_id=np.zeros(len(xyxy), dtype=int),
+        confidence=None if confidence is None else np.array(confidence),
+        data={} if area is None else {AREA_DATA_FIELD: np.array(area)},
+    )
+
+
+def _size_bucket_scores(result: MeanAveragePrecisionResult) -> list[float]:
+    """Read the small, medium and large mAP@[.50:.95] of a result."""
+    scores = []
+    for bucket in (result.small_objects, result.medium_objects, result.large_objects):
+        assert bucket is not None
+        scores.append(bucket.map50_95)
+    return scores
+
+
+class TestMeanAveragePrecisionSizeBucketParity:
+    """Objects fall in the size buckets that pycocotools gives them."""
+
+    @pytest.mark.parametrize("metric_target", [MetricTarget.BOXES, MetricTarget.MASKS])
+    def test_prediction_area_metadata_keeps_geometry_bucket(
+        self, metric_target: MetricTarget
+    ) -> None:
+        """A prediction is sized by its geometry, not by its area metadata."""
+        # Arrange
+        # A small target with a perfect prediction, and a higher-scored medium
+        # false positive whose area metadata says it is small.
+        targets = _rectangle_detections([[0, 0, 20, 20]])
+        predictions = _rectangle_detections(
+            [[0, 0, 20, 20], [60, 60, 100, 100]],
+            confidence=[0.5, 0.9],
+            area=[400.0, 300.0],
+        )
+
+        # Act
+        result = (
+            MeanAveragePrecision(metric_target=metric_target)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        # Assert
+        reference = evaluate_detections(predictions, targets, metric_target)
+        np.testing.assert_allclose(_size_bucket_scores(result), reference.stats[3:6])
+
+    @pytest.mark.parametrize(
+        ("side", "target_area"),
+        [
+            pytest.param(32, 1023.99998, id="just-below-small-limit"),
+            pytest.param(32, 1024.00003, id="just-above-small-limit"),
+            pytest.param(96, 9215.9997, id="just-below-medium-limit"),
+            pytest.param(96, 9216.0004, id="just-above-medium-limit"),
+        ],
+    )
+    def test_target_area_near_a_limit_stays_in_one_bucket(
+        self, side: int, target_area: float
+    ) -> None:
+        """A target area near 32² or 96² falls in one bucket, not in both."""
+        # Arrange
+        # float32 rounds each of these areas onto the limit, which both
+        # neighbouring buckets include.
+        targets = _rectangle_detections([[0, 0, side, side]], area=[target_area])
+        predictions = _rectangle_detections([[0, 0, side, side]], confidence=[0.9])
+
+        # Act
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # Assert
+        reference = evaluate_detections(predictions, targets)
+        np.testing.assert_allclose(_size_bucket_scores(result), reference.stats[3:6])
