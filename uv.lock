@@ -4844,7 +4844,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.21.2" },
     { name = "pandas", marker = "extra == 'metrics'", specifier = ">=2" },
     { name = "pillow", specifier = ">=9.4" },
-    { name = "pycocotools", marker = "extra == 'coco'", specifier = ">=2.0.7" },
+    { name = "pycocotools", marker = "extra == 'coco'", specifier = ">=2.0.11" },
     { name = "pydeprecate", specifier = ">=0.9,<0.15" },
     { name = "pyyaml", specifier = ">=5.3" },
     { name = "rasterio", marker = "extra == 'geotiff'", specifier = ">=1.3" },
