@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.JSONSink` now rejects additional data whose names collide with built-in detection fields, preventing custom metadata from silently overwriting coordinates, class IDs, confidence scores or tracker IDs. Rename such metadata fields, for example to `calibrated_confidence`.
+- `sv.JSONSink` now rejects additional data whose names collide with built-in detection fields, preventing custom metadata from silently overwriting coordinates, class IDs, confidence scores or tracker IDs. Rename such metadata fields, for example to `calibrated_confidence`. ([#2949](https://github.com/roboflow/supervision/pull/2949))
 
 - `sv.PolygonZone` now preserves mask dimensions when integer polygon coordinates reach their dtype limit, instead of overflowing and raising an error or silently creating a smaller zone. ([#2945](https://github.com/roboflow/supervision/pull/2945))
 
