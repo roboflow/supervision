@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.CSVSink` now raises `ValueError` when additional data uses a built-in column name such as `confidence` or `x_min`. Rename the extra field to prevent duplicate columns and preserve the original detection value. ([#2934](https://github.com/roboflow/supervision/pull/2934))
 
+- `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. `as_coco` also tries this for `iscrowd=0` annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (`iscrowd=1`) for an exact mask. ([#2933](https://github.com/roboflow/supervision/pull/2933))
+
 - `sv.KeyPoints` now accepts a zero-dimensional NumPy integer row index combined with a list or boolean mask of keypoints, preserving coordinates and aligned fields instead of raising `ValueError`. ([#2930](https://github.com/roboflow/supervision/pull/2930))
 
 ### 0.31.6 <small>Nov 10, 2026</small>

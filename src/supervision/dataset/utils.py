@@ -318,14 +318,16 @@ def approximate_mask_with_polygons(
         bridge_holes: If `True`, each hole is joined to its outer contour, or to a
             hole already joined, by a zero-width seam along foreground pixels, so a
             mask with holes yields one polygon per connected component instead of
-            one extra polygon per hole.
+            one extra polygon per hole. A component whose simplified contours
+            leave no seam on foreground is joined from its traced contours and so
+            is returned unsimplified.
 
     Returns:
         A list of polygons, each of shape `(N, 2)`.
 
     Raises:
         ValueError: If no candidate seam stays within foreground pixels when
-            `bridge_holes=True`.
+            `bridge_holes=True`, even between the traced contours.
 
     Examples:
         ```pycon
@@ -369,9 +371,15 @@ def approximate_mask_with_polygons(
             ]
             bridged = simplified_outer
             if simplified_holes:
-                bridged = _bridge_holes(
-                    mask=mask, outer=simplified_outer, holes=simplified_holes
-                )
+                try:
+                    bridged = _bridge_holes(
+                        mask=mask, outer=simplified_outer, holes=simplified_holes
+                    )
+                except _SeamNotFoundError:
+                    # Simplifying can drop every vertex where a hole comes close to
+                    # the outline, so no straight seam stays on foreground. The
+                    # traced contours run along foreground pixels, so join those.
+                    bridged = _bridge_holes(mask=mask, outer=outer, holes=holes)
             bridged_polygons.append(bridged)
         return bridged_polygons
     return [
