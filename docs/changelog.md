@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.metrics.MeanAveragePrecision` with `MetricTarget.ORIENTED_BOUNDING_BOXES` now uses the COCO crowd IoU for targets with `data["iscrowd"]` set: the intersection over the prediction area, as for boxes and masks. It used the standard IoU, so a prediction inside a crowd region was a false positive instead of being ignored. Positive detection areas are used without an added epsilon, preserving exact threshold matches and small boxes. In one axis-aligned scene, oriented-box mAP@50 now matches box mAP at 1.0; it was 0.333. ([#2941](https://github.com/roboflow/supervision/pull/2941))
+
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep an oversized label at the frame's left and top edges instead of shifting it past those edges. Shaped right-to-left text in `RichLabelAnnotator` retains its leading characters at the visible right edge. ([#2940](https://github.com/roboflow/supervision/pull/2940))
 
 - `sv.metrics.MeanAveragePrecision` now puts objects in the small, medium and large buckets that `pycocotools` gives them. A prediction's `data["area"]` replaced its box or mask area, but `pycocotools` calculates the area of every result again. So a medium false positive with `area=300` was counted as small, and small mAP of a perfect small prediction dropped from 1.0 to 0.5. Target `data["area"]` was rounded to float32, so an area such as `9216.0004` became `9216.0` and the target was scored as both medium and large. ([#2939](https://github.com/roboflow/supervision/pull/2939))
