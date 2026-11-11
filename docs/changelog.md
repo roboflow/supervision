@@ -9,6 +9,22 @@ date_modified: 2026-10-31
 
 - `sv.PolygonZone` now preserves mask dimensions when integer polygon coordinates reach their dtype limit, instead of overflowing and raising an error or silently creating a smaller zone. ([#2945](https://github.com/roboflow/supervision/pull/2945))
 
+- `sv.KeyPoints` now rejects nonempty one-dimensional boolean selection masks whose length does not match the number of skeletons or keypoints, instead of silently selecting a subset. Keypoint selection on `sv.KeyPoints.empty()` remains empty. ([#2943](https://github.com/roboflow/supervision/pull/2943))
+
+- `sv.metrics.MeanAveragePrecision` with `MetricTarget.ORIENTED_BOUNDING_BOXES` now uses the COCO crowd IoU for targets with `data["iscrowd"]` set: the intersection over the prediction area, as for boxes and masks. It used the standard IoU, so a prediction inside a crowd region was a false positive instead of being ignored. Positive detection areas are used without an added epsilon, preserving exact threshold matches and small boxes. In one axis-aligned scene, oriented-box mAP@50 now matches box mAP at 1.0; it was 0.333. ([#2941](https://github.com/roboflow/supervision/pull/2941))
+
+- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep an oversized label at the frame's left and top edges instead of shifting it past those edges. Shaped right-to-left text in `RichLabelAnnotator` retains its leading characters at the visible right edge. ([#2940](https://github.com/roboflow/supervision/pull/2940))
+
+- `sv.metrics.MeanAveragePrecision` now puts objects in the small, medium and large buckets that `pycocotools` gives them. A prediction's `data["area"]` replaced its box or mask area, but `pycocotools` calculates the area of every result again. So a medium false positive with `area=300` was counted as small, and small mAP of a perfect small prediction dropped from 1.0 to 0.5. Target `data["area"]` was rounded to float32, so an area such as `9216.0004` became `9216.0` and the target was scored as both medium and large. ([#2939](https://github.com/roboflow/supervision/pull/2939))
+
+- The OpenCV-free `contourArea` fallback now returns exactly what `cv2.contourArea` returns: it adds the shoelace terms in OpenCV's order and reads integer points as float32, as OpenCV does. It previously differed in the last bits for many float32 contours, and by more for integer coordinates above 2\*\*24, which could flip `sv.filter_polygons_by_area` at a `min_area` or `max_area` boundary between backends. ([#2936](https://github.com/roboflow/supervision/pull/2936))
+
+- The OpenCV-free `convertScaleAbs` fallback now scales in float32, as OpenCV does for every source depth, so values that land on a `.5` tie in float64 but not in float32 (for example `95 * 1.3`) round to the same `uint8` as OpenCV instead of one higher. It also does the multiply-add with a single rounding, like OpenCV's fused SIMD path, so offsets such as `38 * 1.3 + 0.1` give `50` rather than `49`. ([#2935](https://github.com/roboflow/supervision/pull/2935))
+
+- `sv.CSVSink` now raises `ValueError` when additional data uses a built-in column name such as `confidence` or `x_min`. Rename the extra field to prevent duplicate columns and preserve the original detection value. ([#2934](https://github.com/roboflow/supervision/pull/2934))
+
+- `DetectionDataset.as_coco` uses bounding-box area for empty mask placeholders when no finite stored area is available and no segmentation is exported. ([#2942](https://github.com/roboflow/supervision/pull/2942))
+
 - `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. `as_coco` also tries this for `iscrowd=0` annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (`iscrowd=1`) for an exact mask. ([#2933](https://github.com/roboflow/supervision/pull/2933))
 
 - `sv.KeyPoints` now accepts a zero-dimensional NumPy integer row index combined with a list or boolean mask of keypoints, preserving coordinates and aligned fields instead of raising `ValueError`. ([#2930](https://github.com/roboflow/supervision/pull/2930))
