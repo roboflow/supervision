@@ -2640,6 +2640,118 @@ def _single_image_coco_data(annotation: dict[str, Any]) -> dict[str, object]:
     }
 
 
+class TestCocoExportMaskArea:
+    @pytest.mark.parametrize(
+        ("mask_side", "stored_area", "iscrowd", "expected_area"),
+        [
+            pytest.param(0, None, 0, 30.0, id="empty-placeholder"),
+            pytest.param(0, np.nan, 0, 30.0, id="nonfinite-stored-area"),
+            pytest.param(0, 0.0, 0, 0.0, id="explicit-zero"),
+            pytest.param(0, 24.0, 0, 24.0, id="explicit-positive-area"),
+            pytest.param(0, None, 1, 0.0, id="empty-crowd-rle"),
+            pytest.param(4, None, 0, 16.0, id="filtered-nonempty-mask"),
+        ],
+    )
+    def test_uses_area_for_the_available_geometry(
+        self,
+        mask_side: int,
+        stored_area: float | None,
+        iscrowd: int,
+        expected_area: float,
+    ) -> None:
+        """Preserve explicit and mask areas while exporting bbox placeholders."""
+        mask = np.zeros((1, 10, 10), dtype=bool)
+        mask[0, :mask_side, :mask_side] = True
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
+            "iscrowd": np.array([iscrowd], dtype=int)
+        }
+        if stored_area is not None:
+            data["area"] = np.array([stored_area], dtype=float)
+        detections = Detections(
+            xyxy=np.array([[1, 1, 7, 6]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+            mask=mask,
+            data=data,
+        )
+
+        context = (
+            DoesNotRaise()
+            if iscrowd
+            else pytest.warns(
+                UserWarning, match="mask approximation returned no polygons"
+            )
+        )
+        with context:
+            annotations, _ = detections_to_coco_annotations(
+                detections=detections,
+                image_id=1,
+                annotation_id=1,
+                max_image_area_percentage=0.05,
+            )
+
+        (annotation,) = annotations
+        assert annotation["bbox"] == [1, 1, 6, 5]
+        assert annotation["area"] == expected_area
+        assert annotation["segmentation"] == (
+            {"counts": [100], "size": [10, 10]} if iscrowd else []
+        )
+
+    @pytest.mark.parametrize("mixed", [False, True])
+    def test_box_area_survives_dataset_round_trip(
+        self, tmp_path: Path, mixed: bool
+    ) -> None:
+        """Retain box area for a round trip using all-zero mask placeholders."""
+        image_path = tmp_path / "img.jpg"
+        assert cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+        bbox = [1, 1, 6, 5]
+        box_annotation = {
+            "id": 1,
+            "image_id": 1,
+            "category_id": 1,
+            "bbox": bbox,
+            "segmentation": [],
+        }
+        annotations = [box_annotation]
+        if mixed:
+            annotations.append(
+                {
+                    **box_annotation,
+                    "id": 2,
+                    "bbox": [6, 6, 3, 3],
+                    "segmentation": [[6, 6, 8, 6, 8, 8, 6, 8]],
+                }
+            )
+        source = tmp_path / "source.json"
+        source.write_text(
+            json.dumps(
+                {**_single_image_coco_data(box_annotation), "annotations": annotations}
+            )
+        )
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(tmp_path),
+            annotations_path=str(source),
+            force_masks=not mixed,
+            use_iscrowd=False,
+        )
+        detections = dataset.annotations[str(image_path)]
+        assert detections.mask is not None
+        assert not detections.mask[0].any()
+        assert "area" not in detections.data
+        target = tmp_path / "target.json"
+
+        with pytest.warns(UserWarning, match="mask approximation returned no polygons"):
+            dataset.as_coco(annotations_path=str(target))
+
+        exported = json.loads(target.read_text())["annotations"]
+        assert len(exported) == len(annotations)
+        assert exported[0]["bbox"] == bbox
+        assert exported[0]["segmentation"] == []
+        assert exported[0]["area"] == 30.0
+        if mixed:
+            assert exported[1]["segmentation"]
+            assert exported[1]["area"] == 9.0
+
+
 def test_detections_to_coco_annotations_exports_all_polygons() -> None:
     """All polygons from a multi-component mask must be exported, not just the first."""
     # Build a mask with two separate rectangles (disjoint components)
