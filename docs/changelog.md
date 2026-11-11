@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.xyxy_to_xywh` now computes integer box widths and heights without wraparound. Integer inputs return `int64`, or `float64` when an output value exceeds the `int64` range, instead of negative extents caused by overflow.
+
 -
 
 ### 0.31.7 <small>Nov 11, 2026</small>
