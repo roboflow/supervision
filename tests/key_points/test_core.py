@@ -555,6 +555,47 @@ class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
     @pytest.mark.parametrize("method", ["select", "__getitem__"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("as_array", [False, True])
+    @pytest.mark.parametrize("too_long", [False, True])
+    @pytest.mark.parametrize("all_false", [False, True])
+    def test_rejects_mismatched_boolean_mask_length(
+        self,
+        method: str,
+        axis: int,
+        as_array: bool,
+        too_long: bool,
+        all_false: bool,
+    ) -> None:
+        """Reject nonempty boolean masks that do not match their selected axis."""
+        key_points = KeyPoints(xy=np.arange(12, dtype=float).reshape(2, 3, 2))
+        mask_length = key_points.xy.shape[axis] + (1 if too_long else -1)
+        mask = [False] * mask_length
+        if not all_false:
+            mask[0] = True
+        selector = np.array(mask) if as_array else mask
+        index = selector if axis == 0 else (slice(None), selector)
+
+        with pytest.raises(IndexError, match="boolean index"):
+            getattr(key_points, method)(index)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("empty", [False, True])
+    def test_empty_boolean_mask_preserves_axis_shape(
+        self, axis: int, empty: bool
+    ) -> None:
+        """An empty boolean mask remains a valid selection of no entries."""
+        xy = np.zeros((0 if empty else 2, 3, 2), dtype=np.float32)
+        key_points = KeyPoints(xy=xy)
+        selector = np.array([], dtype=bool)
+        index = selector if axis == 0 else (slice(None), selector)
+
+        result = key_points.select(index)
+
+        expected_shape = (0, 3, 2) if axis == 0 else (xy.shape[0], 0, 2)
+        assert result.xy.shape == expected_shape
+
+    @pytest.mark.parametrize("method", ["select", "__getitem__"])
     @pytest.mark.parametrize("row", [0, -1])
     @pytest.mark.parametrize(
         "anchors",
