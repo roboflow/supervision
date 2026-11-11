@@ -2698,10 +2698,7 @@ class TestCocoExportMaskArea:
 
     @pytest.mark.parametrize(
         "mixed",
-        [
-            pytest.param(False, id="forced-mask"),
-            pytest.param(True, id="mixed-box-and-polygon"),
-        ],
+        [False,True]
     )
     def test_box_area_survives_dataset_round_trip(
         self, tmp_path: Path, mixed: bool
