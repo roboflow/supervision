@@ -4452,6 +4452,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>sv.CSVSink</code> now raises <code>ValueError</code> when additional data uses a built-in column name such as <code>confidence</code> or <code>x_min</code>. Rename the extra field to prevent duplicate columns and preserve the original detection value. (<a href="https://github.com/roboflow/supervision/pull/2934">#2934</a>)</p>
 </li>
 <li>
+<p><code>DetectionDataset.as_coco</code> uses bounding-box area for empty mask placeholders when no finite stored area is available and no segmentation is exported. (<a href="https://github.com/roboflow/supervision/pull/2942">#2942</a>)</p>
+</li>
+<li>
 <p><code>DetectionDataset.as_yolo</code> and <code>DetectionDataset.as_pascal_voc</code> now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. <code>as_coco</code> also tries this for <code>iscrowd=0</code> annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (<code>iscrowd=1</code>) for an exact mask. (<a href="https://github.com/roboflow/supervision/pull/2933">#2933</a>)</p>
 </li>
 <li>
@@ -6814,7 +6817,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 11, 2026 16:53:51 UTC">November 11, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 11, 2026 17:01:29 UTC">November 11, 2026</span>
   </span>
 
     
@@ -6842,9 +6845,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/pmxlr8" class="md-author" title="@pmxlr8">
+        <a href="https://github.com/voropaevv" class="md-author" title="@voropaevv">
           
-          <img src="https://avatars.githubusercontent.com/u/89994182?v=4&size=72" alt="pmxlr8">
+          <img src="https://avatars.githubusercontent.com/u/43608848?v=4&size=72" alt="voropaevv">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6852,14 +6855,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/pmxlr8" class="md-author" title="@pmxlr8">
+          
+          <img src="https://avatars.githubusercontent.com/u/89994182?v=4&size=72" alt="pmxlr8">
+        </a>
+      
         <a href="https://github.com/sohailshk" class="md-author" title="@sohailshk">
           
           <img src="https://avatars.githubusercontent.com/u/122166523?v=4&size=72" alt="sohailshk">
-        </a>
-      
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
-          
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
       
