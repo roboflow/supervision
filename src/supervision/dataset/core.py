@@ -4,7 +4,7 @@ import contextlib
 import os
 import shutil
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from itertools import chain
@@ -41,14 +41,15 @@ from supervision.dataset.formats.yolo import (
 )
 from supervision.dataset.formats.yolo_pose import (
     load_yolo_pose_annotations,
-    map_key_points_class_id,
     save_pose_data_yaml,
     save_yolo_pose_annotations,
 )
 from supervision.dataset.utils import (
+    _validate_flip_idx,
     build_class_index_mapping,
     check_no_basename_collisions,
     map_detections_class_id,
+    map_key_points_class_id,
     merge_class_lists,
     save_dataset_images,
     train_test_split,
@@ -61,6 +62,75 @@ from supervision.utils.iterables import find_duplicates
 _IMAGE_FILE_EXTENSIONS = frozenset(
     {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 )
+
+
+def _validate_and_name_class_ids(
+    annotations: dict[str, Detections] | dict[str, KeyPoints],
+    classes: list[str],
+    kind: str,
+) -> None:
+    """Check every annotation's class ids against the class list and name them.
+
+    Shared by :class:`~supervision.dataset.core.DetectionDataset` and
+    :class:`~supervision.dataset.core.KeyPointsDataset`, so both enforce the same
+    class-id invariant. Annotations without ``class_id`` are skipped. Each
+    annotation with class ids gains ``data['class_name']`` in place.
+
+    Args:
+        annotations: Annotations keyed by image path; mutated in place.
+        classes: Dataset class names, ordered by class index.
+        kind: Annotation noun for error messages, such as ``"Detection"``.
+
+    Raises:
+        ValueError: If an annotation carries non-integer class ids, or a class id
+            outside the range of ``classes``; the message names the image.
+    """
+    np_classes = np.array(classes)
+    for image_path, annotation in annotations.items():
+        class_ids = annotation.class_id
+        if class_ids is None:
+            continue
+        if not np.issubdtype(class_ids.dtype, np.integer):
+            raise ValueError(
+                f"{kind} annotation for image {image_path!r} contains "
+                f"non-integer class_id values with dtype {class_ids.dtype}."
+            )
+
+        invalid_class_ids = class_ids[(class_ids < 0) | (class_ids >= len(classes))]
+        if len(invalid_class_ids) > 0:
+            valid_range = "empty" if len(classes) == 0 else f"[0, {len(classes) - 1}]"
+            raise ValueError(
+                f"{kind} annotation for image {image_path!r} contains "
+                f"class_id {int(invalid_class_ids[0])}, outside the valid "
+                f"range {valid_range} for {len(classes)} classes."
+            )
+
+        annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[class_ids]
+
+
+def _check_key_points_carry_class_id(annotations: dict[str, KeyPoints]) -> None:
+    """Reject non-empty key points that carry no ``class_id``.
+
+    A YOLO pose label row starts with the class id, so a skeleton without one
+    cannot be exported. Checking up front keeps
+    :meth:`~supervision.dataset.core.KeyPointsDataset.as_yolo` from failing
+    halfway, after images were already written. Empty key points, such as
+    :meth:`~supervision.key_points.core.KeyPoints.empty`, write no row and pass.
+
+    Args:
+        annotations: Key points keyed by image path.
+
+    Raises:
+        ValueError: If a non-empty annotation has ``class_id=None``; the message
+            names the image.
+    """
+    for image_path, annotation in annotations.items():
+        if annotation.class_id is None and len(annotation) > 0:
+            raise ValueError(
+                f"Key point annotation for image {image_path!r} holds "
+                f"{len(annotation)} skeletons but no class_id; every skeleton of a "
+                "KeyPointsDataset needs a class id to be written as a YOLO pose label."
+            )
 
 
 class BaseDataset(ABC):
@@ -115,33 +185,9 @@ class DetectionDataset(BaseDataset):
             for image_path, annotation in annotations.items()
         }
 
-        np_classes = np.array(self.classes)
-        for image_path, annotation in self.annotations.items():
-            class_ids = annotation.class_id
-            if class_ids is None:
-                continue
-            if not np.issubdtype(class_ids.dtype, np.integer):
-                raise ValueError(
-                    f"Detection annotation for image {image_path!r} contains "
-                    f"non-integer class_id values with dtype {class_ids.dtype}."
-                )
-
-            invalid_class_ids = class_ids[
-                (class_ids < 0) | (class_ids >= len(self.classes))
-            ]
-            if len(invalid_class_ids) > 0:
-                valid_range = (
-                    "empty"
-                    if len(self.classes) == 0
-                    else f"[0, {len(self.classes) - 1}]"
-                )
-                raise ValueError(
-                    f"Detection annotation for image {image_path!r} contains "
-                    f"class_id {int(invalid_class_ids[0])}, outside the valid "
-                    f"range {valid_range} for {len(self.classes)} classes."
-                )
-
-            annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[class_ids]
+        _validate_and_name_class_ids(
+            annotations=self.annotations, classes=self.classes, kind="Detection"
+        )
 
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
@@ -1153,7 +1199,7 @@ class KeyPointsDataset(BaseDataset):
         annotations: dict[str, KeyPoints],
         keypoint_count: int,
         value_dim: int = 3,
-        flip_idx: list[int] | None = None,
+        flip_idx: Sequence[int] | npt.NDArray[np.integer] | None = None,
     ) -> None:
         """Initialize a keypoint dataset.
 
@@ -1161,18 +1207,23 @@ class KeyPointsDataset(BaseDataset):
             classes: Dataset class names, ordered by class index.
             images: Image paths; images are read on demand.
             annotations: Key points of each image, keyed by image path.
-            keypoint_count: Number of keypoints per skeleton.
+            keypoint_count: Number of keypoints per skeleton, a Python or NumPy
+                integer stored as a Python ``int``.
             value_dim: ``2`` or ``3``, the per-keypoint value count written by
                 :meth:`~supervision.dataset.core.KeyPointsDataset.as_yolo`.
             flip_idx: Optional permutation mapping each keypoint to the one it
                 becomes under a horizontal flip, carried through splitting,
-                merging and export.
+                merging and export. Python or NumPy integers are accepted and
+                stored as a list of Python ``int``.
 
         Raises:
             ValueError: If the image paths and annotation keys differ, if
-                ``keypoint_count`` is not positive, if ``value_dim`` is neither
-                2 nor 3, if ``flip_idx`` is not a permutation of the keypoint
-                indices, or if an annotation carries a non-integer class id, a
+                ``keypoint_count`` is not a positive integer, if ``value_dim`` is
+                neither 2 nor 3, if ``flip_idx`` is not a permutation of the
+                keypoint indices given as integers (booleans and floats are
+                refused, as the YOLO pose loader refuses them), if a non-empty
+                annotation carries no ``class_id``, or if an
+                annotation carries a non-integer class id, a
                 class id outside the range of ``classes``, or a keypoint count
                 other than ``keypoint_count``.
         """
@@ -1180,28 +1231,34 @@ class KeyPointsDataset(BaseDataset):
             raise ValueError(
                 "The keys of the images and annotations dictionaries must match."
             )
-        if keypoint_count <= 0:
+        # bool subclasses int, so `True` would otherwise pass as one keypoint.
+        is_integer_count = isinstance(
+            keypoint_count, (int, np.integer)
+        ) and not isinstance(keypoint_count, bool)
+        if not is_integer_count or keypoint_count <= 0:
             raise ValueError(
-                f"`keypoint_count` must be a positive integer, got {keypoint_count}."
+                f"`keypoint_count` must be a positive integer, got {keypoint_count!r}."
             )
         if value_dim not in (2, 3):
             raise ValueError(f"`value_dim` must be 2 or 3, got {value_dim}.")
-        if flip_idx is not None and sorted(flip_idx) != list(range(keypoint_count)):
-            raise ValueError(
-                f"`flip_idx` must be a permutation of the {keypoint_count} "
-                f"keypoint indices 0..{keypoint_count - 1}, got {flip_idx!r}."
-            )
 
         self.classes = classes
-        self.keypoint_count = keypoint_count
-        self.value_dim = value_dim
-        self.flip_idx = None if flip_idx is None else list(flip_idx)
+        # Plain ints: a NumPy scalar would be written to data.yaml as a tagged
+        # object that the loader's safe YAML reader refuses.
+        self.keypoint_count = int(keypoint_count)
+        self.value_dim = int(value_dim)
+        self.flip_idx = (
+            None
+            if flip_idx is None
+            else _validate_flip_idx(
+                flip_idx=flip_idx, keypoint_count=self.keypoint_count
+            )
+        )
         self.annotations = {
             image_path: deepcopy(annotation)
             for image_path, annotation in annotations.items()
         }
 
-        np_classes = np.array(self.classes)
         for image_path, annotation in self.annotations.items():
             if len(annotation) > 0 and annotation.xy.shape[1] != keypoint_count:
                 raise ValueError(
@@ -1209,31 +1266,10 @@ class KeyPointsDataset(BaseDataset):
                     f"{annotation.xy.shape[1]} keypoints per skeleton, but the "
                     f"dataset declares {keypoint_count}."
                 )
-
-            class_ids = annotation.class_id
-            if class_ids is None:
-                continue
-            if not np.issubdtype(class_ids.dtype, np.integer):
-                raise ValueError(
-                    f"Key point annotation for image {image_path!r} contains "
-                    f"non-integer class_id values with dtype {class_ids.dtype}."
-                )
-
-            invalid_class_ids = class_ids[
-                (class_ids < 0) | (class_ids >= len(self.classes))
-            ]
-            if len(invalid_class_ids) > 0:
-                valid_range = (
-                    "empty"
-                    if len(self.classes) == 0
-                    else f"[0, {len(self.classes) - 1}]"
-                )
-                raise ValueError(
-                    f"Key point annotation for image {image_path!r} contains "
-                    f"class_id {int(invalid_class_ids[0])}, outside the valid "
-                    f"range {valid_range} for {len(self.classes)} classes."
-                )
-            annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[class_ids]
+        _check_key_points_carry_class_id(annotations=self.annotations)
+        _validate_and_name_class_ids(
+            annotations=self.annotations, classes=self.classes, kind="Key point"
+        )
 
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
@@ -1392,6 +1428,8 @@ class KeyPointsDataset(BaseDataset):
             )
             for image_path in dataset.image_paths:
                 annotation = dataset.annotations[image_path]
+                # Only an empty annotation lacks class_id once constructed, and
+                # it has nothing to remap; a non-empty one is rejected by cls().
                 if annotation.class_id is None:
                     annotations[image_path] = annotation
                     continue
@@ -1499,6 +1537,12 @@ class KeyPointsDataset(BaseDataset):
             data_yaml_path: Path for the data.yaml file; skipped when ``None``.
             show_progress: If ``True``, display a progress bar while saving.
 
+        Raises:
+            ValueError: Before any file is written, if two images would share an
+                output file name, or if labels are requested and a non-empty
+                annotation, for instance one replaced after construction, carries
+                no ``class_id``.
+
         Examples:
             ```python
             import supervision as sv
@@ -1523,6 +1567,10 @@ class KeyPointsDataset(BaseDataset):
                 key=lambda image_path: Path(image_path).stem + ".txt",
                 output_kind="YOLO pose annotation",
             )
+        if annotations_directory_path is not None:
+            # `annotations` is a public dict, so an entry may have been replaced
+            # since the constructor checked it.
+            _check_key_points_carry_class_id(annotations=self.annotations)
 
         if images_directory_path is not None:
             save_dataset_images(

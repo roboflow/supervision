@@ -1,23 +1,21 @@
 from __future__ import annotations
 
 import os
-from copy import deepcopy
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
 from supervision.config import (
-    CLASS_NAME_DATA_FIELD,
     KEYPOINT_VISIBILITY_DATA_FIELD,
     XYXY_DATA_FIELD,
 )
 from supervision.dataset.formats.yolo import (
     IMAGE_EXTENSIONS,
-    _extract_class_names,
-    _extract_pose_value_count,
+    _extract_class_names_from_data,
+    _extract_pose_value_count_from_data,
     _image_name_to_annotation_name,
     _parse_class_id,
     _parse_relative_xyxy,
@@ -25,10 +23,11 @@ from supervision.dataset.formats.yolo import (
 )
 from supervision.dataset.utils import (
     _image_file_resolution_wh,
+    _validate_flip_idx,
     check_no_basename_collisions,
 )
 from supervision.detection.utils._typing import _DetectionDataType
-from supervision.detection.utils.boxes import _sort_box_corners
+from supervision.detection.utils.boxes import _sort_box_corners, denormalize_boxes
 from supervision.key_points.core import KeyPoints
 from supervision.utils.file import (
     list_files_with_extensions,
@@ -43,15 +42,16 @@ if TYPE_CHECKING:
 VISIBILITY_VISIBLE = 2
 
 
-def _extract_kpt_shape(file_path: str) -> tuple[int, int]:
+def _extract_kpt_shape(data: dict[str, Any], file_path: str) -> tuple[int, int]:
     """Return ``(K, D)`` from the ``kpt_shape`` of a YOLO pose data.yaml.
 
-    :func:`~supervision.dataset.formats.yolo._extract_pose_value_count` validates
-    the field and returns the flattened ``K * D``; a pose dataset needs the two
-    parts separately to reshape each label row.
+    :func:`~supervision.dataset.formats.yolo._extract_pose_value_count_from_data`
+    validates the field and returns the flattened ``K * D``; a pose dataset needs
+    the two parts separately to reshape each label row.
 
     Args:
-        file_path: Path to the data.yaml file.
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
 
     Returns:
         The keypoint count ``K`` and the per-keypoint value count ``D``.
@@ -60,7 +60,9 @@ def _extract_kpt_shape(file_path: str) -> tuple[int, int]:
         ValueError: If ``kpt_shape`` is absent, or is not ``[K, 2]`` or
             ``[K, 3]`` with a positive whole number ``K``.
     """
-    pose_value_count = _extract_pose_value_count(file_path=file_path)
+    pose_value_count = _extract_pose_value_count_from_data(
+        data=data, file_path=file_path
+    )
     if pose_value_count == 0:
         raise ValueError(
             f"Expected 'kpt_shape' in data.yaml at '{file_path}'. A keypoint "
@@ -68,50 +70,42 @@ def _extract_kpt_shape(file_path: str) -> tuple[int, int]:
             "dataset without it holds boxes only, so load it with "
             "`DetectionDataset.from_yolo`."
         )
-    kpt_shape = _read_data_yaml(file_path=file_path)["kpt_shape"]
+    kpt_shape = data["kpt_shape"]
     return int(kpt_shape[0]), int(kpt_shape[1])
 
 
-def _extract_flip_idx(file_path: str, keypoint_count: int) -> list[int] | None:
+def _extract_flip_idx(
+    data: dict[str, Any], file_path: str, keypoint_count: int
+) -> list[int] | None:
     """Return the ``flip_idx`` of a YOLO pose data.yaml, or ``None`` if absent.
 
     ``flip_idx`` maps each keypoint to the one it becomes under a horizontal
-    flip, so a left shoulder swaps with the right. Training reads it to augment
-    by mirroring, which means it must be a permutation of all ``K`` keypoint
-    indices: a repeated or out-of-range entry would silently drop or duplicate a
-    joint in every flipped sample.
+    flip, so a left shoulder swaps with the right. It is checked by the same
+    rule :class:`~supervision.dataset.core.KeyPointsDataset` applies, so a
+    dataset that exports a ``flip_idx`` reads it back.
 
     Args:
-        file_path: Path to the data.yaml file.
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
         keypoint_count: ``K`` from ``kpt_shape``, the required length.
 
     Returns:
         The permutation, or ``None`` when data.yaml declares no ``flip_idx``.
 
     Raises:
-        ValueError: If ``flip_idx`` is not a permutation of ``range(K)``.
+        ValueError: If ``flip_idx`` is not a permutation of ``range(K)`` given
+            as integers; the message names the file.
     """
-    data = _read_data_yaml(file_path=file_path)
     if "flip_idx" not in data:
         return None
-    flip_idx = data["flip_idx"]
-    # bool is a subclass of int, so 'flip_idx: [true, false]' would otherwise be
-    # accepted as the permutation [1, 0].
-    is_permutation = (
-        isinstance(flip_idx, list)
-        and len(flip_idx) == keypoint_count
-        and all(
-            isinstance(value, int) and not isinstance(value, bool) for value in flip_idx
+    try:
+        return _validate_flip_idx(
+            flip_idx=data["flip_idx"], keypoint_count=keypoint_count
         )
-        and sorted(flip_idx) == list(range(keypoint_count))
-    )
-    if not is_permutation:
+    except ValueError as error:
         raise ValueError(
-            f"Expected 'flip_idx' in data.yaml at '{file_path}' to be a "
-            f"permutation of the {keypoint_count} keypoint indices "
-            f"0..{keypoint_count - 1}, got {flip_idx!r}."
-        )
-    return [int(value) for value in flip_idx]
+            f"Invalid 'flip_idx' in data.yaml at '{file_path}': {error}"
+        ) from error
 
 
 def _parse_pose_line(
@@ -180,14 +174,6 @@ def _parse_pose_line(
     return class_id, box, keypoints
 
 
-def _denormalize_box(
-    box: npt.NDArray[np.float64], resolution_wh: tuple[int, int]
-) -> npt.NDArray[np.float64]:
-    """Scale a relative ``(x1, y1, x2, y2)`` box to pixels, keeping float64."""
-    w, h = resolution_wh
-    return box * np.array([w, h, w, h], dtype=np.float64)
-
-
 def yolo_pose_annotations_to_key_points(
     lines: list[str],
     resolution_wh: tuple[int, int],
@@ -236,7 +222,7 @@ def yolo_pose_annotations_to_key_points(
             value_dim=value_dim,
         )
         class_ids.append(class_id)
-        boxes.append(_denormalize_box(box=box, resolution_wh=resolution_wh))
+        boxes.append(box)
         rows.append(keypoints)
 
     w, h = resolution_wh
@@ -244,7 +230,10 @@ def yolo_pose_annotations_to_key_points(
     xy = stacked[:, :, :2] * np.array([w, h], dtype=np.float32)
 
     visible: npt.NDArray[np.bool_] | None = None
-    data: _DetectionDataType = {XYXY_DATA_FIELD: np.stack(boxes)}
+    # denormalize_boxes keeps a floating input dtype, so the boxes stay float64.
+    data: _DetectionDataType = {
+        XYXY_DATA_FIELD: denormalize_boxes(np.stack(boxes), resolution_wh=resolution_wh)
+    }
     if value_dim == 3:
         visibility = stacked[:, :, 2]
         # Flag 1 (labelled but occluded) is a keypoint target too; the metrics
@@ -289,11 +278,15 @@ def load_yolo_pose_annotations(
             ``flip_idx`` is not a permutation of the keypoint indices, or if a
             label file holds an invalid line; the message names the file.
     """
-    keypoint_count, value_dim = _extract_kpt_shape(file_path=data_yaml_path)
-    flip_idx = _extract_flip_idx(
-        file_path=data_yaml_path, keypoint_count=keypoint_count
+    # Read once; every field below comes from the same parsed mapping.
+    data = _read_data_yaml(file_path=data_yaml_path)
+    keypoint_count, value_dim = _extract_kpt_shape(
+        data=data, file_path=data_yaml_path
     )
-    classes = _extract_class_names(file_path=data_yaml_path)
+    flip_idx = _extract_flip_idx(
+        data=data, file_path=data_yaml_path, keypoint_count=keypoint_count
+    )
+    classes = _extract_class_names_from_data(data=data, file_path=data_yaml_path)
     image_paths = [
         str(path)
         for path in list_files_with_extensions(
@@ -399,7 +392,7 @@ def _box_from_key_points(
 
 def key_points_to_yolo_pose_annotations(
     key_points: KeyPoints,
-    image_shape: tuple[int, int, int],
+    image_shape: tuple[int, ...],
     keypoint_count: int,
     value_dim: int,
 ) -> list[str]:
@@ -424,7 +417,8 @@ def key_points_to_yolo_pose_annotations(
 
     Args:
         key_points: The key points of a single image.
-        image_shape: The ``(height, width, channels)`` of the image.
+        image_shape: The ``(height, width)`` of the image; trailing values,
+            such as the channel count of ``image.shape``, are ignored.
         keypoint_count: ``K`` from ``kpt_shape``.
         value_dim: ``D`` from ``kpt_shape``, either 2 or 3.
 
@@ -507,11 +501,19 @@ def save_yolo_pose_annotations(
 ) -> None:
     """Write the annotations of a keypoint dataset in YOLO pose format.
 
+    Each image's size is read from its file header, applying the EXIF
+    orientation as the loader does, so no image is decoded.
+
     Args:
         dataset: The dataset whose annotations are saved.
         annotations_directory_path: Directory for the ``.txt`` files; created
             automatically if absent.
         show_progress: If ``True``, display a progress bar while saving.
+
+    Raises:
+        FileNotFoundError: If an image file does not exist.
+        PIL.UnidentifiedImageError: If an image file cannot be read, as when
+            loading the dataset.
     """
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
@@ -519,18 +521,21 @@ def save_yolo_pose_annotations(
         output_kind="YOLO pose annotation",
     )
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_path, image, annotation in tqdm(
-        dataset,
-        total=len(dataset),
+    # Only each image's size is needed, so it is read from the file header, the
+    # way the loader reads it, rather than by decoding every image.
+    for image_path in tqdm(
+        dataset.image_paths,
+        total=len(dataset.image_paths),
         desc="Saving YOLO pose annotations",
         disable=not show_progress,
     ):
+        width, height = _image_file_resolution_wh(image_path)
         annotation_name = _image_name_to_annotation_name(
             image_name=Path(image_path).name
         )
         lines = key_points_to_yolo_pose_annotations(
-            key_points=annotation,
-            image_shape=image.shape,
+            key_points=dataset.annotations[image_path],
+            image_shape=(height, width),
             keypoint_count=dataset.keypoint_count,
             value_dim=dataset.value_dim,
         )
@@ -562,43 +567,3 @@ def save_pose_data_yaml(
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)
 
-
-def map_key_points_class_id(
-    source_to_target_mapping: dict[int, int], key_points: KeyPoints
-) -> KeyPoints:
-    """Remap the ``class_id`` of key points onto a merged class list.
-
-    The keypoint counterpart of
-    :func:`~supervision.dataset.utils.map_detections_class_id`, kept beside the
-    format helpers because ``dataset.utils`` does not import
-    :class:`~supervision.key_points.core.KeyPoints`.
-
-    Args:
-        source_to_target_mapping: Mapping from the source class index to the
-            index of the same class in the merged list.
-        key_points: The key points to remap; not mutated.
-
-    Returns:
-        A copy carrying the remapped ``class_id``, with any stale
-            ``data['class_name']`` dropped;
-            :class:`~supervision.dataset.core.KeyPointsDataset` re-derives it
-            from the merged class list.
-
-    Raises:
-        ValueError: If the key points carry no ``class_id``, or hold a class id
-            missing from the mapping.
-    """
-    if key_points.class_id is None:
-        raise ValueError("KeyPoints must have class_id attribute.")
-    if set(np.unique(key_points.class_id)) - set(source_to_target_mapping.keys()):
-        raise ValueError(
-            "KeyPoints class_id must be a subset of source_to_target_mapping keys."
-        )
-
-    key_points_copy = deepcopy(key_points)
-    if len(key_points_copy) > 0 and key_points_copy.class_id is not None:
-        key_points_copy.class_id = np.vectorize(source_to_target_mapping.get)(
-            key_points_copy.class_id
-        )
-        key_points_copy.data.pop(CLASS_NAME_DATA_FIELD, None)
-    return key_points_copy

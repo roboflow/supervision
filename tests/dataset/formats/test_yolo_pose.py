@@ -1,12 +1,13 @@
 import re
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pytest
+import yaml
 from PIL import Image
 
 from supervision.config import (
-    CLASS_NAME_DATA_FIELD,
     KEYPOINT_VISIBILITY_DATA_FIELD,
     XYXY_DATA_FIELD,
 )
@@ -15,11 +16,11 @@ from supervision.dataset.formats.yolo_pose import (
     _extract_kpt_shape,
     key_points_to_yolo_pose_annotations,
     load_yolo_pose_annotations,
-    map_key_points_class_id,
     yolo_pose_annotations_to_key_points,
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics import KeyPointMeanAveragePrecision
+from supervision.utils.file import read_yaml_file
 
 
 def _write_dataset(
@@ -55,24 +56,20 @@ class TestExtractKptShape:
             pytest.param("[4, 2]", (4, 2), id="no-visibility"),
         ],
     )
-    def test_reads_shape(
-        self, tmp_path: Path, kpt_shape: str, expected: tuple[int, int]
-    ) -> None:
+    def test_reads_shape(self, kpt_shape: str, expected: tuple[int, int]) -> None:
         """A valid ``kpt_shape`` is returned as its two parts."""
-        path = tmp_path / "data.yaml"
-        path.write_text(f"nc: 1\nnames: ['person']\nkpt_shape: {kpt_shape}\n")
+        data = yaml.safe_load(f"nc: 1\nnames: ['person']\nkpt_shape: {kpt_shape}\n")
 
-        result = _extract_kpt_shape(file_path=str(path))
+        result = _extract_kpt_shape(data=data, file_path="data.yaml")
 
         assert result == expected
 
-    def test_rejects_dataset_without_kpt_shape(self, tmp_path: Path) -> None:
+    def test_rejects_dataset_without_kpt_shape(self) -> None:
         """A data.yaml with no ``kpt_shape`` names the detection loader instead."""
-        path = tmp_path / "data.yaml"
-        path.write_text("nc: 1\nnames: ['person']\n")
+        data = {"nc": 1, "names": ["person"]}
 
         with pytest.raises(ValueError, match=re.escape("DetectionDataset.from_yolo")):
-            _extract_kpt_shape(file_path=str(path))
+            _extract_kpt_shape(data=data, file_path="data.yaml")
 
 
 class TestYoloPoseAnnotationsToKeyPoints:
@@ -360,6 +357,25 @@ class TestLoadYoloPoseAnnotations:
         assert kpt_shape == (2, 3)
         assert len(loaded[image_paths[0]]) == 1
 
+    @mock.patch(
+        "supervision.dataset.formats.yolo.read_yaml_file", wraps=read_yaml_file
+    )
+    def test_reads_data_yaml_once(
+        self, read_yaml: mock.MagicMock, tmp_path: Path
+    ) -> None:
+        """Shape, flip_idx and class names all come from a single data.yaml read."""
+        paths = _write_dataset(
+            root=tmp_path,
+            label_lines={"a": ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1"]},
+            data_yaml=(
+                "nc: 1\nnames: ['person']\nkpt_shape: [2, 3]\nflip_idx: [1, 0]\n"
+            ),
+        )
+
+        load_yolo_pose_annotations(*paths)
+
+        assert read_yaml.call_count == 1
+
     def test_image_without_a_label_file_is_empty(self, tmp_path: Path) -> None:
         """An image with no label file is kept with empty key points."""
         images, annotations, data_yaml = _write_dataset(
@@ -391,46 +407,6 @@ class TestLoadYoloPoseAnnotations:
                 images_directory_path=images,
                 annotations_directory_path=annotations,
                 data_yaml_path=data_yaml,
-            )
-
-
-class TestMapKeyPointsClassId:
-    """Tests for remapping key point class ids onto a merged class list."""
-
-    def test_remaps_class_id_and_drops_stale_class_name(self) -> None:
-        """Remapping renumbers ``class_id`` and clears the cached class name."""
-        key_points = KeyPoints(
-            xy=np.array([[[1.0, 2.0]]], dtype=np.float32),
-            class_id=np.array([0]),
-            data={CLASS_NAME_DATA_FIELD: np.array(["cat"])},
-        )
-
-        result = map_key_points_class_id(
-            source_to_target_mapping={0: 3}, key_points=key_points
-        )
-
-        np.testing.assert_array_equal(result.class_id, np.array([3]))
-        assert CLASS_NAME_DATA_FIELD not in result.data
-
-    def test_does_not_mutate_the_input(self) -> None:
-        """The source key points keep their original class ids."""
-        key_points = KeyPoints(
-            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([0])
-        )
-
-        map_key_points_class_id(source_to_target_mapping={0: 3}, key_points=key_points)
-
-        np.testing.assert_array_equal(key_points.class_id, np.array([0]))
-
-    def test_rejects_a_class_id_missing_from_the_mapping(self) -> None:
-        """A class id with no target is an error rather than a silent pass."""
-        key_points = KeyPoints(
-            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([5])
-        )
-
-        with pytest.raises(ValueError, match="subset"):
-            map_key_points_class_id(
-                source_to_target_mapping={0: 3}, key_points=key_points
             )
 
 
@@ -862,6 +838,8 @@ class TestFlipIdx:
             pytest.param("[0, 1]", id="too-short"),
             pytest.param("[0, 1, 1]", id="repeated-index"),
             pytest.param("[0, 1, 3]", id="out-of-range"),
+            pytest.param("[0, 2.0, 1]", id="float-index"),
+            pytest.param("[false, true, 2]", id="boolean-index"),
         ],
     )
     def test_rejects_a_flip_idx_that_is_not_a_permutation(
@@ -878,3 +856,27 @@ class TestFlipIdx:
 
         with pytest.raises(ValueError, match="permutation"):
             KeyPointsDataset.from_yolo(*paths)
+
+    def test_numpy_flip_idx_round_trips_through_data_yaml(self, tmp_path: Path) -> None:
+        """A NumPy `flip_idx` and keypoint count are written as plain YAML integers."""
+        dataset = KeyPointsDataset(
+            classes=["person"],
+            images=[],
+            annotations={},
+            keypoint_count=np.int64(2),
+            flip_idx=np.array([1, 0]),
+        )
+        images_directory = tmp_path / "images"
+        images_directory.mkdir()
+        data_yaml_path = tmp_path / "data.yaml"
+
+        dataset.as_yolo(data_yaml_path=str(data_yaml_path))
+        reloaded = KeyPointsDataset.from_yolo(
+            images_directory_path=str(images_directory),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(data_yaml_path),
+        )
+
+        assert yaml.safe_load(data_yaml_path.read_text())["flip_idx"] == [1, 0]
+        assert reloaded.keypoint_count == 2
+        assert reloaded.flip_idx == [1, 0]

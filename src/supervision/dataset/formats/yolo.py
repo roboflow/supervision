@@ -194,7 +194,26 @@ def _read_data_yaml(file_path: str) -> dict[str, Any]:
 
 
 def _extract_class_names(file_path: str) -> list[str]:
-    """Return class names from a YOLO data.yaml file ordered by class index.
+    """Read a YOLO data.yaml file and return its class names by class index.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        Class names in class-index order.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping, or if ``names`` is
+            invalid as described in
+            :func:`~supervision.dataset.formats.yolo._extract_class_names_from_data`.
+    """
+    return _extract_class_names_from_data(
+        data=_read_data_yaml(file_path=file_path), file_path=file_path
+    )
+
+
+def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list[str]:
+    """Return class names from parsed YOLO data.yaml content ordered by class index.
 
     Supports list and dict forms of the ``names`` field. Dict keys that are
     all int-like (plain ints or digit strings) are sorted numerically so
@@ -204,16 +223,16 @@ def _extract_class_names(file_path: str) -> list[str]:
     because ``bool`` is a subclass of ``int`` in Python.
 
     Args:
-        file_path: Path to the data.yaml file.
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
 
     Returns:
         Class names in class-index order.
 
     Raises:
-        ValueError: If the YAML root is not a mapping, if ``names`` is
-            neither a list nor a dict, or if the dict has mixed key types.
+        ValueError: If ``names`` is neither a list nor a dict, or if the dict
+            has mixed key types.
     """
-    data = _read_data_yaml(file_path=file_path)
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
@@ -265,10 +284,7 @@ def _is_positive_whole_number(value: Any) -> bool:
 
 
 def _extract_pose_value_count(file_path: str) -> int:
-    """Return the number of keypoint values that follow the box in a pose label.
-
-    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
-    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+    """Read a YOLO data.yaml file and return the keypoint values per pose label.
 
     Args:
         file_path: Path to the data.yaml file.
@@ -278,9 +294,31 @@ def _extract_pose_value_count(file_path: str) -> int:
 
     Raises:
         ValueError: If the YAML root is not a mapping, or if ``kpt_shape`` is
-            not ``[K, 2]`` or ``[K, 3]`` with a positive whole number ``K``.
+            invalid as described in
+            :func:`~supervision.dataset.formats.yolo._extract_pose_value_count_from_data`.
     """
-    data = _read_data_yaml(file_path=file_path)
+    return _extract_pose_value_count_from_data(
+        data=_read_data_yaml(file_path=file_path), file_path=file_path
+    )
+
+
+def _extract_pose_value_count_from_data(data: dict[str, Any], file_path: str) -> int:
+    """Return the number of keypoint values that follow the box in a pose label.
+
+    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
+    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+
+    Args:
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
+
+    Returns:
+        ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
+
+    Raises:
+        ValueError: If ``kpt_shape`` is not ``[K, 2]`` or ``[K, 3]`` with a
+            positive whole number ``K``.
+    """
     if "kpt_shape" not in data:
         return 0
     kpt_shape = data["kpt_shape"]

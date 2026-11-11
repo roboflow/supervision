@@ -1,8 +1,9 @@
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.core import KeyPointsDataset
@@ -93,6 +94,35 @@ class TestKeyPointsDatasetInit:
                 keypoint_count=keypoint_count,
             )
 
+    @pytest.mark.parametrize(
+        "keypoint_count",
+        [pytest.param(True, id="boolean"), pytest.param(2.0, id="float")],
+    )
+    def test_rejects_a_keypoint_count_that_is_not_an_integer(
+        self, keypoint_count: Any
+    ) -> None:
+        """A boolean or float keypoint count is refused rather than coerced."""
+        with pytest.raises(ValueError, match="positive integer"):
+            KeyPointsDataset(
+                classes=["person"],
+                images=[],
+                annotations={},
+                keypoint_count=keypoint_count,
+            )
+
+    def test_stores_a_numpy_keypoint_count_as_a_python_int(self) -> None:
+        """A NumPy integer count is kept as a plain int that YAML writes plainly."""
+        dataset = KeyPointsDataset(
+            classes=["person"],
+            images=[],
+            annotations={},
+            keypoint_count=np.int64(2),
+            value_dim=np.int64(3),
+        )
+
+        assert type(dataset.keypoint_count) is int
+        assert type(dataset.value_dim) is int
+
     @pytest.mark.parametrize("value_dim", [1, 4])
     def test_rejects_an_unsupported_value_dim(self, value_dim: int) -> None:
         """YOLO pose stores two or three values per keypoint, nothing else."""
@@ -119,6 +149,41 @@ class TestKeyPointsDatasetInit:
         """A class id with no name names the offending image and range."""
         with pytest.raises(ValueError, match=r"outside the valid range \[0, 0\]"):
             _dataset(["a.png"], classes=["person"], class_ids=[4])
+
+    def test_rejects_skeletons_without_class_id(self) -> None:
+        """Non-empty key points without a class id cannot become YOLO pose labels."""
+        key_points = KeyPoints(xy=np.zeros((1, 2, 2), dtype=np.float32))
+
+        with pytest.raises(ValueError, match=r"'a\.png' holds 1 skeletons but no"):
+            KeyPointsDataset(
+                classes=["person"],
+                images=["a.png"],
+                annotations={"a.png": key_points},
+                keypoint_count=2,
+            )
+
+    @pytest.mark.parametrize(
+        "annotation",
+        [
+            pytest.param(KeyPoints.empty(), id="key-points-empty"),
+            pytest.param(
+                KeyPoints(xy=np.empty((0, 2, 2), dtype=np.float32)),
+                id="zero-length-without-class-id",
+            ),
+        ],
+    )
+    def test_accepts_empty_key_points_without_class_ids(
+        self, annotation: KeyPoints
+    ) -> None:
+        """An image with no skeletons needs no class id."""
+        dataset = KeyPointsDataset(
+            classes=["person"],
+            images=["a.png"],
+            annotations={"a.png": annotation},
+            keypoint_count=2,
+        )
+
+        assert len(dataset.annotations["a.png"]) == 0
 
 
 class TestKeyPointsDatasetSequence:
@@ -271,6 +336,20 @@ class TestKeyPointsDatasetMerge:
         with pytest.raises(ValueError, match="different keypoint counts"):
             KeyPointsDataset.merge([first, second])
 
+    def test_merge_keeps_an_empty_annotation_without_class_id(self) -> None:
+        """An empty annotation without class ids has nothing to remap and is kept."""
+        empty = KeyPointsDataset(
+            classes=["dog"],
+            images=["b.png"],
+            annotations={"b.png": KeyPoints(xy=np.empty((0, 2, 2), dtype=np.float32))},
+            keypoint_count=2,
+        )
+
+        merged = KeyPointsDataset.merge([_dataset(["a.png"]), empty])
+
+        assert merged.image_paths == ["a.png", "b.png"]
+        assert len(merged.annotations["b.png"]) == 0
+
     def test_merge_rejects_a_repeated_image_path(self) -> None:
         """An image appearing in two datasets is ambiguous, so it is an error."""
         with pytest.raises(ValueError, match="not unique"):
@@ -313,6 +392,63 @@ class TestKeyPointsDatasetExport:
 
         assert not output.exists()
 
+    def test_writes_labels_without_decoding_images(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Labels are normalized against the header size; no image is decoded."""
+        image_path = tmp_path / "a.png"
+        Image.new("RGB", (20, 10)).save(image_path)
+        dataset = _dataset([str(image_path)])
+
+        def _refuse_decoding(self: KeyPointsDataset, image_path: str) -> None:
+            """Fail the test if the writer decodes an image."""
+            raise AssertionError(f"decoded {image_path}")
+
+        monkeypatch.setattr(KeyPointsDataset, "_get_image", _refuse_decoding)
+        labels = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels))
+
+        # Keypoints (0, 1) and (2, 3) span a 2 x 2 box centred at (1, 2) in 20 x 10.
+        assert (labels / "a.txt").read_text().split()[:5] == [
+            "0",
+            "0.05",
+            "0.2",
+            "0.1",
+            "0.2",
+        ]
+
+    def test_reports_an_unreadable_image_as_the_loader_does(
+        self, tmp_path: Path
+    ) -> None:
+        """A file that is no image fails with the PIL error the loader raises."""
+        image_path = tmp_path / "a.png"
+        image_path.write_bytes(b"not an image")
+        dataset = _dataset([str(image_path)])
+
+        with pytest.raises(UnidentifiedImageError):
+            dataset.as_yolo(annotations_directory_path=str(tmp_path / "labels"))
+
+    def test_rejects_a_replaced_annotation_without_class_id_before_writing(
+        self, tmp_path: Path
+    ) -> None:
+        """An annotation swapped in after construction fails with nothing written."""
+        image_path = tmp_path / "a.png"
+        Image.new("RGB", (20, 10)).save(image_path)
+        dataset = _dataset([str(image_path)])
+        dataset.annotations[str(image_path)] = KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32)
+        )
+        output = tmp_path / "out"
+
+        with pytest.raises(ValueError, match="no class_id"):
+            dataset.as_yolo(
+                images_directory_path=str(output / "images"),
+                annotations_directory_path=str(output / "labels"),
+            )
+
+        assert not output.exists()
+
 
 class TestKeyPointsDatasetFlipIdx:
     """Tests for the `flip_idx` keypoint permutation on the dataset."""
@@ -327,6 +463,49 @@ class TestKeyPointsDatasetFlipIdx:
                 keypoint_count=3,
                 flip_idx=[0, 1, 1],
             )
+
+    @pytest.mark.parametrize(
+        "flip_idx",
+        [
+            pytest.param([True, False], id="booleans"),
+            pytest.param([1.0, 0.0], id="floats"),
+            pytest.param(np.array([True, False]), id="boolean-array"),
+            pytest.param(np.array([1.0, 0.0]), id="float-array"),
+            pytest.param([0, 2], id="out-of-range"),
+            pytest.param("10", id="string"),
+        ],
+    )
+    def test_rejects_a_flip_idx_the_loader_would_refuse(self, flip_idx: Any) -> None:
+        """Booleans, floats and non-permutations fail here as they fail on reload."""
+        with pytest.raises(ValueError, match="permutation"):
+            KeyPointsDataset(
+                classes=["person"],
+                images=[],
+                annotations={},
+                keypoint_count=2,
+                flip_idx=flip_idx,
+            )
+
+    @pytest.mark.parametrize(
+        "flip_idx",
+        [
+            pytest.param(np.array([1, 0]), id="int64-array"),
+            pytest.param([np.int64(1), np.int64(0)], id="numpy-integers"),
+            pytest.param((1, 0), id="tuple"),
+        ],
+    )
+    def test_stores_an_integer_flip_idx_as_python_ints(self, flip_idx: Any) -> None:
+        """NumPy integers are accepted and kept as a list of plain ints."""
+        dataset = KeyPointsDataset(
+            classes=["person"],
+            images=[],
+            annotations={},
+            keypoint_count=2,
+            flip_idx=flip_idx,
+        )
+
+        assert dataset.flip_idx == [1, 0]
+        assert all(type(value) is int for value in dataset.flip_idx)
 
     def test_split_carries_flip_idx_to_both_parts(self) -> None:
         """Both halves of a split keep the permutation of the source."""
