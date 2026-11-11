@@ -347,7 +347,7 @@ If you prefer to save the result in a `.JSON` file instead of a `.CSV` file, all
 
 ### How do I save detections to CSV with supervision?
 
-Open `sv.CSVSink("output.csv")` as a context manager and call `sink.append(detections)` for each frame. The CSV includes box coordinates, confidence, class ID, tracker ID, and any fields stored in `detections.data`.
+Open `sv.CSVSink("output.csv")` as a context manager and call `sink.append(detections)` for each frame. The CSV includes box coordinates, confidence, class ID, tracker ID, and any fields stored in `detections.data`. A field in `detections.data` named like a built-in column, such as `confidence` or `x_min`, raises `ValueError`; rename it first.
 
 ### Can I save detections to JSON instead?
 
@@ -355,7 +355,7 @@ Yes. Open `sv.JSONSink("output.json")` as a context manager and call `sink.appen
 
 ### Can I add custom fields to the saved output?
 
-Yes. Pass a dict as the second argument: `sink.append(detections, {"frame_index": 5})` — the keys become extra columns in the CSV or extra fields in the JSON.
+Yes. Pass a dict as the second argument: `sink.append(detections, {"frame_index": 5})` — the keys become extra columns in the CSV or extra fields in the JSON. For CSV, a key named like a built-in column, such as `confidence` or `x_min`, raises `ValueError`.
 
 ### Can I save only specific classes or confidence levels?
 

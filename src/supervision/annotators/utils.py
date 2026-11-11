@@ -371,8 +371,10 @@ def snap_boxes(
     xyxy: npt.NDArray[np.float32],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.float32]:
-    """Shifts `label` bounding boxes into the frame so that they are fully contained
-    within the given resolution, prioritizing the top/left edge. Unlike
+    """Shifts `label` bounding boxes into the frame, prioritizing the top/left edge.
+    A box that fits the frame ends up fully contained within the given resolution.
+    A box wider or taller than the frame stops at the left or top edge and overflows
+    on the right or bottom. Unlike
     :func:`~supervision.detection.utils.boxes.clip_boxes`, this function does not crop
     boxes. It moves them entirely if they exceed the frame boundaries.
 

@@ -107,11 +107,13 @@ class MeanAveragePrecisionResult(MetricResult):
         matched_classes: the class IDs of all matched classes.
             Corresponds to the rows of `ap_per_class`.
         small_objects: the mAP results
-            for small objects (area < 32²).
+            for small objects (area ≤ 32²).
         medium_objects: the mAP results
-            for medium objects (32² ≤ area < 96²).
+            for medium objects (32² ≤ area ≤ 96²).
         large_objects: the mAP results
-            for large objects (area ≥ 96²).
+            for large objects (area ≥ 96²). Like `pycocotools`, the size limits
+            are inclusive, so an object whose area is exactly 32² or 96² counts
+            in both neighboring buckets.
         max_detection_thresholds: The three evaluation limits. AP uses the last
             limit, per image and category after any class mapping.
     """
