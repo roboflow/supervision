@@ -352,6 +352,24 @@ def test_fallback_convert_scale_abs_matches_opencv() -> None:
     )
 
 
+def test_fallback_convert_scale_abs_preserves_fused_midpoint_offset() -> None:
+    """Keep a tiny offset that changes fused float32 midpoint rounding."""
+    source = np.full((1, 64), 97, dtype=np.uint8)
+
+    actual = _convert_scale_abs(source, 172961 / 2**25, 2.0**-60)
+
+    np.testing.assert_array_equal(actual, np.ones_like(source))
+
+
+def test_fallback_convert_scale_abs_fuses_scale_and_offset() -> None:
+    """Round the scale and offset together before converting to uint8."""
+    source = np.array([[38]], dtype=np.uint8)
+
+    actual = _convert_scale_abs(source, 1.3, 0.1)
+
+    np.testing.assert_array_equal(actual, np.array([[50]], dtype=np.uint8))
+
+
 @pytest.mark.parametrize(
     ("dtype", "alpha", "beta"),
     [
@@ -379,9 +397,20 @@ def test_fallback_convert_scale_abs_rounds_in_float32_like_opencv(
             source = np.abs(source) % 256
     source = source.astype(dtype)
 
+    actual = _convert_scale_abs(source, alpha, beta)
+    reference = cv2.convertScaleAbs(source, alpha=alpha, beta=beta)
+    source32 = source.astype(np.float32)
+    fused = source32.astype(np.float64) * np.float64(np.float32(alpha))
+    fused = np.abs((fused + np.float64(np.float32(beta))).astype(np.float32))
+    fused = np.clip(np.rint(fused), 0, 255).astype(np.uint8)
+    separate = np.abs(source32 * np.float32(alpha) + np.float32(beta))
+    separate = np.clip(np.rint(separate), 0, 255).astype(np.uint8)
+
+    # OpenCV may use fused or separate float32 arithmetic depending on its build.
+    np.testing.assert_array_equal(actual, fused)
     np.testing.assert_array_equal(
-        _convert_scale_abs(source, alpha, beta),
-        cv2.convertScaleAbs(source, alpha=alpha, beta=beta),
+        (reference == fused) | (reference == separate),
+        np.ones_like(source, dtype=bool),
     )
 
 
