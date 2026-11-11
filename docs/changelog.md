@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep a label wider or taller than the frame at its left and top edges, as they already did for labels starting outside the frame. A label starting inside the frame was shifted past the left (or top) edge, cutting off its first characters (or lines) on small frames. ([#NNNN](https://github.com/roboflow/supervision/pull/NNNN))
+- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep a label wider or taller than the frame at its left and top edges, as they already did for labels starting outside the frame. A label starting inside the frame was shifted past the left (or top) edge, cutting off its first characters (or lines) on small frames. ([#2940](https://github.com/roboflow/supervision/pull/2940))
 
 - `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. `as_coco` also tries this for `iscrowd=0` annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (`iscrowd=1`) for an exact mask. ([#2933](https://github.com/roboflow/supervision/pull/2933))
 
