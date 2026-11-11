@@ -35,6 +35,25 @@ POLYGON = np.array([[100, 100], [200, 100], [200, 200], [100, 200]])
 
 
 class TestPolygonZoneInit:
+    @pytest.mark.parametrize("dtype_name", ["int8", "uint8", "int16", "uint16"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_retains_zone_at_integer_coordinate_limit(
+        self, dtype_name: str, axis: int
+    ) -> None:
+        """The mask margin cannot wrap at a polygon coordinate's integer limit."""
+        limit = int(np.iinfo(np.dtype(dtype_name)).max)
+        width, height = (limit, 3) if axis == 0 else (3, limit)
+        polygon = np.array(
+            [[0, 0], [width, 0], [width, height], [0, height]], dtype=dtype_name
+        )
+
+        zone = sv.PolygonZone(polygon)
+
+        expected = np.zeros((height + 2, width + 2), dtype=np.uint8)
+        expected[: height + 1, : width + 1] = 1
+        np.testing.assert_array_equal(zone.mask, expected)
+        np.testing.assert_array_equal(zone.polygon, polygon)
+
     @pytest.mark.parametrize(
         ("polygon", "triggering_anchors", "exception"),
         [
@@ -102,6 +121,23 @@ class TestPolygonZoneInit:
 
 
 class TestPolygonZoneTrigger:
+    @pytest.mark.parametrize("dtype_name", ["int8", "uint8", "int16", "uint16"])
+    def test_counts_inside_narrow_integer_polygon(self, dtype_name: str) -> None:
+        """Inside detections still trigger when the polygon reaches its dtype limit."""
+        width = int(np.iinfo(np.dtype(dtype_name)).max)
+        polygon = np.array([[0, 0], [width, 0], [width, 3], [0, 3]], dtype=dtype_name)
+        zone = sv.PolygonZone(polygon, triggering_anchors=[sv.Position.TOP_LEFT])
+        detections = sv.Detections(
+            xyxy=np.array(
+                [[1, 1, 2, 2], [width, 2, width + 1, 3], [width + 1, 1, width + 2, 2]]
+            )
+        )
+
+        in_zone = zone.trigger(detections)
+
+        np.testing.assert_array_equal(in_zone, [True, True, False])
+        assert zone.current_count == 2
+
     @pytest.mark.parametrize(
         ("detections", "polygon_zone", "expected_results", "exception"),
         [
