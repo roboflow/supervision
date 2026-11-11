@@ -124,6 +124,8 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
+        if np.issubdtype(polygon.dtype, np.integer):
+            x_max, y_max = int(x_max), int(y_max)
         self.mask = polygon_to_mask(
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
