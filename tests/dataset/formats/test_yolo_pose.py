@@ -19,6 +19,7 @@ from supervision.dataset.formats.yolo_pose import (
     yolo_pose_annotations_to_key_points,
 )
 from supervision.key_points.core import KeyPoints
+from supervision.metrics import KeyPointMeanAveragePrecision
 
 
 def _write_dataset(
@@ -101,14 +102,14 @@ class TestYoloPoseAnnotationsToKeyPoints:
         )
 
     def test_reads_visibility_as_visible_and_raw_flags(self) -> None:
-        """``visible`` marks only flag 2, while the raw ternary is kept in data."""
+        """``visible`` marks flags 1 and 2, while the raw ternary is kept in data."""
         lines = ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 0"]
 
         result = yolo_pose_annotations_to_key_points(
             lines=lines, resolution_wh=(200, 100), keypoint_count=3, value_dim=3
         )
 
-        np.testing.assert_array_equal(result.visible, [[True, False, False]])
+        np.testing.assert_array_equal(result.visible, [[True, True, False]])
         np.testing.assert_array_equal(
             result.data[KEYPOINT_VISIBILITY_DATA_FIELD], [[2, 1, 0]]
         )
@@ -242,6 +243,99 @@ class TestKeyPointsToYoloPoseAnnotations:
                 keypoint_count=17,
                 value_dim=3,
             )
+
+
+class TestKeyPointsToYoloPoseAfterEdits:
+    """Tests that edits made after loading reach the written label."""
+
+    @pytest.mark.parametrize(
+        ("keypoint_index", "visible", "expected"),
+        [
+            pytest.param(
+                1,
+                False,
+                "0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 0 0.75 0.7 0",
+                id="cleared-occluded-writes-zero",
+            ),
+            pytest.param(
+                2,
+                True,
+                "0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 2",
+                id="newly-set-writes-two",
+            ),
+        ],
+    )
+    def test_writes_visibility_edited_after_load(
+        self, keypoint_index: int, visible: bool, expected: str
+    ) -> None:
+        """A ``visible`` edit made after loading overrides the stored raw flag.
+
+        The raw flags kept in ``data`` would otherwise be written back as read, silently
+        discarding the edit a user made to ``visible``.
+        """
+        key_points = yolo_pose_annotations_to_key_points(
+            lines=["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 0"],
+            resolution_wh=(200, 100),
+            keypoint_count=3,
+            value_dim=3,
+        )
+        assert key_points.visible is not None
+        key_points.visible[0, keypoint_index] = visible
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(100, 200, 3),
+            keypoint_count=3,
+            value_dim=3,
+        )
+
+        assert result == [expected]
+
+    def test_stored_box_wins_over_edited_keypoints(self) -> None:
+        """The stored ``data['xyxy']`` is written as is after ``xy`` is edited.
+
+        The box is authoritative rather than re-derived, so a label loaded with a loose
+        box keeps it; moving a keypoint does not silently change the box.
+        """
+        key_points = yolo_pose_annotations_to_key_points(
+            lines=["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 2"],
+            resolution_wh=(200, 100),
+            keypoint_count=2,
+            value_dim=3,
+        )
+        key_points.xy[0, 1] = [150.0, 80.0]
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(100, 200, 3),
+            keypoint_count=2,
+            value_dim=3,
+        )
+
+        assert result == ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.75 0.8 2"]
+
+    def test_popped_box_is_derived_from_edited_keypoints(self) -> None:
+        """Popping ``data['xyxy']`` after editing ``xy`` derives the box afresh.
+
+        This is the documented way to make the written box follow moved keypoints.
+        """
+        key_points = yolo_pose_annotations_to_key_points(
+            lines=["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 2"],
+            resolution_wh=(200, 100),
+            keypoint_count=2,
+            value_dim=3,
+        )
+        key_points.xy[0, 1] = [150.0, 80.0]
+        key_points.data.pop(XYXY_DATA_FIELD)
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(100, 200, 3),
+            keypoint_count=2,
+            value_dim=3,
+        )
+
+        assert result == ["0 0.5 0.55 0.5 0.5 0.25 0.3 2 0.75 0.8 2"]
 
 
 class TestLoadYoloPoseAnnotations:
@@ -394,6 +488,26 @@ class TestYoloPoseRoundTrip:
 
         assert result == ["0 0.5 0.5 0.4 0.6 0.123457 0.3 2 0.5 0.5 1 0.75 0.7 0"]
 
+    def test_round_trip_keeps_a_small_box_width(self) -> None:
+        """A narrow box is written back with its six significant digits intact.
+
+        Stored as float32, a width of 0.00478514 on a 640 pixel wide image comes back as
+        0.00478516, because the corner difference loses its last digits.
+        """
+        line = "0 0.5 0.5 0.00478514 0.6 0.25 0.3 2"
+        key_points = yolo_pose_annotations_to_key_points(
+            lines=[line], resolution_wh=(640, 480), keypoint_count=1, value_dim=3
+        )
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(480, 640, 3),
+            keypoint_count=1,
+            value_dim=3,
+        )
+
+        assert result == [line]
+
     def test_round_trip_carries_flip_idx(self, tmp_path: Path) -> None:
         """`flip_idx` survives a write and read cycle."""
         images, annotations, data_yaml = _write_dataset(
@@ -457,6 +571,122 @@ class TestYoloPoseRoundTrip:
             reloaded.annotations[str(out / "images" / "a.png")].xy,
             dataset.annotations[str(Path(images) / "a.png")].xy,
         )
+
+
+class TestYoloPoseKeyPointValidation:
+    """Tests for the checks applied to the keypoint values of a pose label."""
+
+    @pytest.mark.parametrize(
+        ("line", "value_dim"),
+        [
+            pytest.param(
+                "0 0.5 0.5 0.4 0.6 nan 0.3 2 0.5 0.5 2", 3, id="nan-coordinate"
+            ),
+            pytest.param(
+                "0 0.5 0.5 0.4 0.6 0.25 inf 2 0.5 0.5 2", 3, id="inf-coordinate"
+            ),
+            pytest.param(
+                "0 0.5 0.5 0.4 0.6 0.25 0.3 nan 0.5 0.5 2", 3, id="nan-visibility"
+            ),
+            pytest.param(
+                "0 0.5 0.5 0.4 0.6 0.25 0.3 0.5 -inf", 2, id="inf-without-visibility"
+            ),
+        ],
+    )
+    def test_rejects_non_finite_keypoint_values(
+        self, line: str, value_dim: int
+    ) -> None:
+        """A non-finite keypoint value is refused like a non-finite box.
+
+        Loaded silently it would surface only as a missed match in the metrics.
+        """
+        with pytest.raises(ValueError, match="expected finite keypoint"):
+            yolo_pose_annotations_to_key_points(
+                lines=[line],
+                resolution_wh=(200, 100),
+                keypoint_count=2,
+                value_dim=value_dim,
+            )
+
+    def test_rejects_a_negative_visibility_value(self) -> None:
+        """A negative third value is neither a flag nor a confidence, so it fails."""
+        with pytest.raises(ValueError, match=re.escape("visibility ['-1']")):
+            yolo_pose_annotations_to_key_points(
+                lines=["0 0.5 0.5 0.4 0.6 0.25 0.3 -1 0.5 0.5 2"],
+                resolution_wh=(200, 100),
+                keypoint_count=2,
+                value_dim=3,
+            )
+
+    def test_fractional_confidence_loads_as_visible(self) -> None:
+        """A keypoint confidence in place of a flag is kept and reads as visible.
+
+        Ultralytics writes a keypoint confidence as the third value when it saves
+        predictions as labels, so a positive fraction marks a labelled keypoint.
+        """
+        result = yolo_pose_annotations_to_key_points(
+            lines=["0 0.5 0.5 0.4 0.6 0.25 0.3 0.83 0.5 0.5 0"],
+            resolution_wh=(200, 100),
+            keypoint_count=2,
+            value_dim=3,
+        )
+
+        np.testing.assert_array_equal(result.visible, [[True, False]])
+        np.testing.assert_array_equal(
+            result.data[KEYPOINT_VISIBILITY_DATA_FIELD],
+            np.array([[0.83, 0.0]], dtype=np.float32),
+        )
+
+    def test_fractional_confidence_round_trips(self) -> None:
+        """A label carrying a keypoint confidence is written back unchanged."""
+        line = "0 0.5 0.5 0.4 0.6 0.25 0.3 0.83 0.5 0.5 2 0.75 0.7 0"
+        key_points = yolo_pose_annotations_to_key_points(
+            lines=[line], resolution_wh=(200, 100), keypoint_count=3, value_dim=3
+        )
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(100, 200, 3),
+            keypoint_count=3,
+            value_dim=3,
+        )
+
+        assert result == [line]
+
+
+class TestYoloPoseOccludedKeyPointScoring:
+    """Tests that occluded keypoints read from YOLO pose labels are scored."""
+
+    def test_occluded_keypoint_counts_towards_key_point_map(
+        self, tmp_path: Path
+    ) -> None:
+        """A joint flagged 1 is a labelled target, so a matching prediction scores 1.
+
+        The only labelled joint of the skeleton is occluded (flag 1) and the others are
+        unlabelled (flag 0). Reading flag 1 as not visible would leave the target
+        without a keypoint for OKS to measure, so the prediction would not count.
+        """
+        images, annotations, data_yaml = _write_dataset(
+            root=tmp_path,
+            label_lines={"a": ["0 0.5 0.5 0.4 0.6 0.25 0.3 1 0.5 0.5 0 0.75 0.7 0"]},
+            data_yaml="nc: 1\nnames: ['person']\nkpt_shape: [3, 3]\n",
+        )
+        dataset = KeyPointsDataset.from_yolo(
+            images_directory_path=images,
+            annotations_directory_path=annotations,
+            data_yaml_path=data_yaml,
+        )
+        targets = dataset.annotations[str(Path(images) / "a.png")]
+        predictions = KeyPoints(
+            xy=targets.xy.copy(),
+            class_id=np.array([0]),
+            detection_confidence=np.array([0.9]),
+        )
+        metric = KeyPointMeanAveragePrecision(sigmas=[0.25, 0.25, 0.25])
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
 
 
 class TestYoloPoseBoxValidation:
@@ -556,18 +786,41 @@ class TestKeyPointsToYoloPoseBoxHandling:
 
         assert result[0].startswith("0 0.375 0.5 0.25 0.4 ")
 
-    def test_rejects_visibility_left_wide_by_keypoint_axis_indexing(self) -> None:
-        """A column-sliced annotation names the field instead of failing in numpy."""
+    def test_reordered_keypoints_write_matching_flags(self) -> None:
+        """Keypoints reordered after loading are written with their own flags.
+
+        The raw flags must follow the keypoint axis, or the reordered label would pair
+        each coordinate with the flag of the keypoint that used to sit there.
+        """
         key_points = yolo_pose_annotations_to_key_points(
-            lines=["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 2"],
+            lines=["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 0"],
             resolution_wh=(200, 100),
             keypoint_count=3,
             value_dim=3,
         )
+        reordered = key_points[:, [2, 1, 0]]
+        assert isinstance(reordered, KeyPoints)
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=reordered,
+            image_shape=(100, 200, 3),
+            keypoint_count=3,
+            value_dim=3,
+        )
+
+        assert result == ["0 0.5 0.5 0.4 0.6 0.75 0.7 0 0.5 0.5 1 0.25 0.3 2"]
+
+    def test_rejects_visibility_of_the_wrong_width(self) -> None:
+        """A visibility field not one value per keypoint names the field."""
+        key_points = KeyPoints(
+            xy=np.array([[[50.0, 30.0], [100.0, 70.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={KEYPOINT_VISIBILITY_DATA_FIELD: np.array([[2.0, 1.0, 0.0]])},
+        )
 
         with pytest.raises(ValueError, match=re.escape(KEYPOINT_VISIBILITY_DATA_FIELD)):
             key_points_to_yolo_pose_annotations(
-                key_points=key_points[:, [0, 1]],
+                key_points=key_points,
                 image_shape=(100, 200, 3),
                 keypoint_count=2,
                 value_dim=3,

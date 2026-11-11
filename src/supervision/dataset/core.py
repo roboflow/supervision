@@ -1095,10 +1095,23 @@ class KeyPointsDataset(BaseDataset):
     object box under ``data['xyxy']`` and, for a ``kpt_shape`` of ``[K, 3]``,
     the raw visibility flags under ``data['keypoint_visibility']``.
 
+    ``KeyPoints.visible`` marks every labelled keypoint, flag ``1`` (occluded)
+    as well as flag ``2`` (visible), matching how
+    :class:`~supervision.metrics.keypoint_mean_average_precision.KeyPointMeanAveragePrecision`
+    and COCO evaluation count keypoints. To draw only the keypoints flagged
+    ``2``, set ``key_points.visible = key_points.data['keypoint_visibility'] == 2``
+    on a copy: :meth:`~supervision.dataset.core.KeyPointsDataset.as_yolo` reads
+    ``visible`` as the source of truth and writes a cleared keypoint as flag
+    ``0``.
+
+    ``data['xyxy']`` is authoritative for the written box. After editing ``xy``,
+    update it, or pop it to have the box derived from the labelled keypoints.
+
     The visibility flags are aligned with the keypoint axis rather than the
-    skeleton axis. ``KeyPoints`` 2D indexing narrows ``xy`` and ``visible`` along
-    that axis but carries ``data`` entries through whole, so select whole
-    skeletons when an annotation is to be saved again.
+    skeleton axis. Their key is listed in
+    ``supervision.config.KEYPOINT_ALIGNED_DATA_FIELDS``, so ``KeyPoints`` 2D
+    indexing reorders and narrows them together with ``xy`` and ``visible``;
+    every other ``data`` entry is indexed by skeleton only.
 
     Attributes:
         classes: List containing dataset class names.
@@ -1270,7 +1283,9 @@ class KeyPointsDataset(BaseDataset):
         random_state: int | None = None,
         shuffle: bool = True,
     ) -> tuple[KeyPointsDataset, KeyPointsDataset]:
-        """Split the dataset into two parts. The input dataset is not mutated.
+        """Split the dataset into two parts.
+
+        The input dataset is not mutated.
 
         Args:
             split_ratio: Ratio of the training set to the entire dataset, within
@@ -1468,6 +1483,13 @@ class KeyPointsDataset(BaseDataset):
         The data.yaml carries ``kpt_shape: [keypoint_count, value_dim]``, so the
         written dataset reads back through
         :meth:`~supervision.dataset.core.KeyPointsDataset.from_yolo`.
+
+        Each skeleton's box is written from ``data['xyxy']`` when present, so
+        after editing ``xy`` update ``data['xyxy']`` too, or pop it to have the
+        box derived from the labelled keypoints. Each visibility flag follows
+        ``visible``: a cleared keypoint is written as ``0``, and a labelled one
+        keeps its raw flag from ``data['keypoint_visibility']``, or ``2`` when it
+        has none.
 
         Args:
             images_directory_path: Directory for the images; skipped when

@@ -55,11 +55,25 @@ IMAGE_EXTENSIONS = [
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
     """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
 
-    Every value must be finite: ``nan`` or an infinity cannot place a box, and ``nan``
-    would pass the extent check below unnoticed. A negative width or height would
-    place ``x_min`` past ``x_max``, breaking the ordering every consumer of ``xyxy``
-    assumes: :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
-    reports no overlap between identical regions,
+    Returns the corners of
+    :func:`~supervision.dataset.formats.yolo._parse_relative_xyxy` as a
+    ``float32`` array, the precision of the detection loader.
+    """
+    return np.array(_parse_relative_xyxy(values=values), dtype=np.float32)
+
+
+def _parse_relative_xyxy(values: list[str]) -> tuple[float, float, float, float]:
+    """Validate a YOLO ``x_center y_center width height`` box, return its corners.
+
+    The corners are relative ``(x_min, y_min, x_max, y_max)`` Python floats, so
+    a caller picks the array precision it stores them in.
+
+    Every value must be finite: ``nan`` or an infinity cannot place a box, and
+    ``nan`` would pass the extent check below unnoticed. A negative width or
+    height would place ``x_min`` past ``x_max``, breaking the ordering every
+    consumer of ``xyxy`` assumes:
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch` reports no
+    overlap between identical regions,
     :meth:`~supervision.detection.core.Detections.with_nms` stops suppressing,
     and the :class:`~supervision.detection.core.Detections` ``area`` property
     turns negative when only one of the two extents is negative. Reject both
@@ -78,14 +92,11 @@ def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
             f"Invalid box extent ({width!r}, {height!r}) in YOLO annotation; "
             "expected a non-negative width and height."
         )
-    return np.array(
-        [
-            box_x_center - box_width / 2,
-            box_y_center - box_height / 2,
-            box_x_center + box_width / 2,
-            box_y_center + box_height / 2,
-        ],
-        dtype=np.float32,
+    return (
+        box_x_center - box_width / 2,
+        box_y_center - box_height / 2,
+        box_x_center + box_width / 2,
+        box_y_center + box_height / 2,
     )
 
 

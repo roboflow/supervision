@@ -8,7 +8,11 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import CLASS_NAME_DATA_FIELD, HANDEDNESS_SCORE_DATA_FIELD
+from supervision.config import (
+    CLASS_NAME_DATA_FIELD,
+    HANDEDNESS_SCORE_DATA_FIELD,
+    KEYPOINT_ALIGNED_DATA_FIELDS,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import (
     _DetectionDataType,
@@ -1122,6 +1126,12 @@ class KeyPoints:
             class_id_selected = self.class_id.copy()
 
         data_selected = get_data_item(self.data, slice(None))
+        # Every row selects the same number of keypoints, so the selected
+        # columns form an (n, k) grid that indexes keypoint-aligned fields.
+        columns = np.nonzero(mask)[1].reshape(n, k)
+        rows = np.arange(n)[:, np.newaxis]
+        for key in KEYPOINT_ALIGNED_DATA_FIELDS & data_selected.keys():
+            data_selected[key] = np.asarray(self.data[key])[rows, columns]
 
         return KeyPoints(
             xy=xy_selected,
@@ -1277,6 +1287,15 @@ class KeyPoints:
                     ]
                 if visible_selected is not None:
                     visible_selected = visible_selected[:, np.newaxis]
+
+        # Keypoint-aligned fields follow the keypoint axis like `visible`; the
+        # fix-ups above only restore size-1 axes a scalar index dropped, so
+        # reshaping to the leading axes of `xy` restores them here as well.
+        for key in KEYPOINT_ALIGNED_DATA_FIELDS & data_selected.keys():
+            value = np.asarray(self.data[key])
+            data_selected[key] = value[i, j].reshape(
+                xy_selected.shape[:2] + value.shape[2:]
+            )
 
         return KeyPoints(
             xy=xy_selected,

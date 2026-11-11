@@ -19,8 +19,8 @@ from supervision.dataset.formats.yolo import (
     _extract_class_names,
     _extract_pose_value_count,
     _image_name_to_annotation_name,
-    _parse_box,
     _parse_class_id,
+    _parse_relative_xyxy,
     _read_data_yaml,
 )
 from supervision.dataset.utils import (
@@ -116,7 +116,7 @@ def _extract_flip_idx(file_path: str, keypoint_count: int) -> list[int] | None:
 
 def _parse_pose_line(
     values: list[str], keypoint_count: int, value_dim: int
-) -> tuple[int, npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+) -> tuple[int, npt.NDArray[np.float64], npt.NDArray[np.float32]]:
     """Split one YOLO pose label row into its class id, box and keypoint values.
 
     A pose row is ``class x y w h`` followed by ``keypoint_count * value_dim``
@@ -132,8 +132,9 @@ def _parse_pose_line(
             keypoint values reshaped to ``(K, D)``.
 
     Raises:
-        ValueError: If the row does not hold exactly ``5 + K * D`` tokens, or
-            carries a class id or box the detection loader rejects.
+        ValueError: If the row does not hold exactly ``5 + K * D`` tokens,
+            carries a class id or box the detection loader rejects, holds a
+            non-finite keypoint value, or a negative visibility value.
     """
     expected = 5 + keypoint_count * value_dim
     if len(values) != expected:
@@ -147,19 +148,44 @@ def _parse_pose_line(
     # Shared with the detection loader so that a corrupt box is rejected here
     # rather than reaching data['xyxy'] with its corners reversed, where
     # KeyPointMeanAveragePrecision would silently score it as no overlap.
-    box = _parse_box(values=values[1:5])
-    keypoints = np.array(values[5:], dtype=np.float32).reshape(
+    # float64 rather than the detection loader's float32: a small box differs
+    # from its float32 rounding within the six significant digits the writer
+    # emits, so a round trip would rewrite its width.
+    box = np.array(_parse_relative_xyxy(values=values[1:5]), dtype=np.float64)
+    keypoint_values = values[5:]
+    keypoints = np.array(keypoint_values, dtype=np.float32).reshape(
         keypoint_count, value_dim
     )
+    # Checked before anything is derived from the values: a `nan` coordinate
+    # would load silently and only surface as a missed match in the metrics, and
+    # a `nan` visibility value would read as unlabelled.
+    non_finite = np.flatnonzero(~np.isfinite(keypoints.reshape(-1)))
+    if len(non_finite) > 0:
+        tokens = [keypoint_values[index] for index in non_finite]
+        raise ValueError(
+            f"Invalid keypoint values {tokens!r} in YOLO pose annotation; "
+            "expected finite keypoint coordinates and visibility values."
+        )
+    # The third value is a 0/1/2 flag, or a keypoint confidence in labels
+    # written from model output; any non-negative value is kept as read, but a
+    # negative one is neither.
+    if value_dim == 3:
+        negative = np.flatnonzero(keypoints[:, 2] < 0)
+        if len(negative) > 0:
+            tokens = [keypoint_values[index * value_dim + 2] for index in negative]
+            raise ValueError(
+                f"Invalid keypoint visibility {tokens!r} in YOLO pose annotation; "
+                "expected a non-negative flag or confidence."
+            )
     return class_id, box, keypoints
 
 
 def _denormalize_box(
-    box: npt.NDArray[np.float32], resolution_wh: tuple[int, int]
-) -> npt.NDArray[np.float32]:
-    """Scale a relative ``(x1, y1, x2, y2)`` box to pixels."""
+    box: npt.NDArray[np.float64], resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.float64]:
+    """Scale a relative ``(x1, y1, x2, y2)`` box to pixels, keeping float64."""
     w, h = resolution_wh
-    return (box * np.array([w, h, w, h], dtype=np.float32)).astype(np.float32)
+    return box * np.array([w, h, w, h], dtype=np.float64)
 
 
 def yolo_pose_annotations_to_key_points(
@@ -172,9 +198,13 @@ def yolo_pose_annotations_to_key_points(
     :class:`~supervision.key_points.core.KeyPoints`.
 
     Coordinates are denormalized to pixels. With ``value_dim=3`` the trailing
-    visibility flag of each keypoint is read as well: ``visible`` marks the
-    keypoints flagged 2, and the raw ``0``/``1``/``2`` values are kept in
-    ``data`` so that a round trip through
+    visibility flag of each keypoint is read as well: ``visible`` marks every
+    labelled keypoint, flag 1 (occluded) as well as flag 2 (visible), which is
+    how
+    :class:`~supervision.metrics.keypoint_mean_average_precision.KeyPointMeanAveragePrecision`
+    and COCO evaluation count keypoints. The raw values, ``0``/``1``/``2`` flags
+    or a keypoint confidence in labels written from model output, are kept in
+    ``data`` as ``float32`` so that a round trip through
     :func:`~supervision.dataset.formats.yolo_pose.key_points_to_yolo_pose_annotations`
     rewrites each annotation line unchanged, to the six significant digits the
     writer emits.
@@ -189,14 +219,15 @@ def yolo_pose_annotations_to_key_points(
         The key points of the image, empty when ``lines`` is empty.
 
     Raises:
-        ValueError: If a line does not hold ``5 + K * D`` values, or carries a
-            class id that is not a whole number.
+        ValueError: If a line does not hold ``5 + K * D`` values, carries a
+            class id that is not a whole number or an invalid box, holds a
+            non-finite keypoint value, or a negative visibility value.
     """
     if not lines:
         return KeyPoints.empty()
 
     class_ids: list[int] = []
-    boxes: list[npt.NDArray[np.float32]] = []
+    boxes: list[npt.NDArray[np.float64]] = []
     rows: list[npt.NDArray[np.float32]] = []
     for line in lines:
         class_id, box, keypoints = _parse_pose_line(
@@ -216,8 +247,12 @@ def yolo_pose_annotations_to_key_points(
     data: _DetectionDataType = {XYXY_DATA_FIELD: np.stack(boxes)}
     if value_dim == 3:
         visibility = stacked[:, :, 2]
-        visible = visibility == VISIBILITY_VISIBLE
-        data[KEYPOINT_VISIBILITY_DATA_FIELD] = visibility.astype(np.uint8)
+        # Flag 1 (labelled but occluded) is a keypoint target too; the metrics
+        # read only `visible`, so it must not be narrowed to flag 2.
+        visible = visibility > 0
+        # Kept as float32 rather than a uint8 flag: labels written from model
+        # output carry a keypoint confidence here, which must round trip as read.
+        data[KEYPOINT_VISIBILITY_DATA_FIELD] = visibility.copy()
 
     return KeyPoints(
         xy=xy.astype(np.float32),
@@ -297,24 +332,46 @@ def load_yolo_pose_annotations(
     return classes, image_paths, annotations, (keypoint_count, value_dim), flip_idx
 
 
+def _resolve_visibility_flags(
+    raw_flags: npt.NDArray[np.generic] | None,
+    visible: npt.NDArray[np.bool_] | None,
+) -> npt.NDArray[np.float32] | None:
+    """Return the visibility flags to write for one skeleton.
+
+    ``visible`` is the field a caller edits, so it decides whether a keypoint is
+    labelled; the raw flag kept by the loader only says how a labelled keypoint
+    was flagged. A keypoint whose ``visible`` was cleared after loading is
+    written as ``0``, and one newly marked visible with no positive raw flag as
+    ``2``. Key points straight from the loader, where ``visible`` is
+    ``raw > 0``, get their stored flags back unchanged.
+
+    Returns:
+        The flags of shape ``(K,)``, or ``None`` when the key points carry
+            neither ``visible`` nor raw flags.
+    """
+    if visible is None:
+        return None if raw_flags is None else np.asarray(raw_flags, dtype=np.float32)
+    visible_mask = np.asarray(visible, dtype=bool)
+    if raw_flags is None:
+        return np.where(visible_mask, VISIBILITY_VISIBLE, 0).astype(np.float32)
+    raw = np.asarray(raw_flags, dtype=np.float32)
+    labelled_flags = np.where(raw > 0, raw, VISIBILITY_VISIBLE)
+    return np.where(visible_mask, labelled_flags, 0).astype(np.float32)
+
+
 def _labelled_key_point_mask(
     xy: npt.NDArray[np.float32],
-    visibility: npt.NDArray[np.float32] | None,
-    visible: npt.NDArray[np.bool_] | None,
+    flags: npt.NDArray[np.float32] | None,
 ) -> npt.NDArray[np.bool_]:
     """Mark the keypoints of one skeleton that carry a real position.
 
     A YOLO pose box bounds the labelled object, so both flag 1 (labelled but not
-    visible) and flag 2 count, and only flag 0 is excluded. The raw flags are the
-    most faithful source; ``visible`` alone cannot tell flag 1 from flag 0, and
-    model output such as
-    :meth:`~supervision.key_points.core.KeyPoints.from_ultralytics` carries
-    neither, marking an undetected joint with ``(0, 0)`` instead.
+    visible) and flag 2 count, and only flag 0 is excluded. Model output such as
+    :meth:`~supervision.key_points.core.KeyPoints.from_ultralytics` carries no
+    flags at all, marking an undetected joint with ``(0, 0)`` instead.
     """
-    if visibility is not None:
-        return np.asarray(visibility, dtype=np.float32) > 0
-    if visible is not None:
-        return np.asarray(visible, dtype=bool)
+    if flags is not None:
+        return np.asarray(flags > 0, dtype=bool)
     return np.asarray(~np.all(xy == 0, axis=1), dtype=bool)
 
 
@@ -351,10 +408,13 @@ def key_points_to_yolo_pose_annotations(
     Each skeleton is written as ``class x y w h`` followed by
     ``keypoint_count * value_dim`` values, all normalized to ``[0, 1]``. The box
     comes from ``data['xyxy']`` when present and is otherwise the hull of the
-    labelled keypoints. With ``value_dim=3`` the visibility flag is the raw value
-    kept in ``data`` when present, so a line read by
+    labelled keypoints; the stored box is authoritative, so after editing ``xy``
+    update ``data['xyxy']`` or pop it to have the box derived again. With
+    ``value_dim=3``, ``visible`` decides which keypoints are labelled: a cleared
+    keypoint is written as flag 0, and a labelled one keeps its raw flag from
+    ``data['keypoint_visibility']``, or 2 when it has none. A line read by
     :func:`~supervision.dataset.formats.yolo_pose.yolo_pose_annotations_to_key_points`
-    is written back unchanged; without it, ``visible`` is mapped back to 2 and 0.
+    is therefore written back unchanged.
 
     Values are written with six significant digits, matching the precision of a
     YOLO pose label and exceeding the five decimals
@@ -394,9 +454,8 @@ def key_points_to_yolo_pose_annotations(
     if visibility is not None and visibility.shape[1] != keypoint_count:
         raise ValueError(
             f"KeyPoints carry data[{KEYPOINT_VISIBILITY_DATA_FIELD!r}] of width "
-            f"{visibility.shape[1]} for {keypoint_count} keypoints per skeleton. "
-            "A keypoint-aligned `data` field is not narrowed by the keypoint axis "
-            "of `KeyPoints` 2D indexing, so select whole skeletons before saving."
+            f"{visibility.shape[1]} for {keypoint_count} keypoints per skeleton; "
+            "expected one value per keypoint, aligned with `xy`."
         )
 
     lines: list[str] = []
@@ -405,13 +464,12 @@ def key_points_to_yolo_pose_annotations(
         xy = key_points.xy[index][:, :2]
         visible = None if key_points.visible is None else key_points.visible[index]
         row_visibility = None if visibility is None else visibility[index]
-        labelled = _labelled_key_point_mask(
-            xy=xy, visibility=row_visibility, visible=visible
-        )
+        row_flags = _resolve_visibility_flags(raw_flags=row_visibility, visible=visible)
+        labelled = _labelled_key_point_mask(xy=xy, flags=row_flags)
         if boxes is not None:
-            box = np.asarray(boxes[index], dtype=np.float32)
+            box = np.asarray(boxes[index], dtype=np.float64)
         else:
-            box = _box_from_key_points(xy=xy, labelled=labelled)
+            box = _box_from_key_points(xy=xy, labelled=labelled).astype(np.float64)
 
         # KeyPoints does not enforce x_min <= x_max; a reversed box would be
         # written with a negative extent that the loader rejects.
@@ -425,14 +483,12 @@ def key_points_to_yolo_pose_annotations(
         if value_dim == 2:
             keypoint_values = normalized
         else:
-            if row_visibility is not None:
-                flags = np.asarray(row_visibility, dtype=np.float32)
-            elif visible is not None:
-                flags = np.where(visible, float(VISIBILITY_VISIBLE), 0.0)
+            if row_flags is not None:
+                flags = row_flags
             else:
                 # No flags at all, as in model output: an unlabelled joint must
                 # not become a training target sitting at the image origin.
-                flags = np.where(labelled, float(VISIBILITY_VISIBLE), 0.0)
+                flags = np.where(labelled, VISIBILITY_VISIBLE, 0).astype(np.float32)
             keypoint_values = np.column_stack([normalized, flags])
 
         row = [
@@ -493,8 +549,8 @@ def save_pose_data_yaml(
 ) -> None:
     """Write the data.yaml of a YOLO pose dataset, including ``kpt_shape``.
 
-    ``flip_idx`` is written only when the dataset carries one, so a dataset
-    loaded without it round trips without gaining a field it never had.
+    ``flip_idx`` is written only when the dataset carries one, so a dataset loaded
+    without it round trips without gaining a field it never had.
     """
     data: dict[str, object] = {
         "nc": len(classes),
