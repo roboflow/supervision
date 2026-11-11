@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.metrics.MeanAveragePrecision` with `MetricTarget.ORIENTED_BOUNDING_BOXES` now uses the COCO crowd IoU for targets with `data["iscrowd"]` set: the intersection over the prediction area, as for boxes and masks. It used the standard IoU, so a prediction inside a crowd region was a false positive instead of being ignored. Axis-aligned oriented boxes now score like their boxes; in one scene, mAP@50 was 0.333 instead of 1.0. ([#2941](https://github.com/roboflow/supervision/pull/2941))
+
 - `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. `as_coco` also tries this for `iscrowd=0` annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (`iscrowd=1`) for an exact mask. ([#2933](https://github.com/roboflow/supervision/pull/2933))
 
 - `sv.KeyPoints` now accepts a zero-dimensional NumPy integer row index combined with a list or boolean mask of keypoints, preserving coordinates and aligned fields instead of raising `ValueError`. ([#2930](https://github.com/roboflow/supervision/pull/2930))
