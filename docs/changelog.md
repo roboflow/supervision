@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- The OpenCV-free `contourArea` fallback now returns exactly what `cv2.contourArea` returns: it adds the shoelace terms in OpenCV's order and reads integer points as float32, as OpenCV does. It previously differed in the last bits for many float32 contours, and by more for integer coordinates above 2\*\*24, which could flip `sv.filter_polygons_by_area` at a `min_area` or `max_area` boundary between backends.
+- The OpenCV-free `contourArea` fallback now returns exactly what `cv2.contourArea` returns: it adds the shoelace terms in OpenCV's order and reads integer points as float32, as OpenCV does. It previously differed in the last bits for many float32 contours, and by more for integer coordinates above 2\*\*24, which could flip `sv.filter_polygons_by_area` at a `min_area` or `max_area` boundary between backends. ([#2936](https://github.com/roboflow/supervision/pull/2936))
 
 - `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. `as_coco` also tries this for `iscrowd=0` annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (`iscrowd=1`) for an exact mask. ([#2933](https://github.com/roboflow/supervision/pull/2933))
 
