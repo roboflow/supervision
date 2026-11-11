@@ -19,7 +19,7 @@ from supervision import _cv2 as cv2
 from supervision.classification.core import Classifications
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (
-    load_coco_annotations,
+    _load_coco_annotations,
     save_coco_annotations,
 )
 from supervision.dataset.formats.createml import (
@@ -919,7 +919,7 @@ class DetectionDataset(BaseDataset):
         show_progress: bool = False,
         *,
         use_iscrowd: bool = True,
-        mask_rasterizer: Literal["supervision", "pycocotools"] = "supervision",
+        mask_rasterizer: Literal["supervision", "pycocotools"] | None = None,
     ) -> DetectionDataset:
         """Creates a Dataset instance from COCO formatted data.
 
@@ -936,21 +936,35 @@ class DetectionDataset(BaseDataset):
             mask_rasterizer: ``"supervision"`` uses rounded vertices with
                 inclusive integer fill. ``"pycocotools"`` uses COCO's reference
                 polygon rasterization with continuous vertices. Install the
-                optional ``supervision[coco]`` extra for this mode. RLE masks
-                are decoded identically in both modes.
+                optional ``supervision[coco]`` extra for this mode. ``None``
+                (default) behaves like ``"supervision"`` and warns when the file
+                contains polygon segmentation. RLE masks are decoded
+                identically in all modes.
+
         Returns:
             A DetectionDataset instance containing
                 the loaded images and annotations.
 
+        Raises:
+            ValueError: If ``mask_rasterizer`` is not a supported value.
+
+        Warns:
+            SupervisionWarnings: When ``mask_rasterizer`` is omitted and the
+                annotation file contains polygon segmentation. Relying on the
+                default is deprecated in ``0.32.0``.
+
         Note:
             COCO polygon vertices describe continuous boundaries, while the
-            default rasterizer treats rounded vertices as inclusive pixel
-            indices. To match COCO evaluation masks, install
-            ``supervision[coco]`` and pass ``mask_rasterizer="pycocotools"``.
-            For example, a square from ``(1, 1)`` to ``(5, 5)`` covers 16
-            reference pixels instead of 25 inclusive pixels. This option does
-            not change polygon export: use RLE when exact mask preservation
-            across COCO tools is required.
+            ``"supervision"`` rasterizer treats rounded vertices as inclusive
+            pixel indices. ``"pycocotools"`` is the COCO convention: it
+            matches the masks COCO evaluation builds. For example, a square
+            from ``(1, 1)`` to ``(5, 5)`` covers 16 reference pixels instead
+            of 25 inclusive pixels. The default changes from
+            ``"supervision"`` to ``"pycocotools"`` no earlier than
+            ``0.35.0``; pass ``mask_rasterizer`` explicitly to keep the
+            current masks or to adopt the reference ones now. This option
+            does not change polygon export: use RLE when exact mask
+            preservation across COCO tools is required.
 
         Examples:
             ```python
@@ -974,7 +988,9 @@ class DetectionDataset(BaseDataset):
             # ['dog', 'person']
             ```
         """
-        classes, images, annotations = load_coco_annotations(
+        # Call the shared implementation directly, as load_coco_annotations does,
+        # so the default-rasterizer warning points at this method's caller.
+        classes, images, annotations = _load_coco_annotations(
             images_directory_path=images_directory_path,
             annotations_path=annotations_path,
             force_masks=force_masks,

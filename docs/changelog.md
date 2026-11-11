@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.from_coco` accepts `mask_rasterizer="pycocotools"` to load COCO polygons with the reference rasterization convention. Install `supervision[coco]` for this optional mode. Continuous vertices are retained and disjoint parts are merged per object. The default inclusive integer fill, generic polygon rasterizer, and RLE decoding keep their existing behavior. A missing `pycocotools` package reports the install command; failures in nested imports or its compiled extension retain their original error. ([#2714](https://github.com/roboflow/supervision/pull/2714))
+- `sv.DetectionDataset.from_coco` accepts `mask_rasterizer="pycocotools"` to load COCO polygons with the COCO reference rasterization, which matches the masks COCO evaluation builds. Install `supervision[coco]` for this optional mode. Continuous vertices are retained and disjoint parts are merged per object. Omitting `mask_rasterizer` keeps the current inclusive integer fill (`"supervision"`). Relying on that default for a file that contains polygon segmentation is deprecated in `0.32.0` and emits a `SupervisionWarnings` warning, because the default changes to `"pycocotools"` no earlier than `0.35.0`; pass `mask_rasterizer="supervision"` to keep the current masks. The generic polygon rasterizer and RLE decoding keep their existing behavior. A missing `pycocotools` package reports the install command; failures in nested imports or its compiled extension retain their original error. ([#2714](https://github.com/roboflow/supervision/pull/2714))
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 

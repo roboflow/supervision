@@ -11,6 +11,14 @@ from PIL import Image
 
 from supervision import DetectionDataset, polygon_to_mask
 from supervision.dataset.formats.coco import coco_annotations_to_masks
+from supervision.utils.internal import SupervisionWarnings
+
+#: Silences the NumPy 2 DeprecationWarning that ``pycocotools.mask.decode`` emits.
+#: Only the tests that build their expected mask with ``decode`` carry it; every
+#: other test runs under the project's error-on-deprecation filter.
+_IGNORE_REFERENCE_DECODE_WARNING = pytest.mark.filterwarnings(
+    "ignore:__array__ implementation doesn.t accept a copy keyword:DeprecationWarning"
+)
 
 
 def _write_dataset(
@@ -52,9 +60,6 @@ def _write_dataset(
     return path
 
 
-@pytest.mark.filterwarnings(
-    "ignore:__array__ implementation doesn.t accept a copy keyword:DeprecationWarning"
-)
 class TestCocoReferenceRasterization:
     """Opt-in masks agree with the COCO reference without changing defaults."""
 
@@ -79,6 +84,7 @@ class TestCocoReferenceRasterization:
             ),
         ],
     )
+    @_IGNORE_REFERENCE_DECODE_WARNING
     def test_loader_matches_reference(
         self, tmp_path: Path, polygons: list[list[float]]
     ) -> None:
@@ -99,6 +105,7 @@ class TestCocoReferenceRasterization:
         np.testing.assert_array_equal(detections.class_id, [0])
         np.testing.assert_array_equal(detections.xyxy, [[1, 1, 5, 5]])
 
+    @_IGNORE_REFERENCE_DECODE_WARNING
     def test_loader_matches_reference_on_rectangular_image(
         self, tmp_path: Path
     ) -> None:
@@ -125,7 +132,8 @@ class TestCocoReferenceRasterization:
         expected = np.zeros((8, 8), dtype=bool)
         expected[1:6, 1:6] = True
 
-        dataset = DetectionDataset.from_coco(str(tmp_path), str(path))
+        with pytest.warns(SupervisionWarnings, match="no earlier than `0.35.0`"):
+            dataset = DetectionDataset.from_coco(str(tmp_path), str(path))
 
         np.testing.assert_array_equal(
             next(iter(dataset.annotations.values())).mask[0], expected
