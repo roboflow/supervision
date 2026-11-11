@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.PolygonZone` now preserves mask dimensions when integer polygon coordinates reach their dtype limit, instead of overflowing and raising an error or silently creating a smaller zone.
+- `sv.PolygonZone` now preserves mask dimensions when integer polygon coordinates reach their dtype limit, instead of overflowing and raising an error or silently creating a smaller zone. ([#2945](https://github.com/roboflow/supervision/pull/2945))
 
 - `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. `as_coco` also tries this for `iscrowd=0` annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (`iscrowd=1`) for an exact mask. ([#2933](https://github.com/roboflow/supervision/pull/2933))
 
