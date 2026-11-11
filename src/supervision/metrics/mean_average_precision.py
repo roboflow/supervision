@@ -1650,8 +1650,10 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     image_targets.data is not None
                     and AREA_DATA_FIELD in image_targets.data
                 ):
-                    area_data: npt.NDArray[np.float32] = np.asarray(
-                        image_targets.data[AREA_DATA_FIELD], dtype=np.float32
+                    # float64, as in pycocotools: float32 rounds areas near 32² or
+                    # 96² onto the limit, which puts the target in two buckets.
+                    area_data: npt.NDArray[np.float64] = np.asarray(
+                        image_targets.data[AREA_DATA_FIELD], dtype=np.float64
                     )
                     area = float(area_data[target_idx])
 
@@ -1729,20 +1731,10 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 if image_predictions.confidence is not None:
                     score = float(image_predictions.confidence[pred_idx])
 
-                # Use area from data if available, otherwise calculate from the
-                # metric target content (bbox, mask or oriented box)
-                area = None
-                if (
-                    image_predictions.data is not None
-                    and AREA_DATA_FIELD in image_predictions.data
-                ):
-                    area_data: npt.NDArray[np.float32] = np.asarray(
-                        image_predictions.data[AREA_DATA_FIELD], dtype=np.float32
-                    )
-                    area = float(area_data[pred_idx])
-
-                if area is None:
-                    area = self._content_area(xywh, content, pred_idx)
+                # pycocotools `loadRes` sizes every result by its own bbox or
+                # mask, so area metadata on predictions must not change the
+                # size bucket of an unmatched prediction.
+                area = self._content_area(xywh, content, pred_idx)
 
                 dict_prediction: _TypeCocoDict = {
                     "image_id": image_id,
