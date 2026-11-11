@@ -21,6 +21,7 @@ def _dataset(
     classes: list[str] | None = None,
     class_ids: list[int] | None = None,
     keypoint_count: int = 2,
+    flip_idx: list[int] | None = None,
 ) -> KeyPointsDataset:
     """Build a dataset whose annotations are one skeleton per image."""
     resolved_classes = ["person"] if classes is None else classes
@@ -33,6 +34,7 @@ def _dataset(
             for path, class_id in zip(image_paths, resolved_ids)
         },
         keypoint_count=keypoint_count,
+        flip_idx=flip_idx,
     )
 
 
@@ -150,6 +152,21 @@ class TestKeyPointsDatasetInit:
         with pytest.raises(ValueError, match=r"outside the valid range \[0, 0\]"):
             _dataset(["a.png"], classes=["person"], class_ids=[4])
 
+    def test_rejects_a_non_integer_class_id(self) -> None:
+        """A float class_id names its image instead of failing inside numpy."""
+        key_points = KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32),
+            class_id=np.array([0.0]),
+        )
+
+        with pytest.raises(ValueError, match="non-integer class_id"):
+            KeyPointsDataset(
+                classes=["person"],
+                images=["a.png"],
+                annotations={"a.png": key_points},
+                keypoint_count=2,
+            )
+
     def test_rejects_skeletons_without_class_id(self) -> None:
         """Non-empty key points without a class id cannot become YOLO pose labels."""
         key_points = KeyPoints(xy=np.zeros((1, 2, 2), dtype=np.float32))
@@ -241,7 +258,7 @@ class TestKeyPointsDatasetEquality:
             pytest.param({"keypoint_count": 3}, id="keypoint-count"),
         ],
     )
-    def test_differing_fields_compare_unequal(self, other: dict) -> None:
+    def test_differing_fields_compare_unequal(self, other: dict[str, Any]) -> None:
         """A difference in any compared field makes the datasets unequal."""
         base = _dataset(["a.png"])
         changed = _dataset(
@@ -290,6 +307,24 @@ class TestKeyPointsDatasetSplit:
         assert (train.keypoint_count, train.value_dim) == (3, 2)
         assert (test.keypoint_count, test.value_dim) == (3, 2)
 
+    @pytest.mark.parametrize(
+        "split_ratio",
+        [
+            -0.2,
+            1.2,
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+        ],
+    )
+    def test_split_rejects_a_ratio_outside_zero_to_one(
+        self, split_ratio: float
+    ) -> None:
+        """A ratio that is not a finite number in [0, 1] raises."""
+        dataset = _dataset([f"{i}.png" for i in range(4)])
+
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            dataset.split(split_ratio=split_ratio)
+
     def test_split_does_not_mutate_the_source(self) -> None:
         """Splitting leaves the original dataset intact."""
         dataset = _dataset([f"{i}.png" for i in range(4)])
@@ -336,6 +371,26 @@ class TestKeyPointsDatasetMerge:
         with pytest.raises(ValueError, match="different keypoint counts"):
             KeyPointsDataset.merge([first, second])
 
+    def test_merge_rejects_differing_value_dims(self) -> None:
+        """Datasets storing two and three values per keypoint cannot be merged."""
+        first = KeyPointsDataset(
+            classes=["person"],
+            images=["a.png"],
+            annotations={"a.png": _key_points()},
+            keypoint_count=2,
+            value_dim=2,
+        )
+        second = KeyPointsDataset(
+            classes=["person"],
+            images=["b.png"],
+            annotations={"b.png": _key_points()},
+            keypoint_count=2,
+            value_dim=3,
+        )
+
+        with pytest.raises(ValueError, match="different `value_dim`"):
+            KeyPointsDataset.merge([first, second])
+
     def test_merge_keeps_an_empty_annotation_without_class_id(self) -> None:
         """An empty annotation without class ids has nothing to remap and is kept."""
         empty = KeyPointsDataset(
@@ -358,21 +413,6 @@ class TestKeyPointsDatasetMerge:
 
 class TestKeyPointsDatasetExport:
     """Tests for writing a keypoint dataset back to disk."""
-
-    def test_rejects_a_non_integer_class_id(self) -> None:
-        """A float class_id names its image instead of failing inside numpy."""
-        key_points = KeyPoints(
-            xy=np.zeros((1, 2, 2), dtype=np.float32),
-            class_id=np.array([0.0]),
-        )
-
-        with pytest.raises(ValueError, match="non-integer class_id"):
-            KeyPointsDataset(
-                classes=["person"],
-                images=["a.png"],
-                annotations={"a.png": key_points},
-                keypoint_count=2,
-            )
 
     def test_rejects_colliding_label_names_before_writing(self, tmp_path: Path) -> None:
         """Images sharing a label name are refused with nothing left on disk."""
@@ -473,6 +513,8 @@ class TestKeyPointsDatasetFlipIdx:
             pytest.param(np.array([1.0, 0.0]), id="float-array"),
             pytest.param([0, 2], id="out-of-range"),
             pytest.param("10", id="string"),
+            pytest.param(1, id="scalar-integer"),
+            pytest.param(True, id="scalar-boolean"),
         ],
     )
     def test_rejects_a_flip_idx_the_loader_would_refuse(self, flip_idx: Any) -> None:
@@ -509,8 +551,7 @@ class TestKeyPointsDatasetFlipIdx:
 
     def test_split_carries_flip_idx_to_both_parts(self) -> None:
         """Both halves of a split keep the permutation of the source."""
-        dataset = _dataset(["a.png", "b.png"], keypoint_count=2)
-        dataset.flip_idx = [1, 0]
+        dataset = _dataset(["a.png", "b.png"], flip_idx=[1, 0])
 
         train, test = dataset.split(split_ratio=0.5, random_state=0)
 
@@ -519,20 +560,16 @@ class TestKeyPointsDatasetFlipIdx:
 
     def test_merge_rejects_differing_flip_idx(self) -> None:
         """Datasets that disagree on which keypoint is which cannot merge."""
-        first = _dataset(["a.png"], keypoint_count=2)
-        second = _dataset(["b.png"], keypoint_count=2)
-        first.flip_idx = [0, 1]
-        second.flip_idx = [1, 0]
+        first = _dataset(["a.png"], flip_idx=[0, 1])
+        second = _dataset(["b.png"], flip_idx=[1, 0])
 
         with pytest.raises(ValueError, match="different `flip_idx`"):
             KeyPointsDataset.merge([first, second])
 
     def test_merge_keeps_a_shared_flip_idx(self) -> None:
         """A permutation common to every input survives the merge."""
-        first = _dataset(["a.png"], keypoint_count=2)
-        second = _dataset(["b.png"], keypoint_count=2)
-        first.flip_idx = [1, 0]
-        second.flip_idx = [1, 0]
+        first = _dataset(["a.png"], flip_idx=[1, 0])
+        second = _dataset(["b.png"], flip_idx=[1, 0])
 
         merged = KeyPointsDataset.merge([first, second])
 
@@ -540,8 +577,7 @@ class TestKeyPointsDatasetFlipIdx:
 
     def test_differing_flip_idx_compares_unequal(self) -> None:
         """Equality is sensitive to the permutation."""
-        first = _dataset(["a.png"], keypoint_count=2)
-        second = _dataset(["a.png"], keypoint_count=2)
-        second.flip_idx = [1, 0]
+        first = _dataset(["a.png"])
+        second = _dataset(["a.png"], flip_idx=[1, 0])
 
         assert first != second

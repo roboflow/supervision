@@ -64,6 +64,27 @@ class TestExtractKptShape:
 
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "kpt_shape",
+        [
+            pytest.param("[17]", id="missing-value-dim"),
+            pytest.param("[17, 3, 1]", id="extra-value"),
+            pytest.param("[17, 4]", id="unsupported-value-dim"),
+            pytest.param("[0, 3]", id="zero-keypoints"),
+            pytest.param("[-1, 3]", id="negative-keypoints"),
+            pytest.param("[17.5, 3]", id="fractional-keypoints"),
+            pytest.param("[true, 3]", id="boolean-keypoints"),
+            pytest.param("17", id="scalar"),
+            pytest.param("null", id="null"),
+        ],
+    )
+    def test_rejects_an_invalid_kpt_shape(self, kpt_shape: str) -> None:
+        """Only ``[K, 2]`` or ``[K, 3]`` with a positive whole ``K`` is accepted."""
+        data = yaml.safe_load(f"nc: 1\nnames: ['person']\nkpt_shape: {kpt_shape}\n")
+
+        with pytest.raises(ValueError, match="kpt_shape"):
+            _extract_kpt_shape(data=data, file_path="data.yaml")
+
     def test_rejects_dataset_without_kpt_shape(self) -> None:
         """A data.yaml with no ``kpt_shape`` names the detection loader instead."""
         data = {"nc": 1, "names": ["person"]}
@@ -95,7 +116,7 @@ class TestYoloPoseAnnotationsToKeyPoints:
         )
 
         np.testing.assert_allclose(
-            result.data[XYXY_DATA_FIELD], [[60.0, 20.0, 140.0, 80.0]]
+            np.asarray(result.data[XYXY_DATA_FIELD]), [[60.0, 20.0, 140.0, 80.0]]
         )
 
     def test_reads_visibility_as_visible_and_raw_flags(self) -> None:
@@ -357,9 +378,7 @@ class TestLoadYoloPoseAnnotations:
         assert kpt_shape == (2, 3)
         assert len(loaded[image_paths[0]]) == 1
 
-    @mock.patch(
-        "supervision.dataset.formats.yolo.read_yaml_file", wraps=read_yaml_file
-    )
+    @mock.patch("supervision.dataset.formats.yolo.read_yaml_file", wraps=read_yaml_file)
     def test_reads_data_yaml_once(
         self, read_yaml: mock.MagicMock, tmp_path: Path
     ) -> None:
@@ -421,6 +440,12 @@ class TestYoloPoseRoundTrip:
             ),
             pytest.param(
                 2, "0 0.5 0.5 0.4 0.6 0.25 0.3 0.5 0.5 0.75 0.7", id="no-visibility"
+            ),
+            pytest.param(
+                3,
+                "0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 0\n"
+                "0 0.25 0.25 0.2 0.2 0.15 0.2 1 0.25 0.25 2 0.3 0.3 0",
+                id="two-skeletons",
             ),
         ],
     )
@@ -514,8 +539,14 @@ class TestYoloPoseRoundTrip:
         assert dataset.flip_idx == [0, 2, 1]
         assert reloaded.flip_idx == [0, 2, 1]
 
-    def test_round_trip_reloads_to_an_equal_dataset(self, tmp_path: Path) -> None:
-        """The reloaded dataset compares equal to the one that wrote it."""
+    def test_round_trip_reloads_the_same_keypoints_and_metadata(
+        self, tmp_path: Path
+    ) -> None:
+        """Reloading an exported dataset keeps its classes, shape and per-skeleton data.
+
+        Equality is not asserted: it compares image paths, which differ between the
+        source and the output directory.
+        """
         line = "0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 0"
         images, annotations, data_yaml = _write_dataset(
             root=tmp_path / "src",
@@ -543,9 +574,17 @@ class TestYoloPoseRoundTrip:
         assert reloaded.classes == dataset.classes
         assert reloaded.keypoint_count == dataset.keypoint_count
         assert reloaded.value_dim == dataset.value_dim
+        original = dataset.annotations[str(Path(images) / "a.png")]
+        restored = reloaded.annotations[str(out / "images" / "a.png")]
+        np.testing.assert_allclose(restored.xy, original.xy)
+        np.testing.assert_array_equal(
+            restored.data[KEYPOINT_VISIBILITY_DATA_FIELD],
+            original.data[KEYPOINT_VISIBILITY_DATA_FIELD],
+        )
         np.testing.assert_allclose(
-            reloaded.annotations[str(out / "images" / "a.png")].xy,
-            dataset.annotations[str(Path(images) / "a.png")].xy,
+            np.asarray(restored.data[XYXY_DATA_FIELD]),
+            np.asarray(original.data[XYXY_DATA_FIELD]),
+            rtol=1e-5,
         )
 
 
@@ -762,6 +801,25 @@ class TestKeyPointsToYoloPoseBoxHandling:
 
         assert result[0].startswith("0 0.375 0.5 0.25 0.4 ")
 
+    def test_derived_box_falls_back_to_every_keypoint_when_none_is_labelled(
+        self,
+    ) -> None:
+        """A skeleton whose keypoints are all flagged 0 still yields a box."""
+        key_points = KeyPoints(
+            xy=np.array([[[10.0, 20.0], [50.0, 60.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={KEYPOINT_VISIBILITY_DATA_FIELD: np.array([[0, 0]])},
+        )
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(100, 200, 3),
+            keypoint_count=2,
+            value_dim=3,
+        )
+
+        assert result == ["0 0.15 0.4 0.2 0.4 0.05 0.2 0 0.25 0.6 0"]
+
     def test_reordered_keypoints_write_matching_flags(self) -> None:
         """Keypoints reordered after loading are written with their own flags.
 
@@ -840,6 +898,8 @@ class TestFlipIdx:
             pytest.param("[0, 1, 3]", id="out-of-range"),
             pytest.param("[0, 2.0, 1]", id="float-index"),
             pytest.param("[false, true, 2]", id="boolean-index"),
+            pytest.param("1", id="scalar-integer"),
+            pytest.param("true", id="scalar-boolean"),
         ],
     )
     def test_rejects_a_flip_idx_that_is_not_a_permutation(

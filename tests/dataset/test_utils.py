@@ -775,6 +775,15 @@ class TestMapKeyPointsClassId:
 
         np.testing.assert_array_equal(key_points.class_id, np.array([0]))
 
+    def test_rejects_key_points_without_class_id(self) -> None:
+        """Key points with no ``class_id`` have nothing to remap, so they raise."""
+        key_points = KeyPoints(xy=np.array([[[1.0, 2.0]]], dtype=np.float32))
+
+        with pytest.raises(ValueError, match="class_id"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )
+
     def test_rejects_a_class_id_missing_from_the_mapping(self) -> None:
         """A class id with no target is an error rather than a silent pass."""
         key_points = KeyPoints(
