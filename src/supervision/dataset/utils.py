@@ -605,13 +605,20 @@ def save_dataset_images(
 
         ```
     """
+    # Imported here because `supervision.dataset.core` imports this module.
+    from supervision.dataset.core import DetectionDataset
+
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: Path(image_path).name,
         output_kind="image",
     )
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
-    images_in_memory = getattr(dataset, "_images_in_memory", {})
+    # Only DetectionDataset keeps decoded images in memory; KeyPointsDataset is
+    # lazy-only, so its images always take the copy path below.
+    images_in_memory: dict[str, npt.NDArray[np.uint8]] = (
+        dataset._images_in_memory if isinstance(dataset, DetectionDataset) else {}
+    )
     for image_path in tqdm(
         dataset.image_paths,
         desc="Saving images",

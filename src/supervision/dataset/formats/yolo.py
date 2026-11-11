@@ -39,7 +39,10 @@ if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 
-IMAGE_EXTENSIONS = [
+#: Image file extensions the YOLO detection and pose loaders list from the images
+#: directory; matched case-insensitively by
+#: :func:`~supervision.utils.file.list_files_with_extensions`.
+_YOLO_IMAGE_EXTENSIONS: tuple[str, ...] = (
     "bmp",
     "dng",
     "jpg",
@@ -49,7 +52,7 @@ IMAGE_EXTENSIONS = [
     "tif",
     "tiff",
     "webp",
-]
+)
 
 
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
@@ -513,7 +516,7 @@ def load_yolo_annotations(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path,
-            extensions=IMAGE_EXTENSIONS,
+            extensions=_YOLO_IMAGE_EXTENSIONS,
         )
     ]
 

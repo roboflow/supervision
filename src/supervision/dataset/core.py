@@ -1139,10 +1139,13 @@ class KeyPointsDataset(BaseDataset):
     :class:`~supervision.key_points.core.KeyPoints` instance holding one
     skeleton per object. Alongside the coordinates, the annotations carry the
     object box under ``data['xyxy']`` and, for a ``kpt_shape`` of ``[K, 3]``,
-    the raw visibility flags under ``data['keypoint_visibility']``.
+    the raw visibility values under ``data['keypoint_visibility']`` as
+    ``float32``: the ``0``/``1``/``2`` flags, or the keypoint confidence that
+    labels written from model output carry.
 
-    ``KeyPoints.visible`` marks every labelled keypoint, flag ``1`` (occluded)
-    as well as flag ``2`` (visible), matching how
+    ``KeyPoints.visible`` marks every keypoint with a positive raw value: flag
+    ``1`` (occluded) as well as flag ``2`` (visible), and any positive
+    confidence, matching how
     :class:`~supervision.metrics.keypoint_mean_average_precision.KeyPointMeanAveragePrecision`
     and COCO evaluation count keypoints. To draw only the keypoints flagged
     ``2``, set ``key_points.visible = key_points.data['keypoint_visibility'] == 2``
@@ -1161,15 +1164,16 @@ class KeyPointsDataset(BaseDataset):
 
     Attributes:
         classes: List containing dataset class names.
-        images: List of image paths, loaded lazily on access.
+        image_paths: List of unique image paths in insertion order; images are
+            read from disk on access.
         annotations: Dictionary mapping image path to its key points.
         keypoint_count: Number of keypoints per skeleton, the ``K`` of
             ``kpt_shape``.
         value_dim: Values stored per keypoint, the ``D`` of ``kpt_shape``;
             ``2`` for coordinates only, ``3`` when a visibility flag follows.
-        flip_idx: The ``flip_idx`` of the dataset, mapping each keypoint to the
-            one it becomes under a horizontal flip, or ``None`` when the
-            dataset declares none.
+        flip_idx: The ``flip_idx`` of the dataset as a list of Python ``int``,
+            mapping each keypoint to the one it becomes under a horizontal
+            flip, or ``None`` when the dataset declares none.
 
     Examples:
         ```pycon
@@ -1282,10 +1286,15 @@ class KeyPointsDataset(BaseDataset):
         return cast(npt.NDArray[np.uint8], image)
 
     def __len__(self) -> int:
+        """Return the number of images in the dataset."""
         return len(self.image_paths)
 
     def __getitem__(self, i: int) -> tuple[str, npt.NDArray[np.uint8], KeyPoints]:
-        """
+        """Load the image at index ``i`` together with its key points.
+
+        Args:
+            i: Position of the image in ``image_paths``.
+
         Returns:
             The image path, image data, and its key points at index i.
         """
@@ -1302,6 +1311,20 @@ class KeyPointsDataset(BaseDataset):
             yield self[i]
 
     def __eq__(self, other: object) -> bool:
+        """Compare two keypoint datasets by content.
+
+        Classes, image paths (order-sensitive), ``keypoint_count``,
+        ``value_dim``, ``flip_idx`` and annotations must all match; image
+        pixels are not read.
+
+        Args:
+            other: Object to compare against.
+
+        Returns:
+            ``True`` if ``other`` is a
+            :class:`~supervision.dataset.core.KeyPointsDataset` with equal
+            content, ``False`` otherwise.
+        """
         if not isinstance(other, KeyPointsDataset):
             return False
         return (
@@ -1473,8 +1496,9 @@ class KeyPointsDataset(BaseDataset):
             The loaded dataset.
 
         Raises:
-            ValueError: If data.yaml declares no valid ``kpt_shape``, or if a
-                label file holds an invalid line; the message names the file.
+            ValueError: If data.yaml declares no valid ``kpt_shape`` or an
+                invalid ``flip_idx``, or if a label file holds an invalid line;
+                the message names the file.
 
         Examples:
             ```python

@@ -13,7 +13,7 @@ from supervision.config import (
     XYXY_DATA_FIELD,
 )
 from supervision.dataset.formats.yolo import (
-    IMAGE_EXTENSIONS,
+    _YOLO_IMAGE_EXTENSIONS,
     _extract_class_names_from_data,
     _extract_pose_value_count_from_data,
     _image_name_to_annotation_name,
@@ -280,9 +280,7 @@ def load_yolo_pose_annotations(
     """
     # Read once; every field below comes from the same parsed mapping.
     data = _read_data_yaml(file_path=data_yaml_path)
-    keypoint_count, value_dim = _extract_kpt_shape(
-        data=data, file_path=data_yaml_path
-    )
+    keypoint_count, value_dim = _extract_kpt_shape(data=data, file_path=data_yaml_path)
     flip_idx = _extract_flip_idx(
         data=data, file_path=data_yaml_path, keypoint_count=keypoint_count
     )
@@ -290,7 +288,7 @@ def load_yolo_pose_annotations(
     image_paths = [
         str(path)
         for path in list_files_with_extensions(
-            directory=images_directory_path, extensions=IMAGE_EXTENSIONS
+            directory=images_directory_path, extensions=_YOLO_IMAGE_EXTENSIONS
         )
     ]
 
@@ -566,4 +564,3 @@ def save_pose_data_yaml(
         data["flip_idx"] = list(flip_idx)
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)
-
