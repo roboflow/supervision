@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.KeyPoints` now rejects nonempty one-dimensional boolean selection masks whose length does not match the number of skeletons or keypoints, instead of silently selecting a subset. ([#2943](https://github.com/roboflow/supervision/pull/2943))
+- `sv.KeyPoints` now rejects nonempty one-dimensional boolean selection masks whose length does not match the number of skeletons or keypoints, instead of silently selecting a subset. Keypoint selection on `sv.KeyPoints.empty()` remains empty. ([#2943](https://github.com/roboflow/supervision/pull/2943))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep an oversized label at the frame's left and top edges instead of shifting it past those edges. Shaped right-to-left text in `RichLabelAnnotator` retains its leading characters at the visible right edge. ([#2940](https://github.com/roboflow/supervision/pull/2940))
 

@@ -554,6 +554,27 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
 class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_rejects_mismatched_numpy_boolean_list(self, axis: int) -> None:
+        """Reject NumPy boolean scalar lists that do not match the selected axis."""
+        key_points = KeyPoints(xy=np.zeros((2, 3, 2)))
+        mask = [np.bool_(True)]
+        index = (mask, [0]) if axis == 0 else ([0], mask)
+
+        with pytest.raises(IndexError, match="boolean index"):
+            key_points.select(index)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_selects_with_numpy_boolean_list(self, axis: int) -> None:
+        """Select matching entries using a list of NumPy boolean scalars."""
+        key_points = KeyPoints(xy=np.arange(12).reshape(2, 3, 2))
+        mask = [np.bool_(True)] + [np.bool_(False)] * (key_points.xy.shape[axis] - 1)
+        index = (mask, [0]) if axis == 0 else ([0], mask)
+
+        result = key_points.select(index)
+
+        np.testing.assert_array_equal(result.xy, key_points.xy[:1, :1])
+
     @pytest.mark.parametrize("method", ["select", "__getitem__"])
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("as_array", [False, True])

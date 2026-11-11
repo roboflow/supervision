@@ -1211,9 +1211,17 @@ class KeyPoints:
         ):
             i = i.reshape(1)
 
-        if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
+        if (
+            isinstance(i, list)
+            and i
+            and all(isinstance(x, (bool, np.bool_)) for x in i)
+        ):
             i = np.array(i)
-        if isinstance(j, list) and j and all(isinstance(x, bool) for x in j):
+        if (
+            isinstance(j, list)
+            and j
+            and all(isinstance(x, (bool, np.bool_)) for x in j)
+        ):
             j = np.array(j)
 
         if isinstance(i, np.ndarray) and i.dtype == bool:
