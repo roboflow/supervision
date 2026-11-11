@@ -4434,6 +4434,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>The OpenCV-free <code>contourArea</code> fallback now returns exactly what <code>cv2.contourArea</code> returns: it adds the shoelace terms in OpenCV's order and reads integer points as float32, as OpenCV does. It previously differed in the last bits for many float32 contours, and by more for integer coordinates above 2**24, which could flip <code>sv.filter_polygons_by_area</code> at a <code>min_area</code> or <code>max_area</code> boundary between backends. (<a href="https://github.com/roboflow/supervision/pull/2936">#2936</a>)</p>
+</li>
+<li>
 <p>The OpenCV-free <code>convertScaleAbs</code> fallback now scales in float32, as OpenCV does for every source depth, so values that land on a <code>.5</code> tie in float64 but not in float32 (for example <code>95 * 1.3</code>) round to the same <code>uint8</code> as OpenCV instead of one higher. It also does the multiply-add with a single rounding, like OpenCV's fused SIMD path, so offsets such as <code>38 * 1.3 + 0.1</code> give <code>50</code> rather than <code>49</code>. (<a href="https://github.com/roboflow/supervision/pull/2935">#2935</a>)</p>
 </li>
 <li>
@@ -6802,7 +6805,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 11, 2026 13:22:14 UTC">November 11, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 11, 2026 13:29:53 UTC">November 11, 2026</span>
   </span>
 
     
@@ -6854,7 +6857,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +29
+            +28
           </a>
         
       
