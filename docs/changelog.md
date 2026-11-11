@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.with_nmm`, `sv.box_non_max_merge`, `sv.mask_non_max_merge` and `sv.oriented_box_non_max_merge` with `threshold=0` (`iou_threshold=0`) no longer merge detections that do not overlap. Any pair with an IoU of exactly 0 satisfied `IoU >= 0`, so every detection of a class was merged into one union box (three disjoint boxes became a single `[0, 0, 210, 210]` box), while `with_nms(threshold=0)` kept all of them. Merging now needs a positive overlap, matching non-max suppression; results for thresholds above 0 are unchanged. ([#PR_NUMBER](https://github.com/roboflow/supervision/pull/PR_NUMBER))
+
 - `sv.metrics.MeanAveragePrecision` with `MetricTarget.ORIENTED_BOUNDING_BOXES` now uses the COCO crowd IoU for targets with `data["iscrowd"]` set: the intersection over the prediction area, as for boxes and masks. It used the standard IoU, so a prediction inside a crowd region was a false positive instead of being ignored. Positive detection areas are used without an added epsilon, preserving exact threshold matches and small boxes. In one axis-aligned scene, oriented-box mAP@50 now matches box mAP at 1.0; it was 0.333. ([#2941](https://github.com/roboflow/supervision/pull/2941))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep an oversized label at the frame's left and top edges instead of shifting it past those edges. Shaped right-to-left text in `RichLabelAnnotator` retains its leading characters at the visible right edge. ([#2940](https://github.com/roboflow/supervision/pull/2940))
