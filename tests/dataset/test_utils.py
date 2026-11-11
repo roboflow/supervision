@@ -1,6 +1,7 @@
 import random
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -672,6 +673,83 @@ class TestTrainTestSplitRatioValidation:
             data=[0, 1, 2], train_ratio=train_ratio, shuffle=False
         )
         assert result == expected_result
+
+
+class TestTrainTestSplitExactRatio:
+    """train_test_split() keeps every item a decimal ratio exactly accounts for."""
+
+    @pytest.mark.parametrize(
+        ("length", "train_ratio", "expected_train_size"),
+        [
+            (90, 0.7, 63),
+            (100, 0.57, 57),
+            (100, 0.29, 29),
+            (180, 0.35, 63),
+            (100, 0.58, 58),
+            (10, 0.3, 3),
+            (7, 0.5, 3),
+            (3, 0.8, 2),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_train_size_is_floor_of_exact_product(
+        self, length: int, train_ratio: float, expected_train_size: int, shuffle: bool
+    ) -> None:
+        """The train part holds floor(length * ratio) items, read in decimal."""
+        train, test = train_test_split(
+            data=list(range(length)),
+            train_ratio=train_ratio,
+            random_state=0,
+            shuffle=shuffle,
+        )
+        assert (len(train), len(test)) == (
+            expected_train_size,
+            length - expected_train_size,
+        )
+
+    @pytest.mark.parametrize("percent", range(101))
+    def test_matches_exact_arithmetic_for_percent_ratios(self, percent: int) -> None:
+        """Every length up to 200 splits as exact rational arithmetic says."""
+        train_ratio = percent / 100
+        splits = {
+            length: train_test_split(
+                data=list(range(length)), train_ratio=train_ratio, shuffle=False
+            )
+            for length in range(201)
+        }
+        wrong_lengths = [
+            length
+            for length, (train, _) in splits.items()
+            if len(train) != int(Fraction(percent, 100) * length)
+        ]
+        assert wrong_lengths == []
+
+    @pytest.mark.parametrize(
+        "train_ratio",
+        [
+            pytest.param(np.float64(0.7), id="numpy-float64"),
+            pytest.param(np.float32(0.7), id="numpy-float32"),
+            pytest.param(np.array(0.7), id="numpy-zero-dim-array"),
+        ],
+    )
+    def test_numpy_ratio_gives_same_size_as_python_ratio(
+        self, train_ratio: float
+    ) -> None:
+        """A NumPy scalar ratio splits like the equivalent Python float."""
+        train, test = train_test_split(
+            data=list(range(90)), train_ratio=train_ratio, shuffle=False
+        )
+        assert (len(train), len(test)) == (63, 27)
+
+    def test_keeps_order_and_shuffle_semantics(self) -> None:
+        """The fix moves only the split point, not which items fill each part."""
+        data = list(range(90))
+        shuffled = data.copy()
+        random.Random(3).shuffle(shuffled)  # noqa: S311 — reference shuffle, not crypto
+        train, test = train_test_split(
+            data=data, train_ratio=0.7, random_state=3, shuffle=True
+        )
+        assert (train, test) == (shuffled[:63], shuffled[63:])
 
 
 class TestCheckNoBasenameCollisions:

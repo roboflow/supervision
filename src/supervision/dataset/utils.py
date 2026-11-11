@@ -8,6 +8,7 @@ import os
 import random
 import shutil
 from collections.abc import Callable
+from fractions import Fraction
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar, cast
 
@@ -541,6 +542,30 @@ def save_dataset_images(
                 shutil.copyfile(image_path, final_path)
 
 
+def _train_split_index(length: int, train_ratio: float) -> int:
+    """Returns how many of `length` items belong to the train part.
+
+    The ratio is read as the decimal the caller wrote (`0.7`, not the nearest
+    binary float, which is just below it) and multiplied exactly, so
+    `90 * 0.7` gives `63` instead of the `62` that floating-point multiplication
+    floors to. The result is rounded down, as before.
+
+    Args:
+        length: The number of items to split.
+        train_ratio: The train fraction, already validated to lie in `[0, 1]`.
+
+    Returns:
+        The number of leading items that go to the train part.
+    """
+    # `str` of a NumPy float gives the shortest decimal for its own precision,
+    # so `np.float32(0.7)` reads as 0.7 and not as its float64 widening.
+    if isinstance(train_ratio, np.floating):
+        decimal = str(train_ratio)
+    else:
+        decimal = str(float(train_ratio))
+    return int(Fraction(decimal) * length)
+
+
 def train_test_split(
     data: list[T],
     train_ratio: float = 0.8,
@@ -588,5 +613,5 @@ def train_test_split(
     else:
         data = list(data)  # copy to guarantee non-mutation
 
-    split_index = int(len(data) * train_ratio)
+    split_index = _train_split_index(len(data), train_ratio)
     return data[:split_index], data[split_index:]
