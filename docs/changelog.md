@@ -9,6 +9,10 @@ date_modified: 2026-10-31
 
 - The OpenCV-free `contourArea` fallback now returns exactly what `cv2.contourArea` returns: it adds the shoelace terms in OpenCV's order and reads integer points as float32, as OpenCV does. It previously differed in the last bits for many float32 contours, and by more for integer coordinates above 2\*\*24, which could flip `sv.filter_polygons_by_area` at a `min_area` or `max_area` boundary between backends. ([#2936](https://github.com/roboflow/supervision/pull/2936))
 
+- The OpenCV-free `convertScaleAbs` fallback now scales in float32, as OpenCV does for every source depth, so values that land on a `.5` tie in float64 but not in float32 (for example `95 * 1.3`) round to the same `uint8` as OpenCV instead of one higher. It also does the multiply-add with a single rounding, like OpenCV's fused SIMD path, so offsets such as `38 * 1.3 + 0.1` give `50` rather than `49`. ([#2935](https://github.com/roboflow/supervision/pull/2935))
+
+- `sv.CSVSink` now raises `ValueError` when additional data uses a built-in column name such as `confidence` or `x_min`. Rename the extra field to prevent duplicate columns and preserve the original detection value. ([#2934](https://github.com/roboflow/supervision/pull/2934))
+
 - `DetectionDataset.as_yolo` and `DetectionDataset.as_pascal_voc` now retry a failed mask-hole seam search with traced contours when simplification removes usable vertices. The affected component is written unsimplified if the retry succeeds; the export still raises if no seam is found. `as_coco` also tries this for `iscrowd=0` annotations, but COCO polygon rasterization can still alter mask pixels or fill parts of a hole; use RLE (`iscrowd=1`) for an exact mask. ([#2933](https://github.com/roboflow/supervision/pull/2933))
 
 - `sv.KeyPoints` now accepts a zero-dimensional NumPy integer row index combined with a list or boolean mask of keypoints, preserving coordinates and aligned fields instead of raising `ValueError`. ([#2930](https://github.com/roboflow/supervision/pull/2930))
