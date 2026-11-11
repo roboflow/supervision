@@ -622,8 +622,14 @@ def _oriented_box_iou_with_jaccard(
     )
     areas_detection = _polygon_areas(boxes_detection)
     crowd_iou = np.zeros((len(boxes_detection), len(crowd_true)), dtype=np.float64)
-    # Same denominator as the box path: the detection area plus epsilon.
-    crowd_iou[cols, rows] = intersections / (areas_detection[cols] + np.spacing(1))
+    # A fixed epsilon changes exact threshold matches and dominates tiny areas.
+    detection_areas = areas_detection[cols]
+    crowd_iou[cols, rows] = np.divide(
+        intersections,
+        detection_areas,
+        out=np.zeros_like(intersections),
+        where=detection_areas > 0,
+    )
     # Intersections use float32-rounded polygons and can exceed the detection
     # area by about 1e-7, so clip as oriented_box_iou_batch does.
     iou[:, crowd] = np.clip(crowd_iou, 0.0, 1.0)

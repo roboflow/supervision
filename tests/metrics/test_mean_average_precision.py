@@ -1113,7 +1113,7 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
 
 
 def _boxes_with_corners(
-    xyxy: list[list[int]],
+    xyxy: list[list[float]],
     confidence: list[float] | None = None,
     iscrowd: list[int] | None = None,
 ) -> Detections:
@@ -1142,6 +1142,51 @@ def _boxes_with_corners(
 
 class TestMeanAveragePrecisionOrientedBoxesCrowdBranch:
     """Crowd targets use the COCO crowd IoU for oriented boxes, as for boxes."""
+
+    def test_exact_threshold_crowd_overlap_is_ignored(self) -> None:
+        """A crowd overlap exactly at 0.5 does not lower mAP at 0.5."""
+        # Arrange
+        targets = _boxes_with_corners([[2, 0, 3, 1], [0, 0, 0.5, 1]], iscrowd=[0, 1])
+        predictions = _boxes_with_corners(
+            [[0, 0, 1, 1], [2, 0, 3, 1]], confidence=[0.9, 0.8]
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        # Act
+        result = metric.update(predictions, targets).compute()
+
+        # Assert
+        assert result.map50 == pytest.approx(1.0)
+
+    def test_small_contained_crowd_overlap_uses_detection_area(self) -> None:
+        """A tiny positive detection area does not reduce crowd overlap."""
+        # Arrange
+        corners = np.array([[[0, 0], [1e-8, 0], [1e-8, 1e-8], [0, 1e-8]]])
+
+        # Act
+        iou = mean_average_precision._oriented_box_iou_with_jaccard(
+            corners, corners, is_crowd=[True]
+        )
+
+        # Assert
+        np.testing.assert_allclose(iou, [[1.0]], rtol=1e-6)
+
+    def test_zero_area_detection_has_zero_crowd_overlap(self) -> None:
+        """A zero-area detection produces zero crowd overlap."""
+        # Arrange
+        crowd = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=float)
+        detection = np.array([[[0, 0], [0.5, 0.5], [1, 1], [1.5, 1.5]]])
+
+        # Act
+        with np.errstate(divide="raise", invalid="raise"):
+            iou = mean_average_precision._oriented_box_iou_with_jaccard(
+                crowd, detection, is_crowd=[True]
+            )
+
+        # Assert
+        np.testing.assert_array_equal(iou, [[0.0]])
 
     def test_oriented_crowd_iou_divides_by_detection_area(self) -> None:
         """Crowd overlap is the intersection over the detection area."""
