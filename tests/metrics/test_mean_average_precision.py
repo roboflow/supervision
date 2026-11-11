@@ -1111,6 +1111,126 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
 
 
+def _boxes_with_corners(
+    xyxy: list[list[int]],
+    confidence: list[float] | None = None,
+    iscrowd: list[int] | None = None,
+) -> Detections:
+    """Build class 0 `Detections` whose oriented boxes are their axis-aligned boxes."""
+    boxes = np.array(xyxy, dtype=np.float64)
+    x_min, y_min, x_max, y_max = boxes.T
+    corners = np.stack(
+        [
+            np.stack([x_min, y_min], axis=1),
+            np.stack([x_max, y_min], axis=1),
+            np.stack([x_max, y_max], axis=1),
+            np.stack([x_min, y_max], axis=1),
+        ],
+        axis=1,
+    )
+    data: dict[str, Any] = {ORIENTED_BOX_COORDINATES: corners}
+    if iscrowd is not None:
+        data["iscrowd"] = np.array(iscrowd)
+    return Detections(
+        xyxy=boxes,
+        class_id=np.zeros(len(xyxy), dtype=int),
+        confidence=None if confidence is None else np.array(confidence),
+        data=data,
+    )
+
+
+class TestMeanAveragePrecisionOrientedBoxesCrowdBranch:
+    """Crowd targets use the COCO crowd IoU for oriented boxes, as for boxes."""
+
+    def test_oriented_crowd_iou_divides_by_detection_area(self) -> None:
+        """Crowd overlap is the intersection over the detection area."""
+        # Arrange
+        square = [[0, 0], [10, 0], [10, 10], [0, 10]]
+        shifted = [[5, 0], [15, 0], [15, 10], [5, 10]]
+        boxes_true = np.array([square, square], dtype=np.float64)
+        boxes_detection = np.array([shifted], dtype=np.float64)
+
+        # Act
+        iou = mean_average_precision._oriented_box_iou_with_jaccard(
+            boxes_true, boxes_detection, is_crowd=[True, False]
+        )
+
+        # Assert
+        np.testing.assert_allclose(iou, [[0.5, 1 / 3]])
+
+    def test_axis_aligned_crowd_scores_match_pycocotools_boxes(self) -> None:
+        """Axis-aligned oriented boxes with a crowd target score like COCO boxes."""
+        # Arrange
+        # One prediction lies inside the crowd target, and one covers it at a
+        # crowd IoU of 0.5625, which matches only at the thresholds 0.5 and 0.55.
+        targets = _boxes_with_corners(
+            [[100, 100, 140, 140], [0, 0, 64, 64]], iscrowd=[0, 1]
+        )
+        predictions = _boxes_with_corners(
+            [[8, 8, 40, 40], [40, 40, 72, 72], [100, 100, 140, 140]],
+            confidence=[0.9, 0.85, 0.8],
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        # Act
+        result = metric.update(predictions, targets).compute()
+
+        # Assert
+        reference = evaluate_detections(predictions, targets)
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+        scores = [
+            result.map50_95,
+            result.map50,
+            result.map75,
+            result.small_objects.map50_95,
+            result.medium_objects.map50_95,
+            result.large_objects.map50_95,
+        ]
+        np.testing.assert_allclose(scores, reference.stats[:6])
+
+    def test_rotated_crowd_target_ignores_contained_detection(self) -> None:
+        """A detection inside a rotated crowd target is ignored, not a false positive.
+
+        The square lies inside the diamond, so its crowd IoU is 1.0. Its standard IoU is
+        0.08, which made it a false positive above the perfect match.
+        """
+        # Arrange
+        diamond = [[100, 50], [150, 100], [100, 150], [50, 100]]
+        target_box = [[200, 200], [240, 200], [240, 240], [200, 240]]
+        inside_square = [[90, 90], [110, 90], [110, 110], [90, 110]]
+        targets = Detections(
+            xyxy=np.array([[50, 50, 150, 150], [200, 200, 240, 240]], dtype=float),
+            class_id=np.array([0, 0]),
+            data={
+                ORIENTED_BOX_COORDINATES: np.array([diamond, target_box], dtype=float),
+                "iscrowd": np.array([1, 0]),
+            },
+        )
+        predictions = Detections(
+            xyxy=np.array([[90, 90, 110, 110], [200, 200, 240, 240]], dtype=float),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+            data={
+                ORIENTED_BOX_COORDINATES: np.array(
+                    [inside_square, target_box], dtype=float
+                )
+            },
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        # Act
+        result = metric.update(predictions, targets).compute()
+
+        # Assert
+        assert result.map50_95 == pytest.approx(1.0)
+
+
 class TestMaskIouWithJaccard:
     """Tests for dense-mask IoU validation and temporary-buffer bounds."""
 
