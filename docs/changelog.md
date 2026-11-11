@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.PolygonZone` now preserves mask dimensions when integer polygon coordinates reach their dtype limit, instead of overflowing and raising an error or silently creating a smaller zone. ([#2945](https://github.com/roboflow/supervision/pull/2945))
+
 - `sv.KeyPoints` now rejects nonempty one-dimensional boolean selection masks whose length does not match the number of skeletons or keypoints, instead of silently selecting a subset. Keypoint selection on `sv.KeyPoints.empty()` remains empty. ([#2943](https://github.com/roboflow/supervision/pull/2943))
 
 - `sv.metrics.MeanAveragePrecision` with `MetricTarget.ORIENTED_BOUNDING_BOXES` now uses the COCO crowd IoU for targets with `data["iscrowd"]` set: the intersection over the prediction area, as for boxes and masks. It used the standard IoU, so a prediction inside a crowd region was a false positive instead of being ignored. Positive detection areas are used without an added epsilon, preserving exact threshold matches and small boxes. In one axis-aligned scene, oriented-box mAP@50 now matches box mAP at 1.0; it was 0.333. ([#2941](https://github.com/roboflow/supervision/pull/2941))
