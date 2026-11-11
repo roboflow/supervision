@@ -184,8 +184,24 @@ def _add_weighted(
 def _convert_scale_abs(
     image: npt.NDArray[Any], alpha: float = 1, beta: float = 0
 ) -> npt.NDArray[np.uint8]:
-    """Scale, offset, take the absolute value, and saturate to uint8."""
-    values = np.abs(image.astype(np.float64) * alpha + beta)
+    """Scale, offset, take the absolute value, and saturate to uint8.
+
+    OpenCV does this arithmetic in float32 for every source depth, with `alpha` and
+    `beta` cast to float32 first, so the value is rounded to float32 before the final
+    round-half-to-even. Doing it in float64 lands on the other side of a `.5` tie for
+    inputs like `95 * 1.3`, which is `123.5` in float64 but just under it in float32.
+    OpenCV's SIMD path computes `src * alpha + beta` as one fused multiply-add, so
+    the product is not rounded on its own: `38 * 1.3 + 0.1` gives `50`, while
+    rounding the product to float32 first gives `49`. The fused helper also preserves
+    small offsets that a float64 addition could lose at a float32 midpoint.
+    """
+    with np.errstate(invalid="ignore", over="ignore"):
+        fused = _fused_multiply_add_float32(
+            image.astype(np.float32),
+            np.float64(np.float32(alpha)),
+            np.float64(np.float32(beta)),
+        )
+        values = np.abs(fused)
     return _cast_array_like_opencv(values, np.dtype(np.uint8))
 
 
