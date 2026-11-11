@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- Added `sv.NormalMapAnnotator` for normalized xyz normal maps and `sv.GradientMapAnnotator` for scalar magnitudes or x/y derivative maps. Both colour maps over NumPy or Pillow scenes, leave invalid pixels unpainted, resize to the scene, and blend with configurable opacity. Gradient maps use the 2nd to 98th percentile by default or a fixed display range. ([#2888](https://github.com/roboflow/supervision/pull/2888))
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 
