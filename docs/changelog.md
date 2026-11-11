@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` with `smart_position=True` now keep an oversized label at the frame's left and top edges instead of shifting it past those edges. Shaped right-to-left text in `RichLabelAnnotator` retains its leading characters at the visible right edge. ([#2940](https://github.com/roboflow/supervision/pull/2940))
+
 - `sv.metrics.MeanAveragePrecision` now puts objects in the small, medium and large buckets that `pycocotools` gives them. A prediction's `data["area"]` replaced its box or mask area, but `pycocotools` calculates the area of every result again. So a medium false positive with `area=300` was counted as small, and small mAP of a perfect small prediction dropped from 1.0 to 0.5. Target `data["area"]` was rounded to float32, so an area such as `9216.0004` became `9216.0` and the target was scored as both medium and large. ([#2939](https://github.com/roboflow/supervision/pull/2939))
 
 - The OpenCV-free `contourArea` fallback now returns exactly what `cv2.contourArea` returns: it adds the shoelace terms in OpenCV's order and reads integer points as float32, as OpenCV does. It previously differed in the last bits for many float32 contours, and by more for integer coordinates above 2\*\*24, which could flip `sv.filter_polygons_by_area` at a `min_area` or `max_area` boundary between backends. ([#2936](https://github.com/roboflow/supervision/pull/2936))
