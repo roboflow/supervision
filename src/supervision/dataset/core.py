@@ -936,10 +936,11 @@ class DetectionDataset(BaseDataset):
             mask_rasterizer: ``"supervision"`` uses rounded vertices with
                 inclusive integer fill. ``"pycocotools"`` uses COCO's reference
                 polygon rasterization with continuous vertices. Install the
-                optional ``supervision[coco]`` extra for this mode. ``None``
-                (default) behaves like ``"supervision"`` and warns when the file
-                contains polygon segmentation. RLE masks are decoded
-                identically in all modes.
+                optional ``supervision[coco]`` extra for this mode; it is
+                required even when the file has no polygon segmentation.
+                ``None`` (default) behaves like ``"supervision"`` and warns
+                when the file contains polygon segmentation. RLE masks are
+                decoded identically in all modes.
 
         Returns:
             A DetectionDataset instance containing
@@ -947,6 +948,14 @@ class DetectionDataset(BaseDataset):
 
         Raises:
             ValueError: If ``mask_rasterizer`` is not a supported value.
+            ValueError: If a polygon vertex is not a finite number or, with
+                ``mask_rasterizer="pycocotools"``, lies beyond the vertex limit
+                of
+                :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`.
+            ImportError: If ``mask_rasterizer="pycocotools"`` and the
+                ``supervision[coco]`` extra is not installed. This is checked
+                before any image is processed, even when the file has no
+                polygon segmentation.
 
         Warns:
             SupervisionWarnings: When ``mask_rasterizer`` is omitted and the
@@ -956,10 +965,15 @@ class DetectionDataset(BaseDataset):
         Note:
             COCO polygon vertices describe continuous boundaries, while the
             ``"supervision"`` rasterizer treats rounded vertices as inclusive
-            pixel indices. ``"pycocotools"`` is the COCO convention: it
-            matches the masks COCO evaluation builds. For example, a square
-            from ``(1, 1)`` to ``(5, 5)`` covers 16 reference pixels instead
-            of 25 inclusive pixels. The default changes from
+            pixel indices. ``"pycocotools"`` is the COCO convention: for
+            well-formed polygons (nested lists of even-length parts with at
+            least three vertices each) it matches the masks COCO evaluation
+            builds. For example, a square from ``(1, 1)`` to ``(5, 5)``
+            covers 16 reference pixels instead of 25 inclusive pixels. For
+            other input the loader follows its own rules: a part with fewer
+            than three vertices is skipped, a flat coordinate list is treated
+            as one part, and an odd coordinate count raises ``ValueError``.
+            The default changes from
             ``"supervision"`` to ``"pycocotools"`` no earlier than
             ``0.35.0``; pass ``mask_rasterizer`` explicitly to keep the
             current masks or to adopt the reference ones now. This option

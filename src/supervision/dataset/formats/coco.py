@@ -132,7 +132,12 @@ def coco_annotations_to_masks(
         resolution_wh: Image size as ``(width, height)``.
         mask_rasterizer: ``"supervision"`` rounds polygon vertices and fills
             integer boundaries inclusively. ``"pycocotools"`` preserves continuous
-            vertices and uses COCO's reference rasterization; install
+            vertices and uses COCO's reference rasterization, matching
+            ``pycocotools`` for well-formed polygons: nested lists of even-length
+            parts with at least three vertices each. For other input this
+            function follows its own rules: a part with fewer than three vertices
+            is skipped, a flat coordinate list is treated as one part, and an odd
+            coordinate count raises :class:`ValueError`. Install
             ``supervision[coco]`` to enable it. ``None`` (default) keeps the
             ``"supervision"`` convention and warns when polygons are present,
             because the default changes to ``"pycocotools"`` no earlier than
@@ -147,6 +152,12 @@ def coco_annotations_to_masks(
 
     Raises:
         ValueError: If ``mask_rasterizer`` is not a supported value.
+        ValueError: If a polygon vertex is not a finite number or, with
+            ``mask_rasterizer="pycocotools"``, lies beyond the vertex limit
+            described above.
+        ImportError: If ``mask_rasterizer="pycocotools"``, an annotation has a
+            polygon part with at least three vertices, and the
+            ``supervision[coco]`` extra is not installed.
 
     Warns:
         SupervisionWarnings: When ``mask_rasterizer`` is omitted and at least one
@@ -434,6 +445,13 @@ def coco_annotations_to_detections(
             corners are formed; a zero extent is accepted.
         ValueError: If ``with_masks=True`` and ``mask_rasterizer`` is not a
             supported value.
+        ValueError: If ``with_masks=True`` and a polygon vertex is not a finite
+            number or, with ``mask_rasterizer="pycocotools"``, lies beyond the
+            vertex limit of
+            :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`.
+        ImportError: If ``with_masks=True``, ``mask_rasterizer="pycocotools"``,
+            an annotation has a polygon part with at least three vertices, and
+            the ``supervision[coco]`` extra is not installed.
 
     Warns:
         SupervisionWarnings: When ``with_masks=True``, ``mask_rasterizer`` is
@@ -788,6 +806,13 @@ def load_coco_annotations(
         ValueError: If two image entries resolve to the same canonical path.
         ValueError: If ``mask_rasterizer`` is not a supported value. This is
             checked before the annotation file is read.
+        ValueError: If a polygon vertex is not a finite number or, with
+            ``mask_rasterizer="pycocotools"``, lies beyond the vertex limit of
+            :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`.
+        ImportError: If ``mask_rasterizer="pycocotools"`` and the
+            ``supervision[coco]`` extra is not installed. This is checked before
+            any image is processed, even when the file has no polygon
+            segmentation.
 
     Warns:
         SupervisionWarnings: When ``mask_rasterizer`` is omitted and the file
