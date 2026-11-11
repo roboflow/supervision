@@ -8,6 +8,7 @@ date_modified: 2026-10-31
 ### Unreleased <small>upcoming</small>
 
 - `sv.CSVSink` now raises `ValueError` when additional data uses a built-in column name such as `confidence` or `x_min`. Rename the extra field to prevent duplicate columns and preserve the original detection value. ([#2934](https://github.com/roboflow/supervision/pull/2934))
+
 - `sv.KeyPoints` now accepts a zero-dimensional NumPy integer row index combined with a list or boolean mask of keypoints, preserving coordinates and aligned fields instead of raising `ValueError`. ([#2930](https://github.com/roboflow/supervision/pull/2930))
 
 ### 0.31.6 <small>Nov 10, 2026</small>
