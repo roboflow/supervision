@@ -2696,10 +2696,7 @@ class TestCocoExportMaskArea:
             {"counts": [100], "size": [10, 10]} if iscrowd else []
         )
 
-    @pytest.mark.parametrize(
-        "mixed",
-        [False,True]
-    )
+    @pytest.mark.parametrize("mixed", [False, True])
     def test_box_area_survives_dataset_round_trip(
         self, tmp_path: Path, mixed: bool
     ) -> None:
