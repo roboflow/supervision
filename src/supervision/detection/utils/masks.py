@@ -50,12 +50,15 @@ def move_masks(
             H, W are the dimensions of each mask.
         offset: An array of shape `(2,)` containing int values
             `[dx, dy]`. Supports both positive and negative values for bidirectional
-            movement.
+            movement. Any integer dtype works; slice bounds are computed without
+            integer overflow.
         resolution_wh: The width and height of the desired mask
             resolution.
 
     Returns:
-        Repositioned masks, optionally padded to the specified shape.
+        Repositioned masks, optionally padded to the specified shape. A shift that
+            moves the masks entirely outside the target resolution returns
+            all-`False` masks.
 
     Examples:
         ```pycon
@@ -80,29 +83,34 @@ def move_masks(
 
         ```
     """
-    mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
+    # Slice bounds must not overflow an integer offset or frame dimension's dtype.
+    dx, dy, width, height = (
+        value.item() if isinstance(value, np.integer) else value
+        for value in (offset[0], offset[1], resolution_wh[0], resolution_wh[1])
+    )
+    mask_array = np.full((masks.shape[0], height, width), False)
 
-    if offset[0] < 0:
-        source_x_start = -offset[0]
-        source_x_end = min(masks.shape[2], resolution_wh[0] - offset[0])
+    if dx < 0:
+        source_x_start = -dx
+        source_x_end = min(masks.shape[2], width - dx)
         destination_x_start = 0
-        destination_x_end = min(resolution_wh[0], masks.shape[2] + offset[0])
+        destination_x_end = min(width, masks.shape[2] + dx)
     else:
         source_x_start = 0
-        source_x_end = min(masks.shape[2], resolution_wh[0] - offset[0])
-        destination_x_start = offset[0]
-        destination_x_end = offset[0] + source_x_end - source_x_start
+        source_x_end = min(masks.shape[2], width - dx)
+        destination_x_start = dx
+        destination_x_end = dx + source_x_end - source_x_start
 
-    if offset[1] < 0:
-        source_y_start = -offset[1]
-        source_y_end = min(masks.shape[1], resolution_wh[1] - offset[1])
+    if dy < 0:
+        source_y_start = -dy
+        source_y_end = min(masks.shape[1], height - dy)
         destination_y_start = 0
-        destination_y_end = min(resolution_wh[1], masks.shape[1] + offset[1])
+        destination_y_end = min(height, masks.shape[1] + dy)
     else:
         source_y_start = 0
-        source_y_end = min(masks.shape[1], resolution_wh[1] - offset[1])
-        destination_y_start = offset[1]
-        destination_y_end = offset[1] + source_y_end - source_y_start
+        source_y_end = min(masks.shape[1], height - dy)
+        destination_y_start = dy
+        destination_y_end = dy + source_y_end - source_y_start
 
     if source_x_end > source_x_start and source_y_end > source_y_start:
         mask_array[
@@ -295,7 +303,8 @@ def resize_masks(
 
     Args:
         masks: 3D array of binary masks with shape (N, H, W).
-        max_dimension: The maximum dimension for the resized masks.
+        max_dimension: The maximum dimension for the resized masks. Each spatial
+            axis retains at least one pixel.
 
     Returns:
         Array of resized masks.
@@ -306,8 +315,8 @@ def resize_masks(
     if scale == 1.0:
         return masks
 
-    new_height = int(scale * max_height)
-    new_width = int(scale * max_width)
+    new_height = max(1, int(scale * max_height))
+    new_width = max(1, int(scale * max_width))
 
     x = np.linspace(0, max_width - 1, new_width).astype(int)
     y = np.linspace(0, max_height - 1, new_height).astype(int)
@@ -551,19 +560,20 @@ def _compact_masks_to_roi(
 ) -> tuple[int, int, int, int] | None:
     """Return exclusive bounding-box union for compact masks.
 
-    Uses crop metadata (offsets + shapes) — no RLE decode required.
+    Uses crop metadata (offsets + shapes) and RLE foreground counts to exclude
+    all-False masks without decoding crops.
 
     Args:
         masks: Compact mask collection.
         image_shape: Image dimensions as ``(height, width)``.
 
     Returns:
-        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when empty.
+        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true pixels exist.
     """
-    if len(masks) == 0:
+    bboxes = masks.bbox_xyxy[masks.area > 0]
+    if len(bboxes) == 0:
         return None
     image_h, image_w = image_shape
-    bboxes = masks.bbox_xyxy  # shape (N, 4), inclusive int32
     x_min = int(bboxes[:, 0].min())
     y_min = int(bboxes[:, 1].min())
     x_max = int(bboxes[:, 2].max()) + 1  # convert inclusive to exclusive
@@ -589,8 +599,9 @@ def _masks_to_roi(
         image_shape: Image dimensions as ``(height, width)``.
         xyxy: Optional detection boxes of shape ``(N, 4)`` in
             ``[x1, y1, x2, y2]`` format. When provided, the dense path
-            first checks whether all true pixels fall within the box union;
-            if so the box bounds are returned without a full pixel scan.
+            first checks whether all true pixels fall within the union of
+            boxes whose masks have true pixels; if so the box bounds are
+            returned without a full pixel scan.
 
     Returns:
         Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true
@@ -605,6 +616,10 @@ def _masks_to_roi(
     # when boxes are mask-derived. Guard it with an `any()` check over the ROI so
     # loose boxes cannot clip true pixels that lie outside the box union.
     if xyxy is not None and len(xyxy) > 0:
+        if mask_array.ndim == 3 and len(xyxy) == len(mask_array):
+            # All-False masks cover no pixels, so their boxes must not widen
+            # the union; at least one box remains because some pixel is true.
+            xyxy = xyxy[mask_array.any(axis=(1, 2))]
         image_h, image_w = image_shape
         box_roi = (
             max(0, int(np.floor(xyxy[:, 0].min()))),

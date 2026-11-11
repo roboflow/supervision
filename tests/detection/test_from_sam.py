@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -97,14 +99,16 @@ SERVERLESS_SAM3_PVS_DICT = {
     ],
 )
 def test_from_sam(
-    sam_result: list[dict],
+    sam_result: list[dict[str, Any]],
     expected_xyxy: np.ndarray,
     expected_mask_shape: tuple[int, ...] | None,
 ) -> None:
+    """SAM results become boxes and, when present, masks of the expected shape."""
     detections = Detections.from_sam(sam_result=sam_result)
 
     assert np.array_equal(detections.xyxy, expected_xyxy)
     if expected_mask_shape is not None:
+        assert detections.mask is not None
         assert detections.mask.shape == expected_mask_shape
     else:
         assert detections.mask is None
@@ -214,7 +218,7 @@ def test_from_sam_decodes_coco_rle_masks() -> None:
     ],
 )
 def test_from_sam3(
-    sam3_result: dict,
+    sam3_result: dict[str, Any],
     resolution_wh: tuple[int, int],
     expected_xyxy: np.ndarray,
     expected_confidence: np.ndarray,
@@ -225,6 +229,7 @@ def test_from_sam3(
     )
 
     np.testing.assert_allclose(detections.xyxy, expected_xyxy, atol=1e-5)
+    assert detections.confidence is not None
     np.testing.assert_allclose(detections.confidence, expected_confidence, atol=1e-5)
     np.testing.assert_array_equal(detections.class_id, expected_class_id)
 
@@ -257,12 +262,13 @@ def test_from_sam3_keeps_degenerate_polygon_fragments() -> None:
     np.testing.assert_allclose(
         detections.xyxy, np.array([[5.0, 2.0, 8.0, 6.0]], dtype=np.float32), atol=1e-5
     )
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask[0, 5, 5]
     np.testing.assert_array_equal(detections.mask[0, 2:7, 8], np.ones(5, dtype=bool))
 
 
 def test_from_sam3_invalid_resolution() -> None:
-    sam3_result = {"prompt_results": []}
+    sam3_result: dict[str, Any] = {"prompt_results": []}
     with pytest.raises(
         ValueError, match=r"Both dimensions in resolution must be positive\."
     ):

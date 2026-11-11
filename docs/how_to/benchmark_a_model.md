@@ -169,7 +169,8 @@ If you already use a PyTorch DataLoader with Hugging Face DETR, see [Evaluate ta
     targets_list = []
 
     for image_path, image, label in test_set:
-        predictions = model.predict(image[:, :, ::-1])
+        # RF-DETR drops predictions below 0.5 by default; mAP needs the full PR curve.
+        predictions = model.predict(image[:, :, ::-1], threshold=0.0)
 
         image_paths.append(image_path)
         predictions_list.append(predictions)
@@ -272,7 +273,8 @@ Let's also remove the predictions that are not in the dataset classes.
     targets_list = []
 
     for image_path, image, label in test_set:
-        predictions = model.predict(image[:, :, ::-1])
+        # RF-DETR drops predictions below 0.5 by default; mAP needs the full PR curve.
+        predictions = model.predict(image[:, :, ::-1], threshold=0.0)
 
         remap_classes(
             detections=predictions,

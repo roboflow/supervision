@@ -118,16 +118,7 @@ ______________________________________________________________________
 
 ## 🔍 Pull Request Reviews
 
-**When reviewing PRs, follow the comprehensive [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines).**
-
-Quick checklist:
-
-- Tests included and passing
-- Docstrings follow Google style with examples
-- Pre-commit hooks pass
-- Breaking changes documented
-- Score code quality, testing, docs (n/5 scale)
-- Use inline comments + GitHub suggestion format
+When reviewing pull requests or diffs, follow the [code-review skill](skills/code-review/SKILL.md) and the comprehensive [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines).
 
 ______________________________________________________________________
 
@@ -142,5 +133,5 @@ ______________________________________________________________________
 ## 🎯 Context-Aware Behavior
 
 - **For general development tasks**: Follow [AGENTS.md](../AGENTS.md)
-- **For pull request reviews**: Follow [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines)
+- **For pull request reviews**: Follow the [code-review skill](skills/code-review/SKILL.md) and [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines)
 - **For detailed processes**: Consult [CONTRIBUTING.md](CONTRIBUTING.md)

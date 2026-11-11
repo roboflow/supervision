@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from typing import cast
 
@@ -14,6 +15,7 @@ from supervision.annotators.utils import (
     resolve_color_idx,
     resolve_text_background_xyxy,
     rgba_to_hex,
+    snap_boxes,
     wrap_text,
 )
 from supervision.detection.core import Detections
@@ -111,7 +113,7 @@ def test_resolve_color_idx(
     detection_idx: int,
     color_lookup: ColorLookup | np.ndarray,
     expected_result: int | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = resolve_color_idx(
@@ -139,7 +141,9 @@ def test_resolve_color_accepts_negative_class_id() -> None:
 
 def test_resolve_color_accepts_palette_from_src_namespace() -> None:
     """Palette instances imported through src.supervision still resolve by index."""
-    from src.supervision.draw.color import ColorPalette as SrcColorPalette
+    from importlib import import_module
+
+    SrcColorPalette = import_module("src.supervision.draw.color").ColorPalette
 
     detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
 
@@ -162,6 +166,11 @@ def test_resolve_color_accepts_palette_from_src_namespace() -> None:
         (12345, None, ["12345"], DoesNotRaise()),  # plain integer
         (-6789, None, ["-6789"], DoesNotRaise()),  # negative integer
         (np.int64(1000), None, ["1000"], DoesNotRaise()),  # NumPy int64
+        pytest.param(0, None, ["0"], DoesNotRaise(), id="integer-zero"),
+        pytest.param(0, 10, ["0"], DoesNotRaise(), id="integer-zero-wrapped"),
+        pytest.param(np.int64(0), None, ["0"], DoesNotRaise(), id="numpy-int-zero"),
+        pytest.param(0.0, None, ["0.0"], DoesNotRaise(), id="float-zero"),
+        pytest.param(False, None, ["False"], DoesNotRaise(), id="boolean-false"),
         ([1, 2, 3], None, ["[1, 2, 3]"], DoesNotRaise()),  # list to string
         (
             "When you play the game of thrones, you win or you die.\nFear cuts deeper than swords.\nA mind needs books as a sword needs a whetstone.",  # noqa: E501
@@ -210,7 +219,7 @@ def test_wrap_text(
     text: object,
     max_line_length: int | None,
     expected_result: list[str],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = wrap_text(text=text, max_line_length=max_line_length)
@@ -255,6 +264,10 @@ def test_trace_put_requires_tracker_id_before_mutation() -> None:
         ("00FF0080", (0, 255, 0, 128)),
         ("  #ff00ff80  ", (255, 0, 255, 128)),
         ("abcdef", (171, 205, 239, 255)),
+        pytest.param("#F0F", (255, 0, 255, 255), id="shorthand-rgb-prefixed"),
+        pytest.param("f0f", (255, 0, 255, 255), id="shorthand-rgb-no-prefix"),
+        pytest.param("#F0F8", (255, 0, 255, 136), id="shorthand-rgba-prefixed"),
+        pytest.param("  #fff  ", (255, 255, 255, 255), id="shorthand-rgb-whitespace"),
     ],
 )
 def test_hex_to_rgba_valid(
@@ -268,7 +281,9 @@ def test_hex_to_rgba_valid(
     [
         pytest.param("#FF00F", id="five-digits"),
         pytest.param("#GGHHII", id="non-hex-digits"),
-        pytest.param("#FFF", id="short-form"),
+        pytest.param("#FF", id="two-digits"),
+        pytest.param("#GGG", id="short-form-non-hex-digits"),
+        pytest.param("##FFF", id="short-form-multiple-prefixes"),
         pytest.param("1234567", id="seven-digits"),
         pytest.param("##000000", id="multiple-prefixes"),
     ],
@@ -525,3 +540,43 @@ class TestTraceEmptyFrames:
 
         with pytest.raises(ValueError, match="without a detection mask"):
             trace.put(detections)
+
+
+class TestSnapBoxes:
+    """Tests for `snap_boxes`, which moves label boxes into the frame."""
+
+    @pytest.mark.parametrize(
+        ("xyxy", "expected"),
+        [
+            pytest.param(
+                [-10, 10, 30, 50], [0, 10, 40, 50], id="off-left-edge-shifts-right"
+            ),
+            pytest.param(
+                [310, 200, 350, 250],
+                [280, 190, 320, 240],
+                id="off-right-and-bottom-edges-shift-in",
+            ),
+            pytest.param(
+                [-20, 10, 350, 50],
+                [0, 10, 370, 50],
+                id="wider-than-frame-from-outside-keeps-left-edge",
+            ),
+            pytest.param(
+                [10, 10, 400, 50],
+                [0, 10, 390, 50],
+                id="wider-than-frame-from-inside-keeps-left-edge",
+            ),
+            pytest.param(
+                [10, 10, 40, 300],
+                [10, 0, 40, 290],
+                id="taller-than-frame-from-inside-keeps-top-edge",
+            ),
+        ],
+    )
+    def test_snaps_box_into_frame_prioritizing_top_left(
+        self, xyxy: list[float], expected: list[float]
+    ) -> None:
+        """A box moves into the frame; one too large for it keeps its top-left."""
+        snapped = snap_boxes(np.array([xyxy], dtype=np.float32), (320, 240))
+
+        assert np.array_equal(snapped, np.array([expected], dtype=np.float32))

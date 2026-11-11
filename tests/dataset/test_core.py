@@ -1,4 +1,5 @@
 import warnings
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -189,7 +190,7 @@ def _create_image(fill_value: int) -> npt.NDArray[np.uint8]:
 def test_dataset_merge(
     dataset_list: list[DetectionDataset],
     expected_result: DetectionDataset | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     """Verify that multiple DetectionDataset objects can be successfully merged.
 
@@ -200,6 +201,47 @@ def test_dataset_merge(
     with exception:
         result = DetectionDataset.merge(dataset_list=dataset_list)
         assert result == expected_result
+
+
+class TestMergeUnlabeledDetections:
+    def test_preserves_unlabeled_and_remaps_labeled_annotations(self) -> None:
+        """Merge datasets even when an annotation has no class IDs."""
+        unlabeled = Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            confidence=np.array([0.75]),
+            data={"source": np.array(["camera"])},
+        )
+        first = DetectionDataset(
+            classes=["cat"],
+            images=["unlabeled.png"],
+            annotations={"unlabeled.png": unlabeled},
+        )
+        second = DetectionDataset(
+            classes=["dog"],
+            images=["labeled.png"],
+            annotations={
+                "labeled.png": _create_detections(xyxy=[[1, 1, 2, 2]], class_id=[0])
+            },
+        )
+
+        merged = DetectionDataset.merge([first, second])
+
+        assert merged.classes == ["cat", "dog"]
+        assert merged.annotations["unlabeled.png"].class_id is None
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].xyxy, unlabeled.xyxy
+        )
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].confidence, [0.75]
+        )
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].data["source"], ["camera"]
+        )
+        assert not np.shares_memory(
+            merged.annotations["unlabeled.png"].xyxy,
+            first.annotations["unlabeled.png"].xyxy,
+        )
+        np.testing.assert_array_equal(merged.annotations["labeled.png"].class_id, [1])
 
 
 class TestClassNamePopulation:
@@ -899,6 +941,41 @@ class TestClassificationDatasetExportCollisions:
         for class_name, path in zip(dataset.classes, paths):
             saved = _cv2.imread(str(tmp_path / class_name / "image.png"))
             np.testing.assert_array_equal(saved, images[path])
+
+
+class TestClassificationDatasetImageWrites:
+    """Classification folder exports surface failed in-memory image writes."""
+
+    def test_raises_when_image_cannot_be_written(self, tmp_path: Path) -> None:
+        """An unwritable image path raises with the destination path in the error."""
+        dataset = ClassificationDataset(
+            classes=["cat"],
+            images={"image.png": np.zeros((4, 4, 3), dtype=np.uint8)},
+            annotations={"image.png": Classifications(class_id=np.array([0]))},
+        )
+        image_path = tmp_path / "cat" / "image.png"
+        image_path.mkdir(parents=True)
+
+        with pytest.raises(OSError, match="Failed to save image") as error:
+            dataset.as_folder_structure(str(tmp_path))
+
+        assert str(image_path) in str(error.value)
+
+    def test_writes_in_memory_pixels(self, tmp_path: Path) -> None:
+        """A successful export keeps the image in its class directory unchanged."""
+        from supervision import _cv2
+
+        image = np.full((4, 4, 3), 127, dtype=np.uint8)
+        dataset = ClassificationDataset(
+            classes=["cat"],
+            images={"image.png": image},
+            annotations={"image.png": Classifications(class_id=np.array([0]))},
+        )
+
+        dataset.as_folder_structure(str(tmp_path))
+
+        saved = _cv2.imread(str(tmp_path / "cat" / "image.png"))
+        np.testing.assert_array_equal(saved, image)
 
 
 class TestClassificationDatasetFolderRoundTrip:

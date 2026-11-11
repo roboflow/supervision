@@ -378,8 +378,9 @@ def test_json_sink(
     second_detections: sv.Detections,
     second_custom_data: dict[str, Any] | None,
     file_name: str,
-    expected_result: list[list[Any]],
+    expected_result: list[dict[str, Any]],
 ) -> None:
+    """JSON sink rows hold detection fields plus any custom data."""
     with sv.JSONSink(file_name) as sink:
         if custom_data is None:
             sink.append(detections)
@@ -492,6 +493,45 @@ def test_json_default_raises_for_unserializable_type() -> None:
 class TestJSONSinkLifecycle:
     """Tests for opening and reopening a JSON sink."""
 
+    def test_body_exception_survives_serialization_failure(
+        self,
+        tmp_path: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Preserve the body error while logging a failure to serialize on exit."""
+        sink = sv.JSONSink(str(tmp_path / "output.json"))
+        detections = sv.Detections(xyxy=np.array([[0, 0, 1, 1]]))
+        from supervision.detection.tools import json_sink as json_sink_module
+
+        monkeypatch.setattr(json_sink_module.logger, "handlers", [caplog.handler])
+        caplog.set_level("ERROR", logger=json_sink_module.logger.name)
+
+        with pytest.raises(RuntimeError, match="processing failed"):  # noqa: PT012
+            with sink:
+                sink.append(detections, custom_data={"invalid": object()})
+                raise RuntimeError("processing failed")
+
+        assert sink.file is not None
+        assert sink.file.closed
+        assert len(caplog.records) == 1
+        assert caplog.records[0].exc_info is not None
+        assert isinstance(caplog.records[0].exc_info[1], TypeError)
+
+    def test_serialization_failure_without_body_error_propagates(
+        self, tmp_path: Any
+    ) -> None:
+        """Report serialization failures when no body error is active."""
+        sink = sv.JSONSink(str(tmp_path / "output.json"))
+        detections = sv.Detections(xyxy=np.array([[0, 0, 1, 1]]))
+
+        with pytest.raises(TypeError, match="not JSON serializable"):
+            with sink:
+                sink.append(detections, custom_data={"invalid": object()})
+
+        assert sink.file is not None
+        assert sink.file.closed
+
     def test_reopening_starts_fresh_output_session(self, tmp_path: Any) -> None:
         """Reopening a sink excludes rows from the prior output session."""
         first_path = tmp_path / "first.json"
@@ -527,8 +567,39 @@ class TestJSONSinkLifecycle:
             }
         ]
 
+    def test_write_and_close_inside_with_block_keeps_output(
+        self, tmp_path: Any
+    ) -> None:
+        """Closing explicitly inside `with` does not fail or rewrite on exit."""
+        path = tmp_path / "closed_early.json"
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            class_id=np.array([1]),
+        )
 
-def assert_json_equal(file_name, expected_rows):
+        with sv.JSONSink(str(path)) as sink:
+            sink.append(detections)
+            sink.write_and_close()
+            sink.write_and_close()
+
+        with open(path) as file:
+            rows = json.load(file)
+
+        assert rows == [
+            {
+                "x_min": 0.0,
+                "y_min": 0.0,
+                "x_max": 10.0,
+                "y_max": 10.0,
+                "class_id": 1,
+                "confidence": "",
+                "tracker_id": "",
+            }
+        ]
+
+
+def assert_json_equal(file_name: str, expected_rows: list[dict[str, Any]]) -> None:
+    """Assert a JSON sink file holds the expected rows, then delete it."""
     with open(file_name) as file:
         data = json.load(file)
         assert data == expected_rows, (

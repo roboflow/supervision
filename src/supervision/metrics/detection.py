@@ -1362,6 +1362,7 @@ class ConfusionMatrix:
 
         Example:
             ```python
+            import numpy as np
             import supervision as sv
             from rfdetr import RFDETRMedium
 
@@ -1369,7 +1370,7 @@ class ConfusionMatrix:
 
             model = RFDETRMedium()
             def callback(image: np.ndarray) -> sv.Detections:
-                return model.predict(image[:, :, ::-1])
+                return model.predict(image[:, :, ::-1].copy())
 
             confusion_matrix = sv.ConfusionMatrix.benchmark(
                 dataset = dataset,

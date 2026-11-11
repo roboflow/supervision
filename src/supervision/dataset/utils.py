@@ -166,6 +166,10 @@ def _seam_candidates(
     )
 
 
+class _SeamNotFoundError(ValueError):
+    """No candidate seam from a mask hole stays on foreground pixels."""
+
+
 def _find_seam(
     mask: npt.NDArray[np.bool_],
     points: npt.NDArray[np.number],
@@ -180,7 +184,7 @@ def _find_seam(
     same straight-line test; unsafe candidates fail instead of corrupting the mask.
 
     Raises:
-        ValueError: If no bounded candidate seam stays within foreground pixels.
+        _SeamNotFoundError: If no bounded candidate seam stays within foreground pixels.
     """
     for neighbour_count, max_checks in _SEAM_SEARCH_PASSES:
         sources, targets, lengths = _seam_candidates(
@@ -195,10 +199,10 @@ def _find_seam(
     source, target = int(sources[nearest]), int(targets[nearest])
     if _is_segment_inside_mask(mask, points[source], points[target]):
         return source, target
-    raise ValueError("No foreground-contained seam found for a mask hole.")
+    raise _SeamNotFoundError("No foreground-contained seam found for a mask hole.")
 
 
-def _bridge_holes(
+def _splice_holes_in_order(
     mask: npt.NDArray[np.bool_],
     outer: npt.NDArray[np.number],
     holes: list[npt.NDArray[np.number]],
@@ -267,6 +271,29 @@ def _bridge_holes(
     return points[np.concatenate(chunks)]
 
 
+def _bridge_holes(
+    mask: npt.NDArray[np.bool_],
+    outer: npt.NDArray[np.number],
+    holes: list[npt.NDArray[np.number]],
+) -> npt.NDArray[np.number]:
+    """Splice holes into an outer contour, retrying top-down if their order fails.
+
+    A seam can only reach the outer contour or a hole attached earlier, so a hole
+    enclosed by one listed after it has no seam, and backends list contours in
+    different orders. Top-down order attaches the enclosing hole first. It is only the
+    retry because the seam search is bounded, so neither order suits every mask, and a
+    mask the given order can bridge keeps the polygon that order produces.
+
+    Raises:
+        _SeamNotFoundError: If no candidate seam stays on foreground in either order.
+    """
+    try:
+        return _splice_holes_in_order(mask=mask, outer=outer, holes=holes)
+    except _SeamNotFoundError:
+        top_down = sorted(holes, key=lambda hole: (hole[:, 1].min(), hole[:, 0].min()))
+        return _splice_holes_in_order(mask=mask, outer=outer, holes=top_down)
+
+
 def approximate_mask_with_polygons(
     mask: npt.NDArray[np.bool_],
     min_image_area_percentage: float = 0.0,
@@ -291,14 +318,16 @@ def approximate_mask_with_polygons(
         bridge_holes: If `True`, each hole is joined to its outer contour, or to a
             hole already joined, by a zero-width seam along foreground pixels, so a
             mask with holes yields one polygon per connected component instead of
-            one extra polygon per hole.
+            one extra polygon per hole. A component whose simplified contours
+            leave no seam on foreground is joined from its traced contours and so
+            is returned unsimplified.
 
     Returns:
         A list of polygons, each of shape `(N, 2)`.
 
     Raises:
         ValueError: If no candidate seam stays within foreground pixels when
-            `bridge_holes=True`.
+            `bridge_holes=True`, even between the traced contours.
 
     Examples:
         ```pycon
@@ -342,9 +371,15 @@ def approximate_mask_with_polygons(
             ]
             bridged = simplified_outer
             if simplified_holes:
-                bridged = _bridge_holes(
-                    mask=mask, outer=simplified_outer, holes=simplified_holes
-                )
+                try:
+                    bridged = _bridge_holes(
+                        mask=mask, outer=simplified_outer, holes=simplified_holes
+                    )
+                except _SeamNotFoundError:
+                    # Simplifying can drop every vertex where a hole comes close to
+                    # the outline, so no straight seam stays on foreground. The
+                    # traced contours run along foreground pixels, so join those.
+                    bridged = _bridge_holes(mask=mask, outer=outer, holes=holes)
             bridged_polygons.append(bridged)
         return bridged_polygons
     return [
@@ -471,6 +506,9 @@ def save_dataset_images(
         show_progress: If ``True``, display a tqdm progress bar while
             saving images.
 
+    Raises:
+        OSError: If an in-memory image cannot be written to its destination.
+
     Examples:
         ```pycon
         >>> from supervision.dataset.core import DetectionDataset
@@ -494,7 +532,8 @@ def save_dataset_images(
         final_path = os.path.join(images_directory_path, Path(image_path).name)
         if image_path in dataset._images_in_memory:
             image = dataset._images_in_memory[image_path]
-            cv2.imwrite(final_path, image)
+            if not cv2.imwrite(final_path, image):
+                raise OSError(f"Failed to save image to path: {final_path}")
         else:
             # Exporting into the folder the image was loaded from leaves it where it
             # is, as `ClassificationDataset.as_folder_structure` does.

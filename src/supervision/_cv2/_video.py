@@ -116,7 +116,7 @@ class _VideoCapture:
     """Expose OpenCV-shaped file capture backed by PyAV decoding."""
 
     def __init__(self, source: str | os.PathLike[str] | int) -> None:
-        """Open a file source and retain a lazy PyAV frame iterator."""
+        """Open a file source and retain a lazy iterator for its first video stream."""
         self._container: Any = None
         self._stream: Any = None
         self._frames: Iterator[Any] | None = None
@@ -138,7 +138,8 @@ class _VideoCapture:
             if not self._container.streams.video:
                 raise ValueError(f"Video source has no video stream: {source}")
             self._stream = self._container.streams.video[0]
-            self._frames = iter(self._container.decode(video=self._stream.index))
+            # PyAV's video selector indexes video streams, not all container streams.
+            self._frames = iter(self._container.decode(video=0))
             self._opened = True
         except Exception as exc:
             self._error = exc
@@ -160,7 +161,7 @@ class _VideoCapture:
 
             container = av.open(str(self._source), mode="r")
             try:
-                count = sum(1 for _ in container.decode(video=self._stream.index))
+                count = sum(1 for _ in container.decode(video=0))
             finally:
                 container.close()
         self._frame_count_cache = count
@@ -179,7 +180,7 @@ class _VideoCapture:
 
         container = av.open(str(self._source), mode="r")
         try:
-            frames = container.decode(video=self._stream.index)
+            frames = container.decode(video=0)
             rotation = next((int(frame.rotation) for frame in frames), 0)
         finally:
             container.close()
@@ -213,7 +214,7 @@ class _VideoCapture:
     def _reset(self) -> None:
         """Seek the decoder to the first frame and reset the logical position."""
         self._container.seek(0, stream=self._stream, backward=True)
-        self._frames = iter(self._container.decode(video=self._stream.index))
+        self._frames = iter(self._container.decode(video=0))
         self._position = 0
 
     def set(self, property_id: int, value: float) -> bool:

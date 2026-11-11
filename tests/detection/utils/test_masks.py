@@ -1,4 +1,6 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from unittest.mock import patch
 
 import numpy as np
 import numpy.typing as npt
@@ -28,43 +30,43 @@ class TestMaskROIHelpers:
         mask[3, 5] = True
         assert mask_to_roi(mask) == (5, 3, 6, 4)
 
-    def test_mask_to_roi_all_false_returns_none(self):
+    def test_mask_to_roi_all_false_returns_none(self) -> None:
         """All-false mask should return None."""
         mask = np.zeros((10, 15), dtype=bool)
         assert _mask_to_roi(mask) is None
 
-    def test_mask_to_roi_single_pixel_exclusive_bounds(self):
+    def test_mask_to_roi_single_pixel_exclusive_bounds(self) -> None:
         """Single true pixel at (row=3, col=5) gives bounds (5, 3, 6, 4)."""
         mask = np.zeros((10, 15), dtype=bool)
         mask[3, 5] = True
         assert _mask_to_roi(mask) == (5, 3, 6, 4)
 
-    def test_mask_to_roi_boundary_row_col_zero(self):
+    def test_mask_to_roi_boundary_row_col_zero(self) -> None:
         """True pixel at top-left boundary should give (0, 0, 1, 1)."""
         mask = np.zeros((10, 15), dtype=bool)
         mask[0, 0] = True
         assert _mask_to_roi(mask) == (0, 0, 1, 1)
 
-    def test_mask_to_roi_full_image(self):
+    def test_mask_to_roi_full_image(self) -> None:
         """Full-image true mask should span the entire array."""
         h, w = 8, 12
         mask = np.ones((h, w), dtype=bool)
         assert _mask_to_roi(mask) == (0, 0, w, h)
 
-    def test_mask_to_roi_region(self):
+    def test_mask_to_roi_region(self) -> None:
         """Region [10:20, 15:25] in 80x90 mask gives exclusive bounds (15,10,25,20)."""
         mask = np.zeros((80, 90), dtype=bool)
         mask[10:20, 15:25] = True
         assert _mask_to_roi(mask) == (15, 10, 25, 20)
 
-    def test_compact_masks_to_roi_empty_returns_none(self):
+    def test_compact_masks_to_roi_empty_returns_none(self) -> None:
         """Zero-length CompactMask should return None."""
         masks = np.zeros((0, 10, 10), dtype=bool)
         xyxy = np.empty((0, 4), dtype=np.float32)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
         assert _compact_masks_to_roi(cm, (10, 10)) is None
 
-    def test_compact_masks_to_roi_single_detection_coordinates(self):
+    def test_compact_masks_to_roi_single_detection_coordinates(self) -> None:
         """Single compact mask with known crop should give correct exclusive bounds."""
         masks = np.zeros((1, 20, 20), dtype=bool)
         masks[0, 5:10, 3:8] = True
@@ -78,7 +80,34 @@ class TestMaskROIHelpers:
         assert x2 >= 8
         assert y2 >= 10
 
-    def test_compact_masks_to_roi_two_detections_union(self):
+    def test_all_false_compact_masks_have_no_roi(self) -> None:
+        """A nonempty compact collection without foreground has no ROI."""
+        masks = np.zeros((1, 60, 80), dtype=bool)
+        xyxy = np.array([[0, 0, 79, 59]], dtype=np.float32)
+        compact = CompactMask.from_dense(masks, xyxy, image_shape=(60, 80))
+
+        result = _compact_masks_to_roi(compact, (60, 80))
+
+        assert result is None
+
+    @pytest.mark.parametrize("empty_index", [0, 1])
+    def test_empty_compact_crops_do_not_expand_roi(self, empty_index: int) -> None:
+        """An empty full-frame crop leaves the foreground crop's bounds unchanged."""
+        masks = np.zeros((2, 60, 80), dtype=bool)
+        masks[1 - empty_index, 40:45, 60:65] = True
+        xyxy = np.array([[0, 0, 79, 59], [0, 0, 79, 59]], dtype=np.float32)
+        xyxy[1 - empty_index] = [60, 40, 64, 44]
+        compact = CompactMask.from_dense(masks, xyxy, image_shape=(60, 80))
+
+        with (
+            patch.object(CompactMask, "to_dense", side_effect=AssertionError),
+            patch.object(CompactMask, "crop", side_effect=AssertionError),
+        ):
+            result = _compact_masks_to_roi(compact, (60, 80))
+
+        assert result == (60, 40, 65, 45)
+
+    def test_compact_masks_to_roi_two_detections_union(self) -> None:
         """Two disjoint compact masks union should span both regions."""
         masks = np.zeros((2, 30, 40), dtype=bool)
         masks[0, 2:8, 1:6] = True
@@ -95,18 +124,18 @@ class TestMaskROIHelpers:
         assert x2 >= 35
         assert y2 >= 25
 
-    def test_masks_to_roi_empty_array_returns_none(self):
+    def test_masks_to_roi_empty_array_returns_none(self) -> None:
         """Zero-element dense mask array (N=0) should return None."""
         masks = np.zeros((0, 10, 10), dtype=bool)
         assert _masks_to_roi(masks, (10, 10)) is None
 
-    def test_masks_to_roi_2d_array(self):
+    def test_masks_to_roi_2d_array(self) -> None:
         """2D boolean array (single mask) should work as union mask."""
         mask = np.zeros((10, 15), dtype=bool)
         mask[3:6, 7:11] = True
         assert _masks_to_roi(mask, (10, 15)) == (7, 3, 11, 6)
 
-    def test_masks_to_roi_dense_with_xyxy_uses_box_union(self):
+    def test_masks_to_roi_dense_with_xyxy_uses_box_union(self) -> None:
         """Dense path with xyxy should return union of boxes (O(N) path)."""
         masks = np.zeros((2, 30, 40), dtype=bool)
         masks[0, 5:10, 5:10] = True
@@ -120,7 +149,7 @@ class TestMaskROIHelpers:
         assert x2 >= 30
         assert y2 >= 25
 
-    def test_masks_to_roi_dense_with_xyxy_loose_box_returns_box_union(self):
+    def test_masks_to_roi_dense_with_xyxy_loose_box_returns_box_union(self) -> None:
         """Loose xyxy (larger than pixel region) returns box union, not tight bounds."""
         masks = np.zeros((1, 30, 40), dtype=bool)
         masks[0, 10:12, 10:12] = True  # tiny 2x2 pixel region
@@ -135,7 +164,9 @@ class TestMaskROIHelpers:
         assert x2 >= 21  # floor(20.0) + 1
         assert y2 >= 21
 
-    def test_masks_to_roi_dense_with_xyxy_falls_back_for_pixels_outside_box(self):
+    def test_masks_to_roi_dense_with_xyxy_falls_back_for_pixels_outside_box(
+        self,
+    ) -> None:
         """Dense xyxy path scans pixels when true pixels fall outside the box union."""
         masks = np.zeros((1, 30, 40), dtype=bool)
         masks[0, 10:12, 10:12] = True
@@ -146,23 +177,61 @@ class TestMaskROIHelpers:
 
         assert result == (10, 10, 32, 27)
 
-    def test_masks_to_roi_dense_with_xyxy_all_false_returns_none(self):
+    def test_masks_to_roi_dense_with_xyxy_all_false_returns_none(self) -> None:
         """All-false masks with xyxy provided should still return None."""
         masks = np.zeros((2, 30, 40), dtype=bool)
         xyxy = np.array([[5.0, 5.0, 20.0, 20.0], [10.0, 10.0, 25.0, 25.0]])
         result = _masks_to_roi(masks, (30, 40), xyxy)
         assert result is None
 
+    @pytest.mark.parametrize("empty_index", [0, 1])
+    def test_masks_to_roi_dense_with_xyxy_ignores_empty_mask_boxes(
+        self, empty_index: int
+    ) -> None:
+        """An all-False mask's full-frame box does not widen the dense box union."""
+        masks = np.zeros((2, 60, 80), dtype=bool)
+        masks[1 - empty_index, 40:45, 60:65] = True
+        xyxy = np.array([[0, 0, 79, 59], [0, 0, 79, 59]], dtype=np.float32)
+        xyxy[1 - empty_index] = [60, 40, 64, 44]
 
-def test_resize_masks_does_not_upscale_small_masks() -> None:
-    """resize_masks returns small masks unchanged instead of upscaling."""
-    masks = np.zeros((2, 4, 5), dtype=bool)
-    masks[:, 1:3, 2:4] = True
+        result = _masks_to_roi(masks, (60, 80), xyxy)
 
-    result = resize_masks(masks, max_dimension=640)
+        assert result == (60, 40, 65, 45)
 
-    assert result is masks
-    assert result.shape == (2, 4, 5)
+
+class TestResizeMasks:
+    def test_does_not_upscale_small_masks(self) -> None:
+        """Small masks keep their original dimensions and storage."""
+        masks = np.zeros((2, 4, 5), dtype=bool)
+        masks[:, 1:3, 2:4] = True
+
+        result = resize_masks(masks, max_dimension=640)
+
+        assert result is masks
+        assert result.shape == (2, 4, 5)
+
+    @pytest.mark.parametrize(
+        ("height", "width", "expected_height", "expected_width"),
+        [
+            pytest.param(1, 1024, 1, 640, id="single-row"),
+            pytest.param(1024, 1, 640, 1, id="single-column"),
+            pytest.param(4, 4096, 1, 640, id="wide-strip"),
+            pytest.param(4096, 4, 640, 1, id="tall-strip"),
+        ],
+    )
+    def test_keeps_both_spatial_axes(
+        self, height: int, width: int, expected_height: int, expected_width: int
+    ) -> None:
+        """Downscaling a narrow mask keeps at least one pixel on each axis."""
+        masks = np.ones((2, height, width), dtype=bool)
+        masks[1] = False
+
+        result = resize_masks(masks, max_dimension=640)
+
+        assert result.shape == (2, expected_height, expected_width)
+        assert result.dtype == np.bool_
+        assert result[0].all()
+        assert not result[1].any()
 
 
 @pytest.mark.parametrize(
@@ -420,11 +489,91 @@ def test_move_masks(
     offset: np.ndarray,
     resolution_wh: tuple[int, int],
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = move_masks(masks=masks, offset=offset, resolution_wh=resolution_wh)
         np.testing.assert_array_equal(result, expected_result)
+
+
+class TestMoveMasksIntegerOffsets:
+    @pytest.mark.parametrize("dtype_name", ["int8", "uint8"])
+    @pytest.mark.parametrize(
+        "offset_values",
+        [pytest.param((0, 0), id="zero"), pytest.param((1, 2), id="positive")],
+    )
+    def test_moves_masks_into_larger_frames(
+        self, dtype_name: str, offset_values: tuple[int, int]
+    ) -> None:
+        """Narrow offsets do not restrict the dimensions of the destination frame."""
+        masks = np.zeros((2, 300, 400), dtype=bool)
+        masks[0, 2, 3] = True
+        masks[1, 295, 395] = True
+        offset = np.array(offset_values, dtype=dtype_name)
+        dx, dy = offset_values
+        expected = np.zeros((2, 480, 640), dtype=bool)
+        expected[0, 2 + dy, 3 + dx] = True
+        expected[1, 295 + dy, 395 + dx] = True
+
+        result = move_masks(masks, offset, resolution_wh=(640, 480))
+
+        np.testing.assert_array_equal(result, expected)
+        assert result.dtype == np.bool_
+        assert masks.sum() == 2
+        np.testing.assert_array_equal(offset, offset_values)
+
+    @pytest.mark.parametrize(
+        ("dtype_name", "offset_values", "expected_wh"),
+        [
+            pytest.param("int8", (-128, 0), (72, 200), id="minimum-int8-x"),
+            pytest.param("int8", (0, -128), (200, 72), id="minimum-int8-y"),
+            pytest.param("uint8", (250, 0), (0, 0), id="unsigned-outside-x"),
+            pytest.param("uint8", (0, 250), (0, 0), id="unsigned-outside-y"),
+            pytest.param("int64", (-(2**63), 0), (0, 0), id="minimum-int64"),
+            pytest.param("uint64", (2**64 - 1, 0), (0, 0), id="maximum-uint64"),
+        ],
+    )
+    def test_clips_shifts_at_integer_boundaries(
+        self,
+        dtype_name: str,
+        offset_values: tuple[int, int],
+        expected_wh: tuple[int, int],
+    ) -> None:
+        """Boundary offsets retain only the foreground inside the destination."""
+        masks = np.ones((2, 200, 200), dtype=bool)
+        offset = np.array(offset_values, dtype=dtype_name)
+        width, height = expected_wh
+        expected = np.zeros_like(masks)
+        expected[:, :height, :width] = True
+
+        with np.errstate(over="raise"):
+            result = move_masks(masks, offset, resolution_wh=(200, 200))
+
+        np.testing.assert_array_equal(result, expected)
+        assert masks.all()
+        np.testing.assert_array_equal(offset, offset_values)
+
+    @pytest.mark.parametrize("dtype_name", ["float32", "float64"])
+    def test_rejects_floating_offsets(self, dtype_name: str) -> None:
+        """Floating offsets still require integer slice indices, without truncation."""
+        masks = np.ones((1, 2, 3), dtype=bool)
+        offset = np.array([1.5, 2.0], dtype=dtype_name)
+
+        with pytest.raises(TypeError, match="slice indices must be integers"):
+            move_masks(masks, offset, resolution_wh=(8, 9))
+
+    @pytest.mark.parametrize(
+        "dtype_name", ["int16", "uint16", "int32", "uint32", "int64", "uint64"]
+    )
+    def test_accepts_numpy_frame_dimensions(self, dtype_name: str) -> None:
+        """A large offset stays outside a frame whose dimensions use NumPy scalars."""
+        masks = np.ones((1, 2, 3), dtype=bool)
+        width, height = np.array([9, 8], dtype=dtype_name)
+        offset = np.array([2**40, 0], dtype=np.int64)
+
+        result = move_masks(masks, offset, resolution_wh=(width, height))
+
+        np.testing.assert_array_equal(result, np.zeros((1, 8, 9), dtype=bool))
 
 
 @pytest.mark.parametrize(
@@ -511,7 +660,7 @@ def test_move_masks(
 def test_calculate_masks_centroids(
     masks: np.ndarray,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = calculate_masks_centroids(masks=masks)
@@ -566,7 +715,9 @@ def test_calculate_masks_centroids(
     ],
 )
 def test_contains_holes(
-    mask: npt.NDArray[np.bool_], expected_result: bool, exception: Exception
+    mask: npt.NDArray[np.bool_],
+    expected_result: bool,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = contains_holes(mask)
@@ -646,7 +797,7 @@ def test_contains_multiple_segments(
     mask: npt.NDArray[np.bool_],
     connectivity: int,
     expected_result: bool,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = contains_multiple_segments(mask=mask, connectivity=connectivity)
@@ -867,14 +1018,15 @@ def test_contains_multiple_segments(
     ],
 )
 def test_filter_segments_by_distance_sweep(
-    mask: npt.NDArray,
+    mask: npt.NDArray[np.bool_],
     connectivity: int,
     mode: str,
     absolute_distance: float | None,
     relative_distance: float | None,
-    expected_result: npt.NDArray | None,
-    exception: Exception,
+    expected_result: npt.NDArray[np.bool_] | None,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Segments far from the main component are removed for each distance mode."""
     with exception:
         result = filter_segments_by_distance(
             mask=mask,
@@ -883,4 +1035,5 @@ def test_filter_segments_by_distance_sweep(
             absolute_distance=absolute_distance,
             relative_distance=relative_distance,
         )
+        assert expected_result is not None
         assert np.array_equal(result, expected_result)

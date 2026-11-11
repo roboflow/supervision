@@ -12,7 +12,7 @@ import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import (
     _image_file_resolution_wh,
     approximate_mask_with_polygons,
@@ -26,6 +26,7 @@ from supervision.detection.utils.converters import (
     polygon_to_mask,
     polygon_to_xyxy,
 )
+from supervision.detection.utils.polygons import merge_multi_segment
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -563,11 +564,15 @@ def detections_to_yolo_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
+    ignore_crowd: bool = True,
+    merge_segments: bool = True,
 ) -> list[str]:
     """Convert detections to YOLO annotation lines.
 
-    A mask is written as one polygon line per connected component, with each hole
-    joined to its outer contour by a zero-width seam.
+    By default, disconnected mask contours are joined with zero-width seams and
+    written as one polygon line per detection. With ``merge_segments=False``, each
+    disconnected contour is written on a separate line. Holes are joined to their
+    outer contour by a zero-width seam.
 
     Args:
         detections: The detections to serialize. Each detection must have a
@@ -588,6 +593,16 @@ def detections_to_yolo_annotations(
         is_obb: If ``True``, serializes oriented bounding-box corners from
             ``detections.data['xyxyxyxy']`` as a 9-token YOLO OBB line
             ``class_id x1 y1 x2 y2 x3 y3 x4 y4``. Mask data is ignored.
+        ignore_crowd: When ``True`` (default), detections carrying a non-zero
+            ``iscrowd`` flag in ``detections.data`` are omitted from the export,
+            matching standard COCO-to-YOLO practice where crowd regions are ignore
+            regions rather than real detection instances. When ``False``, those
+            detections are included.
+        merge_segments: When ``True`` (default), multiple disconnected polygon
+            contours belonging to a single detection mask are joined using zero-width
+            seams via :func:`~supervision.detection.utils.polygons.merge_multi_segment`,
+            emitting exactly one YOLO polygon line per detection. When ``False``, each
+            disconnected contour is exported on its own separate line.
 
     Returns:
         A list of YOLO annotation strings, one per detection (or one per
@@ -639,6 +654,11 @@ def detections_to_yolo_annotations(
 
     annotation: list[str] = []
     for xyxy, mask, _, class_id, _, data in detections:
+        if ignore_crowd and data is not None:
+            iscrowd = data.get(ISCROWD_DATA_FIELD)
+            if iscrowd is not None and bool(np.asarray(iscrowd)):
+                continue
+
         if class_id is None:
             raise ValueError("Class ID is required for YOLO annotations.")
         if not isinstance(class_id, (int, np.integer)):
@@ -684,6 +704,8 @@ def detections_to_yolo_annotations(
                     )
                 )
                 continue
+            if merge_segments and len(polygons) > 1:
+                polygons = [merge_multi_segment(polygons)]
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_yolo(
@@ -709,6 +731,8 @@ def save_yolo_annotations(
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
     show_progress: bool = False,
+    ignore_crowd: bool = True,
+    merge_segments: bool = True,
 ) -> None:
     """Save dataset annotations in YOLO format.
 
@@ -731,6 +755,13 @@ def save_yolo_annotations(
             with shape ``(N, 4, 2)``.
         show_progress: If ``True``, display a tqdm progress bar while
             saving annotations.
+        ignore_crowd: When ``True`` (default), detections carrying a non-zero
+            ``iscrowd`` flag in ``detections.data`` are omitted from the export.
+            When ``False``, those detections are included.
+        merge_segments: When ``True`` (default), multiple disconnected polygon
+            contours belonging to a single detection mask are joined using zero-width
+            seams, emitting exactly one YOLO polygon line per detection.
+            When ``False``, each disconnected contour is exported on a separate line.
 
     Examples:
         ```pycon
@@ -765,6 +796,8 @@ def save_yolo_annotations(
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
             is_obb=is_obb,
+            ignore_crowd=ignore_crowd,
+            merge_segments=merge_segments,
         )
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 

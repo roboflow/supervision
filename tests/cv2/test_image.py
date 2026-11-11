@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import importlib
+import platform
 from collections.abc import Callable
+from fractions import Fraction
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -14,6 +17,7 @@ from supervision._cv2._image import (
     _convert_scale_abs,
     _copy_make_border,
     _flip,
+    _fused_multiply_add_float32,
     _imdecode,
     _imencode,
     _imread,
@@ -108,6 +112,30 @@ def test_fallback_copy_make_border_matches_opencv(
     )
 
 
+@pytest.mark.parametrize(
+    ("dtype", "value"),
+    [
+        pytest.param(np.uint8, (-10, 300, 50), id="uint8-out-of-bounds-multichannel"),
+        pytest.param(np.uint8, 300, id="uint8-out-of-bounds-scalar"),
+        pytest.param(np.uint8, -10, id="uint8-negative-scalar"),
+        pytest.param(np.uint8, (128.6, 200.2, 0.0), id="uint8-float-multichannel"),
+        pytest.param(np.int8, (-150, 200, 50), id="int8-out-of-bounds"),
+        pytest.param(np.uint16, (-10, 70000, 500), id="uint16-out-of-bounds"),
+        pytest.param(np.float32, (-10.4, 300.6, 50.2), id="float32-values"),
+    ],
+)
+@pytest.mark.parametrize("shape", [(4, 4), (4, 4, 3)])
+def test_fallback_copy_make_border_saturates_and_rounds_like_opencv(
+    dtype: np.dtype[Any], value: Any, shape: tuple[int, ...]
+) -> None:
+    """Saturate out-of-bounds border values and round floats matching OpenCV."""
+    source = np.zeros(shape, dtype=dtype)
+    np.testing.assert_array_equal(
+        _copy_make_border(source, 1, 1, 2, 2, _BORDER_CONSTANT, value),
+        cv2.copyMakeBorder(source, 1, 1, 2, 2, cv2.BORDER_CONSTANT, value=value),
+    )
+
+
 def test_fallback_add_weighted_matches_opencv() -> None:
     """Match OpenCV weighted image blending."""
     source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
@@ -116,6 +144,155 @@ def test_fallback_add_weighted_matches_opencv() -> None:
     np.testing.assert_array_equal(
         _add_weighted(source, 0.5, other, 0.5, 10),
         cv2.addWeighted(source, 0.5, other, 0.5, 10),
+    )
+
+
+def _assert_matches_opencv_add_weighted(
+    actual: np.ndarray, expected: np.ndarray
+) -> None:
+    """Compare with OpenCV, allowing for build-specific addWeighted kernels.
+
+    The fallback reproduces OpenCV's fused generic kernel. Other builds round a value
+    on a boundary differently: x86 builds without FMA multiply and add separately, and
+    arm64 builds hand 8- and 16-bit blends to the Carotene HAL, which sums in the other
+    order, `fma(src2, beta, fma(src1, alpha, gamma))`. Integer results can then be one
+    level away and float32 results a few units in the last place. The exact rounding is
+    pinned by the fixed-expectation tests below instead.
+    """
+    assert actual.dtype == expected.dtype
+    if np.issubdtype(actual.dtype, np.integer):
+        np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+    else:
+        np.testing.assert_allclose(actual, expected, atol=1e-4, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    ("alpha", "beta", "gamma"),
+    [
+        pytest.param(0.3, 0.7, 0, id="opacity-0.3"),
+        pytest.param(0.7, 1 - 0.7, 0, id="opacity-0.7"),
+        pytest.param(0.1, 0.9, 0, id="opacity-0.1"),
+        pytest.param(0.35, 0.65, 2.5, id="with-gamma"),
+    ],
+)
+def test_fallback_add_weighted_rounds_8bit_blends_like_opencv(
+    alpha: float, beta: float, gamma: float
+) -> None:
+    """Blend every pair of 8-bit values in float32, as OpenCV does."""
+    first, second = np.meshgrid(np.arange(256), np.arange(256), indexing="ij")
+    source = np.stack([first, second, 255 - first], axis=-1).astype(np.uint8)
+    other = np.stack([second, first, 255 - second], axis=-1).astype(np.uint8)
+
+    _assert_matches_opencv_add_weighted(
+        _add_weighted(source, alpha, other, beta, gamma),
+        cv2.addWeighted(source, alpha, other, beta, gamma),
+    )
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "alpha", "beta", "expected"),
+    [
+        pytest.param(0, 45, 0.3, 0.7, 32, id="midpoint-rounds-up"),
+        pytest.param(11, 26, 0.3, 0.7, 21, id="just-below-midpoint-rounds-down"),
+    ],
+)
+def test_fallback_add_weighted_rounds_fused_blend_to_fixed_values(
+    first: int, second: int, alpha: float, beta: float, expected: int
+) -> None:
+    """Round the fused float32 blend on a boundary to the pinned 8-bit value."""
+    source = np.full((16, 64), first, dtype=np.uint8)
+    other = np.full_like(source, second)
+
+    actual = _add_weighted(source, alpha, other, beta, 0)
+
+    np.testing.assert_array_equal(actual, np.full_like(source, expected))
+
+
+@pytest.mark.parametrize(
+    ("dtype", "first", "second", "expected"),
+    [
+        pytest.param(np.uint8, 97, 1, 1, id="uint8-tie-pushed-up"),
+        pytest.param(np.int8, -97, -1, -1, id="int8-tie-pushed-down"),
+    ],
+)
+def test_fallback_add_weighted_breaks_float32_midpoint_with_dropped_addend(
+    dtype: type[np.generic], first: int, second: int, expected: int
+) -> None:
+    """Let an addend below float64 resolution decide a float32 midpoint tie."""
+    alpha = 172961 / 2**25  # 97 * alpha is 0.5 + 2**-25, a float32 midpoint
+    beta = 2.0**-60  # lost when the sum is rounded to float64 first
+    source = np.full((16, 64), first, dtype=dtype)
+    other = np.full_like(source, second)
+
+    actual = _add_weighted(source, alpha, other, beta, 0)
+
+    np.testing.assert_array_equal(actual, np.full_like(source, expected))
+
+
+def _round_exactly_to_float32(exact: Fraction) -> np.float32:
+    """Round an exact rational to the nearest float32, ties to even."""
+    guess = np.float32(float(exact))
+    candidates = [
+        guess,
+        np.nextafter(guess, np.float32(np.inf)),
+        np.nextafter(guess, np.float32(-np.inf)),
+    ]
+    return min(
+        candidates,
+        key=lambda value: (
+            abs(Fraction(float(value)) - exact),
+            int(value.view("u4")) & 1,
+        ),
+    )
+
+
+def test_fused_multiply_add_float32_matches_exact_rational_rounding() -> None:
+    """Round each fused multiply-add once, as exact rational arithmetic does."""
+    rng = np.random.default_rng(20261028)
+    values = rng.integers(0, 256, 400).astype(np.float64)
+    weights = np.float32(rng.uniform(0, 1, 400)).astype(np.float64)
+    addends = np.float32(rng.uniform(-300, 300, 400)).astype(np.float64)
+    # Pairs whose exact product sits on a float32 midpoint, with a tiny addend.
+    values = np.append(values, [97.0, 97.0, 97.0])
+    weights = np.append(weights, [172961 / 2**25] * 3)
+    addends = np.append(addends, [2.0**-60, -(2.0**-60), 0.0])
+    expected = np.array(
+        [
+            _round_exactly_to_float32(Fraction(v) * Fraction(w) + Fraction(a))
+            for v, w, a in zip(values, weights, addends)
+        ]
+    )
+
+    actual = np.array(
+        [
+            _fused_multiply_add_float32(np.array([v]), np.float64(w), np.float64(a))[0]
+            for v, w, a in zip(values, weights, addends)
+        ]
+    )
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.int8, np.uint16, np.int16, np.float32])
+def test_fallback_add_weighted_matches_opencv_for_float32_blend_depths(
+    dtype: type[np.generic],
+) -> None:
+    """Match OpenCV on the other depths it blends in float32."""
+    rng = np.random.default_rng(20261027)
+    source: np.ndarray
+    other: np.ndarray
+    if np.issubdtype(dtype, np.integer):
+        info = np.iinfo(np.dtype(dtype))
+        source = rng.integers(info.min, info.max, (64, 48, 3), endpoint=True)
+        other = rng.integers(info.min, info.max, (64, 48, 3), endpoint=True)
+    else:
+        source = rng.uniform(-100, 400, (64, 48, 3))
+        other = rng.uniform(-100, 400, (64, 48, 3))
+    source, other = source.astype(dtype), other.astype(dtype)
+
+    _assert_matches_opencv_add_weighted(
+        _add_weighted(source, 0.35, other, 0.65, 0),
+        cv2.addWeighted(source, 0.35, other, 0.65, 0),
     )
 
 
@@ -175,12 +352,93 @@ def test_fallback_convert_scale_abs_matches_opencv() -> None:
     )
 
 
-def test_fallback_mean_matches_opencv() -> None:
-    """Match OpenCV masked mean semantics."""
-    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
-    mask = np.array([[255, 0], [0, 255]], dtype=np.uint8)
+def test_fallback_convert_scale_abs_preserves_fused_midpoint_offset() -> None:
+    """Keep a tiny offset that changes fused float32 midpoint rounding."""
+    source = np.full((1, 64), 97, dtype=np.uint8)
 
-    assert _mean(source, mask) == cv2.mean(source, mask)
+    actual = _convert_scale_abs(source, 172961 / 2**25, 2.0**-60)
+
+    np.testing.assert_array_equal(actual, np.ones_like(source))
+
+
+def test_fallback_convert_scale_abs_fuses_scale_and_offset() -> None:
+    """Round the scale and offset together before converting to uint8."""
+    source = np.array([[38]], dtype=np.uint8)
+
+    actual = _convert_scale_abs(source, 1.3, 0.1)
+
+    np.testing.assert_array_equal(actual, np.array([[50]], dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    ("dtype", "alpha", "beta"),
+    [
+        pytest.param(np.uint8, -1.3, 0.0, id="uint8-negative-alpha"),
+        pytest.param(np.uint8, 2.7, -0.5, id="uint8-negative-beta"),
+        pytest.param(np.uint8, 1.3, 0.1, id="uint8-fused-offset"),
+        pytest.param(np.uint8, 1.7, 0.3, id="uint8-fused-offset-2"),
+        pytest.param(np.int16, 1.3, 0.0, id="int16"),
+        pytest.param(np.float32, -1.3, 0.0, id="float32"),
+        pytest.param(np.float64, 1.3, 0.0, id="float64"),
+    ],
+)
+def test_fallback_convert_scale_abs_rounds_in_float32_like_opencv(
+    dtype: type[np.generic], alpha: float, beta: float
+) -> None:
+    """Round in float32, so `.5` ties in float64 land where OpenCV puts them."""
+    # 95 * 1.3 is 123.5 in float64 but 123.49999 in float32: OpenCV gives 123.
+    # 38 * 1.3 + 0.1 rounds to 50 with OpenCV's fused multiply-add, 49 without it.
+    ties = np.array([95, 190, 90, 195, 170, 38], dtype=np.float64)
+    noise = np.random.default_rng(0).uniform(-300, 300, size=200)
+    source = np.concatenate([ties, noise]).reshape(1, -1)
+    if np.issubdtype(dtype, np.integer):
+        source = np.rint(source)
+        if dtype is np.uint8:
+            source = np.abs(source) % 256
+    source = source.astype(dtype)
+
+    actual = _convert_scale_abs(source, alpha, beta)
+    reference = cv2.convertScaleAbs(source, alpha=alpha, beta=beta)
+    source32 = source.astype(np.float32)
+    fused = source32.astype(np.float64) * np.float64(np.float32(alpha))
+    fused = np.abs((fused + np.float64(np.float32(beta))).astype(np.float32))
+    fused = np.clip(np.rint(fused), 0, 255).astype(np.uint8)
+    separate = np.abs(source32 * np.float32(alpha) + np.float32(beta))
+    separate = np.clip(np.rint(separate), 0, 255).astype(np.uint8)
+
+    # OpenCV may use fused or separate float32 arithmetic depending on its build.
+    np.testing.assert_array_equal(actual, fused)
+    np.testing.assert_array_equal(
+        (reference == fused) | (reference == separate),
+        np.ones_like(source, dtype=bool),
+    )
+
+
+class TestFallbackMean:
+    def test_matches_opencv_for_masked_uint8(self) -> None:
+        """Match OpenCV masked mean semantics for integer images."""
+        source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+        mask = np.array([[255, 0], [0, 255]], dtype=np.uint8)
+
+        assert _mean(source, mask) == cv2.mean(source, mask)
+
+    def test_preserves_float32_precision(self) -> None:
+        """Retain small values when averaging large float32 pixels."""
+        source = np.array([[1e8, 1, -1e8]], dtype=np.float32)
+
+        assert _mean(source) == cv2.mean(source)
+
+    def test_preserves_masked_multichannel_float32_precision(self) -> None:
+        """Match OpenCV precision for selected pixels in each channel."""
+        source = np.array(
+            [[[1e8, -1e8], [1, 5], [-1e8, 1e8], [999, 999]]],
+            dtype=np.float32,
+        )
+        mask = np.array([[255, 255, 255, 0]], dtype=np.uint8)
+
+        assert _mean(source, mask) == pytest.approx(
+            cv2.mean(source, mask), rel=0, abs=1e-15
+        )
 
 
 @pytest.mark.parametrize(
@@ -199,6 +457,38 @@ def test_fallback_resize_matches_opencv(interpolation: int, atol: int) -> None:
 
     assert actual.shape == expected.shape
     np.testing.assert_allclose(actual, expected, atol=atol, rtol=0)
+
+
+@pytest.mark.parametrize(
+    ("source_width", "width"),
+    [
+        pytest.param(6, 34, id="six-to-thirty-four"),
+        pytest.param(9, 51, id="nine-to-fifty-one"),
+        pytest.param(10, 74, id="ten-to-seventy-four"),
+        pytest.param(12, 34, id="twelve-to-thirty-four"),
+    ],
+)
+def test_fallback_nearest_resize_matches_opencv_at_whole_sample_positions(
+    source_width: int, width: int
+) -> None:
+    """Pick OpenCV's source pixel where `x * source_width / width` is a whole number."""
+    source = np.arange(source_width, dtype=np.uint8).reshape(1, -1)
+
+    actual = _resize(source, (width, 1), interpolation=cv2.INTER_NEAREST)
+    expected = cv2.resize(source, (width, 1), interpolation=cv2.INTER_NEAREST)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_nearest_resize_matches_opencv_on_both_axes() -> None:
+    """Match OpenCV's nearest sampling grid on rows and columns of a color image."""
+    rng = np.random.default_rng(20261012)
+    source = rng.integers(0, 256, (9, 6, 3), dtype=np.uint8)
+
+    actual = _resize(source, (34, 51), interpolation=cv2.INTER_NEAREST)
+    expected = cv2.resize(source, (34, 51), interpolation=cv2.INTER_NEAREST)
+
+    np.testing.assert_array_equal(actual, expected)
 
 
 @pytest.mark.parametrize(
@@ -268,6 +558,63 @@ def test_fallback_linear_resize_preserves_rgba_channels() -> None:
     expected = cv2.resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
 
     np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+# OpenCV's arm64 builds hand some uint8 `INTER_LINEAR` resizes to the Carotene HAL
+# (`TEGRA_RESIZE`): one channel with a source at least 8 wide and an output of at
+# least 8x8, or four channels with an output at least 8 tall that is not an exact
+# 2x reduction. Carotene uses its own fixed-point kernel, up to two levels away from
+# the generic one this fallback reproduces.
+_OPENCV_MAY_USE_CAROTENE = platform.machine().lower() in {"arm64", "aarch64"}
+
+
+@pytest.mark.parametrize(
+    ("source_shape", "dsize", "fx", "fy", "carotene"),
+    [
+        pytest.param((9, 9), (13, 15), 0, 0, True, id="gray-upscale"),
+        pytest.param((17, 23, 3), (31, 29), 0, 0, False, id="bgr-upscale"),
+        pytest.param((40, 37, 3), (11, 26), 0, 0, False, id="bgr-mixed"),
+        pytest.param((9, 7, 4), (13, 4), 0, 0, False, id="rgba"),
+        pytest.param((13, 10, 3), None, 0.6, 0.6, False, id="factor-downscale"),
+        pytest.param((13, 10, 3), None, 0.3, 3.7, False, id="factor-mixed"),
+        pytest.param((3, 3), None, 0.5, 0.5, False, id="half-gray-odd"),
+        pytest.param((23, 27, 3), None, 0.5, 0.5, False, id="half-bgr-odd"),
+        pytest.param((19, 38, 4), None, 0.5, 0.5, False, id="half-rgba-odd-rows"),
+        pytest.param((6, 5, 2), None, 0.5, 0.5, False, id="half-two-channel"),
+        pytest.param((5, 7, 3), None, 0.5, 0.5, False, id="half-drops-last-pixel"),
+        pytest.param((8, 6, 3), (6, 8), 0, 0, False, id="same-size"),
+    ],
+)
+def test_fallback_linear_resize_is_bit_exact_for_uint8(
+    source_shape: tuple[int, ...],
+    dsize: tuple[int, int] | None,
+    fx: float,
+    fy: float,
+    carotene: bool,
+) -> None:
+    """Reproduce OpenCV's fixed-point uint8 `INTER_LINEAR` resize pixel for pixel."""
+    rng = np.random.default_rng(20261027)
+    source = rng.integers(0, 256, source_shape, dtype=np.uint8)
+
+    actual = _resize(source, dsize, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, dsize, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+
+    assert actual.dtype == expected.dtype
+    assert actual.flags.c_contiguous
+    if carotene and _OPENCV_MAY_USE_CAROTENE:
+        np.testing.assert_allclose(actual, expected, atol=2, rtol=0)
+    else:
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_linear_resize_copies_uint8_image_of_unchanged_size() -> None:
+    """Return a copy, not a view, when the requested size matches the source."""
+    source = np.arange(24, dtype=np.uint8).reshape(2, 4, 3)
+
+    actual = _resize(source, (4, 2), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_array_equal(actual, source)
+    assert not np.shares_memory(actual, source)
 
 
 def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:
@@ -461,7 +808,8 @@ def _encoded_image_format(data: bytes) -> str | None:
     from PIL import Image
 
     with Image.open(io.BytesIO(data)) as image:
-        return image.format
+        image_format: str | None = image.format
+    return image_format
 
 
 @pytest.mark.parametrize(
@@ -501,9 +849,11 @@ def _gradient_image(channels: int = 3) -> np.ndarray:
     """
     rows, columns = np.mgrid[0:48, 0:64]
     if channels == 1:
-        return ((rows + columns) * 3 % 256).astype(np.uint8)
+        gray: np.ndarray = ((rows + columns) * 3 % 256).astype(np.uint8)
+        return gray
     channel_values = (columns * 4 % 256, rows * 5 % 256, (rows + columns) * 3 % 256)
-    return np.dstack(channel_values).astype(np.uint8)
+    image: np.ndarray = np.dstack(channel_values).astype(np.uint8)
+    return image
 
 
 def _as_bgr(image: np.ndarray) -> np.ndarray:
@@ -531,9 +881,12 @@ def _jpeg_quantization_tables(data: bytes) -> dict[int, list[int]]:
     import io
 
     from PIL import Image
+    from PIL.JpegImagePlugin import JpegImageFile
 
     with Image.open(io.BytesIO(data)) as image:
-        return dict(image.quantization)
+        assert isinstance(image, JpegImageFile)
+        tables: dict[int, list[int]] = dict(image.quantization)
+    return tables
 
 
 def _jpeg_chroma_subsampling(data: bytes) -> int:
@@ -543,7 +896,8 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
     from PIL import Image, JpegImagePlugin
 
     with Image.open(io.BytesIO(data)) as image:
-        return JpegImagePlugin.get_sampling(image)
+        sampling: int = JpegImagePlugin.get_sampling(image)
+    return sampling
 
 
 @pytest.mark.parametrize(
@@ -554,7 +908,7 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
     ],
 )
 @pytest.mark.parametrize(
-    "encode",
+    "fn_encode",
     [
         pytest.param(_encode_with_imwrite, id="imwrite"),
         pytest.param(_encode_with_imencode, id="imencode"),
@@ -562,13 +916,13 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
 )
 def test_fallback_encoders_match_opencv_default_jpeg_quality(
     tmp_path: Path,
-    encode: Callable[[Path, str, np.ndarray], bytes],
+    fn_encode: Callable[[Path, str, np.ndarray], bytes],
     image: np.ndarray,
 ) -> None:
     """Encode JPEG at the quality OpenCV uses when no parameters are given."""
     expected = cv2.imencode(".jpg", image)[1].tobytes()
 
-    actual = encode(tmp_path, ".jpg", image)
+    actual = fn_encode(tmp_path, ".jpg", image)
 
     assert _jpeg_quantization_tables(actual) == _jpeg_quantization_tables(expected)
     assert _jpeg_chroma_subsampling(actual) == _jpeg_chroma_subsampling(expected)
@@ -595,7 +949,7 @@ def test_fallback_imencode_treats_jpe_as_jpeg() -> None:
     ],
 )
 @pytest.mark.parametrize(
-    "encode",
+    "fn_encode",
     [
         pytest.param(_encode_with_imwrite, id="imwrite"),
         pytest.param(_encode_with_imencode, id="imencode"),
@@ -603,13 +957,13 @@ def test_fallback_imencode_treats_jpe_as_jpeg() -> None:
 )
 def test_fallback_encoders_write_webp_losslessly_like_opencv(
     tmp_path: Path,
-    encode: Callable[[Path, str, np.ndarray], bytes],
+    fn_encode: Callable[[Path, str, np.ndarray], bytes],
     image: np.ndarray,
 ) -> None:
     """Encode WebP losslessly, as OpenCV does when no parameters are given."""
     expected = cv2.imdecode(cv2.imencode(".webp", image)[1], cv2.IMREAD_COLOR)
 
-    actual = encode(tmp_path, ".webp", image)
+    actual = fn_encode(tmp_path, ".webp", image)
 
     decoded = cv2.imdecode(np.frombuffer(actual, dtype=np.uint8), cv2.IMREAD_COLOR)
     np.testing.assert_array_equal(decoded, expected)
@@ -648,6 +1002,80 @@ def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
         _imread(str(sixteen_bit_path), _IMREAD_COLOR),
         cv2.imread(str(sixteen_bit_path), cv2.IMREAD_COLOR),
     )
+
+
+class TestFallbackSixteenBitImageRead:
+    """Decode the complete uint16 range without rounding its discarded low byte."""
+
+    @pytest.mark.parametrize(
+        ("image_format", "dtype"),
+        [
+            pytest.param("PNG", "<u2", id="png"),
+            pytest.param("TIFF", "<u2", id="little-endian-tiff"),
+            pytest.param("TIFF", ">u2", id="big-endian-tiff"),
+        ],
+    )
+    @pytest.mark.parametrize("flags", [_IMREAD_COLOR, _IMREAD_UNCHANGED])
+    @pytest.mark.parametrize("entrypoint", ["imread", "imdecode"])
+    def test_matches_opencv_for_every_pixel_value(
+        self,
+        tmp_path: Path,
+        image_format: str,
+        dtype: str,
+        flags: int,
+        entrypoint: str,
+    ) -> None:
+        """Match OpenCV values while preserving unchanged storage dtype."""
+        from PIL import Image
+
+        pixels = np.arange(65536, dtype=np.uint16).reshape(256, 256).astype(dtype)
+        image_path = tmp_path / f"sixteen-bit.{image_format.lower()}"
+        Image.fromarray(pixels).save(image_path)
+        encoded = np.frombuffer(image_path.read_bytes(), dtype=np.uint8)
+        with Image.open(image_path) as image:
+            unchanged_dtype = np.asarray(image).dtype
+        if entrypoint == "imread":
+            expected = cv2.imread(str(image_path), flags)
+        else:
+            expected = cv2.imdecode(encoded, flags)
+
+        if entrypoint == "imread":
+            actual = _imread(str(image_path), flags)
+        else:
+            actual = _imdecode(encoded, flags)
+
+        assert actual is not None
+        assert expected is not None
+        if flags == _IMREAD_UNCHANGED:
+            assert actual.dtype == unchanged_dtype
+        else:
+            assert actual.dtype == expected.dtype
+        np.testing.assert_array_equal(actual, expected)
+
+    @pytest.mark.parametrize("entrypoint", ["imread", "imdecode"])
+    def test_preserves_signed_integer_tiff_unchanged(
+        self, tmp_path: Path, entrypoint: str
+    ) -> None:
+        """Leave signed 32-bit TIFF values untouched in unchanged mode."""
+        from PIL import Image
+
+        pixels = np.array([[-(2**31), -1, 0], [129, 65535, 2**31 - 1]], dtype=np.int32)
+        image_path = tmp_path / "signed.tiff"
+        Image.fromarray(pixels).save(image_path)
+        encoded = np.frombuffer(image_path.read_bytes(), dtype=np.uint8)
+        if entrypoint == "imread":
+            expected = cv2.imread(str(image_path), _IMREAD_UNCHANGED)
+        else:
+            expected = cv2.imdecode(encoded, _IMREAD_UNCHANGED)
+
+        if entrypoint == "imread":
+            actual = _imread(str(image_path), _IMREAD_UNCHANGED)
+        else:
+            actual = _imdecode(encoded, _IMREAD_UNCHANGED)
+
+        assert actual is not None
+        assert actual.dtype == pixels.dtype
+        np.testing.assert_array_equal(actual, expected)
 
 
 def _write_png_with_exif_orientation(path: Path, orientation: int) -> None:
@@ -692,3 +1120,136 @@ def test_fallback_imdecode_matches_opencv_exif_orientation(
     np.testing.assert_array_equal(
         _imdecode(encoded, _IMREAD_COLOR), cv2.imdecode(encoded, cv2.IMREAD_COLOR)
     )
+
+
+class TestFallbackEncoderChannels:
+    """Image encoders accept OpenCV's one-, three- and four-channel layouts."""
+
+    @pytest.mark.parametrize(
+        "fn_encode",
+        [
+            pytest.param(_encode_with_imwrite, id="imwrite"),
+            pytest.param(_encode_with_imencode, id="imencode"),
+        ],
+    )
+    @pytest.mark.parametrize("extension", [".jpg", ".jpeg", ".jpe"])
+    @pytest.mark.parametrize("alpha", [0, 255])
+    def test_jpeg_discards_alpha_without_compositing(
+        self,
+        tmp_path: Path,
+        fn_encode: Callable[[Path, str, np.ndarray], bytes],
+        extension: str,
+        alpha: int,
+    ) -> None:
+        """JPEG keeps the BGR pixels even when their alpha is fully transparent."""
+        bgr = _gradient_image()
+        image = np.dstack((bgr, np.full(bgr.shape[:2], alpha, dtype=np.uint8)))
+        expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_COLOR)
+
+        encoded = fn_encode(tmp_path, extension, image)
+
+        actual = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        np.testing.assert_array_equal(actual, expected)
+
+    @pytest.mark.parametrize(
+        "fn_encode",
+        [
+            pytest.param(_encode_with_imwrite, id="imwrite"),
+            pytest.param(_encode_with_imencode, id="imencode"),
+        ],
+    )
+    @pytest.mark.parametrize("extension", [".png", ".jpg"])
+    def test_single_channel_axis_encodes_as_grayscale(
+        self,
+        tmp_path: Path,
+        fn_encode: Callable[[Path, str, np.ndarray], bytes],
+        extension: str,
+    ) -> None:
+        """An explicit singleton channel writes the same pixels as a 2D image."""
+        image = _gradient_image(channels=1)[..., np.newaxis]
+        expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_UNCHANGED)
+
+        encoded = fn_encode(tmp_path, extension, image)
+
+        actual = cv2.imdecode(
+            np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_UNCHANGED
+        )
+        np.testing.assert_array_equal(actual, expected)
+
+
+class TestFallbackEncoderSampleTypes:
+    @pytest.mark.parametrize("channels", [3, 4])
+    @pytest.mark.parametrize(
+        ("height", "width"),
+        [pytest.param(1, 0, id="zero-width"), pytest.param(0, 1, id="zero-height")],
+    )
+    def test_imencode_rejects_empty_sixteen_bit_color_png(
+        self, height: int, width: int, channels: int
+    ) -> None:
+        """Reject empty 16-bit color PNGs without returning encoded data."""
+        image = np.zeros((height, width, channels), dtype=np.uint16)
+
+        success, encoded = _imencode(".png", image)
+
+        assert not success
+        assert encoded is None
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    @pytest.mark.parametrize(
+        ("height", "width"),
+        [pytest.param(1, 0, id="zero-width"), pytest.param(0, 1, id="zero-height")],
+    )
+    def test_imwrite_rejects_empty_sixteen_bit_color_png(
+        self, tmp_path: Path, height: int, width: int, channels: int
+    ) -> None:
+        """Reject empty 16-bit color PNGs without creating a file."""
+        image = np.zeros((height, width, channels), dtype=np.uint16)
+        image_path = tmp_path / "image.png"
+
+        assert not _imwrite(str(image_path), image)
+        assert not image_path.exists()
+
+    @pytest.mark.parametrize(
+        "dtype", [np.uint16, np.int16, np.int32, np.float32, np.float64, np.bool_]
+    )
+    @pytest.mark.parametrize("extension", [".png", ".bmp", ".webp"])
+    @pytest.mark.parametrize("channels", [1, 3])
+    def test_imencode_converts_unsupported_types_like_opencv(
+        self, dtype: type, extension: str, channels: int
+    ) -> None:
+        """Write sample types a format lacks as OpenCV's saturated 8-bit copy."""
+        rng = np.random.default_rng(0)
+        values = rng.uniform(-500, 70000, size=(4, 5, channels))
+        values[0, 0] = 0.5
+        image = (values > 30000) if dtype is np.bool_ else values.astype(dtype)
+        expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_UNCHANGED)
+
+        success, encoded = _imencode(extension, image)
+
+        assert success
+        assert encoded is not None
+        actual = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED)
+        assert (actual.shape, actual.dtype) == (expected.shape, expected.dtype)
+        np.testing.assert_array_equal(actual, expected)
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    def test_imwrite_keeps_sixteen_bit_color_png(
+        self, tmp_path: Path, channels: int
+    ) -> None:
+        """Write 16-bit BGR and BGRA PNGs that OpenCV reads back unchanged."""
+        image = np.random.default_rng(1).integers(
+            0, 65536, size=(3, 7, channels), dtype=np.uint16
+        )
+        image_path = tmp_path / "image.png"
+
+        assert _imwrite(str(image_path), image)
+
+        actual = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+        assert actual.dtype == np.uint16
+        np.testing.assert_array_equal(actual, image)
+
+    def test_imwrite_reports_failure_for_color_float_tiff(self, tmp_path: Path) -> None:
+        """Return False, not raise, for a color TIFF type Pillow cannot write."""
+        image = np.zeros((2, 2, 3), dtype=np.float32)
+
+        assert not _imwrite(str(tmp_path / "image.tif"), image)

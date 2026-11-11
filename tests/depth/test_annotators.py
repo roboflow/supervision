@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -87,7 +87,8 @@ def _spread_frames(count: int, side: int = 400) -> list[sv.DepthMap]:
 
 def _rgb(image: np.ndarray) -> list[list[list[int]]]:
     """Return a BGR scene's pixels as RGB lists for readable comparisons."""
-    return image[..., ::-1].tolist()
+    rgb: list[list[list[int]]] = image[..., ::-1].tolist()
+    return rgb
 
 
 class TestDepthAnnotatorColors:
@@ -852,10 +853,10 @@ class TestDepthClipRange:
         """Thinning repeatedly does not favour the clip's late frames over early ones.
 
         Sixty-four maps of 10,000 values each drift upward, map `t` spreading evenly
-        over `t + 1` to `t + 2`. With the sample budget cut to 40,000 the clip's
-        samples are halved seven times, so later maps must be kept at the halved rate,
-        or they would be over-represented against the early maps. The range must
-        still match NumPy's percentiles of the full clip.
+        over `t + 1` to `t + 2`. With the sample budget cut to 40,000 the clip's samples
+        are halved seven times, so later maps must be kept at the halved rate, or they
+        would be over-represented against the early maps. The range must still match
+        NumPy's percentiles of the full clip.
         """
         monkeypatch.setattr(depth_annotators, "_CLIP_SAMPLE_BUDGET", 40_000)
         spread = np.arange(10_000, dtype=np.float64) / 10_000
@@ -1012,7 +1013,9 @@ class TestDepthAnnotatorScene:
         result = sv.DepthAnnotator(display_range=(1.0, 2.0)).annotate(scene, depth_map)
 
         assert isinstance(result, Image.Image)
-        assert list(result.getpixel((0, 0)))[:3] == TURBO[255]
+        pixel = result.getpixel((0, 0))
+        assert isinstance(pixel, tuple)
+        assert list(pixel)[:3] == TURBO[255]
 
     def test_returns_the_scene_it_drew_on(self) -> None:
         """A NumPy scene is drawn on in place and returned as the same object."""
@@ -1133,7 +1136,7 @@ class TestDepthAnnotatorScene:
         annotator = sv.DepthAnnotator()
 
         with pytest.raises(TypeError, match="Unsupported image type"):
-            annotator.annotate("not_an_image", depth_map)
+            annotator.annotate(cast(Any, "not_an_image"), depth_map)
 
     def test_rejects_unknown_scale(self) -> None:
         """The scale must be inverse or metric."""

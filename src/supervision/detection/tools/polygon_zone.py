@@ -12,7 +12,11 @@ from supervision.detection.utils.converters import (
 )
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
-from supervision.geometry.core import Position
+from supervision.geometry.core import (
+    CoordinatesTransformation,
+    Position,
+    _transform_points,
+)
 from supervision.geometry.utils import get_polygon_center
 
 
@@ -120,43 +124,80 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
+        if np.issubdtype(polygon.dtype, np.integer):
+            x_max, y_max = int(x_max), int(y_max)
         self.mask = polygon_to_mask(
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
 
-    def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
+    def trigger(
+        self,
+        detections: Detections,
+        coord_transform: CoordinatesTransformation | None = None,
+    ) -> npt.NDArray[np.bool_]:
         """Determines if the detections are within the polygon zone.
 
         Anchor points are calculated from original (unclipped) detection boxes to
         avoid per-zone clipping shifting anchor positions. This prevents a single
         detection from being counted in multiple non-overlapping zones due to
         clipping artifacts, although overlapping zones may still legitimately
-        contain the same detection.
+        contain the same detection. Negative and non-finite anchors are outside.
 
         Args:
             detections: The detections to be checked against the polygon zone
+            coord_transform: Optional per-frame camera motion. Anchors are mapped
+                into the zone's reference frame with
+                :meth:`~supervision.geometry.core.CoordinatesTransformation.rel_to_abs`
+                before the inside test; anchors mapped outside the zone's bounds
+                or to non-finite values are outside.
 
         Returns:
             A boolean numpy array indicating
                 if each detection is within the polygon zone
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> class CameraShift:
+            ...     def abs_to_rel(self, points): return points + [50, 0]
+            ...     def rel_to_abs(self, points): return points - [50, 0]
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+            ... )
+            >>> detections = sv.Detections(xyxy=np.array([[120.0, 40.0, 140.0, 60.0]]))
+            >>> zone.trigger(detections)
+            array([False])
+            >>> zone.trigger(detections, coord_transform=CameraShift())
+            array([ True])
+
+            ```
         """
         if len(detections) == 0:
             self.current_count = 0
             return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
 
-        all_anchors = np.array(
+        anchor_coordinates = np.array(
             [
-                np.rint(detections.get_anchors_coordinates(anchors)).astype(int)
+                detections.get_anchors_coordinates(anchors)
                 for anchors in self.triggering_anchors
             ]
         )
+        if coord_transform is not None:
+            mapped = _transform_points(anchor_coordinates, coord_transform.rel_to_abs)
+            anchor_coordinates = np.nan_to_num(
+                mapped, nan=-1.0, posinf=-1.0, neginf=-1.0
+            )
 
         mask_h, mask_w = self.mask.shape
-        x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
-        in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
-        x_safe = np.clip(x, 0, mask_w - 1)
-        y_safe = np.clip(y, 0, mask_h - 1)
-        anchor_hits = in_bounds & self.mask[y_safe, x_safe]
+        rounded = np.rint(anchor_coordinates)
+        mask_size = np.array([mask_w, mask_h], dtype=np.intp)
+        # Test the lower bounds before rounding so a negative subpixel cannot
+        # become zero. The rounded coordinates must fit the mask before casting.
+        valid_coordinates = (anchor_coordinates >= 0) & (rounded < mask_size)
+        in_bounds = valid_coordinates[..., 0] & valid_coordinates[..., 1]
+        safe_anchors = np.where(in_bounds[..., None], rounded, 0).astype(np.intp)
+        anchor_hits = in_bounds & self.mask[safe_anchors[..., 1], safe_anchors[..., 0]]
         reduce = np.all if self.require_all_anchors else np.any
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))

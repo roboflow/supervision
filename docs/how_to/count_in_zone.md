@@ -5,7 +5,7 @@ authors:
   - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
-date_modified: 2026-04-22
+date_modified: 2026-10-13
 ---
 
 With supervision, you can count the number of objects in a zone in an image or video. In this guide, we will show how to count the number of cars in a traffic video.
@@ -129,6 +129,25 @@ Here is an example of inference run on the video:
 <video width="100%" loop muted autoplay>
   <source src="https://blog.roboflow.com/content/media/2023/03/trim-counting.mp4" type="video/mp4">
 </video>
+
+## Follow a Moving Camera
+
+`PolygonZone` and `LineZone` assume a static camera: a zone drawn on one frame slides off its target when the camera pans or tilts. Pass a per-frame `coord_transform` to `trigger` to test detections in the coordinates of the frame the zone was drawn on. It can be any object with `abs_to_rel` and `rel_to_abs` (see [`sv.CoordinatesTransformation`](../utils/geometry.md#supervision.geometry.core.CoordinatesTransformation)), such as the transformations returned by the [`trackers`](https://trackers.roboflow.com/latest/) motion estimator, which are relative to the first frame it sees:
+
+```python
+from trackers import MotionEstimator
+
+motion_estimator = MotionEstimator()
+zone = sv.PolygonZone(polygon=polygons[0])  # drawn on the first frame
+
+for frame in sv.get_video_frames_generator(VIDEO):
+    coord_transform = motion_estimator.update(frame)
+    detections = model.predict(frame[:, :, ::-1])
+    in_zone = zone.trigger(detections, coord_transform=coord_transform)
+```
+
+- Only the zone test follows the camera: `PolygonZoneAnnotator` and `LineZoneAnnotator` still draw the zone where it was defined.
+- Use one reference frame per zone and pass a transform on every call; `LineZone` keeps its crossing history in that frame.
 
 ## Frequently Asked Questions
 

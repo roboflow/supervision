@@ -8,6 +8,7 @@ synthetic test data and performing custom assertions.
 from __future__ import annotations
 
 import io
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -35,12 +36,12 @@ def make_panoptic_png(segment_map: np.ndarray) -> bytes:
 
 
 def _create_detections(
-    xyxy: list[list[float]],
-    mask: list[np.ndarray] | None = None,
-    confidence: list[float] | None = None,
-    class_id: list[int] | None = None,
-    tracker_id: list[int] | None = None,
-    data: dict[str, list[Any]] | None = None,
+    xyxy: Sequence[Sequence[float]] | np.ndarray,
+    mask: Sequence[np.ndarray] | np.ndarray | None = None,
+    confidence: Sequence[float] | np.ndarray | None = None,
+    class_id: Sequence[int] | np.ndarray | None = None,
+    tracker_id: Sequence[int] | np.ndarray | None = None,
+    data: Mapping[str, Any] | None = None,
 ) -> Detections:
     """Create a Detections object from list-based inputs.
 
@@ -76,7 +77,10 @@ def _create_detections(
         array([0, 1])
     """
 
-    def convert_data(data: dict[str, list[Any]]):
+    def convert_data(
+        data: Mapping[str, Any],
+    ) -> dict[str, np.ndarray | list[Any]]:
+        """Convert each metadata value to a NumPy array."""
         return {k: np.array(v) for k, v in data.items()}
 
     return Detections(
@@ -91,6 +95,69 @@ def _create_detections(
         ),
         data=convert_data(data) if data else {},
     )
+
+
+class _ShiftTransform:
+    """A camera motion that shifts the reference frame by `(dx, dy)` pixels."""
+
+    def __init__(self, dx: float, dy: float) -> None:
+        """Store the shift from reference-frame to current-frame coordinates."""
+        self.offset = np.array([dx, dy], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        return points + self.offset
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        return points - self.offset
+
+
+class _ConstantTransform:
+    """A degenerate transform that maps every point to the same `(x, y)`.
+
+    Used to feed non-finite or far-away mapped anchors into the zones.
+    """
+
+    def __init__(self, x: float, y: float) -> None:
+        """Store the point that every input point is mapped to."""
+        self.point = np.array([x, y], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map every point to the stored point."""
+        return np.tile(self.point, (len(points), 1))
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map every point to the stored point."""
+        return np.tile(self.point, (len(points), 1))
+
+
+class _WrongShapeTransform:
+    """A transform that drops points, violating the protocol."""
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return only the first point."""
+        return points[:1]
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Return only the first point."""
+        return points[:1]
+
+
+class _NanBeyondX:
+    """An identity transform that maps points with `x > x_max` to NaN."""
+
+    def __init__(self, x_max: float) -> None:
+        """Store the largest x coordinate that maps to a finite point."""
+        self.x_max = x_max
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with NaN rows where `x > x_max`."""
+        return np.where(points[:, :1] > self.x_max, np.nan, points)
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with NaN rows where `x > x_max`."""
+        return np.where(points[:, :1] > self.x_max, np.nan, points)
 
 
 def _create_key_points(
@@ -138,7 +205,7 @@ def _create_key_points(
         array([0, 1])
     """
 
-    def convert_data(data: dict[str, list[Any]]):
+    def convert_data(data: dict[str, list[Any]]) -> dict[str, np.ndarray | list[Any]]:
         return {k: np.array(v) for k, v in data.items()}
 
     return KeyPoints(
@@ -210,7 +277,9 @@ def _generate_random_boxes(
     return out
 
 
-def assert_almost_equal(actual, expected, tolerance=1e-5) -> None:
+def assert_almost_equal(
+    actual: float, expected: float, tolerance: float = 1e-5
+) -> None:
     """Assert that two values are equal within a specified tolerance.
 
     Args:
@@ -301,7 +370,12 @@ class _FakeUltralyticsBoxes:
 class _FakeUltralyticsResults:
     """Ultralytics-like results container used by from_ultralytics."""
 
-    def __init__(self, boxes, names: dict[int, str], length: int = 0) -> None:
+    def __init__(
+        self,
+        boxes: _FakeUltralyticsBoxes | None,
+        names: dict[int, str],
+        length: int = 0,
+    ) -> None:
         self.boxes = boxes
         self.names = names
         self.obb = None
@@ -315,7 +389,9 @@ class _FakeUltralyticsResults:
 class _FakeYoloNasPrediction:
     """YOLO-NAS-like prediction struct."""
 
-    def __init__(self, bboxes_xyxy, confidence, labels) -> None:
+    def __init__(
+        self, bboxes_xyxy: np.ndarray, confidence: np.ndarray, labels: np.ndarray
+    ) -> None:
         self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
@@ -331,8 +407,10 @@ class _FakeYoloNasResults:
 class _FakeYoloNasKeyPoint:
     """YOLO-NAS-like key point struct."""
 
-    def __init__(self, poses, labels=None) -> None:
+    def __init__(self, poses: Any, scores: Any, labels: Any = None) -> None:
+        """Store `(N, K, 3)` poses with one score and optional label per pose."""
         self.poses = np.array(poses, dtype=np.float32)
+        self.scores = np.array(scores, dtype=np.float32)
         if labels is not None:
             self.labels = np.array(labels, dtype=int)
 
@@ -340,20 +418,22 @@ class _FakeYoloNasKeyPoint:
 class _FakeYoloNasKeyPointResults:
     """YOLO-NAS-like results exposing key points."""
 
-    def __init__(self, prediction: _FakeYoloNasKeyPoint, class_names=None) -> None:
+    def __init__(
+        self, prediction: _FakeYoloNasKeyPoint, class_names: list[str] | None = None
+    ) -> None:
         self.prediction = prediction
         self.class_names = class_names
 
 
 class _FakeMediapipeLandmark:
-    def __init__(self, x, y, visibility=1.0) -> None:
+    def __init__(self, x: float, y: float, visibility: float = 1.0) -> None:
         self.x = x
         self.y = y
         self.visibility = visibility
 
 
 class _FakeMediapipeLandmarkWithoutVisibility:
-    def __init__(self, x, y):
+    def __init__(self, x: float, y: float) -> None:
         self.x = x
         self.y = y
 
@@ -673,6 +753,7 @@ def create_predictions_with_class_iou_tests(
     pred_classes = []
     pred_confs = []
 
+    assert gt_detections.class_id is not None
     for i, (box, cls) in enumerate(zip(gt_detections.xyxy, gt_detections.class_id)):
         if i % 3 == 0:
             # Pattern 1: Correct match

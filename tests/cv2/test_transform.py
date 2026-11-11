@@ -73,7 +73,8 @@ RANDOM = [pytest.param(*pair, id=f"random-{i}") for i, pair in enumerate(RANDOM_
 def _project(matrix: np.ndarray, points: np.ndarray) -> np.ndarray:
     """Map (4, 2) points through a 3x3 matrix by plain float64 homogeneous division."""
     homogeneous = points.astype(np.float64) @ matrix[:, :2].T + matrix[:, 2]
-    return homogeneous[:, :2] / homogeneous[:, 2:]
+    projected: np.ndarray = homogeneous[:, :2] / homogeneous[:, 2:]
+    return projected
 
 
 def test_fallback_blur_preserves_shape_and_dtype() -> None:
@@ -83,6 +84,181 @@ def test_fallback_blur_preserves_shape_and_dtype() -> None:
 
     assert blurred.shape == source.shape
     assert blurred.dtype == source.dtype
+
+
+class TestFallbackBlurUint8:
+    """8-bit box blur with OpenCV's integer window sums and rounding."""
+
+    @pytest.mark.parametrize(
+        "ksize",
+        [pytest.param((2, 1), id="horizontal"), pytest.param((1, 2), id="vertical")],
+    )
+    def test_two_pixel_white_windows_stay_white(self, ksize: tuple[int, int]) -> None:
+        """Preserve maximum-valued pixels when the fixed-point product saturates."""
+        source = np.full((40, 40, 3), 255, dtype=np.uint8)
+
+        blurred = _blur(source, ksize)
+
+        np.testing.assert_array_equal(blurred, source)
+
+    def test_rounds_with_fixed_point_reciprocal(self) -> None:
+        """Divide window sums like OpenCV's 23-bit reciprocal, no OpenCV needed."""
+        source = np.array([[0, 0, 255, 255, 1, 2]], dtype=np.uint8)
+
+        blurred = _blur(source, (3, 1))
+
+        # Reflect-101 borders: the windows sum to 0, 255, 510, 511, 258 and 4.
+        np.testing.assert_array_equal(
+            blurred, np.array([[0, 85, 170, 170, 86, 1]], dtype=np.uint8)
+        )
+
+    @_requires_opencv
+    @pytest.mark.parametrize(
+        "ksize",
+        [
+            pytest.param((1, 1), id="identity"),
+            pytest.param((3, 3), id="odd-square"),
+            pytest.param((4, 2), id="even-anchor"),
+            pytest.param((15, 15), id="annotator-default"),
+            pytest.param((16, 16), id="largest-fixed-point-area"),
+            pytest.param((31, 3), id="wider-than-image"),
+        ],
+    )
+    @pytest.mark.parametrize("channels", [None, 1, 3, 4])
+    def test_matches_opencv(self, ksize: tuple[int, int], channels: int | None) -> None:
+        """Match OpenCV exactly for kernels of at most 256 pixels."""
+        rng = np.random.default_rng(7)
+        shape = (17, 23) if channels is None else (17, 23, channels)
+        source = rng.integers(0, 256, size=shape).astype(np.uint8)
+
+        blurred = _blur(source, ksize)
+        expected = cv2.blur(source, ksize).reshape(shape)
+
+        np.testing.assert_array_equal(blurred, expected)
+
+    @_requires_opencv
+    def test_random_images_match_opencv(self) -> None:
+        """Match OpenCV on random images and kernels of at most 256 pixels."""
+        rng = np.random.default_rng(2026)
+
+        for _ in range(200):
+            height, width = (int(value) for value in rng.integers(1, 40, size=2))
+            kernel_width = int(rng.integers(1, 17))
+            kernel_height = int(rng.integers(1, 256 // kernel_width + 1))
+            source = rng.integers(0, 256, size=(height, width, 3)).astype(np.uint8)
+
+            blurred = _blur(source, (kernel_width, kernel_height))
+            expected = cv2.blur(source, (kernel_width, kernel_height))
+
+            np.testing.assert_array_equal(blurred, expected)
+
+    def test_kernel_much_larger_than_image_keeps_constant_image(self) -> None:
+        """Blur a small crop with a huge kernel, as BlurAnnotator can, no OpenCV
+        needed."""
+        source = np.full((100, 100, 3), 77, dtype=np.uint8)
+
+        blurred = _blur(source, (2001, 2001))
+
+        np.testing.assert_array_equal(blurred, source)
+
+    @_requires_opencv
+    def test_large_kernel_stays_within_one_level_of_opencv(self) -> None:
+        """Keep kernels over 256 pixels within one gray level of OpenCV."""
+        rng = np.random.default_rng(11)
+        source = rng.integers(0, 256, size=(60, 70, 3)).astype(np.uint8)
+
+        blurred = _blur(source, (40, 40)).astype(np.int16)
+        expected = cv2.blur(source, (40, 40)).astype(np.int16)
+
+        assert np.abs(blurred - expected).max() <= 1
+
+
+class TestFallbackBlur16Bit:
+    """16-bit box blur with OpenCV's exact window sums and float32 scaling."""
+
+    @pytest.mark.parametrize("dtype", [np.uint16, np.int16])
+    def test_rounds_exact_half_ties_to_even(self, dtype: type[np.integer]) -> None:
+        """Round a window mean of exactly 2.5 down to 2, no OpenCV needed."""
+        source = np.array([[4, 4, 0, 3, 0], [3, 1, 4, 1, 5]], dtype=dtype)
+
+        blurred = _blur(source, (2, 3))
+
+        # Reflect-101 rows 1, 0, 1 and columns 3, 4 sum to 15 over 6 pixels.
+        assert blurred.dtype == dtype
+        assert blurred[0, 4] == 2
+
+    @pytest.mark.parametrize(
+        ("dtype", "size", "extra"),
+        [
+            pytest.param(np.uint16, 200, 20_001, id="uint16-area-40000"),
+            pytest.param(np.int16, 300, 45_001, id="int16-area-90000"),
+        ],
+    )
+    def test_scales_large_kernels_in_float64(
+        self, dtype: type[np.integer], size: int, extra: int
+    ) -> None:
+        """Round like OpenCV's float64 path once the kernel area passes its limit."""
+        source = np.full((size, size), 20_000, dtype=dtype)
+        source.flat[:extra] += 1
+
+        blurred = _blur(source, (size, size))
+
+        # The centre window covers the whole image: (20000 * area + extra) / area is
+        # just above 20000.5, which float32 scaling rounds down to 20000.
+        assert blurred[size // 2, size // 2] == 20_001
+
+    @_requires_opencv
+    @pytest.mark.parametrize(
+        ("dtype", "ksize"),
+        [
+            pytest.param(np.uint16, (128, 256), id="uint16-float32-limit"),
+            pytest.param(np.uint16, (181, 182), id="uint16-float64"),
+            pytest.param(np.int16, (256, 256), id="int16-float32-limit"),
+            pytest.param(np.int16, (257, 256), id="int16-float64"),
+        ],
+    )
+    def test_matches_opencv_on_large_kernels(
+        self, dtype: type[np.integer], ksize: tuple[int, int]
+    ) -> None:
+        """Match OpenCV on both sides of its float32 scaling limit."""
+        info = np.iinfo(dtype)
+        rng = np.random.default_rng(3)
+        source = rng.integers(info.min, int(info.max) + 1, size=(270, 48)).astype(dtype)
+
+        blurred = _blur(source, ksize)
+        expected = cv2.blur(source, ksize)
+
+        np.testing.assert_array_equal(blurred, expected)
+
+    @_requires_opencv
+    @pytest.mark.parametrize("dtype", [np.uint16, np.int16])
+    @pytest.mark.parametrize("channels", [None, 3])
+    @pytest.mark.parametrize(
+        "ksize",
+        [
+            pytest.param((2, 3), id="even-width"),
+            pytest.param((4, 2), id="even-anchor"),
+            pytest.param((3, 3), id="odd-square"),
+        ],
+    )
+    def test_matches_opencv(
+        self,
+        dtype: type[np.integer],
+        channels: int | None,
+        ksize: tuple[int, int],
+    ) -> None:
+        """Match OpenCV on images whose width fills whole vector registers."""
+        info = np.iinfo(dtype)
+        rng = np.random.default_rng(29)
+        # Rows of 16 or 48 values: OpenCV's float64 tail is empty for 8- and 16-wide
+        # vectors, so every column takes the float32 path.
+        shape = (17, 16) if channels is None else (17, 16, channels)
+        source = rng.integers(info.min, int(info.max) + 1, size=shape).astype(dtype)
+
+        blurred = _blur(source, ksize)
+        expected = cv2.blur(source, ksize).reshape(source.shape)
+
+        np.testing.assert_array_equal(blurred, expected)
 
 
 class TestGetPerspectiveTransform:
@@ -322,6 +498,7 @@ class TestPerspectiveTransform:
 
         actual = _perspective_transform(points, matrix)
 
+        assert actual is not None
         assert actual.shape == shape
         assert actual.dtype == dtype
         # Both compute in float64, but OpenCV's build may fuse its sums into FMAs;
@@ -348,6 +525,7 @@ class TestPerspectiveTransform:
 
         actual = _perspective_transform(points, matrix)
 
+        assert actual is not None
         np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=0)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])

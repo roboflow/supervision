@@ -42,9 +42,9 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
     """Extract boolean masks from Ultralytics results, cropping letterbox padding.
 
     Handles the case where the inference resolution differs from the original image
-    shape by computing the letterbox padding offsets, cropping them out, and resizing
-    each proto mask back to `orig_shape`. Thresholds at 0.5 to match Ultralytics'
-    semantics and avoid dilating masks through float interpolation.
+    shape by recovering the rounded letterbox content size, cropping its padding,
+    and resizing each proto mask back to `orig_shape`. Thresholds at 0.5 to match
+    Ultralytics' semantics and avoid dilating masks through float interpolation.
 
     Args:
         yolov8_results: Ultralytics results object with `.masks` and `.orig_shape`.
@@ -59,20 +59,22 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    pad = (0, 0)
+    top, left = 0, 0
+    bottom, right = inference_shape
 
     if inference_shape != orig_shape:
         gain = min(
             inference_shape[0] / orig_shape[0],
             inference_shape[1] / orig_shape[1],
         )
-        pad = (
-            (inference_shape[1] - orig_shape[1] * gain) / 2,
-            (inference_shape[0] - orig_shape[0] * gain) / 2,
-        )
-
-    top, left = int(pad[1]), int(pad[0])
-    bottom, right = int(inference_shape[0] - pad[1]), int(inference_shape[1] - pad[0])
+        # LetterBox rounds the resized content before splitting padding. An odd
+        # padding pixel belongs to the bottom/right, not to the content crop.
+        content_height = max(round(orig_shape[0] * gain), 1)
+        content_width = max(round(orig_shape[1] * gain), 1)
+        top = (inference_shape[0] - content_height) // 2
+        left = (inference_shape[1] - content_width) // 2
+        bottom = top + content_height
+        right = left + content_width
 
     mask_maps = []
     masks = _to_numpy(yolov8_results.masks.data)
@@ -281,6 +283,21 @@ def process_roboflow_result(
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
     CompactMask | None,
+    npt.NDArray[np.integer] | None,
+    _DetectionDataType,
+]: ...
+
+
+@overload
+def process_roboflow_result(
+    roboflow_result: dict[str, Any],
+    *,
+    compact_masks: bool,
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | CompactMask | None,
     npt.NDArray[np.integer] | None,
     _DetectionDataType,
 ]: ...
@@ -747,6 +764,9 @@ def get_data_item(
 ) -> _DetectionDataType:
     """Retrieve a subset of the data dictionary based on the given index.
 
+    Boolean lists act as masks. Integer-list selection allocates positions only
+    for the requested rows, independent of the total number of data rows.
+
     Args:
         data: The data dictionary of the Detections object.
         index: The index or indices specifying the subset to retrieve.
@@ -757,12 +777,17 @@ def get_data_item(
     subset_data: _DetectionDataType = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
-            subset_data[key] = value[index]
+            subset_data[key] = value if value.ndim == 0 else value[index]
         elif isinstance(value, list):
             if isinstance(index, slice):
                 subset_data[key] = value[index]
             elif isinstance(index, list):
-                subset_data[key] = [value[i] for i in index]
+                positions = np.asarray(index)
+                if positions.dtype == bool:
+                    # Only masks need full-row positions; integer selections
+                    # must not allocate for rows that were not requested.
+                    positions = np.arange(len(value))[positions]
+                subset_data[key] = [value[i] for i in positions]
             elif isinstance(index, np.ndarray):
                 if index.dtype == bool:
                     subset_data[key] = [

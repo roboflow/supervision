@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from math import sqrt
+from typing import Protocol
+
+import numpy as np
+import numpy.typing as npt
 
 
 class Position(Enum):
@@ -126,6 +131,25 @@ class Vector:
                 lies to the left of the vector (when moving from 'start' to 'end'),
                 negative if it lies to the right, and 0 if it is collinear with the
                 vector.
+
+        Example:
+            For a vector from ``start`` to ``end``, the cross product is positive
+            for a point to its left, negative for a point to its right, and zero
+            for a point on the same line.
+
+            ```pycon
+            >>> from supervision.geometry.core import Point, Vector
+            >>> start = Point(x=10.0, y=10.0)
+            >>> end = Point(x=12.0, y=10.0)
+            >>> vector = Vector(start=start, end=end)
+            >>> vector.cross_product(Point(x=11.0, y=11.0))
+            2.0
+            >>> vector.cross_product(Point(x=11.0, y=9.0))
+            -2.0
+            >>> vector.cross_product(Point(x=11.0, y=10.0))
+            0.0
+
+            ```
         """
         dx_vector = self.end.x - self.start.x
         dy_vector = self.end.y - self.start.y
@@ -197,3 +221,63 @@ class Rect:
             int(self.x + self.width),
             int(self.y + self.height),
         )
+
+
+class CoordinatesTransformation(Protocol):
+    """Map points between a reference frame and the current frame.
+
+    Zones and lines are defined in the coordinates of a reference frame, the
+    "absolute" frame.
+    :meth:`~supervision.geometry.core.CoordinatesTransformation.rel_to_abs` maps
+    current-frame points into it, and
+    :meth:`~supervision.geometry.core.CoordinatesTransformation.abs_to_rel` maps
+    them back. Any object with these two methods satisfies the protocol.
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> class Shift:
+        ...     def abs_to_rel(self, points): return points + [100, 0]
+        ...     def rel_to_abs(self, points): return points - [100, 0]
+        >>> Shift().rel_to_abs(np.array([[150.0, 50.0]]))
+        array([[50., 50.]])
+
+        ```
+    """
+
+    def abs_to_rel(self, points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """Map points from reference-frame to current-frame coordinates.
+
+        Args:
+            points: Points of shape `(N, 2)` in reference-frame coordinates.
+
+        Returns:
+            Points of shape `(N, 2)` in current-frame coordinates.
+        """
+        ...
+
+    def rel_to_abs(self, points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """Map points from current-frame to reference-frame coordinates.
+
+        Args:
+            points: Points of shape `(N, 2)` in current-frame coordinates.
+
+        Returns:
+            Points of shape `(N, 2)` in reference-frame coordinates.
+        """
+        ...
+
+
+def _transform_points(
+    points: npt.NDArray[np.number],
+    transform: Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]],
+) -> npt.NDArray[np.float64]:
+    """Apply a transform method to `(..., 2)` points via `(N, 2)`, checking shape."""
+    flat_points = np.asarray(points, dtype=np.float64).reshape(-1, 2)
+    mapped = np.asarray(transform(flat_points), dtype=np.float64)
+    if mapped.shape != flat_points.shape:
+        raise ValueError(
+            f"coord_transform must return points of shape {flat_points.shape}; "
+            f"got {mapped.shape}."
+        )
+    return mapped.reshape(np.shape(points))

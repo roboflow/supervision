@@ -120,6 +120,7 @@ from supervision.detection.utils.matching import match_detections
 from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
+    merge_multi_segment,
 )
 from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 from supervision.detection.vlm import VLM
@@ -135,7 +136,7 @@ from supervision.draw.utils import (
     draw_rectangle,
     draw_text,
 )
-from supervision.geometry.core import Point, Position, Rect
+from supervision.geometry.core import CoordinatesTransformation, Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.key_points.annotators import (
     EdgeAnnotator,
@@ -189,6 +190,7 @@ __all__ = [
     "CompactMask",
     "ComparisonAnnotator",
     "ConfusionMatrix",
+    "CoordinatesTransformation",
     "CropAnnotator",
     "DepthAnnotator",
     "DepthCamera",
@@ -289,6 +291,7 @@ __all__ = [
     "mask_to_roi",
     "mask_to_xyxy",
     "match_detections",
+    "merge_multi_segment",
     "move_boxes",
     "move_masks",
     "oriented_box_iou_batch",

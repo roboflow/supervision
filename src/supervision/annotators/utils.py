@@ -243,7 +243,8 @@ def _iter_resolved_colors(
 
 def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     """Wrap `text` to the specified maximum line length, respecting existing newlines.
-    Falls back to str() if `text` is not already a string.
+    Falls back to str() if `text` is not already a string, so falsy values such as `0`
+    are kept as text. `None` and empty text give a single empty line.
 
     Args:
         text: The text (or object) to wrap.
@@ -252,11 +253,14 @@ def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     Returns:
         Wrapped lines.
     """
-    if not text:
+    if text is None:
         return [""]
 
     if not isinstance(text, str):
         text = str(text)
+
+    if not text:
+        return [""]
 
     if max_line_length is None:
         return text.splitlines() or [""]
@@ -367,8 +371,10 @@ def snap_boxes(
     xyxy: npt.NDArray[np.float32],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.float32]:
-    """Shifts `label` bounding boxes into the frame so that they are fully contained
-    within the given resolution, prioritizing the top/left edge. Unlike
+    """Shifts `label` bounding boxes into the frame, prioritizing the top/left edge.
+    A box that fits the frame ends up fully contained within the given resolution.
+    A box wider or taller than the frame stops at the left or top edge and overflows
+    on the right or bottom. Unlike
     :func:`~supervision.detection.utils.boxes.clip_boxes`, this function does not crop
     boxes. It moves them entirely if they exceed the frame boundaries.
 
@@ -414,7 +420,10 @@ def snap_boxes(
     result[left_overflow, 0:3:2] -= result[left_overflow, 0:1]
 
     right_overflow = (~left_overflow) & (result[:, 2] > width)
-    right_shift = width - result[right_overflow, 2]
+    # A box wider than the frame stops at the left edge instead of crossing it.
+    right_shift = np.maximum(
+        width - result[right_overflow, 2], -result[right_overflow, 0]
+    )
     result[right_overflow, 0:3:2] += right_shift[:, np.newaxis]
 
     # Y-axis (prioritize top edge)
@@ -422,7 +431,10 @@ def snap_boxes(
     result[top_overflow, 1:4:2] -= result[top_overflow, 1:2]
 
     bottom_overflow = (~top_overflow) & (result[:, 3] > height)
-    bottom_shift = height - result[bottom_overflow, 3]
+    # A box taller than the frame stops at the top edge instead of crossing it.
+    bottom_shift = np.maximum(
+        height - result[bottom_overflow, 3], -result[bottom_overflow, 1]
+    )
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
     return cast(npt.NDArray[np.float32], result.astype(np.float32, copy=False))
@@ -517,7 +529,8 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
     """Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
 
     Args:
-        hex_color: A hex color string.
+        hex_color: A 3-, 4-, 6- or 8-digit hex color string, with an optional
+            leading "#".
 
     Returns:
         RGBA values in range 0-255.
@@ -532,10 +545,14 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
         (255, 0, 255, 255)
         >>> hex_to_rgba("#FF00FF80")
         (255, 0, 255, 128)
+        >>> hex_to_rgba("#F0F8")
+        (255, 0, 255, 136)
 
         ```
     """
     hex_color = hex_color.strip().removeprefix("#")
+    if len(hex_color) in (3, 4):
+        hex_color = "".join(digit * 2 for digit in hex_color)
     if len(hex_color) == 6:
         hex_color += "FF"  # default full opacity
     if len(hex_color) != 8:

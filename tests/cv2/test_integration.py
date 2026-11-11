@@ -34,7 +34,9 @@ def _direct_cv2_imports(root: Path, excluded: set[Path] | None = None) -> list[s
             is_direct_from_import = (
                 isinstance(node, ast.ImportFrom) and node.module == "cv2"
             )
-            if is_direct_import or is_direct_from_import:
+            if isinstance(node, (ast.Import, ast.ImportFrom)) and (
+                is_direct_import or is_direct_from_import
+            ):
                 relative_path = path.relative_to(PROJECT_ROOT).as_posix()
                 imports.append(f"{relative_path}:{node.lineno}")
     return imports
@@ -161,3 +163,31 @@ def test_ordinary_suite_passes_when_cv2_is_blocked(tmp_path: Path) -> None:
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+class TestFallbackDatasetImageExport:
+    """In-memory dataset images remain writable without OpenCV."""
+
+    @pytest.mark.parametrize("channels", [1, 4])
+    def test_yolo_export_writes_jpeg_images(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, channels: int
+    ) -> None:
+        """Export JPEGs for grayscale channel axes and BGRA dataset images."""
+        from supervision import DetectionDataset, Detections
+        from supervision._cv2._image import _imwrite
+
+        image = np.full((8, 10, channels), 120, dtype=np.uint8)
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.jpg": image},
+            annotations={"image.jpg": Detections.empty()},
+        )
+        monkeypatch.setattr(_cv2, "imwrite", _imwrite)
+        output = tmp_path / "images"
+
+        dataset.as_yolo(images_directory_path=str(output))
+
+        saved = _cv2.imread(str(output / "image.jpg"))
+        assert saved is not None
+        assert saved.shape == (8, 10, 3)
+        np.testing.assert_array_equal(saved, np.full((8, 10, 3), 120, dtype=np.uint8))

@@ -1,9 +1,84 @@
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision as sv
 from supervision import _cv2
 from tests.helpers import assert_image_mostly_same
+
+
+class TestThreeCoordinateKeyPointAnnotators:
+    @pytest.mark.parametrize(
+        "annotator_name", ["EdgeAnnotator", "VertexLabelAnnotator"]
+    )
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    @pytest.mark.parametrize("depth", [0.5, np.nan, np.inf, -np.inf])
+    @pytest.mark.parametrize("visible", [None, True, False])
+    def test_depth_does_not_change_xy_checks(
+        self, annotator_name: str, dtype: str, depth: float, visible: bool | None
+    ) -> None:
+        """Depth preserves x/y validity, missing points and explicit visibility."""
+        scene = np.zeros((64, 64, 3), dtype=np.uint8)
+        xy = np.array([[[0, 0], [25, 30], [50, 45], [np.nan, 30]]], dtype=dtype)
+        xyz = np.concatenate([xy, np.full((1, 4, 1), depth, dtype=dtype)], axis=2)
+        visibility = None if visible is None else np.full((1, 4), visible)
+        points = sv.KeyPoints(xy=xyz.copy(), visible=visibility)
+        reference = sv.KeyPoints(xy=xy.copy(), visible=visibility)
+        annotator = (
+            sv.EdgeAnnotator(edges=[(1, 2), (2, 3), (3, 4)])
+            if annotator_name == "EdgeAnnotator"
+            else sv.VertexLabelAnnotator()
+        )
+        expected = annotator.annotate(scene.copy(), reference)
+
+        actual = annotator.annotate(scene.copy(), points)
+
+        np.testing.assert_array_equal(actual, expected)
+        assert bool(np.any(actual)) is (visible is not False)
+        np.testing.assert_array_equal(points.xy, xyz)
+        if visible is None:
+            assert points.visible is None
+        else:
+            np.testing.assert_array_equal(points.visible, np.full((1, 4), visible))
+
+    @pytest.mark.parametrize(
+        "annotator_name",
+        [
+            "VertexAnnotator",
+            "VertexEllipseAreaAnnotator",
+            "VertexEllipseOutlineAnnotator",
+            "VertexEllipseHaloAnnotator",
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    @pytest.mark.parametrize("hidden", [False, True])
+    def test_matches_two_coordinate_rendering(
+        self, annotator_name: str, dtype: str, hidden: bool
+    ) -> None:
+        """An extra coordinate leaves pixel rendering and visibility unchanged."""
+        scene = np.zeros((64, 64, 3), dtype=np.uint8)
+        xy = np.array([[[25.0, 30.0], [0.0, 0.0], [np.nan, np.nan]]], dtype=dtype)
+        xyz = np.concatenate([xy, np.full((1, 3, 1), 0.2, dtype=dtype)], axis=2)
+        visible = np.array([[not hidden, True, True]])
+        covariance = np.tile(np.eye(2, dtype=np.float32) * 9, (1, 3, 1, 1))
+        points = sv.KeyPoints(
+            xy=xyz.copy(),
+            visible=visible.copy(),
+            data={"covariance": covariance.copy()},
+        )
+        reference = sv.KeyPoints(
+            xy=xy, visible=visible, data={"covariance": covariance}
+        )
+        annotator = getattr(sv, annotator_name)()
+        expected = annotator.annotate(scene.copy(), reference)
+
+        actual = annotator.annotate(scene.copy(), points)
+
+        np.testing.assert_array_equal(actual, expected)
+        assert bool(np.any(actual)) is not hidden
+        np.testing.assert_array_equal(points.xy, xyz)
+        np.testing.assert_array_equal(points.visible, visible)
+        np.testing.assert_array_equal(points.data["covariance"], covariance)
 
 
 class TestVertexAnnotator:
@@ -245,20 +320,14 @@ class TestEdgeAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
-    def test_non_finite_z_skips_edge_despite_finite_xy(self, scene):
-        """A finite (x, y) pair with a non-finite z component is skipped.
-
-        Pins the current full-row finiteness rule, which matches
-        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is never
-        rasterized by EdgeAnnotator. A future change to only check (x, y) should be a
-        deliberate decision, not an accidental one.
-        """
+    def test_non_finite_z_does_not_hide_finite_xy(self, scene):
+        """Edges use finite x/y coordinates even when depth is non-finite."""
         key_points = sv.KeyPoints(
             xy=np.array([[[10.0, 10.0, np.nan], [90.0, 90.0, 1.0]]], dtype=np.float32),
         )
         annotator = sv.EdgeAnnotator(edges=[(1, 2)])
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
-        assert np.array_equal(result, scene)
+        assert not np.array_equal(result, scene)
 
     def test_all_non_finite_multi_detection_draws_nothing(self, scene):
         """A fully non-finite, multi-detection, multi-point array draws nothing and does
@@ -496,6 +565,25 @@ class TestVertexEllipseOutlineAnnotator:
         assert np.array_equal(result, scene)
 
 
+def _halo_key_points() -> sv.KeyPoints:
+    """Return three key points for an 80x60 scene, one clipped by its corner."""
+    return sv.KeyPoints(
+        xy=np.array([[[30.0, 20.0], [50.0, 40.0], [78.0, 3.0]]], dtype=np.float32),
+        data={
+            "covariance": np.array(
+                [
+                    [
+                        [[25.0, 0.0], [0.0, 9.0]],
+                        [[9.0, 0.0], [0.0, 25.0]],
+                        [[25.0, 0.0], [0.0, 9.0]],
+                    ]
+                ],
+                dtype=np.float32,
+            )
+        },
+    )
+
+
 class TestVertexEllipseHaloAnnotator:
     """Tests for VertexEllipseHaloAnnotator (blurred glow effect)."""
 
@@ -516,6 +604,59 @@ class TestVertexEllipseHaloAnnotator:
 
         assert result.shape == scene.shape
         assert not np.array_equal(result, scene)
+
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_grayscale_matches_color_scene(self, channel_axis: bool) -> None:
+        """A grayscale scene is annotated like the first channel of its BGR copy."""
+        gray = (np.arange(60 * 80) % 256).astype(np.uint8).reshape(60, 80)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        key_points = _halo_key_points()
+        annotator = sv.VertexEllipseHaloAnnotator(
+            sigma=[1.0, 2.0],
+            color=[sv.Color(r=10, g=20, b=200), sv.Color(r=30, g=40, b=90)],
+        )
+        expected = annotator.annotate(scene=color_scene, key_points=key_points)
+
+        result = annotator.annotate(scene=scene, key_points=key_points)
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_array_equal(result.reshape(60, 80), expected[..., 0])
+        assert not np.array_equal(result.reshape(60, 80), gray)
+
+    def test_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (80, 60), color=100)
+        annotator = sv.VertexEllipseHaloAnnotator(
+            sigma=2.0, color=sv.Color(r=10, g=20, b=200)
+        )
+
+        result = annotator.annotate(scene=image, key_points=_halo_key_points())
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.size == image.size
+        assert result.getpixel((30, 20)) != 100
+        assert result.getpixel((2, 2)) == 100
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((0, 30), id="gray-no-rows"),
+            pytest.param((0, 30, 1), id="gray-axis-no-rows"),
+            pytest.param((0, 30, 3), id="bgr-no-rows"),
+            pytest.param((30, 0, 3), id="bgr-no-columns"),
+        ],
+    )
+    def test_zero_size_scene_is_returned(self, shape: tuple[int, ...]) -> None:
+        """A zero-size scene, such as an empty crop, has nothing to draw on."""
+        scene = np.zeros(shape, dtype=np.uint8)
+        annotator = sv.VertexEllipseHaloAnnotator()
+
+        result = annotator.annotate(scene=scene, key_points=_halo_key_points())
+
+        assert result is scene
 
     def test_annotate_empty_key_points(self, scene, empty_key_points):
         annotator = sv.VertexEllipseHaloAnnotator()
@@ -634,20 +775,14 @@ class TestVertexLabelAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
-    def test_non_finite_z_skips_label_despite_finite_xy(self, scene):
-        """A finite (x, y) pair with a non-finite z component is skipped.
-
-        Pins the current full-row finiteness rule, which matches
-        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is never
-        rasterized by VertexLabelAnnotator. A future change to only check (x, y) should
-        be a deliberate decision, not an accidental one.
-        """
+    def test_non_finite_z_does_not_hide_finite_xy(self, scene):
+        """Labels use finite x/y coordinates even when depth is non-finite."""
         key_points = sv.KeyPoints(
             xy=np.array([[[50.0, 50.0, np.nan]]], dtype=np.float32),
         )
         annotator = sv.VertexLabelAnnotator()
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
-        assert np.array_equal(result, scene)
+        assert not np.array_equal(result, scene)
 
     def test_all_non_finite_multi_detection_draws_nothing(self, scene):
         """A fully non-finite, multi-detection, multi-point array draws nothing and does

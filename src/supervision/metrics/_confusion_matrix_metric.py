@@ -2,11 +2,10 @@
 
 :class:`~supervision.metrics.precision.Precision`,
 :class:`~supervision.metrics.recall.Recall` and
-:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very
-same per-class, per-
-IoU-threshold `(TP, FP, FN)` matrix. They differ only in the formula applied to that
-matrix, in the result dataclass they fill, and in the labels used when a result is
-rendered. This module owns everything they share.
+:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very same per-
+class, per- IoU-threshold `(TP, FP, FN)` matrix. They differ only in the formula applied
+to that matrix, in the result dataclass they fill, and in the labels used when a result
+is rendered. This module owns everything they share.
 
 The public classes stay in their own modules on purpose: the API reference does not
 enable `inherited_members`, so a public method moved onto a shared base would silently
@@ -209,10 +208,13 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                         iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
                         # OBB target never yields CompactMask; narrow for mypy.
+                        # The float32 cast matches `box_iou_batch`: the thresholds
+                        # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
+                        # a float64 IoU exactly on one of them would fall below it.
                         iou = oriented_box_iou_batch(
                             cast(npt.NDArray[np.number], target_contents),
                             cast(npt.NDArray[np.number], prediction_contents),
-                        )
+                        ).astype(np.float32)
                     else:
                         raise ValueError(
                             "Unsupported metric target for IoU calculation"
@@ -420,7 +422,9 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
 
         For the mask target this may return a
         :class:`~supervision.detection.compact_mask.CompactMask` rather than a
-        dense boolean array when the detections carry compact masks.
+        dense boolean array when the detections carry compact masks. Oriented
+        corners retain their precision until IoU translates them into a local frame;
+        float16 corners are promoted before subtracting potentially large extents.
         """
         if self._metric_target == MetricTarget.BOXES:
             return cast(npt.NDArray[Any], detections.xyxy)
@@ -437,7 +441,9 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is not None and len(obb) > 0:
-                result_obb: npt.NDArray[np.float32] = np.array(obb, dtype=np.float32)
+                result_obb: npt.NDArray[Any] = np.array(obb)
+                if np.issubdtype(result_obb.dtype, np.float16):
+                    result_obb = result_obb.astype(np.float32)
                 return result_obb
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
@@ -480,24 +486,6 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                 new_detections.data[key] = np.array(value)[size_mask]
 
         return new_detections
-
-    def _filter_predictions_and_targets_by_size(
-        self,
-        predictions_list: list[Detections],
-        targets_list: list[Detections],
-        size_category: ObjectSizeCategory,
-    ) -> tuple[list[Detections], list[Detections]]:
-        """Filter predictions and targets by object size category."""
-        new_predictions_list = []
-        new_targets_list = []
-        for predictions, targets in zip(predictions_list, targets_list):
-            new_predictions_list.append(
-                self._filter_detections_by_size(predictions, size_category)
-            )
-            new_targets_list.append(
-                self._filter_detections_by_size(targets, size_category)
-            )
-        return new_predictions_list, new_targets_list
 
 
 @dataclass(frozen=True)

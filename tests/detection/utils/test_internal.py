@@ -1,5 +1,7 @@
+import tracemalloc
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -67,6 +69,47 @@ def test_extract_ultralytics_masks_thresholds_resized_proto_at_half() -> None:
     assert masks[0].sum() < int((resized > 0).sum())
 
 
+class TestExtractUltralyticsLetterboxMasks:
+    """Restore mask geometry after rounded and asymmetric letterbox padding."""
+
+    @pytest.mark.parametrize("portrait", [False, True])
+    @pytest.mark.parametrize(
+        ("orig_shape", "inference_shape", "content_rows"),
+        [
+            pytest.param((333, 500), (448, 640), (11, 437), id="fractional-padding"),
+            pytest.param((332, 500), (448, 640), (11, 436), id="odd-padding"),
+            pytest.param((480, 640), (640, 640), (80, 560), id="integer-padding"),
+            pytest.param((320, 320), (640, 640), (0, 640), id="resize-without-padding"),
+            pytest.param((17, 19), (17, 19), (0, 17), id="original-resolution"),
+        ],
+    )
+    def test_preserves_content_geometry(
+        self,
+        portrait: bool,
+        orig_shape: tuple[int, int],
+        inference_shape: tuple[int, int],
+        content_rows: tuple[int, int],
+    ) -> None:
+        """Foreground bands are scaled from content pixels, excluding padding."""
+        top, bottom = content_rows
+        content = np.zeros((bottom - top, inference_shape[1]), dtype=np.float32)
+        content[2:-2, 2:-2] = 1
+        content[5:9] = 0
+        proto = np.zeros((1, *inference_shape), dtype=np.float32)
+        proto[0, top:bottom] = content
+        if portrait:
+            proto = proto.transpose(0, 2, 1)
+            content = content.T
+            orig_shape = orig_shape[::-1]
+        expected = cv2.resize(content, (orig_shape[1], orig_shape[0])) > 0.5
+        results = _FakeYOLOMaskResults(masks_arr=proto, orig_shape=orig_shape)
+
+        actual = extract_ultralytics_masks(results)
+
+        assert actual is not None
+        np.testing.assert_array_equal(actual[0], expected)
+
+
 def _pred(
     yx: tuple[float, float] = (1.5, 1.5),
     size: tuple[float, float] = (2.0, 2.0),
@@ -115,6 +158,15 @@ TEST_RLE_MASK[0, 1:3, 1:3] = True
 TEST_RLE_NONCONTIGUOUS_MASK = np.zeros((1, 4, 4), dtype=bool)
 TEST_RLE_NONCONTIGUOUS_MASK[0, 0:2, 0:2] = True
 TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
+
+
+def _optional_array_equal(
+    actual: np.ndarray | None, expected: np.ndarray | None
+) -> bool:
+    """Compare two optional arrays, treating two ``None`` values as equal."""
+    if actual is None or expected is None:
+        return actual is None and expected is None
+    return np.array_equal(actual, expected)
 
 
 @pytest.mark.parametrize(
@@ -406,35 +458,38 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
     ],
 )
 def test_process_roboflow_result(
-    roboflow_result: dict,
+    roboflow_result: dict[str, Any],
     expected_result: tuple[
-        np.ndarray, np.ndarray, np.ndarray, np.ndarray | None, np.ndarray
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray | None,
+        np.ndarray | None,
+        dict[str, Any],
     ],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Roboflow API results are parsed into boxes, scores, ids, masks and data."""
     with exception:
         result = process_roboflow_result(roboflow_result=roboflow_result)
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
         assert np.array_equal(result[2], expected_result[2])
-        assert (result[3] is None and expected_result[3] is None) or (
-            np.array_equal(result[3], expected_result[3])
-        )
-        assert (result[4] is None and expected_result[4] is None) or (
-            np.array_equal(result[4], expected_result[4])
-        )
-        for key in result[5]:
-            if isinstance(result[5][key], np.ndarray):
-                assert np.array_equal(result[5][key], expected_result[5][key]), (
+        assert _optional_array_equal(result[3], expected_result[3])
+        assert _optional_array_equal(result[4], expected_result[4])
+        for key, value in result[5].items():
+            expected_value = expected_result[5][key]
+            if isinstance(value, np.ndarray):
+                assert np.array_equal(value, expected_value), (
                     f"Mismatch in arrays for key {key}"
                 )
-                assert result[5][key].dtype == expected_result[5][key].dtype, (
+                assert value.dtype == expected_value.dtype, (
                     f"dtype mismatch for key {key}: "
-                    f"got {result[5][key].dtype}, "
-                    f"expected {expected_result[5][key].dtype}"
+                    f"got {value.dtype}, "
+                    f"expected {expected_value.dtype}"
                 )
             else:
-                assert result[5][key] == expected_result[5][key], (
+                assert value == expected_value, (
                     f"Mismatch in non-array data for key {key}"
                 )
 
@@ -913,7 +968,7 @@ def test_rle_size_mismatch_resizes_dense_mask() -> None:
 def test_merge_data(
     data_list: list[dict[str, Any]],
     expected_result: dict[str, Any] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = merge_data(data_list=data_list)
@@ -1089,10 +1144,12 @@ def test_get_data_item(
     data: dict[str, Any],
     index: Any,
     expected_result: dict[str, Any] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Data dict fields are sliced consistently for every supported index type."""
     with exception:
         result = get_data_item(data=data, index=index)
+        assert expected_result is not None
         for key in result:
             if isinstance(result[key], np.ndarray):
                 assert np.array_equal(result[key], expected_result[key]), (
@@ -1102,6 +1159,61 @@ def test_get_data_item(
                 assert result[key] == expected_result[key], (
                     f"Mismatch in non-array data for key {key}"
                 )
+
+
+class TestGetDataItemListSelection:
+    def test_small_integer_selection_uses_bounded_memory(self) -> None:
+        """Selecting a few list rows avoids allocation for unselected rows."""
+        values = list(range(100_000))
+        data: dict[str, Any] = {"label": values}
+        tracemalloc.start()
+        try:
+            result = get_data_item(data, [0, -1, 0])
+            _, peak_bytes = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+
+        assert result == {"label": [0, 99_999, 0]}
+        # A full int64 positions array requires 800 KB for this real input.
+        assert peak_bytes < 64_000
+
+    @pytest.mark.parametrize(
+        ("index", "expected"),
+        [
+            pytest.param([True, False, True], [0, 2], id="mixed-mask"),
+            pytest.param([True, True, True], [0, 1, 2], id="all-true-mask"),
+            pytest.param([False, False, False], [], id="all-false-mask"),
+            pytest.param([np.True_, np.False_, np.True_], [0, 2], id="numpy-bools"),
+            pytest.param([2, -3, 2], [2, 0, 2], id="reordered-repeated-integers"),
+            pytest.param([np.True_, 0], [1, 0], id="mixed-bool-integer"),
+            pytest.param([], [], id="empty-index"),
+        ],
+    )
+    def test_matches_numpy_rows(
+        self, index: list[int | bool | np.bool_], expected: list[int]
+    ) -> None:
+        """Python-list metadata follows NumPy mask and positional semantics."""
+        data: dict[str, Any] = {"label": [0, 1, 2], "score": np.arange(3)}
+
+        result = get_data_item(data, cast(list[int], index))
+
+        assert result["label"] == expected
+        np.testing.assert_array_equal(result["score"], expected)
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pytest.param([3], id="past-end"),
+            pytest.param([-4], id="before-start"),
+            pytest.param([True, False], id="short-mask"),
+        ],
+    )
+    def test_rejects_out_of_bounds_rows(self, index: list[int | bool]) -> None:
+        """Invalid positions and mask lengths remain indexing errors."""
+        data: dict[str, Any] = {"label": [0, 1, 2]}
+
+        with pytest.raises(IndexError):
+            get_data_item(data, index)
 
 
 @pytest.mark.parametrize(
@@ -1288,11 +1400,17 @@ def test_get_data_item(
         ),
     ],
 )
-def test_merge_metadata(metadata_list, expected_result, exception) -> None:
+def test_merge_metadata(
+    metadata_list: list[dict[str, Any]],
+    expected_result: dict[str, Any] | None,
+    exception: AbstractContextManager[object],
+) -> None:
+    """Metadata dicts merge when values agree and raise on conflicting values."""
     with exception:
         result = merge_metadata(metadata_list)
-        if expected_result is None:
-            assert result is None, f"Expected an error, but got a result {result}"
+        assert expected_result is not None, (
+            f"Expected an error, but got a result {result}"
+        )
         for key, value in result.items():
             assert key in expected_result
             if isinstance(value, np.ndarray):

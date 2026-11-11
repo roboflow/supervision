@@ -1,6 +1,9 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import cast
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision.detection.utils.boxes import (
@@ -13,11 +16,14 @@ from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
     move_boxes,
+    move_oriented_boxes,
     obb_polygon_area,
     pad_boxes,
     scale_boxes,
+    spread_out_boxes,
     xyxyxyxy_to_xyxy,
 )
+from supervision.detection.utils.iou_and_nms import box_iou_batch
 from supervision.geometry.core import Position
 
 _ALL_ANCHORS = [
@@ -34,9 +40,11 @@ _ALL_ANCHORS = [
 
 
 def _rotate(corners: np.ndarray, angle_deg: float, about: np.ndarray) -> np.ndarray:
+    """Rotate points counterclockwise by ``angle_deg`` around ``about``."""
     angle = np.deg2rad(angle_deg)
     rot = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
-    return (corners - about) @ rot.T + about
+    rotated: np.ndarray = (corners - about) @ rot.T + about
+    return rotated
 
 
 @pytest.mark.parametrize(
@@ -122,11 +130,86 @@ def test_move_boxes(
     xyxy: np.ndarray,
     offset: np.ndarray,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = move_boxes(xyxy=xyxy, offset=offset)
         assert np.array_equal(result, expected_result)
+
+
+class TestMoveBoxesIntegerCoordinates:
+    """Integer translations preserve coordinates beyond the input dtype bounds."""
+
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "offset", "offset_dtype", "expected"),
+        [
+            pytest.param(
+                np.uint8,
+                [[250, 0, 255, 10]],
+                [10, 0],
+                np.uint8,
+                [[260, 0, 265, 10]],
+                id="uint8-positive-overflow",
+            ),
+            pytest.param(
+                np.int8,
+                [[-120, 0, -100, 10]],
+                [-10, 0],
+                np.int8,
+                [[-130, 0, -110, 10]],
+                id="int8-negative-underflow",
+            ),
+            pytest.param(
+                np.uint64,
+                [[2**63, 0, 2**63 + 2, 10]],
+                [-(2**63), 0],
+                np.int64,
+                [[0, 0, 2, 10]],
+                id="uint64-signed-cancellation",
+            ),
+        ],
+    )
+    def test_move_boxes_promotes_integer_coordinates(
+        self,
+        dtype: type[np.integer],
+        xyxy: list[list[int]],
+        offset: list[int],
+        offset_dtype: type[np.integer],
+        expected: list[list[int]],
+    ) -> None:
+        """Translations do not wrap signed or unsigned integer coordinates."""
+        boxes = np.array(xyxy, dtype=dtype)
+        displacement = np.array(offset, dtype=offset_dtype)
+
+        result = move_boxes(xyxy=boxes, offset=displacement)
+
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.int64))
+
+    def test_move_oriented_boxes_promotes_integer_coordinates(self) -> None:
+        """Oriented-box translations use the same overflow-safe arithmetic."""
+        corners = np.array([[[250, 0], [255, 0], [255, 10], [250, 10]]], dtype=np.uint8)
+        offset = np.array([10, 0], dtype=np.uint8)
+
+        result = move_oriented_boxes(xyxyxyxy=corners, offset=offset)
+
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(
+            result,
+            np.array([[[260, 0], [265, 0], [265, 10], [260, 10]]], dtype=np.int64),
+        )
+
+    def test_move_boxes_uses_float_when_result_exceeds_int64(self) -> None:
+        """Translations beyond int64 use float64 after exact integer addition."""
+        maximum = np.iinfo(np.int64).max
+        boxes = np.array([[maximum, 0, maximum, 10]], dtype=np.int64)
+
+        result = move_boxes(xyxy=boxes, offset=np.array([1, 0], dtype=np.int64))
+
+        assert result.dtype == np.float64
+        np.testing.assert_array_equal(
+            result, np.array([[float(2**63), 0, float(2**63), 10]], dtype=np.float64)
+        )
 
 
 @pytest.mark.parametrize(
@@ -168,7 +251,7 @@ def test_scale_boxes(
     xyxy: np.ndarray,
     factor: float,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = scale_boxes(xyxy=xyxy, factor=factor)
@@ -300,6 +383,40 @@ def test_scale_boxes_returns_expected_dtype(
     assert result.dtype == expected_dtype
 
 
+def test_large_float16_boxes_keep_finite_midpoints() -> None:
+    """A representable midpoint never overflows the sum of its two corners.
+
+    Averaging corners through their sum overflows `float16` for a finite box at
+    `32000`-`64000`: `scale_boxes(factor=1.0)` returned `inf` corners and
+    `Position.CENTER` returned an `inf` anchor.
+    """
+    xyxy = np.array([[32000, 0, 64000, 10]], dtype=np.float16)
+
+    np.testing.assert_array_equal(scale_boxes(xyxy=xyxy, factor=1.0), xyxy)
+    np.testing.assert_array_equal(
+        box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+        np.array([48000], dtype=np.float16),
+    )
+    assert np.isfinite(spread_out_boxes(xyxy=np.tile(xyxy, (2, 1)))).all()
+
+
+def test_subnormal_float16_boxes_keep_exact_midpoints() -> None:
+    """A midpoint keeps its exact value when the result is subnormal.
+
+    `s = 2**-24` is the smallest positive `float16`; halving before adding rounds
+    `s` to zero and `5*s` to `2*s`, moving the midpoint from `3*s` to `2*s` and
+    shifting a box that `scale_boxes(factor=1.0)` must leave untouched.
+    """
+    s = np.float16(2.0**-24)
+    xyxy = np.array([[s, 0, np.float16(5) * s, 1]], dtype=np.float16)
+
+    np.testing.assert_array_equal(
+        box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+        np.array([np.float16(3) * s], dtype=np.float16),
+    )
+    np.testing.assert_array_equal(scale_boxes(xyxy=xyxy, factor=1.0), xyxy)
+
+
 @pytest.mark.parametrize(
     ("xyxy", "resolution_wh", "normalization_factor", "expected_result", "exception"),
     [
@@ -381,7 +498,7 @@ def test_denormalize_boxes(
     resolution_wh: tuple[int, int],
     normalization_factor: float,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = denormalize_boxes(
@@ -690,7 +807,7 @@ class TestPadBoxes:
         padding = np.int64(-(2**63))
         expected = np.array([[2**63, 0, -(2**63), 0]], dtype=np.float64)
 
-        result = pad_boxes(xyxy, px=padding, py=0)
+        result = pad_boxes(xyxy, px=cast(int, padding), py=0)
 
         np.testing.assert_array_equal(result, expected)
 
@@ -839,3 +956,136 @@ def test_box_midpoint_returns_expected_values_and_dtype(
 
     assert result.dtype == expected_dtype
     np.testing.assert_array_equal(result, np.array(expected, dtype=np.float64))
+
+
+class TestSpreadOutBoxes:
+    """Overlapping boxes are moved apart until they no longer overlap."""
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([[10, 10, 40, 20]] * 2, id="two-identical"),
+            pytest.param([[10, 10, 40, 20]] * 3, id="three-identical"),
+            pytest.param([[10, 10, 40, 20], [5, 5, 45, 25]], id="nested-same-center"),
+        ],
+    )
+    def test_separates_boxes_sharing_a_center(self, xyxy: list[list[int]]) -> None:
+        """Boxes with a common center end up with no overlap between any pair."""
+        boxes = np.array(xyxy, dtype=np.float64)
+
+        result = spread_out_boxes(boxes)
+
+        iou = box_iou_batch(result, result)
+        np.fill_diagonal(iou, 0)
+        assert np.all(iou == 0)
+
+    def test_moves_earlier_of_two_identical_boxes_up(self) -> None:
+        """Of two identical boxes, the first moves up and the second moves down."""
+        xyxy = np.array([[10, 10, 40, 20], [10, 10, 40, 20]], dtype=np.float64)
+
+        result = spread_out_boxes(xyxy)
+
+        np.testing.assert_array_equal(result[:, [0, 2]], xyxy[:, [0, 2]])
+        assert result[0, 1] < xyxy[0, 1] < result[1, 1]
+
+
+class TestScaleBoxesWideFloatingSpans:
+    """Scaling finite corners must not overflow an intermediate box width."""
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    @pytest.mark.parametrize("factor", [0.0, 0.5, 1.0])
+    def test_preserves_representable_scaled_corners(
+        self, dtype: type, factor: float
+    ) -> None:
+        """Opposite-sign finite corners scale without an overflowing span."""
+        extent = np.finfo(dtype).max * 0.75
+        boxes: npt.NDArray[np.floating] = np.array(
+            [[-extent, -extent, extent, extent]], dtype=dtype
+        )
+        expected = boxes * factor
+
+        with np.errstate(over="raise", invalid="raise"):
+            result = scale_boxes(boxes, factor)
+
+        assert result.dtype == boxes.dtype
+        np.testing.assert_allclose(result, expected, rtol=0.002, atol=0)
+
+    @pytest.mark.parametrize("invalid", [float("nan"), float("inf")])
+    def test_finite_boxes_are_independent_of_nonfinite_siblings(
+        self, invalid: float
+    ) -> None:
+        """An unrelated invalid box does not disable finite-span recovery."""
+        boxes = np.array(
+            [[-40000, -40000, 40000, 40000], [invalid, 0, 1, 1]], dtype=np.float16
+        )
+
+        with np.errstate(invalid="ignore"):
+            result = scale_boxes(boxes, 0.5)
+
+        np.testing.assert_array_equal(result[0], [-20000, -20000, 20000, 20000])
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    def test_keeps_representable_corners_when_scaled_span_overflows(
+        self, dtype: type
+    ) -> None:
+        """A finite width can overflow when enlarged although both corners fit."""
+        extent = np.finfo(dtype).max * 0.6
+        boxes: npt.NDArray[np.floating] = np.array(
+            [[0, 0, extent, extent]], dtype=dtype
+        )
+        extent = float(boxes[0, 2])
+        expected = np.array([[-extent / 2, -extent / 2, extent * 1.5, extent * 1.5]])
+
+        with np.errstate(over="raise", invalid="raise"):
+            result = scale_boxes(boxes, 2.0)
+
+        assert result.dtype == boxes.dtype
+        np.testing.assert_allclose(result, expected, rtol=0.002, atol=0)
+
+    @pytest.mark.parametrize(
+        "boxes",
+        [
+            np.array([[-32768, 0, 65504, 1]], dtype=np.float16),
+            np.array([[-65504, 0, 32768, 1]], dtype=np.float16),
+        ],
+    )
+    def test_identity_scaling_keeps_asymmetric_near_limit_corners(
+        self, boxes: npt.NDArray[np.floating]
+    ) -> None:
+        """Recovery must not round a representable corner past the dtype limit."""
+        with np.errstate(over="raise", invalid="raise"):
+            result = scale_boxes(boxes, 1.0)
+
+        assert result.dtype == boxes.dtype
+        np.testing.assert_array_equal(result, boxes)
+
+    @pytest.mark.parametrize(
+        ("boxes", "factor"),
+        [
+            (np.array([[1e300, 0, 1.7e308, 1]], dtype=np.float64), 1e10),
+            (np.array([[1e30, 0, 3e38, 1]], dtype=np.float32), 1e300),
+        ],
+    )
+    def test_out_of_range_corners_stay_infinite_instead_of_nan(
+        self, boxes: npt.NDArray[np.floating], factor: float
+    ) -> None:
+        """Weighted terms overflowing with opposite signs must not produce NaN."""
+        with np.errstate(over="ignore"):
+            result = scale_boxes(boxes, factor)
+
+        assert not np.isnan(result).any()
+        assert result[0, 0] == -np.inf
+        assert result[0, 2] == np.inf
+
+    def test_keeps_representable_corner_when_weighted_terms_overflow(self) -> None:
+        """A corner can fit although both of its weighted terms overflow."""
+        limit = float(np.finfo(np.float64).max)
+        boxes: npt.NDArray[np.floating] = np.array(
+            [[0.6 * limit, 0, 0.9 * limit, 1]], dtype=np.float64
+        )
+
+        with np.errstate(over="ignore"):
+            result = scale_boxes(boxes, 3.4)
+
+        np.testing.assert_allclose(result[0, 0], 0.24 * limit, rtol=1e-12)
+        assert result[0, 2] == np.inf

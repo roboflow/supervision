@@ -100,6 +100,9 @@ def _download_to_file(
 
 class NumpyJsonEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
+        """Convert supported NumPy values to JSON-compatible Python values."""
+        if isinstance(obj, np.bool_):
+            return bool(obj)
         if isinstance(obj, np.integer):
             return int(obj)
         if isinstance(obj, np.floating):

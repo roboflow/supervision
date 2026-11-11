@@ -130,6 +130,38 @@ def test_archive_step_runs_the_banner_script_in_banner_only_mode(
     assert "git push origin gh-pages" in step["run"]
 
 
+def test_archive_step_restores_the_source_checkout(
+    workflow_step: StepLookup,
+) -> None:
+    """The Archive step hands the next step back the commit the job started on.
+
+    It switches to gh-pages to patch the demoted tree, and the GEO inject step that
+    follows reads the release's own files; a checkout left on gh-pages failed the
+    0.31.0 and 0.31.1 release runs with ``cp: cannot stat 'docs/robots.txt'``.
+    """
+    step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, ARCHIVE_STEP)
+
+    assert step["run"].strip().splitlines()[-1] == 'git checkout "$GITHUB_SHA"'
+
+
+INJECT_STEP = "\N{GLOBE WITH MERIDIANS} Inject GEO root files into gh-pages"
+
+
+def test_inject_step_reads_root_files_from_the_deployed_commit(
+    workflow_step: StepLookup,
+) -> None:
+    """Stage the GEO root files from git objects, whatever the working tree holds.
+
+    An earlier step may leave the working tree on gh-pages, which has no ``docs/``;
+    reading the deployed commit directly keeps this step independent of step order.
+    """
+    step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, INJECT_STEP)
+
+    assert 'cp "docs/' not in step["run"]
+    assert 'git show "$GITHUB_SHA:docs/$f" > "/tmp/$f"' in step["run"]
+    assert 'git show "$GITHUB_SHA:.github/root-index.html"' in step["run"]
+
+
 def test_every_mike_deploy_step_exports_the_banner_version(
     workflows_dir: Path,
 ) -> None:

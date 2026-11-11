@@ -1,3 +1,7 @@
+import importlib.util
+
+import pytest
+
 from supervision.key_points.skeletons import (
     SKELETONS_BY_EDGE_COUNT,
     SKELETONS_BY_VERTEX_COUNT,
@@ -108,3 +112,23 @@ class TestSkeletons:
         `skeletons.py`, so this fails loudly on a regression there.
         """
         assert Skeleton.HAND.value == HAND
+
+    @pytest.mark.integration
+    @pytest.mark.skipif(
+        importlib.util.find_spec("mediapipe") is None,
+        reason="MediaPipe reference is installed in the dedicated parity job",
+    )
+    def test_ghum_skeleton_matches_mediapipe_pose_connections(self) -> None:
+        """Compare the GHUM edges with MediaPipe pose connections."""
+        from mediapipe.tasks.python.vision.pose_landmarker import (
+            PoseLandmarksConnections,
+        )
+
+        expected = sorted(
+            (edge.start + 1, edge.end + 1)
+            for edge in PoseLandmarksConnections.POSE_LANDMARKS
+        )
+
+        actual = sorted(Skeleton.GHUM.value)
+
+        assert actual == expected

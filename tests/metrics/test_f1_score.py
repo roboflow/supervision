@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision.detection.compact_mask import CompactMask
@@ -12,7 +13,8 @@ from tests.helpers import assert_almost_equal
 
 class TestF1Score:
     @pytest.fixture
-    def predictions_multiple_classes(self):
+    def predictions_multiple_classes(self) -> Detections:
+        """Predictions spanning two classes for per-class averaging tests."""
         return Detections(
             xyxy=np.array(
                 [
@@ -27,7 +29,8 @@ class TestF1Score:
         )
 
     @pytest.fixture
-    def targets_multiple_classes(self):
+    def targets_multiple_classes(self) -> Detections:
+        """Targets spanning two classes for per-class averaging tests."""
         return Detections(
             xyxy=np.array(
                 [
@@ -39,7 +42,7 @@ class TestF1Score:
             class_id=np.array([0, 1]),
         )
 
-    def test_initialization_default(self):
+    def test_initialization_default(self) -> None:
         """Test that F1Score can be initialized with default parameters."""
         metric = F1Score()
         assert metric._metric_target == MetricTarget.BOXES
@@ -47,7 +50,7 @@ class TestF1Score:
         assert metric._predictions_list == []
         assert metric._targets_list == []
 
-    def test_initialization_custom(self):
+    def test_initialization_custom(self) -> None:
         """Test that F1Score can be initialized with custom parameters."""
         metric = F1Score(
             metric_target=MetricTarget.MASKS,
@@ -91,7 +94,7 @@ class TestF1Score:
 
         assert r_dense.f1_50 == pytest.approx(r_compact.f1_50)
 
-    def test_reset(self, dummy_prediction):
+    def test_reset(self, dummy_prediction: Detections) -> None:
         """Test that reset() clears all stored data."""
         metric = F1Score()
 
@@ -107,7 +110,9 @@ class TestF1Score:
         assert metric._predictions_list == []
         assert metric._targets_list == []
 
-    def test_perfect_match(self, detections_50_50, targets_50_50):
+    def test_perfect_match(
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
         """Test F1 score with perfect matching predictions and targets."""
         metric = F1Score()
         result = metric.update(detections_50_50, targets_50_50).compute()
@@ -122,7 +127,9 @@ class TestF1Score:
         assert len(result.matched_classes) == 1
         assert result.matched_classes[0] == 0
 
-    def test_no_overlap(self, predictions_no_overlap, targets_no_overlap):
+    def test_no_overlap(
+        self, predictions_no_overlap: Detections, targets_no_overlap: Detections
+    ) -> None:
         """Test F1 score with predictions that don't overlap with targets."""
         metric = F1Score()
         result = metric.update(predictions_no_overlap, targets_no_overlap).compute()
@@ -134,7 +141,7 @@ class TestF1Score:
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
 
-    def test_empty_predictions(self, targets_50_50):
+    def test_empty_predictions(self, targets_50_50: Detections) -> None:
         """Test F1 score with empty predictions but existing targets."""
         predictions = Detections.empty()
 
@@ -148,7 +155,7 @@ class TestF1Score:
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
 
-    def test_empty_targets(self, detections_50_50):
+    def test_empty_targets(self, detections_50_50: Detections) -> None:
         """Test F1 score with predictions but no targets."""
         targets = Detections.empty()
 
@@ -179,7 +186,7 @@ class TestF1Score:
         assert result.medium_objects is not None
         assert result.medium_objects.f1_50 == 1.0
 
-    def test_false_positives_on_background_image_counted(self):
+    def test_false_positives_on_background_image_counted(self) -> None:
         """Predictions on an image with no targets must count as false positives."""
         predictions_with_gt = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
@@ -222,7 +229,9 @@ class TestF1Score:
             ),
         ],
     )
-    def test_false_positives_of_absent_class_counted(self, method, expected):
+    def test_false_positives_of_absent_class_counted(
+        self, method: AveragingMethod, expected: float
+    ) -> None:
         """Predictions of absent class count as FPs under MICRO/MACRO; WEIGHTED excludes
         them by design (GT support=0 → weight=0, consistent with sklearn)."""
         predictions = Detections(
@@ -245,7 +254,7 @@ class TestF1Score:
         # WEIGHTED: class_1 weight=0 -> only class 0 contributes -> 1.0
         assert result.f1_50 == pytest.approx(expected)
 
-    def test_false_positives_on_background_image_weighted_returns_zero(self):
+    def test_false_positives_on_background_image_weighted_returns_zero(self) -> None:
         """WEIGHTED F1 is 0.0 when all images are background (no GT anywhere)."""
         background_predictions = Detections(
             xyxy=np.array([[20, 0, 25, 5], [40, 0, 45, 5]], np.float32),
@@ -260,8 +269,8 @@ class TestF1Score:
         assert result.f1_50 == 0.0
 
     def test_single_class_mixed_results(
-        self, predictions_confidence_ranking, targets_50_50
-    ):
+        self, predictions_confidence_ranking: Detections, targets_50_50: Detections
+    ) -> None:
         """Test F1 score calculation with mixed precision and recall."""
         metric = F1Score()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -275,8 +284,8 @@ class TestF1Score:
         assert_almost_equal(result.f1_75, expected_f1)
 
     def test_precision_recall_imbalance(
-        self, detections_50_50, targets_two_objects_class_0
-    ):
+        self, detections_50_50: Detections, targets_two_objects_class_0: Detections
+    ) -> None:
         """Test F1 score with different precision and recall scenarios."""
         metric = F1Score()
         result = metric.update(detections_50_50, targets_two_objects_class_0).compute()
@@ -290,8 +299,10 @@ class TestF1Score:
         assert_almost_equal(result.f1_75, expected_f1)
 
     def test_multiple_classes(
-        self, predictions_multiple_classes, targets_multiple_classes
-    ):
+        self,
+        predictions_multiple_classes: Detections,
+        targets_multiple_classes: Detections,
+    ) -> None:
         """Test F1 score calculation for multiple classes."""
         metric = F1Score()
         result = metric.update(
@@ -307,7 +318,9 @@ class TestF1Score:
         assert 0 in result.matched_classes
         assert 1 in result.matched_classes
 
-    def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064):
+    def test_different_iou_thresholds(
+        self, predictions_iou_064: Detections, targets_iou_064: Detections
+    ) -> None:
         """Test F1 score at different IoU thresholds."""
         metric = F1Score()
         result = metric.update(predictions_iou_064, targets_iou_064).compute()
@@ -318,7 +331,9 @@ class TestF1Score:
         assert result.f1_50 == 1.0
         assert result.f1_75 == 0.0
 
-    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
+    def test_confidence_ranking(
+        self, predictions_confidence_ranking: Detections, targets_50_50: Detections
+    ) -> None:
         """Test that F1 score respects confidence ranking."""
         metric = F1Score()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -331,8 +346,12 @@ class TestF1Score:
         assert_almost_equal(result.f1_50, expected_f1)
 
     def test_list_inputs(
-        self, detections_50_50, targets_50_50, prediction_class_1, target_class_1
-    ):
+        self,
+        detections_50_50: Detections,
+        targets_50_50: Detections,
+        prediction_class_1: Detections,
+        target_class_1: Detections,
+    ) -> None:
         """Test F1 score with list inputs."""
         metric = F1Score()
         result = metric.update(
@@ -343,7 +362,9 @@ class TestF1Score:
         assert result.f1_50 == 1.0
         assert result.f1_75 == 1.0
 
-    def test_mismatched_list_lengths(self, detections_50_50, targets_50_50):
+    def test_mismatched_list_lengths(
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
         """Test that mismatched prediction/target list lengths raise error."""
         metric = F1Score()
 
@@ -356,7 +377,7 @@ class TestF1Score:
         ["predictions_class_id", "targets_class_id", "predictions_confidence"],
     )
     def test_compute_value_error_for_missing_required_fields(
-        self, missing_attribute
+        self, missing_attribute: str
     ) -> None:
         """Test compute raises ValueError when required fields are missing."""
         metric = F1Score()
@@ -394,7 +415,12 @@ class TestF1Score:
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
-    def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50):
+    def test_averaging_methods(
+        self,
+        averaging_method: AveragingMethod,
+        detections_50_50: Detections,
+        targets_50_50: Detections,
+    ) -> None:
         """Test different averaging methods."""
         metric = F1Score(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()
@@ -404,8 +430,10 @@ class TestF1Score:
         assert result.averaging_method == averaging_method
 
     def test_macro_averaging(
-        self, predictions_multiple_classes, targets_multiple_classes
-    ):
+        self,
+        predictions_multiple_classes: Detections,
+        targets_multiple_classes: Detections,
+    ) -> None:
         """Test MACRO averaging with specific example."""
         metric = F1Score(averaging_method=AveragingMethod.MACRO)
         result = metric.update(
@@ -417,8 +445,10 @@ class TestF1Score:
         assert_almost_equal(result.f1_50, expected_f1)
 
     def test_micro_averaging(
-        self, predictions_multiple_classes, targets_multiple_classes
-    ):
+        self,
+        predictions_multiple_classes: Detections,
+        targets_multiple_classes: Detections,
+    ) -> None:
         """Test MICRO averaging with specific example."""
         metric = F1Score(averaging_method=AveragingMethod.MICRO)
         result = metric.update(
@@ -430,8 +460,10 @@ class TestF1Score:
         assert_almost_equal(result.f1_50, expected_f1)
 
     def test_weighted_averaging(
-        self, predictions_multiple_classes, targets_multiple_classes
-    ):
+        self,
+        predictions_multiple_classes: Detections,
+        targets_multiple_classes: Detections,
+    ) -> None:
         """Test WEIGHTED averaging with specific example."""
         metric = F1Score(averaging_method=AveragingMethod.WEIGHTED)
         result = metric.update(
@@ -442,7 +474,7 @@ class TestF1Score:
         expected_f1 = 5.0 / 6.0
         assert_almost_equal(result.f1_50, expected_f1)
 
-    def test_greedy_matching_two_valid_pairs(self):
+    def test_greedy_matching_two_valid_pairs(self) -> None:
         """Greedy matching finds both TPs; np.unique style missed the second pair.
 
         IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
@@ -518,7 +550,9 @@ class TestComputeF1:
         ],
     )
     def test_compute_f1_matches_expected_score_without_warning(
-        self, confusion_matrix, expected_f1
+        self,
+        confusion_matrix: npt.NDArray[np.float64],
+        expected_f1: npt.NDArray[np.float64],
     ) -> None:
         """_compute_f1 returns the expected score and never emits RuntimeWarning,
         including for confusion matrix rows whose true-positive/false-positive/false-

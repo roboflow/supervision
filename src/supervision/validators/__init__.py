@@ -328,20 +328,18 @@ def validate_key_points_fields(
 
 def _validate_resolution(resolution: Any) -> tuple[int, int]:
     if not (isinstance(resolution, tuple) and len(resolution) == 2):
-        raise ValueError(
-            f"""
+        message = f"""
             resolution must be a tuple of two integers, got
             {type(resolution)} with value {resolution}
             """
-        )
+        raise ValueError(message)
     w, h = resolution
     if not (isinstance(w, int) and isinstance(h, int)):
-        raise ValueError(
-            f"""
+        message = f"""
             Both elements in resolution must be integers.
             Got types ({type(w)}, {type(h)})
             """
-        )
+        raise ValueError(message)
     if w <= 0 or h <= 0:
         raise ValueError(
             f"Both dimensions in resolution must be positive. Got ({w}, {h})."

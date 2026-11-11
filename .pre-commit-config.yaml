@@ -37,7 +37,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.9
+    rev: v3.9.10
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -45,19 +45,19 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.30.1
+    rev: v2.30.3
     hooks:
       - id: pyproject-fmt
         additional_dependencies:
           - "tomli>=2.0.1"
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: "0.26"
+    rev: "v0.27"
     hooks:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10
+    rev: v0.17.3
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -66,7 +66,7 @@ repos:
 
   - repo: https://github.com/PyCQA/docformatter
     # 1.7.8 corrupts multiline f-string tokens: PyCQA/docformatter#367.
-    rev: v1.7.7
+    rev: v1.7.8
     hooks:
       - id: docformatter
         # untokenize 0.1.1 cannot build on Python 3.14 (removed ast.Constant.s).
@@ -95,7 +95,7 @@ repos:
         args: ["--number", "--wrap=no"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.4.0
+    rev: v2.4.1
     hooks:
       - id: mypy
         language_version: python3.11
@@ -103,6 +103,7 @@ repos:
           - "numpy>=2.0"
           - "pytest>=7.2.2,<10"
           - "types-PyYAML"
+          - "types-defusedxml"
           - "types-requests"
           - "types-tqdm"
 

@@ -29,7 +29,13 @@ from supervision.validators import _validate_keypoints_fields
 logger = logging.getLogger(__name__)
 
 Index1D = (
-    int | slice | list[int] | list[bool] | npt.NDArray[np.int_] | npt.NDArray[np.bool_]
+    int
+    | np.integer[Any]
+    | slice
+    | list[int]
+    | list[bool]
+    | npt.NDArray[np.int_]
+    | npt.NDArray[np.bool_]
 )
 Index2D = tuple[Index1D, Index1D]
 _RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
@@ -148,7 +154,8 @@ class KeyPoints:
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
         model = RFDETRKeypointPreview()
 
-        key_points = model.predict(image)
+        # cv2 loads BGR; RF-DETR expects RGB.
+        key_points = model.predict(image[:, :, ::-1])
         ```
 
     === "Ultralytics"
@@ -223,7 +230,7 @@ class KeyPoints:
     === "Transformers"
 
         Use :meth:`~supervision.key_points.core.KeyPoints.from_transformers`
-        method, which accepts [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) result.
+        method, which accepts [ViTPose](https://huggingface.co/docs/transformers/v4.57.1/en/model_doc/vitpose) result.
 
         ```python
         from PIL import Image
@@ -832,7 +839,7 @@ class KeyPoints:
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
             the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, detection confidences, and confidences of each keypoint.
 
         Examples:
             ```python
@@ -856,6 +863,7 @@ class KeyPoints:
 
         xy = yolo_nas_results.prediction.poses[:, :, :2]
         confidence = yolo_nas_results.prediction.poses[:, :, 2]
+        detection_confidence = yolo_nas_results.prediction.scores
 
         # yolo_nas_results treats params differently.
         # prediction.labels may not exist, whereas class_names might be None
@@ -875,6 +883,7 @@ class KeyPoints:
         return cls(
             xy=xy,
             keypoint_confidence=confidence,
+            detection_confidence=detection_confidence,
             class_id=class_id,
             data=data,
         )
@@ -947,8 +956,9 @@ class KeyPoints:
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
-            the keypoint coordinates, class IDs,
-                class names, and confidences of each keypoint. An empty
+            the keypoint coordinates and confidences of each pose. Every pose has
+                class ID `0`: the post-processor estimates poses for boxes of one
+                object category and reports no class of its own. An empty
                 `transformers_results` returns
                 :meth:`~supervision.key_points.core.KeyPoints.empty`.
 
@@ -1021,7 +1031,7 @@ class KeyPoints:
             return cls(
                 xy=np.stack(xy).astype(np.float32),
                 keypoint_confidence=np.stack(scores).astype(np.float32),
-                class_id=np.arange(len(xy)).astype(int),
+                class_id=np.zeros(len(xy), dtype=int),
             )
         else:
             return cls.empty()
@@ -1162,6 +1172,11 @@ class KeyPoints:
             A new :class:`~supervision.key_points.core.KeyPoints` instance
             containing the selected rows or anchors.
 
+        Raises:
+            IndexError: If a nonempty one-dimensional boolean mask does not
+                match the selected axis. Anchor selection on
+                :meth:`~supervision.key_points.core.KeyPoints.empty` stays empty.
+
         Example:
             ```pycon
             >>> import numpy as np
@@ -1180,17 +1195,48 @@ class KeyPoints:
 
         i, j = index
 
+        # `KeyPoints.empty()`, which connectors return for a frame without poses, has
+        # no keypoint axis to index, so selecting keypoints from it stays empty.
+        if self.xy.shape[:2] == (0, 0):
+            if isinstance(j, slice):
+                j.indices(0)
+            j = slice(None)
+
         if isinstance(i, int):
             i = [i]
+        elif (
+            isinstance(i, np.ndarray)
+            and i.ndim == 0
+            and np.issubdtype(i.dtype, np.integer)
+        ):
+            i = i.reshape(1)
 
-        if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
+        if (
+            isinstance(i, list)
+            and i
+            and all(isinstance(x, (bool, np.bool_)) for x in i)
+        ):
             i = np.array(i)
-        if isinstance(j, list) and j and all(isinstance(x, bool) for x in j):
+        if (
+            isinstance(j, list)
+            and j
+            and all(isinstance(x, (bool, np.bool_)) for x in j)
+        ):
             j = np.array(j)
 
         if isinstance(i, np.ndarray) and i.dtype == bool:
+            if i.ndim == 1 and i.size not in (0, self.xy.shape[0]):
+                raise IndexError(
+                    f"boolean index has length {i.size}, but object count is "
+                    f"{self.xy.shape[0]}"
+                )
             i = np.flatnonzero(i)
         if isinstance(j, np.ndarray) and j.dtype == bool:
+            if j.ndim == 1 and j.size not in (0, self.xy.shape[1]):
+                raise IndexError(
+                    f"boolean index has length {j.size}, but keypoint count is "
+                    f"{self.xy.shape[1]}"
+                )
             j = np.flatnonzero(j)
 
         raw_i = i
@@ -1226,7 +1272,7 @@ class KeyPoints:
         data_selected = get_data_item(self.data, cast(Any, row_i))
 
         if xy_selected.ndim == 1:
-            xy_selected = xy_selected.reshape(1, 1, 2)
+            xy_selected = xy_selected.reshape(1, 1, self.xy.shape[2])
             if keypoint_confidence_selected is not None:
                 keypoint_confidence_selected = keypoint_confidence_selected.reshape(
                     1, 1
@@ -1272,6 +1318,10 @@ class KeyPoints:
 
         Supports detection-level (skeleton) filtering, keypoint-level (anchor)
         filtering, combined tuple indexing, and data field access by string key.
+        For a result from :meth:`~supervision.key_points.core.KeyPoints.empty`,
+        anchor selection such as `key_points[:, [0, 1]]` returns an empty result
+        when the skeleton selector is valid. Out-of-range skeleton indexes, such
+        as `key_points[0]`, still raise `IndexError`.
 
         Args:
             index: The index, indices, or key to access a subset of the KeyPoints
@@ -1402,10 +1452,17 @@ class KeyPoints:
             >>> key_points = sv.KeyPoints.empty()
             >>> len(key_points)
             0
+            >>> key_points.detection_confidence
+            array([], dtype=float32)
 
             ```
         """
-        return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
+        return cls(
+            xy=np.empty((0, 0, 2), dtype=np.float32),
+            class_id=np.array([], dtype=int),
+            keypoint_confidence=np.empty((0, 0), dtype=np.float32),
+            detection_confidence=np.array([], dtype=np.float32),
+        )
 
     def is_empty(self) -> bool:
         """Returns `True` if the :class:`~supervision.key_points.core.KeyPoints` object
@@ -1553,9 +1610,10 @@ class KeyPoints:
     ) -> KeyPoints:
         """Performs non-max suppression on the keypoint detections. Bounding boxes are
         derived from valid keypoints of each skeleton, and standard box NMS is applied.
-        A keypoint is considered valid when its coordinates are finite and not all-zero,
-        and its `visible` flag is `True` (if `visible` is set). A skeleton without any
-        valid keypoints, including an empty keypoint axis, keeps a zero-area box, so it
+        A keypoint is considered valid when its x/y coordinates are finite and not both
+        zero, and its `visible` flag is `True` (if `visible` is set). An extra
+        coordinate does not affect the image-space box. A skeleton without any valid
+        keypoints, including an empty keypoint axis, keeps a zero-area box, so it
         overlaps nothing and passes through.
 
         Args:
@@ -1586,7 +1644,8 @@ class KeyPoints:
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = RFDETRKeypointPreview()
 
-            key_points = model.predict(image)
+            # cv2 loads BGR; RF-DETR expects RGB.
+            key_points = model.predict(image[:, :, ::-1])
             key_points = key_points.with_nms(threshold=0.5)
             ```
 
@@ -1628,7 +1687,7 @@ class KeyPoints:
                 "class_agnostic=True."
             )
 
-        xy = self.xy
+        xy = self.xy[..., :2]
         # A non-finite keypoint marks an undetected joint, so it must not reach the
         # box: `xy == 0` does not catch it and `np.min`/`np.max` propagate it into
         # every corner, leaving an all-`NaN` box that compares False against every
@@ -1672,10 +1731,10 @@ class KeyPoints:
     ) -> Detections:
         """Convert a KeyPoints object to a Detections object. This approximates the
         bounding box of the detected object by taking the bounding box that fits all key
-        points. Key points that are missing (`[0, 0]`), not finite, or marked not
-        visible via `visible` are left out, as in
+        points. Key points whose x/y coordinates are missing (`[0, 0]`), not finite, or
+        marked not visible via `visible` are left out, as in
         :meth:`~supervision.key_points.core.KeyPoints.with_nms`, and a skeleton with no
-        other key point is dropped.
+        other key point is dropped. An extra coordinate does not affect the box.
 
         Args:
             selected_keypoint_indices: The
@@ -1706,7 +1765,7 @@ class KeyPoints:
         if self.is_empty() or self.xy.shape[1] == 0:
             return Detections.empty()
 
-        xy = self.xy
+        xy = self.xy[..., :2]
         indices: npt.NDArray[np.intp] | None = None
         if selected_keypoint_indices is not None:
             candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)

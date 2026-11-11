@@ -369,6 +369,8 @@ class DetectionDataset(BaseDataset):
                 source_classes=dataset.classes, target_classes=classes
             )
             for image_path in dataset.image_paths:
+                if annotations[image_path].class_id is None:
+                    continue
                 annotations[image_path] = map_detections_class_id(
                     source_to_target_mapping=class_index_mapping,
                     detections=annotations[image_path],
@@ -608,6 +610,8 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
         is_obb: bool = False,
         show_progress: bool = False,
+        ignore_crowd: bool = True,
+        merge_segments: bool = True,
     ) -> None:
         """Exports the dataset to YOLO format.
 
@@ -642,6 +646,14 @@ class DetectionDataset(BaseDataset):
                 `from_yolo(..., is_obb=True)`. Masks are ignored when
                 `is_obb=True`.
             show_progress: If True, display a progress bar during saving.
+            ignore_crowd: When True (default), detections marked with a non-zero
+                `iscrowd` flag in `detections.data` are omitted from the export.
+                When False, those detections are included.
+            merge_segments: When True (default), multiple disconnected polygon
+                contours belonging to a single detection mask are joined using
+                zero-width seams, emitting exactly one YOLO polygon line per
+                detection. When False, each disconnected contour is exported on a
+                separate line.
 
         Raises:
             ValueError: If two image paths share the same basename (when
@@ -692,6 +704,8 @@ class DetectionDataset(BaseDataset):
                 approximation_percentage=approximation_percentage,
                 show_progress=show_progress,
                 is_obb=is_obb,
+                ignore_crowd=ignore_crowd,
+                merge_segments=merge_segments,
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
@@ -993,6 +1007,10 @@ class DetectionDataset(BaseDataset):
             processing.
             - If a mask consists of a single, contiguous region without any holes, it
             will be encoded as a polygon, preserving the outline of the object.
+            - If `detections.data` holds `iscrowd`, as it does after
+            :meth:`~supervision.dataset.core.DetectionDataset.from_coco`, a mask with
+            `iscrowd=0` is always encoded as polygons, with holes joined to their
+            outline along zero-width seams where a seam is found.
 
             This automatic selection ensures that the masks are stored in the most
             appropriate and space-efficient format, complying with COCO dataset
@@ -1265,6 +1283,7 @@ class ClassificationDataset(BaseDataset):
 
         Raises:
             ValueError: If two images would be saved to the same output path.
+            OSError: If an in-memory image cannot be written to its destination.
         """
         output_paths = {}
         for image_path in self.image_paths:
@@ -1297,7 +1316,8 @@ class ClassificationDataset(BaseDataset):
                 root_directory_path, output_paths[image_path]
             )
             if image_path in self._images_in_memory:
-                cv2.imwrite(image_save_path, self._images_in_memory[image_path])
+                if not cv2.imwrite(image_save_path, self._images_in_memory[image_path]):
+                    raise OSError(f"Failed to save image to path: {image_save_path}")
                 continue
             # Copy the file as `save_dataset_images` does: decoding and re-encoding it
             # would drop alpha and bit depth and recompress lossy formats. Exporting

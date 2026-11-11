@@ -56,7 +56,7 @@ An image without objects should still have one target entry: pass boxes with sha
 
 This example assumes you already have a DETR `model`, its `image_processor`, and `TEST_DATALOADER`. Each batch contains `pixel_values`, `pixel_mask`, and a list of per-image `labels` dictionaries. `classes` lists class names in class-ID order, read here from the model's `id2label` mapping; both predictions and targets must use IDs from `0` to `len(classes) - 1`. Remap both sides first if your dataset uses sparse category IDs.
 
-**Coordinate assumptions:** the targets below are normalized relative to each image before batch padding, and evaluation preprocessing only resizes images. Under these assumptions, `orig_size` restores original-image pixel coordinates, as in the [Hugging Face evaluation example](https://huggingface.co/docs/transformers/tasks/object_detection#preparing-function-to-compute-map). Check your processor and collate function: processing multiple images together can update annotations to the padded canvas. Such targets need padding and resize transforms reversed before using `orig_size`; multiplying by `orig_size` alone does not undo padding. Likewise, crops or other geometric augmentations require their transforms to be accounted for. Keep validation preprocessing deterministic.
+**Coordinate assumptions:** the targets below are normalized relative to each image before batch padding, and evaluation preprocessing only resizes images. Under these assumptions, `orig_size` restores original-image pixel coordinates, as in the [Hugging Face evaluation example](https://huggingface.co/docs/transformers/v4.57.1/en/tasks/object_detection#preparing-function-to-compute-map). Check your processor and collate function: processing multiple images together can update annotations to the padded canvas. Such targets need padding and resize transforms reversed before using `orig_size`; multiplying by `orig_size` alone does not undo padding. Likewise, crops or other geometric augmentations require their transforms to be accounted for. Keep validation preprocessing deterministic.
 
 ```python
 import torch
@@ -112,6 +112,24 @@ print(confusion_matrix.matrix)
 ```
 
 Keep low-confidence predictions when computing mAP: filtering at `0.5` before evaluation discards part of the precision-recall curve. The confusion matrix uses its own confidence threshold. Iterate over the complete loader, preserving one prediction/target pair per image even when either side is empty.
+
+## Dense scenes
+
+Detection AP uses COCO's default prediction limits `(1, 10, 100)`. The highest limit caps the highest-confidence predictions **per image and category**, after any class mapping or class-agnostic merging. Ground truths are not capped. A perfect prediction of 1,000 objects of one class therefore reaches about 0.109 AP@100. The same objects spread evenly over ten categories can reach 1.0.
+
+Use an explicit larger limit when evaluating dense scenes:
+
+```python
+from supervision.metrics import MeanAveragePrecision
+
+metric = MeanAveragePrecision(max_detection_thresholds=(1, 10, 1000))
+result = metric.update(predictions, targets).compute()
+print(result.max_detection_thresholds)  # (1, 10, 1000)
+```
+
+The sequence must contain exactly three strictly increasing positive integers. AP uses its largest value; the smaller values preserve the evaluator's COCO limit structure. The default remains unchanged. Higher limits also increase matching work and memory use, especially for masks.
+
+Custom-limit AP is a different metric from standard COCO AP@100: report the cap when comparing results. Text summaries and custom-limit plot titles display it; results, including each object-size result, retain `max_detection_thresholds`. `result.to_pandas().attrs["max_detection_thresholds"]` retains the limits in memory without changing the score columns. CSV export does not retain DataFrame attributes, so store the configuration alongside exported scores.
 
 ## Pose estimation
 

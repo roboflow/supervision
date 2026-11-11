@@ -1,4 +1,7 @@
+from collections.abc import Callable, Iterable
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import NoReturn
 from unittest import mock
 
 import numpy as np
@@ -14,7 +17,13 @@ from supervision import (
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Position, Vector
 from supervision.utils.internal import SupervisionWarnings
-from tests.helpers import _create_detections
+from tests.helpers import (
+    _ConstantTransform,
+    _create_detections,
+    _NanBeyondX,
+    _ShiftTransform,
+    _WrongShapeTransform,
+)
 
 
 @pytest.mark.parametrize(
@@ -75,8 +84,9 @@ from tests.helpers import _create_detections
 def test_calculate_region_of_interest_limits(
     vector: Vector,
     expected_result: tuple[Vector, Vector] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Region-of-interest limits are derived from the line vector, or raise."""
     with exception:
         result = LineZone._calculate_region_of_interest_limits(vector=vector)
         assert result == expected_result
@@ -491,8 +501,9 @@ def test_line_zone_multiple_detections(
     anchors: list[Position],
     expected_crossed_in: list[list[bool]],
     expected_crossed_out: list[list[bool]],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Line crossings and counts follow the tracked anchors frame by frame."""
     with exception:
         line_zone = LineZone(
             start=vector.start, end=vector.end, triggering_anchors=anchors
@@ -654,13 +665,16 @@ class TestLineZoneSubThresholdFlicker:
     """Sub-threshold side changes must not be counted as crossings (#2598)."""
 
     @staticmethod
-    def _line_zone(minimum_crossing_threshold: int) -> LineZone:
+    def _line_zone(
+        minimum_crossing_threshold: int, max_absent_frames: int = 30
+    ) -> LineZone:
         """Build a horizontal line zone driven by the TOP_LEFT anchor alone."""
         return LineZone(
             start=Point(0, 0),
             end=Point(10, 0),
             triggering_anchors=[Position.TOP_LEFT],
             minimum_crossing_threshold=minimum_crossing_threshold,
+            max_absent_frames=max_absent_frames,
         )
 
     @pytest.mark.parametrize(
@@ -699,8 +713,8 @@ class TestLineZoneSubThresholdFlicker:
         `_compute_anchor_sides` report both `has_any_left_trigger` and
         `has_any_right_trigger` as True for that frame, so it is skipped before ever
         reaching the crossing history (the ambiguous-straddle guard). A straddle
-        sandwiched inside a sustained crossing must therefore count exactly as if
-        that frame were omitted from the sequence.
+        sandwiched inside a sustained crossing must therefore count exactly as if that
+        frame were omitted from the sequence.
         """
         line_zone = LineZone(
             start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=2
@@ -754,9 +768,9 @@ class TestLineZoneSubThresholdFlicker:
 
         Companion to `test_flicker_does_not_leak_between_trackers`, which pairs a
         flicker with a real crossing; here both trackers are noisy at once, with
-        different flicker shapes (one single-frame excursion vs. two), to confirm
-        per-tracker isolation holds under concurrent noise, not only under a
-        concurrent real crossing.
+        different flicker shapes (one single-frame excursion vs. two), to confirm per-
+        tracker isolation holds under concurrent noise, not only under a concurrent real
+        crossing.
         """
         line_zone = self._line_zone(minimum_crossing_threshold=2)
         single_flicker_boxes = _boxes_from_sides("AAABAAA")
@@ -773,10 +787,10 @@ class TestLineZoneSubThresholdFlicker:
 
     def test_evicted_tracker_does_not_inherit_confirmed_side(self) -> None:
         """Eviction clears the reference side, so a reused tracker ID starts fresh."""
-        line_zone = self._line_zone(minimum_crossing_threshold=2)
+        line_zone = self._line_zone(minimum_crossing_threshold=2, max_absent_frames=3)
         for box in _boxes_from_sides("BBB"):
             line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
-        for _ in range(line_zone.crossing_history_length):
+        for _ in range(line_zone.max_absent_frames):
             line_zone.trigger(Detections.empty())
 
         for box in _boxes_from_sides("AAA"):
@@ -926,15 +940,16 @@ class TestLineZoneSubThresholdFlicker:
 )
 def test_line_zone_long_horizon_disappearing_detections(
     vector: Vector,
-    xyxy_sequence: list[list[list[float] | None]],
+    xyxy_sequence: list[list[list[float]]],
     anchors: list[Position],
     minimum_crossing_threshold: int,
     expected_crossed_in: list[list[bool]],
     expected_crossed_out: list[list[bool]],
     expected_count_in: list[int],
     expected_count_out: list[int],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Crossings and counts stay consistent when detections leave for many frames."""
     with exception:
         line_zone = LineZone(
             start=vector.start,
@@ -1044,7 +1059,7 @@ def test_line_zone_trigger_does_not_call_np_cross(
 ) -> None:
     """Guard against reintroducing np.cross, deprecated for 2-D input in NumPy 2.0."""
 
-    def _raise(*args, **kwargs):
+    def _raise(*args: object, **kwargs: object) -> NoReturn:
         raise AssertionError("np.cross must not be called on 2-D vectors")
 
     monkeypatch.setattr(np, "cross", _raise)
@@ -1096,13 +1111,13 @@ def test_line_zone_trigger_does_not_call_np_cross(
     ],
 )
 def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
-    make_anchors,
+    make_anchors: Callable[[], Iterable[Position]],
 ) -> None:
     """A single-pass anchors iterable survives construction and counts a crossing.
 
-    Covers the three single-pass iterable shapes named in the PR #2561 bug report
-    — generator expression, `map`, and `filter` — none of which must be exhausted
-    by the constructor's emptiness check before `trigger()` iterates them.
+    Covers the three single-pass iterable shapes named in the PR #2561 bug report —
+    generator expression, `map`, and `filter` — none of which must be exhausted by the
+    constructor's emptiness check before `trigger()` iterates them.
     """
     line_zone = LineZone(
         start=Point(0, 100), end=Point(200, 100), triggering_anchors=make_anchors()
@@ -1116,7 +1131,7 @@ def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
 
 def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
     """History for tracker IDs absent from the current frame is evicted."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     first_detections = _create_detections(
         xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
     )
@@ -1126,7 +1141,7 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
 
     line_zone.trigger(first_detections)
     # Trigger twice with second_detections so tracker_id=0 accumulates
-    # crossing_history_length absent frames (default=2) and is evicted.
+    # max_absent_frames absent frames and is evicted.
     line_zone.trigger(second_detections)
     line_zone.trigger(second_detections)
 
@@ -1135,11 +1150,11 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> None:
     """Empty frames age out tracker crossing history."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     detections = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1])
 
     line_zone.trigger(detections)
-    for _ in range(line_zone.crossing_history_length):
+    for _ in range(line_zone.max_absent_frames):
         line_zone.trigger(Detections.empty())
 
     assert not line_zone.crossing_state_history
@@ -1152,7 +1167,7 @@ def test_line_zone_ages_history_on_untracked_frames(
     untracked_frames: int, expected_crossing: bool
 ) -> None:
     """Missing tracker IDs preserve short gaps but expire stale crossing state."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
     above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
     untracked = _create_detections(xyxy=[[4, 4, 6, 6]])
@@ -1166,6 +1181,81 @@ def test_line_zone_ages_history_on_untracked_frames(
     assert crossed_in.tolist() == [expected_crossing]
     assert crossed_out.tolist() == [False]
     assert line_zone.in_count == int(expected_crossing)
+
+
+@pytest.mark.parametrize(
+    ("occluded_frames", "expected_crossing"),
+    [(1, True), (2, True), (5, True), (29, True), (30, False)],
+)
+def test_line_zone_counts_crossing_through_occlusion(
+    occluded_frames: int, expected_crossing: bool
+) -> None:
+    """A tracker hidden while it crosses keeps its side for `max_absent_frames`."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+
+    line_zone.trigger(below)
+    for _ in range(occluded_frames):
+        line_zone.trigger(Detections.empty())
+    crossed_in, _ = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [expected_crossing]
+    assert line_zone.in_count == int(expected_crossing)
+
+
+def _count_crossing_after_high_threshold_occlusion(line_zone: LineZone) -> int:
+    """Count a crossing after a 30-frame gap and 30 opposite-side frames."""
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+    line_zone.trigger(below)
+    for _ in range(30):
+        line_zone.trigger(Detections.empty())
+    for _ in range(30):
+        line_zone.trigger(above)
+    return line_zone.in_count
+
+
+def test_line_zone_high_threshold_default_preserves_crossing_history() -> None:
+    """Default retention preserves a crossing after the prior 30-frame gap."""
+    line_zone = LineZone(
+        start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=30
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 1
+
+
+def test_line_zone_high_threshold_honors_explicit_retention() -> None:
+    """An explicit limit expires crossing history at its specified boundary."""
+    line_zone = LineZone(
+        start=Point(0, 0),
+        end=Point(10, 0),
+        minimum_crossing_threshold=30,
+        max_absent_frames=30,
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 0
+
+
+def test_line_zone_occlusion_with_other_trackers_visible() -> None:
+    """Another visible tracker does not shorten an occluded tracker's retention."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    other = _create_detections(xyxy=[[1, 4, 2, 6]], tracker_id=[8])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+
+    line_zone.trigger(below)
+    for _ in range(5):
+        line_zone.trigger(other)
+    crossed_in, _ = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [True]
+
+
+def test_line_zone_rejects_nonpositive_max_absent_frames() -> None:
+    """A retention below one frame has no meaning and is refused."""
+    with pytest.raises(ValueError, match="max_absent_frames"):
+        LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=0)
 
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
@@ -1236,13 +1326,17 @@ class TestLineZoneInit:
                 id="empty-list",
             ),
             pytest.param(
-                (anchor for anchor in []),
+                (anchor for anchor in list[Position]()),
                 pytest.raises(ValueError, match="Triggering anchors cannot be empty"),
                 id="empty-generator",
             ),
         ],
     )
-    def test_empty_anchors_raises(self, triggering_anchors, exception) -> None:
+    def test_empty_anchors_raises(
+        self,
+        triggering_anchors: Iterable[Position],
+        exception: AbstractContextManager[object],
+    ) -> None:
         """LineZone rejects an anchors iterable that is empty, generator included.
 
         Mirrors `TestPolygonZoneInit::test_empty_anchors_raises`. The empty-generator
@@ -1377,9 +1471,9 @@ class TestLineZoneAnnotatorOrientedLabel:
 class TestLineZoneUnconfirmedTracks:
     """Detections with a negative `tracker_id` are unconfirmed and must not count.
 
-    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is
-    confirmed, so several distinct objects can share that placeholder id in the
-    same frame. Regression tests for #2578.
+    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is confirmed,
+    so several distinct objects can share that placeholder id in the same frame.
+    Regression tests for #2578.
     """
 
     def test_ignores_unconfirmed_objects_that_trade_sides(self) -> None:
@@ -1453,3 +1547,165 @@ class TestLineZoneUnconfirmedTracks:
 
         assert crossed_in == [False, False, False, True, False]
         assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+
+# Bottom centre y = 80, 95, 150, 165, 180: crosses y = 100 downwards at frame 2.
+TRACK_CROSSING_DOWN = [
+    [140.0, 40.0, 160.0, 80.0],
+    [140.0, 55.0, 160.0, 95.0],
+    [140.0, 110.0, 160.0, 150.0],
+    [140.0, 125.0, 160.0, 165.0],
+    [140.0, 140.0, 160.0, 180.0],
+]
+
+
+class TestLineZoneTriggerWithCoordTransform:
+    """`LineZone.trigger` with a per-frame `coord_transform`."""
+
+    def test_counts_crossing_in_reference_coordinates(self) -> None:
+        """A track the camera follows still crosses the line in the reference frame."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100), (Position.BOTTOM_CENTER,))
+        # The camera tilts with the object, so its box never moves in the frame,
+        # while it moves as TRACK_CROSSING_DOWN in the line's reference frame.
+        box_in_frame = _create_detections(
+            xyxy=[[140.0, 40.0, 160.0, 80.0]], tracker_id=[1]
+        )
+        camera_shifts = [_ShiftTransform(0, dy) for dy in (0, -15, -70, -85, -100)]
+
+        results = [
+            line_zone.trigger(box_in_frame, coord_transform=shift)
+            for shift in camera_shifts
+        ]
+
+        assert [bool(crossed_in[0]) for crossed_in, _ in results] == [False] * 5
+        assert [bool(crossed_out[0]) for _, crossed_out in results] == [
+            False,
+            False,
+            True,
+            False,
+            False,
+        ]
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    @pytest.mark.parametrize(
+        ("use_transform", "expected_counts"),
+        [
+            pytest.param(True, (0, 0), id="camera-motion-removed"),
+            pytest.param(False, (0, 1), id="camera-motion-ignored"),
+        ],
+    )
+    def test_stationary_object_under_moving_line(
+        self, use_transform: bool, expected_counts: tuple[int, int]
+    ) -> None:
+        """A parked object is counted only when the camera motion is ignored."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100))
+        # The camera tilts, so the parked object appears 0, 20, 40 and 60 px
+        # lower in each frame and ends below the line drawn on the first frame.
+        # Its top and bottom (y = 61 + dy and 91 + dy) never lie exactly on y = 100.
+        camera_tilts = (0, 20, 40, 60)
+        frames = [
+            _create_detections(
+                xyxy=[[140.0, 61.0 + dy, 160.0, 91.0 + dy]], tracker_id=[7]
+            )
+            for dy in camera_tilts
+        ]
+        transforms = [
+            _ShiftTransform(0, dy) if use_transform else None for dy in camera_tilts
+        ]
+
+        for frame, transform in zip(frames, transforms):
+            line_zone.trigger(frame, coord_transform=transform)
+
+        assert (line_zone.in_count, line_zone.out_count) == expected_counts
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        "invalid_point",
+        [
+            pytest.param((np.nan, np.nan), id="nan"),
+            pytest.param((np.inf, 150.0), id="inf"),
+            pytest.param((1e30, 150.0), id="far-beyond-line-end"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("invalid_frames", "expected_crossed_out", "expected_has_history"),
+        [
+            pytest.param({0, 1, 2, 3, 4}, [False] * 5, False, id="all-frames"),
+            pytest.param({0, 1}, [False] * 5, True, id="frames-above-line"),
+            pytest.param(
+                {2}, [False, False, False, True, False], True, id="first-below"
+            ),
+        ],
+    )
+    def test_frames_mapped_outside_limits_are_skipped(
+        self,
+        invalid_point: tuple[float, float],
+        invalid_frames: set[int],
+        expected_crossed_out: list[bool],
+        expected_has_history: bool,
+    ) -> None:
+        """Frames whose anchors map to non-finite or far points leave no state."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100), (Position.BOTTOM_CENTER,))
+        invalid = _ConstantTransform(*invalid_point)
+        identity = _ShiftTransform(0, 0)
+
+        crossed_out = []
+        for index, box in enumerate(TRACK_CROSSING_DOWN):
+            transform = invalid if index in invalid_frames else identity
+            _, frame_crossed_out = line_zone.trigger(
+                _create_detections(xyxy=[box], tracker_id=[1]),
+                coord_transform=transform,
+            )
+            crossed_out.append(bool(frame_crossed_out[0]))
+
+        assert crossed_out == expected_crossed_out
+        assert line_zone.out_count == sum(expected_crossed_out)
+        assert line_zone.in_count == 0
+        assert (1 in line_zone.crossing_state_history) == expected_has_history
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    def test_detection_with_one_non_finite_anchor_is_skipped(self) -> None:
+        """One non-finite mapped anchor skips the detection even if others are fine."""
+        line_zone = LineZone(
+            Point(0, 100),
+            Point(300, 100),
+            (Position.BOTTOM_LEFT, Position.BOTTOM_RIGHT),
+        )
+        # Track 1 has both bottom corners at x <= 150; track 2 has its bottom-left
+        # corner at x = 140 and its bottom-right corner at x = 170, which maps to NaN.
+        frames = [
+            _create_detections(
+                xyxy=[
+                    [10.0, y_min, 30.0, y_min + 40.0],
+                    [140.0, y_min, 170.0, y_min + 40.0],
+                ],
+                tracker_id=[1, 2],
+            )
+            for y_min in (40.0, 55.0, 110.0, 125.0, 140.0)
+        ]
+
+        results = [
+            line_zone.trigger(frame, coord_transform=_NanBeyondX(150.0))
+            for frame in frames
+        ]
+
+        assert [crossed_out.tolist() for _, crossed_out in results] == [
+            [False, False],
+            [False, False],
+            [True, False],
+            [False, False],
+            [False, False],
+        ]
+        assert all(not crossed_in.any() for crossed_in, _ in results)
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+        assert 2 not in line_zone.crossing_state_history
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100))
+        detections = _create_detections(
+            xyxy=[[140.0, 40.0, 160.0, 80.0]], tracker_id=[1]
+        )
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            line_zone.trigger(detections, coord_transform=_WrongShapeTransform())

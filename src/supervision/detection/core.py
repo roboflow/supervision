@@ -494,12 +494,13 @@ class Detections:
             import tensorflow as tf
             import tensorflow_hub as hub
             import numpy as np
-            from supervision import _cv2 as cv2
+            import supervision as sv
+            from PIL import Image
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
             model = hub.load(module_handle)
-            img = np.array(cv2.imread("<SOURCE_IMAGE_PATH>"))
-            result = model(img)
+            img = np.array(Image.open("<SOURCE_IMAGE_PATH>"))
+            result = model(np.expand_dims(img, axis=0))
             detections = sv.Detections.from_tensorflow(
                 result, resolution_wh=(img.shape[1], img.shape[0])
             )
@@ -542,7 +543,7 @@ class Detections:
                 task="yolo",
                 model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
              )
-            result = yolo_pipeline(<SOURCE IMAGE PATH>)
+            result = yolo_pipeline("<SOURCE_IMAGE_PATH>")
             detections = sv.Detections.from_deepsparse(result)
             ```
         """  # noqa: E501 // docs
@@ -615,6 +616,20 @@ class Detections:
         Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
         holds one score per detection.
 
+        !!! tip "RF-DETR"
+
+            For RF-DETR, prefer the official
+            [`rfdetr`](https://github.com/roboflow/rf-detr) package maintained by
+            Roboflow: its `predict()` returns
+            :class:`~supervision.detection.core.Detections` directly. RF-DETR
+            results from Transformers can also be converted here.
+
+        For zero-shot object detection, pass the result of
+        `post_process_grounded_object_detection`. Class names come from its
+        `text_labels` rather than `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo set
+        `class_id` to the index of the matched text query; Grounding DINO reports
+        the matched phrases instead of indices, so its `class_id` is `None`.
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
@@ -655,7 +670,6 @@ class Detections:
             )
             ```
         """
-
         if (
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
@@ -682,7 +696,8 @@ class Detections:
             raise ValueError(
                 "The provided Transformers results do not contain any valid fields."
                 " Expected fields are 'boxes', 'masks', 'segments_info' or"
-                " 'segmentation'."
+                " 'segmentation'. If you are using RF-DETR, consider the official"
+                " `rfdetr` package, whose predict() returns Detections directly."
             )
 
     @classmethod
@@ -803,7 +818,7 @@ class Detections:
             from inference import get_model
 
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
-            model = get_model(model_id="yolov8s-640")
+            model = get_model(model_id="rfdetr-seg-small")
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
@@ -1204,7 +1219,10 @@ class Detections:
 
     @classmethod
     def from_vlm(
-        cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
+        cls,
+        vlm: VLM | str,
+        result: str | dict[str, Any] | tuple[str, list[Any]],
+        **kwargs: Any,
     ) -> Detections:
         """Creates a Detections object from the given result string based on the
         specified Vision Language Model, :class:`~supervision.detection.vlm.VLM`.
@@ -1226,7 +1244,9 @@ class Detections:
 
         Args:
             vlm: The type of VLM (Vision Language Model) to use.
-            result: The result string containing the detection data.
+            result: The model output containing the detection data: a string for
+                text-based VLMs, a dict for Florence-2 and Moondream, or the
+                `(caption, entities)` tuple returned by Kosmos-2.
             **kwargs: Additional keyword arguments required by the specified VLM.
 
         Returns:
@@ -1522,6 +1542,36 @@ class Detections:
             {'class_name': array(['cat', 'dog'], dtype='<U3')}
             >>> detections.class_id
             array([0, 1])
+
+            ```
+
+        !!! example "Google Gemini 3.6 / 3.7"
+
+            Gemini 3.6 and 3.7 return structured JSON with a top-level `boxes` key.
+            Each entry carries `box_2d` as `[y_min, x_min, y_max, x_max]`, a `label`,
+            and an optional `mask` polygon of `[x, y]` points, all normalized to
+            0-1000 across the full image. Use `sv.VLM.GOOGLE_GEMINI_3_7` the same way.
+
+            ```pycon
+            >>> import supervision as sv
+
+            >>> gemini_response_text = (
+            ...     '{"boxes": [{"box_2d": [250, 200, 750, 800], '
+            ...     '"mask": [[200, 250], [800, 250], [800, 750], [200, 750]], '
+            ...     '"label": "wooden bowl"}]}'
+            ... )
+
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.GOOGLE_GEMINI_3_6,
+            ...     gemini_response_text,
+            ...     resolution_wh=(100, 80),
+            ... )
+            >>> detections.xyxy
+            array([[20., 20., 80., 60.]])
+            >>> detections.mask.shape
+            (1, 80, 100)
+            >>> detections.data
+            {'class_name': array(['wooden bowl'], dtype='<U11')}
 
             ```
 
@@ -1910,7 +1960,7 @@ class Detections:
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = get_model(
                 "yolov8s",
-                target_size=640
+                target_size=640,
                 prob_threshold=0.5,
                 nms_threshold=0.45,
                 num_threads=4,
@@ -2219,7 +2269,8 @@ class Detections:
            oriented bounding box corners (result lies on the actual rotated
            body).
         2. If ``anchor`` is ``Position.CENTER_OF_MASS``, the detection mask
-           centroid is returned regardless of OBB data presence.
+           centroid is returned regardless of OBB data presence. An empty batch
+           returns no anchors, with or without a mask.
         3. Otherwise, the anchor is derived from the axis-aligned envelope
            (``xyxy``).
 
@@ -2237,7 +2288,8 @@ class Detections:
             dtype.
 
         Raises:
-            ValueError: If the provided `anchor` is not supported.
+            ValueError: If the provided `anchor` is not supported, or if `anchor` is
+                ``Position.CENTER_OF_MASS`` and a non-empty batch has no mask.
 
         Examples:
             Axis-aligned detection:
@@ -2294,6 +2346,10 @@ class Detections:
             )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
+                # `from_inference` and `from_ultralytics` return an empty batch without
+                # a mask when a model finds nothing. It has no anchors to compute.
+                if len(self) == 0:
+                    return np.empty((0, 2), dtype=np.int_)
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
@@ -2559,7 +2615,8 @@ class Detections:
         under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
 
         **Return dtype**: ``float64`` (OBB branch and integer AABB fallback),
-        floating input dtype (floating AABB fallback), ``int64`` (mask branch).
+        ``float32`` (float16 AABB fallback), other floating input dtype
+        (floating AABB fallback), ``int64`` (mask branch).
 
         Returns:
             An array containing the area of each detection
@@ -2607,7 +2664,9 @@ class Detections:
             An array of floats containing the area of each bounding
             box in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections. Integer coordinates
-                produce ``float64``; floating coordinates preserve their dtype.
+                produce ``float64``; ``float16`` coordinates produce ``float32``
+                to avoid overflow and underflow. Other floating coordinates
+                preserve their dtype.
         """
         xyxy = self.xyxy
         if np.issubdtype(xyxy.dtype, np.integer):
@@ -2621,6 +2680,8 @@ class Detections:
                 heights, dtype=np.float64
             )
 
+        if np.issubdtype(xyxy.dtype, np.float16):
+            xyxy = xyxy.astype(np.float32)
         widths = xyxy[:, 2] - xyxy[:, 0]
         heights = xyxy[:, 3] - xyxy[:, 1]
         return widths * heights
@@ -2651,8 +2712,21 @@ class Detections:
 
             ```
         """
-        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
-        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+        xyxy = self.xyxy
+        if np.issubdtype(xyxy.dtype, np.integer):
+            # Subtract before converting to float64 to preserve narrow boxes at
+            # large integer origins and differences spanning the dtype range.
+            dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+            integer_coordinates = xyxy.astype(dtype)
+            widths: npt.NDArray[np.generic] = np.asarray(
+                integer_coordinates[:, 2] - integer_coordinates[:, 0], dtype=np.float64
+            )
+            heights: npt.NDArray[np.generic] = np.asarray(
+                integer_coordinates[:, 3] - integer_coordinates[:, 1], dtype=np.float64
+            )
+        else:
+            widths = xyxy[:, 2] - xyxy[:, 0]
+            heights = xyxy[:, 3] - xyxy[:, 1]
 
         aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
         np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
@@ -2872,6 +2946,28 @@ class Detections:
             ValueError: If `confidence` is None.
                 If `class_id` is None and class_agnostic is False.
                 If `sigma` is not greater than `0`.
+
+        Example:
+            Two identical boxes show that Soft-NMS decays the lower score but
+            keeps both detections by default. A score threshold removes the
+            detection whose decayed score falls below it.
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 4, 4], [0, 0, 4, 4]], dtype=np.float32),
+            ...     confidence=np.array([0.9, 0.8], dtype=np.float32),
+            ...     class_id=np.array([0, 0]),
+            ... )
+            >>> softened = detections.with_soft_nms(sigma=0.5)
+            >>> len(softened), np.round(softened.confidence, 3).tolist()
+            (2, [0.9, 0.108])
+            >>> filtered = detections.with_soft_nms(sigma=0.5, score_threshold=0.2)
+            >>> len(filtered), np.round(filtered.confidence, 3).tolist()
+            (1, [0.9])
+
+            ```
         """
         if len(self) == 0:
             return self
@@ -3055,7 +3151,9 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     Used internally by :meth:`~supervision.detection.core.Detections.with_nmm`
     to combine each merge group into a single output detection. The
     highest-confidence detection is the
-    "winner" whose class_id, tracker_id, and data fields are preserved.
+    "winner" whose class_id, tracker_id, and data fields are preserved. Box
+    extents are widened before subtraction to keep confidence weights finite
+    and avoid integer wraparound.
 
     Args:
         detections: List of Detections, each containing exactly one object.
@@ -3076,11 +3174,22 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     # Area-weighted confidence: each box contributes proportionally to its
     # footprint so large overlapping boxes dominate over small slivers.
     all_xyxy = np.array([d.xyxy[0] for d in detections])
-    widths = all_xyxy[:, 2] - all_xyxy[:, 0]
-    heights = all_xyxy[:, 3] - all_xyxy[:, 1]
-    areas = widths.astype(np.float64, copy=False) * heights.astype(
-        np.float64, copy=False
+    # Widen before subtracting: casting wrapped or infinite extents afterwards
+    # cannot recover their areas. Python integers also preserve narrow boxes at
+    # large 64-bit origins, where casting the corners to float64 would lose pixels.
+    area_dtype = (
+        object
+        if np.issubdtype(all_xyxy.dtype, np.integer)
+        else np.promote_types(all_xyxy.dtype, np.float64)
     )
+    area_coordinates = all_xyxy.astype(area_dtype)
+    widths = np.asarray(
+        area_coordinates[:, 2] - area_coordinates[:, 0], dtype=np.float64
+    )
+    heights = np.asarray(
+        area_coordinates[:, 3] - area_coordinates[:, 1], dtype=np.float64
+    )
+    areas = widths * heights
 
     confidence: npt.NDArray[np.floating] | None
     if winner.confidence is not None:
@@ -3185,7 +3294,7 @@ def merge_inner_detection_object_pair(
         from inference import get_model
 
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = get_model(model_id="yolov8s-640")
+        model = get_model(model_id="rfdetr-small")
 
         result = model.infer(image)[0]
         detections = sv.Detections.from_inference(result)

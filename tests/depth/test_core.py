@@ -192,7 +192,7 @@ class TestDepthMapInit:
     def test_rejects_a_camera_that_is_not_a_depth_camera(self) -> None:
         """Camera parameters must come wrapped in a `sv.DepthCamera`."""
         with pytest.raises(ValueError, match="camera must be"):
-            sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m", camera=(700, 0.1))
+            sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m", camera=(700, 0.1))  # type: ignore[arg-type]
 
     def test_rejects_a_camera_on_a_relative_map(self) -> None:
         """A relative map has no metric scale, so a camera would be silently unused."""
@@ -487,6 +487,11 @@ class TestDepthMapFromUltralytics:
                 id="integer-dtype",
             ),
             pytest.param(
+                SimpleNamespace(depth=np.ones((2, 2), np.uint16)),
+                "uint16",
+                id="unwrapped-integer-array",
+            ),
+            pytest.param(
                 [_FakeUltralyticsResult(np.ones((2, 2), np.float32))],
                 r"single result.*results\[0\]",
                 id="list-of-results",
@@ -635,7 +640,7 @@ class TestDepthMapFromFiles:
         Image.fromarray(np.ones((2, 2), np.uint16)).save(path)
 
         with pytest.raises(TypeError):
-            sv.DepthMap.from_png16(path, 256, "depth_m")  # type: ignore[misc]
+            sv.DepthMap.from_png16(path, 256, "depth_m")  # type: ignore[call-arg]
 
     def test_from_pfm_takes_kind_by_keyword_only(self, tmp_path: Any) -> None:
         """`kind` is keyword-only, so a stray second argument is not read as one."""
@@ -643,7 +648,7 @@ class TestDepthMapFromFiles:
         _write_pfm(path, np.ones((2, 2), np.float32), True)
 
         with pytest.raises(TypeError):
-            sv.DepthMap.from_pfm(path, "depth_m")  # type: ignore[misc]
+            sv.DepthMap.from_pfm(path, "depth_m")  # type: ignore[call-arg]
 
     def test_from_png16_raises_file_not_found_for_a_missing_file(
         self, tmp_path: Any
@@ -693,8 +698,8 @@ class TestDepthMapFromFiles:
     ) -> None:
         """A PFM written by hand stores 1.0 in its bottom row and 2.0 in its top row.
 
-        The bytes are spelled out rather than written by `_write_pfm`, so a reader and
-        a writer that misread the format the same way cannot cancel each other out.
+        The bytes are spelled out rather than written by `_write_pfm`, so a reader and a
+        writer that misread the format the same way cannot cancel each other out.
         """
         (tmp_path / "file.pfm").write_bytes(content)
 
@@ -1219,10 +1224,12 @@ class TestDepthMapMeasureDetections:
 
         measured = self._depth_map().measure_detections(detections)
 
-        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [10.0]
+        values = measured.data[DEPTH_M_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [10.0]
 
     @pytest.mark.parametrize(
-        "make_mask",
+        "fn_make_mask",
         [
             pytest.param(_dense_masks, id="dense"),
             pytest.param(
@@ -1234,7 +1241,7 @@ class TestDepthMapMeasureDetections:
         ],
     )
     def test_measures_inside_masks_not_boxes(
-        self, make_mask: Callable[[np.ndarray, np.ndarray], Any]
+        self, fn_make_mask: Callable[[np.ndarray, np.ndarray], Any]
     ) -> None:
         """Dense, uint8 and compact masks all select the pixels the median is over.
 
@@ -1247,14 +1254,19 @@ class TestDepthMapMeasureDetections:
         mask[0, 2:6, 2:4] = True
         mask[1, 4:6, 5:7] = True
         xyxy = np.array([[2, 2, 10, 6], [5, 4, 7, 6]], dtype=float)
-        detections = sv.Detections(xyxy=xyxy, mask=make_mask(mask, xyxy))
+        detections = sv.Detections(xyxy=xyxy, mask=fn_make_mask(mask, xyxy))
 
         measured = self._depth_map().measure_detections(detections)
 
-        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0, 6.0]
+        values = measured.data[DEPTH_M_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [
+            2.0,
+            6.0,
+        ]
 
     @pytest.mark.parametrize(
-        "make_mask",
+        "fn_make_mask",
         [
             pytest.param(_dense_masks, id="dense"),
             pytest.param(_compact_masks, id="compact"),
@@ -1268,13 +1280,13 @@ class TestDepthMapMeasureDetections:
         ],
     )
     def test_masks_without_depth_measure_nan(
-        self, make_mask: Callable[[np.ndarray, np.ndarray], Any], rows: slice
+        self, fn_make_mask: Callable[[np.ndarray, np.ndarray], Any], rows: slice
     ) -> None:
         """A mask selecting no pixel, or only pixels without depth, measures NaN."""
         mask = np.zeros((1, 20, 20), dtype=bool)
         mask[0, rows, 13:16] = True
         xyxy = np.array([[10, 10, 18, 18]], dtype=float)
-        detections = sv.Detections(xyxy=xyxy, mask=make_mask(mask, xyxy))
+        detections = sv.Detections(xyxy=xyxy, mask=fn_make_mask(mask, xyxy))
 
         measured = self._depth_map().measure_detections(detections)
 
@@ -1284,8 +1296,10 @@ class TestDepthMapMeasureDetections:
         """Empty detections get an empty float32 column rather than an error."""
         measured = self._depth_map().measure_detections(sv.Detections.empty())
 
-        assert measured.data[DEPTH_M_DATA_FIELD].shape == (0,)
-        assert measured.data[DEPTH_M_DATA_FIELD].dtype == np.float32
+        values = measured.data[DEPTH_M_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.shape == (0,)
+        assert values.dtype == np.float32
 
     @pytest.mark.parametrize(
         ("camera", "field", "expected"),
@@ -1306,7 +1320,9 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections)
 
-        assert measured.data[field].tolist() == [expected]
+        values = measured.data[field]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [expected]
 
     def test_converts_disparity_like_to_depth(self) -> None:
         """Measuring a disparity map with a camera equals measuring its `to_depth()`.
@@ -1361,7 +1377,9 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections, resolution_wh=(20, 20))
 
-        assert measured.data[DISPARITY_PX_DATA_FIELD].tolist() == [50.0]
+        values = measured.data[DISPARITY_PX_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [50.0]
 
     def test_relative_map_measures_its_own_kind(self) -> None:
         """A relative map has no metres and measures relative inverse depth."""
@@ -1372,7 +1390,9 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections)
 
-        assert measured.data[RELATIVE_INVERSE_DATA_FIELD].tolist() == [0.25]
+        values = measured.data[RELATIVE_INVERSE_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [0.25]
 
     def test_keeps_detections_and_existing_data(self) -> None:
         """The input is not modified and existing data columns stay."""
@@ -1384,22 +1404,24 @@ class TestDepthMapMeasureDetections:
         measured = self._depth_map().measure_detections(detections)
 
         assert DEPTH_M_DATA_FIELD not in detections.data
-        assert measured.data["class_name"].tolist() == ["car"]
+        class_names = measured.data["class_name"]
+        assert isinstance(class_names, np.ndarray)
+        assert class_names.tolist() == ["car"]
 
     @pytest.mark.parametrize(
-        "make_mask",
+        "fn_make_mask",
         [
             pytest.param(_dense_masks, id="dense"),
             pytest.param(_compact_masks, id="compact"),
         ],
     )
     def test_raises_when_masks_do_not_match_map(
-        self, make_mask: Callable[[np.ndarray, np.ndarray], Any]
+        self, fn_make_mask: Callable[[np.ndarray, np.ndarray], Any]
     ) -> None:
         """Masks of another size cannot be measured on this map."""
         xyxy = np.array([[0, 0, 5, 5]], dtype=float)
         mask = np.ones((1, 10, 10), dtype=bool)
-        detections = sv.Detections(xyxy=xyxy, mask=make_mask(mask, xyxy))
+        detections = sv.Detections(xyxy=xyxy, mask=fn_make_mask(mask, xyxy))
 
         with pytest.raises(ValueError, match="resize the map"):
             self._depth_map().measure_detections(detections)

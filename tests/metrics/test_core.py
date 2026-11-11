@@ -18,10 +18,10 @@ class TestMetricAbc:
     def test_concrete_subclass_must_implement_all_abstract_methods(self) -> None:
         """A subclass missing an abstract method still cannot be instantiated."""
 
-        class _PartialMetric(Metric):
+        class _PartialMetric(Metric[int]):
             """Concrete class missing `reset` and `compute`."""
 
-            def update(self, *args: object, **kwargs: object) -> Metric:
+            def update(self, *args: object, **kwargs: object) -> Metric[int]:
                 """Return self without implementing the rest of the contract."""
                 return self
 
@@ -31,10 +31,10 @@ class TestMetricAbc:
     def test_fully_implemented_subclass_is_instantiable(self) -> None:
         """A subclass implementing update/reset/compute can be instantiated."""
 
-        class _FullMetric(Metric):
+        class _FullMetric(Metric[int]):
             """Minimal concrete metric implementing the full contract."""
 
-            def update(self, *args: object, **kwargs: object) -> Metric:
+            def update(self, *args: object, **kwargs: object) -> Metric[int]:
                 """Return self, allowing method chaining."""
                 return self
 

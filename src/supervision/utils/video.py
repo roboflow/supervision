@@ -160,10 +160,24 @@ class VideoSink:
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        """Release the underlying video writer when leaving the context."""
+        """Release the writer without replacing an error from the managed block.
+
+        A secondary release failure is logged; a cleanup-only failure propagates. The
+        sink is marked closed in either case.
+        """
         if self.__writer is not None:
-            self.__writer.release()
-            self.__writer = None
+            try:
+                self.__writer.release()
+            except Exception:
+                # Context exit must preserve the exception already being propagated;
+                # without a pending error, callers still need to see release failures.
+                if exc_value is None:
+                    raise
+                logger.exception(
+                    "Failed to release video writer while handling an error."
+                )
+            finally:
+                self.__writer = None
 
 
 def _validate_and_setup_video(
@@ -171,37 +185,49 @@ def _validate_and_setup_video(
 ) -> tuple[cv2.VideoCapture, int, int | None]:
     """Open a video, position it at `start`, and return it with the frame range.
 
-    An `end` of `None` is kept, so the caller reads until the stream runs out.
+    An `end` of `None` is kept, so the caller reads until the stream runs out. Setup
+    failures release the capture before propagating the original error.
     """
     video = cv2.VideoCapture(source_path)
-    if not video.isOpened():
-        raise Exception(f"Could not open video at {source_path}")
-    # OpenCV estimates the frame count from container metadata. A WebM without a
-    # duration, as browsers record it, reports a huge negative count, and a
-    # variable frame rate video can report fewer frames than it holds, so the
-    # count only rejects an `end` when it is positive and never bounds the read.
-    # It is read only when needed: the PyAV fallback decodes the whole video a
-    # second time when the container metadata lacks a count.
-    start = max(start, 0)
-    needs_frame_count = end is not None or (start > 0 and not iterative_seek)
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT)) if needs_frame_count else 0
-    if end is not None and 0 < total_frames < end:
-        raise Exception("Requested frames are outbound")
-    # `set()` cannot be trusted past a positive frame count: the PyAV fallback
-    # returns False without moving when `start` exceeds the count, and OpenCV
-    # returns True without moving on a duration-less WebM. Grabbing frames lands
-    # on `start` or runs out with the stream, so the first read is labelled right.
-    seek_by_grabbing = iterative_seek or not 0 < start <= total_frames
+    try:
+        if not video.isOpened():
+            raise Exception(f"Could not open video at {source_path}")
+        # OpenCV estimates the frame count from container metadata. A WebM without a
+        # duration, as browsers record it, reports a huge negative count, and a
+        # variable frame rate video can report fewer frames than it holds, so the
+        # count only rejects an `end` when it is positive and never bounds the read.
+        # It is read only when needed: the PyAV fallback decodes the whole video a
+        # second time when the container metadata lacks a count.
+        start = max(start, 0)
+        needs_frame_count = end is not None or (start > 0 and not iterative_seek)
+        total_frames = (
+            int(video.get(cv2.CAP_PROP_FRAME_COUNT)) if needs_frame_count else 0
+        )
+        if end is not None and 0 < total_frames < end:
+            raise Exception("Requested frames are outbound")
+        if end is not None and start >= end:
+            return video, start, end
+        # `set()` cannot be trusted past a positive frame count: the PyAV fallback
+        # returns False without moving when `start` exceeds the count, and OpenCV
+        # returns True without moving on a duration-less WebM. Grabbing frames lands
+        # on `start` or runs out with the stream, so the first read is labelled right.
+        seek_by_grabbing = iterative_seek or not 0 < start <= total_frames
 
-    if seek_by_grabbing:
-        # Count grabs separately: `start` is returned as the position of the first
-        # frame read, and the caller measures `end` from it.
-        for _ in range(start):
-            success = video.grab()
-            if not success:
-                break
-    else:
-        video.set(cv2.CAP_PROP_POS_FRAMES, start)
+        if seek_by_grabbing:
+            # Count grabs separately: `start` is returned as the position of the first
+            # frame read, and the caller measures `end` from it.
+            for _ in range(start):
+                success = video.grab()
+                if not success:
+                    break
+        else:
+            video.set(cv2.CAP_PROP_POS_FRAMES, start)
+    except BaseException:
+        try:
+            video.release()
+        except Exception:
+            logger.exception("Failed to release video capture after a setup error.")
+        raise
 
     return video, start, end
 
@@ -249,15 +275,18 @@ def get_video_frames_generator(
 
     Raises:
         Exception: If `end` exceeds a positive frame count reported by the
-            container (raised on first iteration; wrapped in `RuntimeError` when
-            `prefetch` > 0).
-        ValueError: If `prefetch` is negative.
+            container (raised on first iteration), or capture release fails without
+            an earlier decoding error. Both are wrapped in `RuntimeError` when
+            `prefetch` > 0.
+        ValueError: If `stride` is less than 1 or `prefetch` is negative,
+            raised on first iteration.
         RuntimeError: If `prefetch` is greater than 0 and the background reader
             thread encounters a decode/open error, raised as
             `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
             drained after buffered frames, so when `prefetch` > 0 the consumer may
             yield up to `prefetch` additional good frames before the exception is
-            raised.
+            raised. If capture release also fails after a decoding error, the
+            cleanup failure is logged and the original decoding error is preserved.
 
     Note:
         For live camera streams, use `cv2.VideoCapture` with an integer device
@@ -298,6 +327,8 @@ def get_video_frames_generator(
             ...
         ```
     """
+    if stride < 1:
+        raise ValueError(f"stride must be >= 1, got {stride!r}")
     if prefetch < 0:
         raise ValueError(f"prefetch must be >= 0, got {prefetch!r}")
     if prefetch > 0:
@@ -315,20 +346,34 @@ def get_video_frames_generator(
         source_path, start, end, iterative_seek
     )
     frame_position = start
+    decoding_failed = False
     try:
-        while True:
+        while end is None or frame_position < end:
             success, frame = video.read()
-            if not success or (end is not None and frame_position >= end):
+            if not success:
                 break
             if frame is not None:
                 yield cast(npt.NDArray[np.uint8], frame)
-            for _ in range(stride - 1):
+            skip_count = stride - 1
+            if end is not None:
+                skip_count = min(skip_count, end - frame_position - 1)
+            for _ in range(skip_count):
                 success = video.grab()
                 if not success:
                     break
             frame_position += stride
+    except Exception:
+        decoding_failed = True
+        raise
     finally:
-        video.release()
+        try:
+            video.release()
+        except Exception:
+            # A secondary release error must not replace the pending decode error;
+            # cleanup-only failures still propagate, including during generator close.
+            if not decoding_failed:
+                raise
+            logger.exception("Failed to release video capture after a decoding error.")
 
 
 def _prefetched_frames_generator(
@@ -427,6 +472,12 @@ def process_video(
        them sequentially to the output video file. Shutdown waits for any active
        write to finish before releasing the output sink.
 
+    On a processing or writing failure, shutdown stops the reader instead of
+    decoding the rest of the source. An active decode is allowed to finish before
+    the capture is released; queued writes finish unless the writer itself fails.
+    If a callback fails, a secondary reader failure is logged before the original
+    callback exception is re-raised.
+
     Args:
         source_path: Path to the input video file.
         target_path: Path where the processed video will be saved.
@@ -468,9 +519,12 @@ def process_video(
         from rfdetr import RFDETRMedium
 
         model = RFDETRMedium()
+        box_annotator = sv.BoxAnnotator()
 
         def callback(frame, frame_index):
-            return model.predict(frame)
+            # Frames are BGR; RF-DETR expects RGB. Return the annotated frame.
+            detections = model.predict(frame[:, :, ::-1])
+            return box_annotator.annotate(frame.copy(), detections)
 
         sv.process_video(
             source_path="source.mp4",
@@ -502,24 +556,50 @@ def process_video(
 
     reader_exception: Exception | None = None
     writer_exception: Exception | None = None
+    stop_reader = threading.Event()
 
     def reader_thread() -> None:
-        """Feed frames into the read queue, always ending with the sentinel."""
+        """Feed frames into the bounded queue until EOF, failure or cancellation."""
         nonlocal reader_exception
+        frame_generator = None
         try:
             frame_generator = get_video_frames_generator(
                 source_path=source_path,
                 end=frames_end,
             )
-            for frame_index, frame in enumerate(frame_generator):
-                frame_read_queue.put((frame_index, frame))
+            frame_index = 0
+            while not stop_reader.is_set():
+                try:
+                    frame = next(frame_generator)
+                except StopIteration:
+                    break
+                while not stop_reader.is_set():
+                    try:
+                        frame_read_queue.put((frame_index, frame), timeout=0.1)
+                        break
+                    except Full:
+                        pass
+                frame_index += 1
         except Exception as exc:
             # The main loop blocks on `frame_read_queue.get()` with no timeout,
             # so a reader failure must still enqueue the sentinel or the call
             # never returns. Surface the error once the pipeline has shut down.
             reader_exception = exc
         finally:
-            frame_read_queue.put(None)
+            if frame_generator is not None:
+                try:
+                    frame_generator.close()
+                except Exception as exc:
+                    if reader_exception is None:
+                        reader_exception = exc
+            # A cancelled consumer no longer drains the queue. Both frame and EOF
+            # puts must therefore be interruptible, even when the queue is full.
+            while not stop_reader.is_set():
+                try:
+                    frame_read_queue.put(None, timeout=0.1)
+                    break
+                except Full:
+                    pass
 
     def writer_thread(video_sink: VideoSink) -> None:
         """Write processed frames until the sentinel, keeping the first write error.
@@ -558,14 +638,11 @@ def process_video(
             desc=progress_message,
         )
 
-        exception_in_worker: Exception | None = None
-        read_finished = False
-
+        exception_in_worker: BaseException | None = None
         try:
             while True:
                 read_item = frame_read_queue.get()
                 if read_item is None:
-                    read_finished = True
                     break
 
                 frame_index, frame = read_item
@@ -580,32 +657,29 @@ def process_video(
                         )
                     frame_write_queue.put(processed_frame)
                     progress_bar.update(1)
-                except Exception as exc:
+                except BaseException as exc:
                     exception_in_worker = exc
                     break
                 if writer_exception is not None:
                     break
         finally:
+            stop_reader.set()
             frame_write_queue.put(None)
-            if not read_finished:
-                while True:
-                    # Use timeout to prevent indefinite blocking if reader thread fails
-                    try:
-                        read_item = frame_read_queue.get(timeout=1)
-                        if read_item is None:
-                            break
-                    # If we timeout waiting for a frame, only assume failure if reader
-                    # thread is no longer alive. Otherwise, keep waiting as the reader
-                    # may simply be slow (for example, due to a slow source).
-                    except Empty:
-                        if not reader_worker.is_alive():
-                            break
-                        # Reader is still alive; continue waiting for frames.
-                        continue
-            reader_worker.join(timeout=10)
+            reader_worker.join()
             writer_worker.join()
             progress_bar.close()
             if exception_in_worker is not None:
+                # Callback errors stay primary, but secondary reader failures
+                # must remain visible after both worker threads have stopped.
+                if reader_exception is not None:
+                    logger.error(
+                        "Reader thread failed while handling a processing error.",
+                        exc_info=(
+                            type(reader_exception),
+                            reader_exception,
+                            reader_exception.__traceback__,
+                        ),
+                    )
                 raise exception_in_worker
             if reader_exception is not None:
                 raise RuntimeError(

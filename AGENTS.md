@@ -10,6 +10,7 @@ ______________________________________________________________________
 - Outline a plan before making changes.
 - Check whether the feature already exists under a different name.
 - Confirm alignment with `src/supervision/` architecture.
+- For pull request reviews, follow [.github/skills/code-review/SKILL.md](.github/skills/code-review/SKILL.md).
 
 ______________________________________________________________________
 
@@ -70,6 +71,8 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 - No network or filesystem access outside `supervision/assets/`.
 
 **⚠ Test structure** — agents frequently fail here; read [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests) carefully: AAA structure, class grouping, bare simple parametrized values, `pytest.param(..., id="semantic-slug")` for compound or unclear cases (never parallel `ids`), one-line docstring per test.
+
+**Reference parity tests** — follow [CONTRIBUTING.md §Reference parity tests](.github/CONTRIBUTING.md#reference-parity-tests): evaluate the live reference package on the same inputs, and keep it in development dependencies only.
 
 For branching, commit, code style, and API design conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 

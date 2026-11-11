@@ -159,24 +159,7 @@ Modifying the input resolution of images before detection can enhance small obje
 
 === "Inference"
 
-    ```{ .py hl_lines="5" }
-    import cv2
-    import supervision as sv
-    from inference import get_model
-
-    model = get_model(model_id="yolov8x-1280")
-    image = cv2.imread("<SOURCE_IMAGE_PATH>")
-    results = model.infer(image)[0]
-    detections = sv.Detections.from_inference(results)
-
-    box_annotator = sv.BoxAnnotator()
-    label_annotator = sv.LabelAnnotator()
-
-    annotated_image = box_annotator.annotate(
-        scene=image, detections=detections)
-    annotated_image = label_annotator.annotate(
-        scene=annotated_image, detections=detections)
-    ```
+    For higher-resolution RF-DETR inference, use the RF-DETR tab above, which explicitly sets `resolution=1280`. The baseline `get_model(model_id="rfdetr-medium")` example does not increase the input resolution.
 
 === "Ultralytics"
 
