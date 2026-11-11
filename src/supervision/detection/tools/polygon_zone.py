@@ -46,8 +46,11 @@ class PolygonZone:
             test: it fires only when a listed anchor point lands inside the mask.
             Use mask/IoU-based approaches instead when full-overlap semantics are
             required.
-        current_count: The current count of detected objects within the zone
-        mask: The 2D bool mask for the polygon zone
+        current_count: The current count of detected objects within the zone.
+        current_count_per_class: Number of objects of each class currently inside
+            the zone, keyed by `class_id` (`int` for classified detections,
+            `None` for unclassified ones).
+        mask: The 2D bool mask for the polygon zone.
 
     Example:
         ```pycon
@@ -122,6 +125,7 @@ class PolygonZone:
         self.require_all_anchors = require_all_anchors
 
         self.current_count = 0
+        self.current_count_per_class: dict[int | None, int] = {}
 
         x_max, y_max = np.max(polygon, axis=0)
         self.mask = polygon_to_mask(
@@ -173,6 +177,7 @@ class PolygonZone:
         """
         if len(detections) == 0:
             self.current_count = 0
+            self.current_count_per_class = {}
             return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
 
         anchor_coordinates = np.array(
@@ -199,6 +204,16 @@ class PolygonZone:
         reduce = np.all if self.require_all_anchors else np.any
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
+        if self.current_count == 0:
+            self.current_count_per_class = {}
+        elif detections.class_id is None:
+            self.current_count_per_class = {None: self.current_count}
+        else:
+            in_zone_classes = detections.class_id[is_in_zone]
+            classes, counts = np.unique(in_zone_classes, return_counts=True)
+            self.current_count_per_class = {
+                int(cls): int(count) for cls, count in zip(classes, counts)
+            }
         return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
 
 
