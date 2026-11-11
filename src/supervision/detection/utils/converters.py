@@ -420,7 +420,9 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
         A list of polygons, where each polygon is represented by a NumPy array
             of shape `(N, 2)`, containing the `x`, `y` coordinates of the
             points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
-            are excluded from the output.
+            are excluded from the output. Polygons follow OpenCV's `RETR_TREE`
+            order with and without OpenCV installed: each outline is followed by
+            its holes, and sibling outlines come last-found first.
 
     Examples:
         ```pycon

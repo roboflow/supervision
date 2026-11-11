@@ -1004,6 +1004,38 @@ class TestAsPascalVocMaskWithHole:
         assert len(result) == 1
         np.testing.assert_array_equal(result.mask, mask)
 
+    def test_simplified_export_keeps_hole_behind_thin_walls(
+        self, tmp_path: Path, ragged_mask_with_hole: np.ndarray
+    ) -> None:
+        """A ragged mask exports with simplification instead of raising."""
+        mask = ragged_mask_with_hole[np.newaxis, ...]
+        image_path = str(tmp_path / "source" / "ragged.png")
+        Path(image_path).parent.mkdir()
+        cv2.imwrite(image_path, np.zeros((10, 7, 3), dtype=np.uint8))
+        detections = Detections(
+            xyxy=np.array([[1, 1, 5, 8]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["blob"], images=[image_path], annotations={image_path: detections}
+        )
+
+        dataset.as_pascal_voc(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "annotations"),
+            approximation_percentage=0.5,
+        )
+        reloaded = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "annotations"),
+            force_masks=True,
+        )
+
+        result = next(iter(reloaded.annotations.values()))
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.mask, mask)
+
 
 class TestPascalVocDevkitBndbox:
     """Pascal VOC boxes use the devkit's 1-based, inclusive pixel indices."""

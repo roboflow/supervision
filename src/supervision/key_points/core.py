@@ -1199,6 +1199,12 @@ class KeyPoints:
 
         if isinstance(i, int):
             i = [i]
+        elif (
+            isinstance(i, np.ndarray)
+            and i.ndim == 0
+            and np.issubdtype(i.dtype, np.integer)
+        ):
+            i = i.reshape(1)
 
         if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
             i = np.array(i)
@@ -1289,6 +1295,10 @@ class KeyPoints:
 
         Supports detection-level (skeleton) filtering, keypoint-level (anchor)
         filtering, combined tuple indexing, and data field access by string key.
+        For a result from :meth:`~supervision.key_points.core.KeyPoints.empty`,
+        anchor selection such as `key_points[:, [0, 1]]` returns an empty result
+        when the skeleton selector is valid. Out-of-range skeleton indexes, such
+        as `key_points[0]`, still raise `IndexError`.
 
         Args:
             index: The index, indices, or key to access a subset of the KeyPoints

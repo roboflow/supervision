@@ -154,12 +154,21 @@ class DetectionsSmoother:
         warning is raised before the history changes, so a warning turned into an
         error leaves the cached history intact.
 
+        Detections with a negative `tracker_id` belong to tracks the tracker has not
+        confirmed yet and may share one ID, so they are not smoothed and have no
+        history. They are returned unchanged, after the smoothed tracks.
+        When the current frame has oriented corners but confirmed tracks cannot
+        retain smoothed corners, all confirmed tracks use corners of their
+        axis-aligned smoothed bounds so unconfirmed detections retain their original
+        oriented geometry.
+
         Args:
             detections: The detections to add to the smoother.
 
         Returns:
-            Smoothed detections for the tracks present in this frame. When
-            `detections` has no `tracker_id`, the input object itself is returned.
+            Smoothed detections for the tracks present in this frame, followed by
+            the detections with a negative `tracker_id`. When `detections` has no
+            `tracker_id`, the input object itself is returned.
         """
         tracker_ids = detections.tracker_id
         if tracker_ids is None:
@@ -172,13 +181,36 @@ class DetectionsSmoother:
             self._age_tracks(active_ids=set())
             return detections
 
-        for detection_idx in range(len(detections)):
+        # Unconfirmed tracks share a negative ID; pooling them would average unrelated
+        # boxes, so they skip the history and are returned unchanged.
+        unconfirmed = tracker_ids < 0
+        for detection_idx in np.flatnonzero(~unconfirmed):
             tracker_id = int(tracker_ids[detection_idx])
-            self.tracks[tracker_id].append(detections.select(detection_idx))
+            self.tracks[tracker_id].append(detections.select(int(detection_idx)))
 
-        active_ids = set(tracker_ids.tolist())
+        active_ids = set(tracker_ids[~unconfirmed].tolist())
         self._age_tracks(active_ids=active_ids)
-        return self.get_smoothed_detections(track_ids=active_ids)
+        smoothed = self.get_smoothed_detections(track_ids=active_ids)
+        if not unconfirmed.any():
+            return smoothed
+
+        unsmoothed = detections.select(unconfirmed)
+        if len(smoothed) > 0:
+            # `Detections.merge` needs every row to agree on optional fields and
+            # data keys, and smoothing can drop confidence or oriented corners.
+            if unsmoothed.confidence is None:
+                smoothed.confidence = None
+            if ORIENTED_BOX_COORDINATES in unsmoothed.data:
+                # A merged data field needs one row per detection. If history cannot
+                # supply oriented corners, use the smoothed axis-aligned envelope.
+                if ORIENTED_BOX_COORDINATES not in smoothed.data:
+                    smoothed.data[ORIENTED_BOX_COORDINATES] = smoothed.xyxy[
+                        :, [[0, 1], [2, 1], [2, 3], [0, 3]]
+                    ]
+                unsmoothed.data[ORIENTED_BOX_COORDINATES] = np.asarray(
+                    unsmoothed.data[ORIENTED_BOX_COORDINATES]
+                )
+        return Detections.merge([smoothed, unsmoothed])
 
     def _age_tracks(self, active_ids: set[int]) -> None:
         """Advance every cached track by one frame and drop fully expired tracks.
