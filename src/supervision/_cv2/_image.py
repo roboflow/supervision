@@ -225,7 +225,10 @@ def _mean(
         means = np.zeros(4, dtype=np.float64)
     else:
         means = np.zeros(4, dtype=np.float64)
-        means[: selected.shape[1]] = np.mean(selected, axis=0, dtype=np.float64)
+        # OpenCV multiplies the sum by `1. / count` rather than dividing by
+        # the count, so a 7x7 block of 100 averages to 99.99999999999999.
+        sums = np.sum(selected, axis=0, dtype=np.float64)
+        means[: selected.shape[1]] = sums * (1.0 / selected.shape[0])
     return cast(
         tuple[float, float, float, float],
         tuple(float(value) for value in means),

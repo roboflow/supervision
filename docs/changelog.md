@@ -21,6 +21,8 @@ date_modified: 2026-10-31
 
 - `sv.JSONSink` now rejects additional data whose names collide with built-in detection fields, preventing custom metadata from silently overwriting coordinates, class IDs, confidence scores or tracker IDs. Rename such metadata fields, for example to `calibrated_confidence`. ([#2949](https://github.com/roboflow/supervision/pull/2949))
 
+- The NumPy fallback for `cv2.mean` now scales the sum by `1 / count` as OpenCV does, instead of dividing by the count. Integer images now get OpenCV's exact value: a flat 7x7 block of 100 averages to `99.99999999999999`, not `100.0`, so `sv.PixelateAnnotator` fills a box smaller than `pixel_size` with the same color on both backends. ([#PR](https://github.com/roboflow/supervision/pull/PR))
+
 ### 0.31.7 <small>Nov 11, 2026</small>
 
 - **Metrics**: `sv.metrics.MeanAveragePrecision` agrees with `pycocotools` on size buckets and crowd targets.
