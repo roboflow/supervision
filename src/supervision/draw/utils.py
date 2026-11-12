@@ -434,13 +434,35 @@ def draw_text(
             scene=scene, rect=text_rect, color=background_color
         )
 
+    text_origin = (text_anchor_x - text_width // 2, text_anchor_y + text_height // 2)
+    if scene.ndim == 3 and scene.shape[2] == 4:
+        # OpenCV 5 writes glyph coverage into the alpha channel even for an opaque
+        # color, so draw the colors and the alpha separately. A covered pixel gets
+        # the color it has on the BGR copy and its alpha only ever rises.
+        bgr = np.ascontiguousarray(scene[..., :3])
+        coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+        for target, target_color in ((bgr, text_color.as_bgr()), (coverage, (255,))):
+            cv2.putText(
+                img=target,
+                text=text,
+                org=text_origin,
+                fontFace=text_font,
+                fontScale=text_scale,
+                color=target_color,
+                thickness=text_thickness,
+                lineType=cv2.LINE_AA,
+            )
+        scene[..., :3] = bgr
+        scene[..., 3] = np.maximum(scene[..., 3], coverage)
+        return scene
+
     cv2.putText(
         img=scene,
         text=text,
-        org=(text_anchor_x - text_width // 2, text_anchor_y + text_height // 2),
+        org=text_origin,
         fontFace=text_font,
         fontScale=text_scale,
-        color=_color_for_scene(text_color, scene),
+        color=text_color.as_bgr(),
         thickness=text_thickness,
         lineType=cv2.LINE_AA,
     )
