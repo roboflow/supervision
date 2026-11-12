@@ -1,134 +1,226 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" width="680" height="440" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 548" width="760" height="548" role="img" aria-labelledby="t d" class="anim">
 <title id="t">COCO polygon rasterization: inclusive fill versus reference fill</title>
-<desc id="d">The same square polygon with vertices (1,1) to (5,5) on a 7 by 7 pixel grid. The supervision rasterizer fills 25 pixels, 9 of them outside the polygon boundary. The pycocotools rasterizer fills the 16 pixels inside the boundary.</desc>
-<rect width="680" height="440" rx="12" fill="#ffffff" stroke="#d1d5db"/>
-<text x="340" y="34" text-anchor="middle" font-size="17" font-weight="600" fill="#111827">One COCO polygon, two masks</text>
-<text x="340" y="56" text-anchor="middle" font-size="13" fill="#4b5563">segmentation = [[1, 1, 5, 1, 5, 5, 1, 5]] on a 7 × 7 image</text>
-<g transform="translate(40,92)">
-<rect x="36" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="72" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="108" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="144" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="180" y="36" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<rect x="36" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="72" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="108" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="144" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="180" y="72" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<rect x="36" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="72" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="108" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="144" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="180" y="108" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<rect x="36" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="72" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="108" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="144" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="180" y="144" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<rect x="36" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<rect x="72" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<rect x="108" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<rect x="144" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<rect x="180" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
-<line x1="0" y1="0" x2="0" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="0" x2="252" y2="0" stroke="#9ca3af" stroke-width="1"/>
-<line x1="36" y1="0" x2="36" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="36" x2="252" y2="36" stroke="#9ca3af" stroke-width="1"/>
-<line x1="72" y1="0" x2="72" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="72" x2="252" y2="72" stroke="#9ca3af" stroke-width="1"/>
-<line x1="108" y1="0" x2="108" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="108" x2="252" y2="108" stroke="#9ca3af" stroke-width="1"/>
-<line x1="144" y1="0" x2="144" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="144" x2="252" y2="144" stroke="#9ca3af" stroke-width="1"/>
-<line x1="180" y1="0" x2="180" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="180" x2="252" y2="180" stroke="#9ca3af" stroke-width="1"/>
-<line x1="216" y1="0" x2="216" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="216" x2="252" y2="216" stroke="#9ca3af" stroke-width="1"/>
-<line x1="252" y1="0" x2="252" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="252" x2="252" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<rect x="36" y="36" width="144" height="144" fill="none" stroke="#111827" stroke-width="2.5"/>
-<circle cx="36" cy="36" r="4.5" fill="#111827"/>
-<circle cx="180" cy="36" r="4.5" fill="#111827"/>
-<circle cx="180" cy="180" r="4.5" fill="#111827"/>
-<circle cx="36" cy="180" r="4.5" fill="#111827"/>
-<text x="30" y="28" text-anchor="end" font-size="12" fill="#111827">(1, 1)</text>
-<text x="188" y="198" font-size="12" fill="#111827">(5, 5)</text>
-<text x="18.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">0</text>
-<text x="-10" y="22.0" text-anchor="end" font-size="11" fill="#6b7280">0</text>
-<text x="54.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">1</text>
-<text x="-10" y="58.0" text-anchor="end" font-size="11" fill="#6b7280">1</text>
-<text x="90.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">2</text>
-<text x="-10" y="94.0" text-anchor="end" font-size="11" fill="#6b7280">2</text>
-<text x="126.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">3</text>
-<text x="-10" y="130.0" text-anchor="end" font-size="11" fill="#6b7280">3</text>
-<text x="162.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">4</text>
-<text x="-10" y="166.0" text-anchor="end" font-size="11" fill="#6b7280">4</text>
-<text x="198.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">5</text>
-<text x="-10" y="202.0" text-anchor="end" font-size="11" fill="#6b7280">5</text>
-<text x="234.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">6</text>
-<text x="-10" y="238.0" text-anchor="end" font-size="11" fill="#6b7280">6</text>
-<text x="126.0" y="-14" text-anchor="middle" font-size="13" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#111827">mask_rasterizer="supervision"</text>
-<text x="126.0" y="292" text-anchor="middle" font-size="15" font-weight="600" fill="#111827">25 pixels</text>
+<desc id="d">Animation of one square COCO polygon with vertices at (1.65, 1.65) and (5.65, 5.65) on an 8 by 8 pixel grid. The supervision rasterizer rounds the vertices to 2 and 6 and fills inclusively, giving 25 pixels. The pycocotools rasterizer keeps continuous vertices and fills pixels whose centre is inside the boundary, giving 16 pixels. The final frame shows the 9 extra pixels and an IoU of 0.64.</desc>
+<style>text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.cap-intro{opacity:0}
+.cap-b1{opacity:0}
+.cap-b2{opacity:0}
+.cap-c1{opacity:0}
+.cap-c2{opacity:0}
+.cap-d{opacity:1}
+.round{opacity:0}
+.n-sup{opacity:1}
+.n-ref{opacity:1}
+.n-diff{opacity:1}
+.ctr{opacity:0}
+.plus{opacity:1}
+.dcells{opacity:1}
+.sr0{opacity:0}
+.sr1{opacity:0}
+.sr2{opacity:0}
+.sr3{opacity:0}
+.sr4{opacity:0}
+.rr0{opacity:0}
+.rr1{opacity:0}
+.rr2{opacity:0}
+.rr3{opacity:0}
+@keyframes k-cap-intro{0.00%{opacity:0} 0.70%{opacity:1} 9.00%{opacity:1} 9.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-cap-b1{0.00%{opacity:0} 10.50%{opacity:0} 11.20%{opacity:1} 16.00%{opacity:1} 16.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-cap-b2{0.00%{opacity:0} 17.00%{opacity:0} 17.70%{opacity:1} 44.00%{opacity:1} 44.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-cap-c1{0.00%{opacity:0} 46.00%{opacity:0} 46.70%{opacity:1} 53.00%{opacity:1} 53.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-cap-c2{0.00%{opacity:0} 54.00%{opacity:0} 54.70%{opacity:1} 72.00%{opacity:1} 72.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-cap-d{0.00%{opacity:0} 74.00%{opacity:0} 74.70%{opacity:1} 97.00%{opacity:1} 97.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-round{0.00%{opacity:0} 11.00%{opacity:0} 11.70%{opacity:1} 44.00%{opacity:1} 44.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-n-sup{0.00%{opacity:0} 23.00%{opacity:0} 23.70%{opacity:1} 44.00%{opacity:1} 44.70%{opacity:0} 74.00%{opacity:0} 74.70%{opacity:1} 97.00%{opacity:1} 97.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-n-ref{0.00%{opacity:0} 59.00%{opacity:0} 59.70%{opacity:1} 72.00%{opacity:1} 72.70%{opacity:0} 74.00%{opacity:0} 74.70%{opacity:1} 97.00%{opacity:1} 97.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-n-diff{0.00%{opacity:0} 77.00%{opacity:0} 77.70%{opacity:1} 97.00%{opacity:1} 97.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-ctr{0.00%{opacity:0} 46.50%{opacity:0} 47.20%{opacity:1} 72.00%{opacity:1} 72.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-plus{0.00%{opacity:0} 77.00%{opacity:0} 77.70%{opacity:1} 97.00%{opacity:1} 97.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-dcells{0.00%{opacity:0} 74.00%{opacity:0} 74.70%{opacity:1} 97.00%{opacity:1} 97.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-sr0{0.00%{opacity:0} 17.00%{opacity:0} 17.70%{opacity:1} 44.00%{opacity:1} 44.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-sr1{0.00%{opacity:0} 18.10%{opacity:0} 18.80%{opacity:1} 44.00%{opacity:1} 44.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-sr2{0.00%{opacity:0} 19.20%{opacity:0} 19.90%{opacity:1} 44.00%{opacity:1} 44.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-sr3{0.00%{opacity:0} 20.30%{opacity:0} 21.00%{opacity:1} 44.00%{opacity:1} 44.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-sr4{0.00%{opacity:0} 21.40%{opacity:0} 22.10%{opacity:1} 44.00%{opacity:1} 44.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-rr0{0.00%{opacity:0} 55.00%{opacity:0} 55.70%{opacity:1} 72.00%{opacity:1} 72.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-rr1{0.00%{opacity:0} 56.10%{opacity:0} 56.80%{opacity:1} 72.00%{opacity:1} 72.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-rr2{0.00%{opacity:0} 57.20%{opacity:0} 57.90%{opacity:1} 72.00%{opacity:1} 72.70%{opacity:0} 100.00%{opacity:0}}
+@keyframes k-rr3{0.00%{opacity:0} 58.30%{opacity:0} 59.00%{opacity:1} 72.00%{opacity:1} 72.70%{opacity:0} 100.00%{opacity:0}}
+@media (prefers-reduced-motion:no-preference){.anim .cap-intro{animation:k-cap-intro 22s linear infinite}.anim .cap-b1{animation:k-cap-b1 22s linear infinite}.anim .cap-b2{animation:k-cap-b2 22s linear infinite}.anim .cap-c1{animation:k-cap-c1 22s linear infinite}.anim .cap-c2{animation:k-cap-c2 22s linear infinite}.anim .cap-d{animation:k-cap-d 22s linear infinite}.anim .round{animation:k-round 22s linear infinite}.anim .n-sup{animation:k-n-sup 22s linear infinite}.anim .n-ref{animation:k-n-ref 22s linear infinite}.anim .n-diff{animation:k-n-diff 22s linear infinite}.anim .ctr{animation:k-ctr 22s linear infinite}.anim .plus{animation:k-plus 22s linear infinite}.anim .dcells{animation:k-dcells 22s linear infinite}.anim .sr0{animation:k-sr0 22s linear infinite}.anim .sr1{animation:k-sr1 22s linear infinite}.anim .sr2{animation:k-sr2 22s linear infinite}.anim .sr3{animation:k-sr3 22s linear infinite}.anim .sr4{animation:k-sr4 22s linear infinite}.anim .rr0{animation:k-rr0 22s linear infinite}.anim .rr1{animation:k-rr1 22s linear infinite}.anim .rr2{animation:k-rr2 22s linear infinite}.anim .rr3{animation:k-rr3 22s linear infinite}}</style>
+<rect width="760" height="548" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+<text x="380.0" y="34" text-anchor="middle" font-size="18" font-weight="600" fill="#111827">One COCO polygon, two masks</text>
+<text class="mono" x="380.0" y="57" text-anchor="middle" font-size="12" fill="#4b5563">segmentation = [[1.65, 1.65, 5.65, 1.65, 5.65, 5.65, 1.65, 5.65]]</text>
+<g class="sr0"><rect x="140" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="332" y="180" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/></g>
+<g class="sr1"><rect x="140" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="332" y="228" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/></g>
+<g class="sr2"><rect x="140" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="332" y="276" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/></g>
+<g class="sr3"><rect x="140" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="332" y="324" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/></g>
+<g class="sr4"><rect x="140" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="188" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="236" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="284" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="332" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/></g>
+<g class="rr0"><rect x="140" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/></g>
+<g class="rr1"><rect x="140" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/></g>
+<g class="rr2"><rect x="140" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/></g>
+<g class="rr3"><rect x="140" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/></g>
+<g class="dcells"><rect x="140" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="180" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="332" y="180" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="140" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="228" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="332" y="228" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="140" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="276" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="332" y="276" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="140" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="188" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="236" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="284" y="324" width="48" height="48" fill="#2563eb" fill-opacity="0.55"/><rect x="332" y="324" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="140" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="188" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="236" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="284" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/><rect x="332" y="372" width="48" height="48" fill="#ea580c" fill-opacity="0.55"/></g>
+<line x1="44" y1="84" x2="44" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="84" x2="428" y2="84" stroke="#9ca3af" stroke-width="1"/>
+<text x="44" y="485" text-anchor="middle" font-size="11" fill="#6b7280">0</text>
+<text x="35" y="88" text-anchor="end" font-size="11" fill="#6b7280">0</text>
+<line x1="92" y1="84" x2="92" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="132" x2="428" y2="132" stroke="#9ca3af" stroke-width="1"/>
+<text x="92" y="485" text-anchor="middle" font-size="11" fill="#6b7280">1</text>
+<text x="35" y="136" text-anchor="end" font-size="11" fill="#6b7280">1</text>
+<line x1="140" y1="84" x2="140" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="180" x2="428" y2="180" stroke="#9ca3af" stroke-width="1"/>
+<text x="140" y="485" text-anchor="middle" font-size="11" fill="#6b7280">2</text>
+<text x="35" y="184" text-anchor="end" font-size="11" fill="#6b7280">2</text>
+<line x1="188" y1="84" x2="188" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="228" x2="428" y2="228" stroke="#9ca3af" stroke-width="1"/>
+<text x="188" y="485" text-anchor="middle" font-size="11" fill="#6b7280">3</text>
+<text x="35" y="232" text-anchor="end" font-size="11" fill="#6b7280">3</text>
+<line x1="236" y1="84" x2="236" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="276" x2="428" y2="276" stroke="#9ca3af" stroke-width="1"/>
+<text x="236" y="485" text-anchor="middle" font-size="11" fill="#6b7280">4</text>
+<text x="35" y="280" text-anchor="end" font-size="11" fill="#6b7280">4</text>
+<line x1="284" y1="84" x2="284" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="324" x2="428" y2="324" stroke="#9ca3af" stroke-width="1"/>
+<text x="284" y="485" text-anchor="middle" font-size="11" fill="#6b7280">5</text>
+<text x="35" y="328" text-anchor="end" font-size="11" fill="#6b7280">5</text>
+<line x1="332" y1="84" x2="332" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="372" x2="428" y2="372" stroke="#9ca3af" stroke-width="1"/>
+<text x="332" y="485" text-anchor="middle" font-size="11" fill="#6b7280">6</text>
+<text x="35" y="376" text-anchor="end" font-size="11" fill="#6b7280">6</text>
+<line x1="380" y1="84" x2="380" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="420" x2="428" y2="420" stroke="#9ca3af" stroke-width="1"/>
+<text x="380" y="485" text-anchor="middle" font-size="11" fill="#6b7280">7</text>
+<text x="35" y="424" text-anchor="end" font-size="11" fill="#6b7280">7</text>
+<line x1="428" y1="84" x2="428" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<line x1="44" y1="468" x2="428" y2="468" stroke="#9ca3af" stroke-width="1"/>
+<text x="428" y="485" text-anchor="middle" font-size="11" fill="#6b7280">8</text>
+<text x="35" y="472" text-anchor="end" font-size="11" fill="#6b7280">8</text>
+<text x="236.0" y="502" text-anchor="middle" font-size="11" fill="#6b7280">continuous coordinates (px); each pixel is one grid cell</text>
+<circle cx="68.0" cy="108.0" r="2.2" fill="#9ca3af"/>
+<circle cx="116.0" cy="108.0" r="2.2" fill="#9ca3af"/>
+<circle cx="164.0" cy="108.0" r="2.2" fill="#9ca3af"/>
+<circle cx="212.0" cy="108.0" r="2.2" fill="#9ca3af"/>
+<circle cx="260.0" cy="108.0" r="2.2" fill="#9ca3af"/>
+<circle cx="308.0" cy="108.0" r="2.2" fill="#9ca3af"/>
+<circle cx="356.0" cy="108.0" r="2.2" fill="#9ca3af"/>
+<circle cx="404.0" cy="108.0" r="2.2" fill="#9ca3af"/>
+<circle cx="68.0" cy="156.0" r="2.2" fill="#9ca3af"/>
+<circle cx="116.0" cy="156.0" r="2.2" fill="#9ca3af"/>
+<circle cx="164.0" cy="156.0" r="2.2" fill="#9ca3af"/>
+<circle cx="212.0" cy="156.0" r="2.2" fill="#9ca3af"/>
+<circle cx="260.0" cy="156.0" r="2.2" fill="#9ca3af"/>
+<circle cx="308.0" cy="156.0" r="2.2" fill="#9ca3af"/>
+<circle cx="356.0" cy="156.0" r="2.2" fill="#9ca3af"/>
+<circle cx="404.0" cy="156.0" r="2.2" fill="#9ca3af"/>
+<circle cx="68.0" cy="204.0" r="2.2" fill="#9ca3af"/>
+<circle cx="116.0" cy="204.0" r="2.2" fill="#9ca3af"/>
+<circle cx="164.0" cy="204.0" r="2.2" fill="#9ca3af"/>
+<circle cx="212.0" cy="204.0" r="2.2" fill="#9ca3af"/>
+<circle cx="260.0" cy="204.0" r="2.2" fill="#9ca3af"/>
+<circle cx="308.0" cy="204.0" r="2.2" fill="#9ca3af"/>
+<circle cx="356.0" cy="204.0" r="2.2" fill="#9ca3af"/>
+<circle cx="404.0" cy="204.0" r="2.2" fill="#9ca3af"/>
+<circle cx="68.0" cy="252.0" r="2.2" fill="#9ca3af"/>
+<circle cx="116.0" cy="252.0" r="2.2" fill="#9ca3af"/>
+<circle cx="164.0" cy="252.0" r="2.2" fill="#9ca3af"/>
+<circle cx="212.0" cy="252.0" r="2.2" fill="#9ca3af"/>
+<circle cx="260.0" cy="252.0" r="2.2" fill="#9ca3af"/>
+<circle cx="308.0" cy="252.0" r="2.2" fill="#9ca3af"/>
+<circle cx="356.0" cy="252.0" r="2.2" fill="#9ca3af"/>
+<circle cx="404.0" cy="252.0" r="2.2" fill="#9ca3af"/>
+<circle cx="68.0" cy="300.0" r="2.2" fill="#9ca3af"/>
+<circle cx="116.0" cy="300.0" r="2.2" fill="#9ca3af"/>
+<circle cx="164.0" cy="300.0" r="2.2" fill="#9ca3af"/>
+<circle cx="212.0" cy="300.0" r="2.2" fill="#9ca3af"/>
+<circle cx="260.0" cy="300.0" r="2.2" fill="#9ca3af"/>
+<circle cx="308.0" cy="300.0" r="2.2" fill="#9ca3af"/>
+<circle cx="356.0" cy="300.0" r="2.2" fill="#9ca3af"/>
+<circle cx="404.0" cy="300.0" r="2.2" fill="#9ca3af"/>
+<circle cx="68.0" cy="348.0" r="2.2" fill="#9ca3af"/>
+<circle cx="116.0" cy="348.0" r="2.2" fill="#9ca3af"/>
+<circle cx="164.0" cy="348.0" r="2.2" fill="#9ca3af"/>
+<circle cx="212.0" cy="348.0" r="2.2" fill="#9ca3af"/>
+<circle cx="260.0" cy="348.0" r="2.2" fill="#9ca3af"/>
+<circle cx="308.0" cy="348.0" r="2.2" fill="#9ca3af"/>
+<circle cx="356.0" cy="348.0" r="2.2" fill="#9ca3af"/>
+<circle cx="404.0" cy="348.0" r="2.2" fill="#9ca3af"/>
+<circle cx="68.0" cy="396.0" r="2.2" fill="#9ca3af"/>
+<circle cx="116.0" cy="396.0" r="2.2" fill="#9ca3af"/>
+<circle cx="164.0" cy="396.0" r="2.2" fill="#9ca3af"/>
+<circle cx="212.0" cy="396.0" r="2.2" fill="#9ca3af"/>
+<circle cx="260.0" cy="396.0" r="2.2" fill="#9ca3af"/>
+<circle cx="308.0" cy="396.0" r="2.2" fill="#9ca3af"/>
+<circle cx="356.0" cy="396.0" r="2.2" fill="#9ca3af"/>
+<circle cx="404.0" cy="396.0" r="2.2" fill="#9ca3af"/>
+<circle cx="68.0" cy="444.0" r="2.2" fill="#9ca3af"/>
+<circle cx="116.0" cy="444.0" r="2.2" fill="#9ca3af"/>
+<circle cx="164.0" cy="444.0" r="2.2" fill="#9ca3af"/>
+<circle cx="212.0" cy="444.0" r="2.2" fill="#9ca3af"/>
+<circle cx="260.0" cy="444.0" r="2.2" fill="#9ca3af"/>
+<circle cx="308.0" cy="444.0" r="2.2" fill="#9ca3af"/>
+<circle cx="356.0" cy="444.0" r="2.2" fill="#9ca3af"/>
+<circle cx="404.0" cy="444.0" r="2.2" fill="#9ca3af"/>
+<g class="ctr"><circle cx="164.0" cy="204.0" r="5" fill="#2563eb"/><circle cx="212.0" cy="204.0" r="5" fill="#2563eb"/><circle cx="260.0" cy="204.0" r="5" fill="#2563eb"/><circle cx="308.0" cy="204.0" r="5" fill="#2563eb"/><circle cx="164.0" cy="252.0" r="5" fill="#2563eb"/><circle cx="212.0" cy="252.0" r="5" fill="#2563eb"/><circle cx="260.0" cy="252.0" r="5" fill="#2563eb"/><circle cx="308.0" cy="252.0" r="5" fill="#2563eb"/><circle cx="164.0" cy="300.0" r="5" fill="#2563eb"/><circle cx="212.0" cy="300.0" r="5" fill="#2563eb"/><circle cx="260.0" cy="300.0" r="5" fill="#2563eb"/><circle cx="308.0" cy="300.0" r="5" fill="#2563eb"/><circle cx="164.0" cy="348.0" r="5" fill="#2563eb"/><circle cx="212.0" cy="348.0" r="5" fill="#2563eb"/><circle cx="260.0" cy="348.0" r="5" fill="#2563eb"/><circle cx="308.0" cy="348.0" r="5" fill="#2563eb"/></g>
+<g class="round">
+<line x1="123.19999999999999" y1="163.2" x2="140" y2="180" stroke="#ea580c" stroke-width="2" stroke-dasharray="3 3"/>
+<circle cx="140" cy="180" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="2.5"/>
+<line x1="315.20000000000005" y1="163.2" x2="332" y2="180" stroke="#ea580c" stroke-width="2" stroke-dasharray="3 3"/>
+<circle cx="332" cy="180" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="2.5"/>
+<line x1="315.20000000000005" y1="355.20000000000005" x2="332" y2="372" stroke="#ea580c" stroke-width="2" stroke-dasharray="3 3"/>
+<circle cx="332" cy="372" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="2.5"/>
+<line x1="123.19999999999999" y1="355.20000000000005" x2="140" y2="372" stroke="#ea580c" stroke-width="2" stroke-dasharray="3 3"/>
+<circle cx="140" cy="372" r="6" fill="#ffffff" stroke="#ea580c" stroke-width="2.5"/>
+<text x="150" y="201" font-size="12" font-weight="600" fill="#7c2d12">(2, 2)</text>
+<text x="342" y="376" font-size="12" font-weight="600" fill="#7c2d12">(6, 6)</text>
 </g>
-<g transform="translate(380,92)">
-<rect x="36" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="72" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="108" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="144" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="36" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="72" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="108" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="144" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="36" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="72" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="108" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="144" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="36" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="72" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="108" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<rect x="144" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
-<line x1="0" y1="0" x2="0" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="0" x2="252" y2="0" stroke="#9ca3af" stroke-width="1"/>
-<line x1="36" y1="0" x2="36" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="36" x2="252" y2="36" stroke="#9ca3af" stroke-width="1"/>
-<line x1="72" y1="0" x2="72" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="72" x2="252" y2="72" stroke="#9ca3af" stroke-width="1"/>
-<line x1="108" y1="0" x2="108" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="108" x2="252" y2="108" stroke="#9ca3af" stroke-width="1"/>
-<line x1="144" y1="0" x2="144" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="144" x2="252" y2="144" stroke="#9ca3af" stroke-width="1"/>
-<line x1="180" y1="0" x2="180" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="180" x2="252" y2="180" stroke="#9ca3af" stroke-width="1"/>
-<line x1="216" y1="0" x2="216" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="216" x2="252" y2="216" stroke="#9ca3af" stroke-width="1"/>
-<line x1="252" y1="0" x2="252" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<line x1="0" y1="252" x2="252" y2="252" stroke="#9ca3af" stroke-width="1"/>
-<rect x="36" y="36" width="144" height="144" fill="none" stroke="#111827" stroke-width="2.5"/>
-<circle cx="36" cy="36" r="4.5" fill="#111827"/>
-<circle cx="180" cy="36" r="4.5" fill="#111827"/>
-<circle cx="180" cy="180" r="4.5" fill="#111827"/>
-<circle cx="36" cy="180" r="4.5" fill="#111827"/>
-<text x="30" y="28" text-anchor="end" font-size="12" fill="#111827">(1, 1)</text>
-<text x="188" y="198" font-size="12" fill="#111827">(5, 5)</text>
-<text x="18.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">0</text>
-<text x="-10" y="22.0" text-anchor="end" font-size="11" fill="#6b7280">0</text>
-<text x="54.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">1</text>
-<text x="-10" y="58.0" text-anchor="end" font-size="11" fill="#6b7280">1</text>
-<text x="90.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">2</text>
-<text x="-10" y="94.0" text-anchor="end" font-size="11" fill="#6b7280">2</text>
-<text x="126.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">3</text>
-<text x="-10" y="130.0" text-anchor="end" font-size="11" fill="#6b7280">3</text>
-<text x="162.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">4</text>
-<text x="-10" y="166.0" text-anchor="end" font-size="11" fill="#6b7280">4</text>
-<text x="198.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">5</text>
-<text x="-10" y="202.0" text-anchor="end" font-size="11" fill="#6b7280">5</text>
-<text x="234.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">6</text>
-<text x="-10" y="238.0" text-anchor="end" font-size="11" fill="#6b7280">6</text>
-<text x="126.0" y="-14" text-anchor="middle" font-size="13" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#111827">mask_rasterizer="pycocotools"</text>
-<text x="126.0" y="292" text-anchor="middle" font-size="15" font-weight="600" fill="#111827">16 pixels</text>
+<rect x="123.19999999999999" y="163.2" width="192.00000000000006" height="192.00000000000006" fill="none" stroke="#111827" stroke-width="2.5"/>
+<circle cx="123.19999999999999" cy="163.2" r="4.5" fill="#111827"/>
+<circle cx="123.19999999999999" cy="355.20000000000005" r="4.5" fill="#111827"/>
+<circle cx="315.20000000000005" cy="163.2" r="4.5" fill="#111827"/>
+<circle cx="315.20000000000005" cy="355.20000000000005" r="4.5" fill="#111827"/>
+<text x="115.19999999999999" y="154.2" text-anchor="end" font-size="12" fill="#111827">(1.65, 1.65)</text>
+<text x="323.20000000000005" y="391.20000000000005" font-size="12" fill="#111827">(5.65, 5.65)</text>
+<g class="plus"><text x="356.0" y="211.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text><text x="356.0" y="259.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text><text x="356.0" y="307.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text><text x="356.0" y="355.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text><text x="164.0" y="403.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text><text x="212.0" y="403.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text><text x="260.0" y="403.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text><text x="308.0" y="403.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text><text x="356.0" y="403.0" text-anchor="middle" font-size="22" font-weight="700" fill="#7c2d12">+</text></g>
+<g class="cap-intro">
+<text x="500" y="124" font-size="15" font-weight="700" fill="#111827">The polygon</text>
+<text x="500" y="152" font-size="14" fill="#1f2937">COCO vertices are points on a</text>
+<text x="500" y="174" font-size="14" fill="#1f2937">continuous boundary.</text>
+<text x="500" y="196" font-size="14" fill="#1f2937">This square spans 4 × 4 px.</text>
 </g>
-<rect x="170" y="407" width="14" height="14" fill="#2563eb" fill-opacity="0.55"/>
-<text x="190" y="418" font-size="12" fill="#374151">inside the polygon</text>
-<rect x="340" y="407" width="14" height="14" fill="#ea580c" fill-opacity="0.55"/>
-<text x="360" y="418" font-size="12" fill="#374151">outside the polygon (extra row and column)</text>
+<g class="cap-b1">
+<text x="500" y="124" font-size="15" font-weight="700" fill="#9a3412">supervision (default)</text>
+<text x="500" y="152" font-size="14" fill="#1f2937">1 · Round every vertex:</text>
+<text x="500" y="174" font-size="14" fill="#1f2937">1.65 → 2 and 5.65 → 6.</text>
+</g>
+<g class="cap-b2">
+<text x="500" y="124" font-size="15" font-weight="700" fill="#9a3412">supervision (default)</text>
+<text x="500" y="152" font-size="14" fill="#1f2937">2 · Fill inclusively: the rounded</text>
+<text x="500" y="174" font-size="14" fill="#1f2937">vertices act as pixel indices,</text>
+<text x="500" y="196" font-size="14" fill="#1f2937">so 2 … 6 covers 5 × 5 pixels.</text>
+</g>
+<g class="cap-c1">
+<text x="500" y="124" font-size="15" font-weight="700" fill="#1d4ed8">pycocotools (COCO reference)</text>
+<text x="500" y="152" font-size="14" fill="#1f2937">1 · Keep vertices continuous.</text>
+<text x="500" y="174" font-size="14" fill="#1f2937">Test each pixel centre (dot).</text>
+</g>
+<g class="cap-c2">
+<text x="500" y="124" font-size="15" font-weight="700" fill="#1d4ed8">pycocotools (COCO reference)</text>
+<text x="500" y="152" font-size="14" fill="#1f2937">2 · A pixel is on when its centre</text>
+<text x="500" y="174" font-size="14" fill="#1f2937">lies inside the boundary:</text>
+<text x="500" y="196" font-size="14" fill="#1f2937">4 × 4 = 16 pixels.</text>
+</g>
+<g class="cap-d">
+<text x="500" y="124" font-size="15" font-weight="700" fill="#111827">Same polygon, two masks</text>
+<text x="500" y="152" font-size="14" fill="#1f2937">The default fill adds a row and</text>
+<text x="500" y="174" font-size="14" fill="#1f2937">a column outside the boundary:</text>
+<text x="500" y="196" font-size="14" fill="#1f2937">the pixels marked +.</text>
+</g>
+<g class="n-sup"><text class="mono" x="500" y="352" font-size="13" fill="#9a3412">supervision</text><text x="650" y="354" font-size="26" font-weight="700" fill="#111827">25 px</text></g>
+<g class="n-ref"><text class="mono" x="500" y="392" font-size="13" fill="#1d4ed8">pycocotools</text><text x="650" y="394" font-size="26" font-weight="700" fill="#111827">16 px</text></g>
+<g class="n-diff"><line x1="500" y1="412" x2="730" y2="412" stroke="#d1d5db"/><text x="500" y="438" font-size="15" font-weight="600" fill="#111827">9 pixels differ · IoU 0.64</text></g>
+<rect x="44" y="509" width="14" height="14" fill="#2563eb" fill-opacity="0.55"/><text x="64" y="520" font-size="12" fill="#374151">inside the boundary</text>
+<rect x="214" y="509" width="14" height="14" fill="#ea580c" fill-opacity="0.55"/><text x="234" y="520" font-size="12" fill="#374151">outside the boundary (extra pixels)</text>
+<circle cx="480" cy="516" r="2.2" fill="#9ca3af"/><text x="490" y="520" font-size="12" fill="#374151">pixel centre</text>
 </svg>

@@ -212,9 +212,9 @@ The Supervision library provides convenient functions to load datasets in variou
 
 ### COCO polygon masks
 
-COCO polygon vertices are points on a continuous boundary. A polygon from `(1, 1)` to `(5, 5)` encloses a 4 × 4 area, so the COCO reference tools, which evaluation metrics are built on, produce a 16-pixel mask for it. The default `mask_rasterizer="supervision"` rounds each vertex and fills inclusively, treating vertices as pixel indices, so the same polygon becomes 25 pixels: one extra row and one extra column. On large objects the difference is small. On small objects it changes mask area and IoU noticeably.
+COCO polygon vertices are points on a continuous boundary. A square from `(1.65, 1.65)` to `(5.65, 5.65)` encloses a 4 × 4 area, so the COCO reference tools, which evaluation metrics are built on, produce a 16-pixel mask for it: a pixel is on when its centre lies inside the boundary. The default `mask_rasterizer="supervision"` rounds each vertex and fills inclusively, treating the rounded vertices as pixel indices, so the same polygon becomes 25 pixels: one extra row and one extra column. The same holds for integer vertices, where `(1, 1)` to `(5, 5)` gives 25 pixels instead of 16. On large objects the difference is small. On small objects it changes mask area and IoU noticeably.
 
-![The same square polygon filled by the two rasterizers: 25 pixels with "supervision", 16 pixels with "pycocotools"](../assets/coco-polygon-rasterizer.svg){ align=center width="680" }
+![Animation of one square polygon: "supervision" rounds the vertices and fills 25 pixels, "pycocotools" keeps them continuous and fills the 16 pixels whose centres are inside the boundary, leaving 9 extra pixels and an IoU of 0.64](../assets/coco-polygon-rasterizer.svg){ align=center width="760" }
 
 Pass `mask_rasterizer="pycocotools"` to load polygons the way COCO does. This mode needs the optional extra: `pip install "supervision[coco]"`.
 
