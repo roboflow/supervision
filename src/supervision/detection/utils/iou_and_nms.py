@@ -2036,15 +2036,16 @@ def box_weighted_box_fusion(
     """
     Fuse overlapping object detection boxes with Weighted Box Fusion (WBF).
 
-    Unlike `box_non_max_suppression`, which discards overlapping boxes, and
-    `box_non_max_merge`, which only returns groups of overlapping indices, WBF
-    replaces each group of overlapping boxes with a single box whose coordinates
-    are the confidence-weighted average of the group and whose score is the
-    group's mean confidence. This keeps information from every box in a cluster
-    instead of dropping all but one, which typically produces better localized
-    boxes when combining predictions from several models or augmentations. Based
-    on Solovyev et al., "Weighted Boxes Fusion: Ensembling boxes from different
-    object detection models" (2019).
+    Unlike :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
+    which discards overlapping boxes, and
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge`, which only
+    returns groups of overlapping indices, WBF replaces each group of overlapping
+    boxes with a single box whose coordinates are the confidence-weighted average
+    of the group and whose score is the group's mean confidence. This keeps
+    information from every box in a cluster instead of dropping all but one, which
+    typically produces better localized boxes when combining predictions from
+    several models or augmentations. Based on Solovyev et al., "Weighted Boxes
+    Fusion: Ensembling boxes from different object detection models" (2019).
 
     Boxes are clustered sequentially within each class (across all boxes when
     there is no class column). They are visited in descending confidence order,
