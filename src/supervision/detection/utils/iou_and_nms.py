@@ -236,6 +236,17 @@ def box_iou_batch(
 
         ```
     """
+    return _box_overlap_float64(boxes_true, boxes_detection, overlap_metric).astype(
+        np.float32
+    )
+
+
+def _box_overlap_float64(
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+) -> npt.NDArray[np.float64]:
+    """Compute pairwise IOU or IOS without rounding overlaps to float32."""
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     # Upcast the corners to float64 right after unpacking so every subtraction
     # and multiplication below runs in float64. This prevents integer-dtype
@@ -244,15 +255,14 @@ def box_iou_batch(
     # (often zero) IoU. Upcasting here also gives full float64 precision to
     # float64/int64 callers. It does NOT recover precision already lost when a
     # caller stores coordinates as float32 upstream, because that float32
-    # rounding happens before this function is ever called. The final matrix is
-    # cast back to float32 to preserve the public return-type contract.
+    # rounding happens before this function is ever called.
     x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T.astype(np.float64)
     x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T.astype(np.float64)
     count_true, count_det = boxes_true.shape[0], boxes_detection.shape[0]
 
     if count_true == 0 or count_det == 0:
         return cast(
-            npt.NDArray[np.float32], np.empty((count_true, count_det), dtype=np.float32)
+            npt.NDArray[np.float64], np.empty((count_true, count_det), dtype=np.float64)
         )
 
     x_min_inter = np.empty((count_true, count_det), dtype=np.float64)
@@ -286,7 +296,7 @@ def box_iou_batch(
             "only 'IOU' and 'IOS' are supported"
         )
 
-    out: npt.NDArray[np.float32] = np.zeros_like(area_inter, dtype=np.float32)
+    out: npt.NDArray[np.float64] = np.zeros_like(area_inter, dtype=np.float64)
     np.divide(area_inter, area_norm, out=out, where=area_norm > 0)
     return out
 
@@ -1970,7 +1980,9 @@ def _best_matching_cluster(
     """
     if len(fused_boxes) == 0:
         return -1
-    overlaps = box_iou_batch(fused_boxes, box[np.newaxis, :], overlap_metric)[:, 0]
+    overlaps = _box_overlap_float64(fused_boxes, box[np.newaxis, :], overlap_metric)[
+        :, 0
+    ]
     best_cluster = int(overlaps.argmax())
     if overlaps[best_cluster] > iou_threshold:
         return best_cluster

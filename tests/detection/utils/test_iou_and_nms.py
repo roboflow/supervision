@@ -1509,6 +1509,7 @@ def test_box_iou_batch(
     expected_overlap: np.ndarray | None,
     exception: AbstractContextManager[object],
 ) -> None:
+    """Return pairwise overlaps with the public float32 dtype and expected values."""
     with exception:
         result = box_iou_batch(
             boxes_true=boxes_true,
@@ -1517,6 +1518,7 @@ def test_box_iou_batch(
         )
 
         assert isinstance(result, np.ndarray)
+        assert result.dtype == np.float32
         assert expected_overlap is not None
         assert result.shape == expected_overlap.shape
         assert np.allclose(
@@ -2819,6 +2821,17 @@ class TestBoxNonMaxMerge:
 
 class TestBoxWeightedBoxFusion:
     """box_weighted_box_fusion fuses overlapping boxes into confidence-weighted ones."""
+
+    def test_fuses_overlap_just_above_threshold(self) -> None:
+        """Fuse boxes whose float64 overlap rounds down to the threshold in float32."""
+        predictions = np.array(
+            [[0, 0, 100, 100, 0.9, 0], [0, 0, 100, 50.000002, 0.8, 0]],
+            dtype=np.float64,
+        )
+
+        result = box_weighted_box_fusion(predictions)
+
+        assert result.shape == (1, 6)
 
     @pytest.mark.parametrize(
         ("overlap_metric", "expected_result"),
