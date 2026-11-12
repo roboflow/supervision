@@ -2180,17 +2180,16 @@ def box_weighted_box_fusion(
         if has_class_column:
             columns.append(np.full((len(fused_scores), 1), class_id, dtype=np.float64))
         fused_per_class.append(np.hstack(columns))
-    fused = np.concatenate(fused_per_class)
+    # Fusion runs in float64 so the strict threshold comparison does not move.
+    # The cast to the output dtype comes before sorting, so scores that only
+    # become equal when rounded (e.g. to float32) still follow the tie order.
+    fused = np.concatenate(fused_per_class).astype(output_dtype, copy=False)
 
     # A stable sort on the negated score keeps equal scores in matching order
     # (class id ascending, then cluster creation order), so ties come back
     # deterministic instead of reversed or scrambled by an unstable sort.
     descending_score = np.argsort(-fused[:, 4], kind="stable")
-    # Fusion runs in float64 so the strict threshold comparison does not move;
-    # only the finished result is cast to the output dtype.
-    result: npt.NDArray[np.floating] = fused[descending_score].astype(
-        output_dtype, copy=False
-    )
+    result: npt.NDArray[np.floating] = fused[descending_score]
     return result
 
 

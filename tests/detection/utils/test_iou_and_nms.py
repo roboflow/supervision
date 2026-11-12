@@ -3172,8 +3172,8 @@ class TestBoxWeightedBoxFusion:
         result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert result.dtype == expected_dtype
 
-    def test_float32_input_fuses_to_float32_values(self) -> None:
-        """Float32 input returns the float64 fusion result rounded to float32."""
+    def test_float32_input_fuses_to_weighted_box_and_mean_score(self) -> None:
+        """Float32 input fuses to the confidence-weighted box and the mean score."""
         predictions = np.array(
             [
                 [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
@@ -3181,8 +3181,30 @@ class TestBoxWeightedBoxFusion:
             ],
             dtype=np.float32,
         )
-        expected_result = box_weighted_box_fusion(
-            predictions.astype(np.float64), iou_threshold=0.5
-        ).astype(np.float32)
+        expected_result = np.array(
+            [[0.8 / 1.7, 0.8 / 1.7, 17.8 / 1.7, 17.8 / 1.7, 0.85, 0.0]]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.allclose(result, expected_result)
+
+    def test_float32_scores_tied_after_rounding_keep_class_order(self) -> None:
+        """Scores that tie only once rounded to float32 still come back by class id."""
+        score = np.float32(0.5)
+        score_above = np.nextafter(score, np.float32(1.0))
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, score, 1.0],
+                [0.0, 0.0, 10.0, 10.0, score_above, 1.0],
+                [50.0, 50.0, 60.0, 60.0, score, 0.0],
+            ],
+            dtype=np.float32,
+        )
+        expected_result = np.array(
+            [
+                [50.0, 50.0, 60.0, 60.0, 0.5, 0.0],
+                [0.0, 0.0, 10.0, 10.0, 0.5, 1.0],
+            ],
+            dtype=np.float32,
+        )
         result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.array_equal(result, expected_result)
