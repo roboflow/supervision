@@ -1,14 +1,18 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    draw_filled_polygon,
     draw_filled_rectangle,
     draw_image,
     draw_line,
+    draw_polygon,
     draw_rectangle,
     draw_rounded_rectangle,
     draw_text,
@@ -400,3 +404,66 @@ class TestDrawImageSceneLayouts:
         assert result.shape == (4, 4, 4)
         np.testing.assert_array_equal(result[..., :3], np.full((4, 4, 3), expected_bgr))
         np.testing.assert_array_equal(result[..., 3], np.full((4, 4), expected_alpha))
+
+
+_POLYGON = np.array([[5, 5], [40, 8], [35, 40], [8, 30]])
+_RECT = Rect(x=10, y=10, width=20, height=20)
+
+
+class TestDrawOnBgraScene:
+    """Verify the shape and text helpers on BGRA scenes."""
+
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_line(scene, Point(2, 2), Point(40, 30), Color.RED),
+                id="line",
+            ),
+            pytest.param(
+                lambda scene: draw_rectangle(scene, _RECT, Color.RED), id="rectangle"
+            ),
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED, 0.5),
+                id="translucent-filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_rounded_rectangle(scene, _RECT, Color.RED, 4),
+                id="rounded-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_polygon(scene, _POLYGON, Color.RED), id="polygon"
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED),
+                id="filled-polygon",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED, 0.5),
+                id="translucent-filled-polygon",
+            ),
+            pytest.param(
+                lambda scene: draw_text(
+                    scene, "a", Point(25, 25), Color.RED, background_color=Color.WHITE
+                ),
+                id="text",
+            ),
+        ],
+    )
+    def test_opaque_bgra_scene_matches_bgr_scene(
+        self, draw: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]]
+    ) -> None:
+        """An opaque BGRA scene gets the colors of its BGR copy and stays opaque."""
+        bgr = np.full((50, 50, 3), 40, dtype=np.uint8)
+        scene = np.dstack([bgr, np.full((50, 50), 255, dtype=np.uint8)])
+        expected = draw(bgr.copy())
+
+        result = draw(scene)
+
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()

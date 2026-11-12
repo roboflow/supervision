@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.draw_line`, `sv.draw_rectangle`, `sv.draw_filled_rectangle`, `sv.draw_rounded_rectangle`, `sv.draw_polygon`, `sv.draw_filled_polygon` and `sv.draw_text` now keep what they draw on a BGRA scene, shaped `(H, W, 4)`, opaque. They passed OpenCV a BGR color, and OpenCV fills the missing alpha with 0, so the drawn pixels of an opaque scene became fully transparent.
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 
