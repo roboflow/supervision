@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import os
 from collections.abc import Iterable
+from types import TracebackType
 from typing import Any, Protocol
 
 import numpy as np
@@ -29,9 +31,8 @@ class WriterProtocol(Protocol):
 
 
 class CSVSink:
-    """
-    A utility class for saving detection data to a CSV file. This class is designed to
-    efficiently serialize detection objects into a CSV format, allowing for the
+    """A utility class for saving detection data to a CSV file. This class is designed
+    to efficiently serialize detection objects into a CSV format, allowing for the
     inclusion of bounding box coordinates and additional attributes like `confidence`,
     `class_id`, and `tracker_id`.
 
@@ -42,7 +43,16 @@ class CSVSink:
         When a NumPy array, list, or tuple value in custom_data (or
         detections.data) has the same length as the detection count, each
         element is written to the corresponding detection row; any other value
-        is broadcast to all rows.
+        is broadcast to all rows. A NumPy array that remains in a cell (for
+        example an embedding or the corners of an oriented box) is written as a
+        JSON list, as :class:`~supervision.detection.tools.json_sink.JSONSink` does,
+        so it can be read back with
+        ``json.loads``.
+
+        Built-in columns (`x_min`, `y_min`, `x_max`, `y_max`, `class_id`,
+        `confidence`, and `tracker_id`) are reserved. Rename additional fields
+        that use these names. For other names, `custom_data` takes precedence
+        over `detections.data` when both define the same field.
 
     Args:
         file_name: The name of the CSV file where the detections will be stored.
@@ -74,8 +84,7 @@ class CSVSink:
     """
 
     def __init__(self, file_name: str = "output.csv") -> None:
-        """
-        Initialize the CSVSink instance.
+        """Initialize the CSVSink instance.
 
         Args:
             file_name: The name of the CSV file.
@@ -85,6 +94,7 @@ class CSVSink:
         self.writer: WriterProtocol | None = None
         self.header_written = False
         self.field_names: list[str] = []
+        self.deferred_field_names: list[str] = []
 
     def __enter__(self) -> CSVSink:
         self.open()
@@ -92,36 +102,53 @@ class CSVSink:
 
     def __exit__(
         self,
-        exc_type: type | None,
-        exc_val: Exception | None,
-        exc_tb: Any | None,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
-        self.close()
+        """Close the CSV while preserving an exception from the managed block."""
+        try:
+            self.close()
+        except Exception:
+            if exc_val is None:
+                raise
+            logger.exception("Failed to close CSV sink while handling an error.")
 
     def open(self) -> None:
-        """
-        Open the CSV file for writing.
-        """
+        """Open the CSV file for writing as UTF-8, independent of the system locale."""
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
             os.makedirs(parent_directory)
 
-        self.file = open(self.file_name, "w", newline="")
+        self.file = open(self.file_name, "w", encoding="utf-8", newline="")
         self.writer = csv.writer(self.file)
         self.header_written = False
         self.field_names = []
+        self.deferred_field_names = []
 
     def close(self) -> None:
+        """Close the CSV file.
+
+        When every appended batch was empty no header has been written yet, so the
+        schema remembered from the first such batch is emitted here. This keeps a run
+        that never detected anything readable as an empty table rather than as a zero-
+        byte file.
         """
-        Close the CSV file.
-        """
-        if self.file:
+        if self.file is None or self.file.closed:
+            return
+
+        # A deferred-header write failure must still release the file handle.
+        try:
+            if not self.header_written and self.deferred_field_names and self.writer:
+                self.field_names = self.deferred_field_names
+                self.writer.writerow(self.field_names)
+                self.header_written = True
+        finally:
             self.file.close()
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
-        """
-        Return the i-th element when the value stores per-detection data.
+        """Return the i-th element when the value stores per-detection data.
 
         Dispatch rules:
             - np.ndarray with ndim == 0: return as-is for broadcasting
@@ -145,11 +172,36 @@ class CSVSink:
         return value
 
     @staticmethod
+    def _format_cell(value: Any) -> Any:
+        """Return a CSV cell value, writing NumPy arrays as parseable JSON lists.
+
+        ``csv.writer`` calls ``str()``, which abbreviates arrays of more than 1000
+        elements with ``...`` and uses a space-separated, multi-line layout.
+        Arrays with at least one dimension are written as ``json.dumps`` of
+        ``tolist()``, matching
+        :class:`~supervision.detection.tools.json_sink.JSONSink`. Other values pass
+        through
+        unchanged, as do arrays JSON cannot represent (e.g. object arrays).
+
+        Args:
+            value: Value of one cell in a detection row.
+
+        Returns:
+            A JSON string for an ``np.ndarray`` with ``ndim > 0``, otherwise
+            ``value`` unchanged.
+        """
+        if isinstance(value, np.ndarray) and value.ndim > 0:
+            try:
+                return json.dumps(value.tolist())
+            except (TypeError, ValueError):
+                return value
+        return value
+
+    @staticmethod
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """
-        Convert detections and optional custom data into per-detection rows.
+        """Convert detections and optional custom data into per-detection rows.
 
         Builds one dictionary per detection containing bounding box coordinates,
         detection attributes, and any values from ``detections.data`` or
@@ -165,7 +217,11 @@ class CSVSink:
             A list of dictionaries, one per detection, containing ``xyxy``
             coordinates, ``class_id``, ``confidence``, ``tracker_id``, and any
             values from ``detections.data`` or ``custom_data``.
+
+        Raises:
+            ValueError: If additional data uses a built-in column name.
         """
+        CSVSink._extra_column_names(detections, custom_data)
         parsed_rows = []
         n = len(detections.xyxy)
         for i in range(n):
@@ -199,8 +255,13 @@ class CSVSink:
     def append(
         self, detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> None:
-        """
-        Append detection data to the CSV file.
+        """Append detection data to the CSV file.
+
+        The CSV header is fixed by the first batch that actually contains
+        detections; batches with no detections write nothing and leave the
+        header undecided, so an empty first frame does not strip the columns
+        of the frames that follow. While no populated batch has appeared, the
+        schema of the first empty batch is the one ``close()`` falls back to.
 
         Args:
             detections: The detection data.
@@ -209,12 +270,28 @@ class CSVSink:
                 this batch. NumPy arrays, lists, and tuples with length equal
                 to ``len(detections)`` are sliced per detection; other lists
                 and tuples are broadcast unchanged.
+
+        Raises:
+            ValueError: If additional data uses a built-in column name. The
+                batch is rejected before writing a header or any rows.
         """
         if not self.writer:
             raise Exception(
                 f"Cannot append to CSV: The file '{self.file_name}' is not open."
             )
         field_names = CSVSink.parse_field_names(detections, custom_data)
+
+        # An empty batch produces no rows, so letting it fix the header would
+        # pin the file to a schema no detection ever contributed to and drop
+        # every extra column of the batches that follow. Remember the first
+        # such schema for close() instead, in case no batch ever carries
+        # detections; later empty batches must not redefine it, mirroring the
+        # first-populated-batch rule for the header itself.
+        if len(detections) == 0:
+            if not self.header_written and not self.deferred_field_names:
+                self.deferred_field_names = field_names
+            return
+
         if not self.header_written:
             self.field_names = field_names
             self.writer.writerow(field_names)
@@ -230,15 +307,42 @@ class CSVSink:
         parsed_rows = CSVSink.parse_detection_data(detections, custom_data)
         for row in parsed_rows:
             self.writer.writerow(
-                [row.get(field_name, "") for field_name in self.field_names]
+                [
+                    CSVSink._format_cell(row.get(field_name, ""))
+                    for field_name in self.field_names
+                ]
             )
 
     @staticmethod
     def parse_field_names(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[str]:
-        custom_keys = set(custom_data.keys()) if custom_data else set()
-        dynamic_header = sorted(
-            custom_keys | set(getattr(detections, "data", {}).keys())
+        """Return the built-in columns followed by sorted additional columns.
+
+        Args:
+            detections: Detections whose per-row data supplies extra columns.
+            custom_data: Optional extra columns supplied by the caller.
+
+        Returns:
+            The CSV column names in header order.
+
+        Raises:
+            ValueError: If additional data uses a built-in column name.
+        """
+        return BASE_HEADER + sorted(
+            CSVSink._extra_column_names(detections, custom_data)
         )
-        return BASE_HEADER + dynamic_header
+
+    @staticmethod
+    def _extra_column_names(
+        detections: Detections, custom_data: dict[str, Any] | None
+    ) -> set[str]:
+        """Collect extra names and reject collisions with built-in columns."""
+        extra_fields = set(getattr(detections, "data", {}))
+        if custom_data is not None:
+            extra_fields.update(custom_data)
+        conflicts = extra_fields.intersection(BASE_HEADER)
+        if conflicts:
+            names = ", ".join(sorted(conflicts))
+            raise ValueError(f"Additional data uses reserved CSV column names {names}.")
+        return extra_fields

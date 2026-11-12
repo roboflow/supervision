@@ -10,6 +10,7 @@ ______________________________________________________________________
 - Outline a plan before making changes.
 - Check whether the feature already exists under a different name.
 - Confirm alignment with `src/supervision/` architecture.
+- For pull request reviews, follow [.github/skills/code-review/SKILL.md](.github/skills/code-review/SKILL.md).
 
 ______________________________________________________________________
 
@@ -52,6 +53,8 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 
 **Doc headings**: `###` max in docstrings and docs. `####` renders identically to bold in mkdocs — use `**bold**` instead.
 
+**Docstring API references**: reference local classes, functions, and methods with Sphinx roles (`:class:`, `:func:`, or `:meth:`) and fully qualified targets rooted at `supervision.` rather than plain code literals or relative names. Use `~` to display a short name, for example, \`\`:class:\`~supervision.detection.core.Detections\`\`\`.
+
 **Type hints**: required on all new code. mypy is enforced by pre-commit (`.pre-commit-config.yaml`).
 
 **Function docstrings**: every new or modified function, including private helpers and tests, must have a succinct docstring explaining its purpose. Put function-level why/what/how context inside the function docstring, not in a comment before the function. Public APIs still require the full Google-style structure described below.
@@ -67,7 +70,9 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 - Never assert `dict` or `set` iteration order.
 - No network or filesystem access outside `supervision/assets/`.
 
-**⚠ Test structure** — agents frequently fail here; read [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests) carefully: AAA structure, class grouping, parametrize with `pytest.param(..., id="slug")`, one-line docstring per test.
+**⚠ Test structure** — agents frequently fail here; read [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests) carefully: AAA structure, class grouping, bare simple parametrized values, `pytest.param(..., id="semantic-slug")` for compound or unclear cases (never parallel `ids`), one-line docstring per test.
+
+**Reference parity tests** — follow [CONTRIBUTING.md §Reference parity tests](.github/CONTRIBUTING.md#reference-parity-tests): evaluate the live reference package on the same inputs, and keep it in development dependencies only.
 
 For branching, commit, code style, and API design conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
@@ -101,6 +106,7 @@ ______________________________________________________________________
 - Tests covering new functionality and edge cases (see [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests)).
 - Update docstrings and mkdocs entries as needed.
 - Update [docs/changelog.md](docs/changelog.md) for every functional change or bug fix, including user-visible behavior changes. Skip changelog entries for lint-only, type-only, formatting-only, and pure documentation-only changes.
+- If work has open PR, changelog entry must link that PR (`[#N](https://github.com/roboflow/supervision/pull/N)`), not source issue. PR link only, even if issue exists.
 
 **Extending `Detections`**: store metadata in `detections.data` as `np.ndarray` aligned with `xyxy`; define the key as a constant in `config.py` (e.g. `CLASS_NAME_DATA_FIELD`, `ORIENTED_BOX_COORDINATES`).
 

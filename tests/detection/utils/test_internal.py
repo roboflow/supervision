@@ -1,5 +1,7 @@
+import tracemalloc
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -10,8 +12,11 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
     get_data_item,
+    is_metadata_equal,
     merge_data,
     merge_metadata,
+    merge_metadata_lenient,
+    metadata_values_equal,
     process_roboflow_result,
 )
 
@@ -64,6 +69,47 @@ def test_extract_ultralytics_masks_thresholds_resized_proto_at_half() -> None:
     assert masks[0].sum() < int((resized > 0).sum())
 
 
+class TestExtractUltralyticsLetterboxMasks:
+    """Restore mask geometry after rounded and asymmetric letterbox padding."""
+
+    @pytest.mark.parametrize("portrait", [False, True])
+    @pytest.mark.parametrize(
+        ("orig_shape", "inference_shape", "content_rows"),
+        [
+            pytest.param((333, 500), (448, 640), (11, 437), id="fractional-padding"),
+            pytest.param((332, 500), (448, 640), (11, 436), id="odd-padding"),
+            pytest.param((480, 640), (640, 640), (80, 560), id="integer-padding"),
+            pytest.param((320, 320), (640, 640), (0, 640), id="resize-without-padding"),
+            pytest.param((17, 19), (17, 19), (0, 17), id="original-resolution"),
+        ],
+    )
+    def test_preserves_content_geometry(
+        self,
+        portrait: bool,
+        orig_shape: tuple[int, int],
+        inference_shape: tuple[int, int],
+        content_rows: tuple[int, int],
+    ) -> None:
+        """Foreground bands are scaled from content pixels, excluding padding."""
+        top, bottom = content_rows
+        content = np.zeros((bottom - top, inference_shape[1]), dtype=np.float32)
+        content[2:-2, 2:-2] = 1
+        content[5:9] = 0
+        proto = np.zeros((1, *inference_shape), dtype=np.float32)
+        proto[0, top:bottom] = content
+        if portrait:
+            proto = proto.transpose(0, 2, 1)
+            content = content.T
+            orig_shape = orig_shape[::-1]
+        expected = cv2.resize(content, (orig_shape[1], orig_shape[0])) > 0.5
+        results = _FakeYOLOMaskResults(masks_arr=proto, orig_shape=orig_shape)
+
+        actual = extract_ultralytics_masks(results)
+
+        assert actual is not None
+        np.testing.assert_array_equal(actual[0], expected)
+
+
 def _pred(
     yx: tuple[float, float] = (1.5, 1.5),
     size: tuple[float, float] = (2.0, 2.0),
@@ -112,6 +158,15 @@ TEST_RLE_MASK[0, 1:3, 1:3] = True
 TEST_RLE_NONCONTIGUOUS_MASK = np.zeros((1, 4, 4), dtype=bool)
 TEST_RLE_NONCONTIGUOUS_MASK[0, 0:2, 0:2] = True
 TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
+
+
+def _optional_array_equal(
+    actual: np.ndarray | None, expected: np.ndarray | None
+) -> bool:
+    """Compare two optional arrays, treating two ``None`` values as equal."""
+    if actual is None or expected is None:
+        return actual is None and expected is None
+    return np.array_equal(actual, expected)
 
 
 @pytest.mark.parametrize(
@@ -403,35 +458,38 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
     ],
 )
 def test_process_roboflow_result(
-    roboflow_result: dict,
+    roboflow_result: dict[str, Any],
     expected_result: tuple[
-        np.ndarray, np.ndarray, np.ndarray, np.ndarray | None, np.ndarray
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray | None,
+        np.ndarray | None,
+        dict[str, Any],
     ],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Roboflow API results are parsed into boxes, scores, ids, masks and data."""
     with exception:
         result = process_roboflow_result(roboflow_result=roboflow_result)
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
         assert np.array_equal(result[2], expected_result[2])
-        assert (result[3] is None and expected_result[3] is None) or (
-            np.array_equal(result[3], expected_result[3])
-        )
-        assert (result[4] is None and expected_result[4] is None) or (
-            np.array_equal(result[4], expected_result[4])
-        )
-        for key in result[5]:
-            if isinstance(result[5][key], np.ndarray):
-                assert np.array_equal(result[5][key], expected_result[5][key]), (
+        assert _optional_array_equal(result[3], expected_result[3])
+        assert _optional_array_equal(result[4], expected_result[4])
+        for key, value in result[5].items():
+            expected_value = expected_result[5][key]
+            if isinstance(value, np.ndarray):
+                assert np.array_equal(value, expected_value), (
                     f"Mismatch in arrays for key {key}"
                 )
-                assert result[5][key].dtype == expected_result[5][key].dtype, (
+                assert value.dtype == expected_value.dtype, (
                     f"dtype mismatch for key {key}: "
-                    f"got {result[5][key].dtype}, "
-                    f"expected {expected_result[5][key].dtype}"
+                    f"got {value.dtype}, "
+                    f"expected {expected_value.dtype}"
                 )
             else:
-                assert result[5][key] == expected_result[5][key], (
+                assert value == expected_value, (
                     f"Mismatch in non-array data for key {key}"
                 )
 
@@ -549,7 +607,7 @@ def test_process_roboflow_result_invalid_polygon_is_box_only(
 
 
 def test_polygon_prediction_compact_masks_true() -> None:
-    """polygon prediction with compact_masks=True returns a CompactMask."""
+    """Polygon prediction with compact_masks=True returns a CompactMask."""
     roboflow_result = _result(
         _pred(
             yx=(2.5, 2.5),
@@ -572,8 +630,125 @@ def test_polygon_prediction_compact_masks_true() -> None:
     assert len(masks) == 1
 
 
+@pytest.mark.parametrize(
+    ("points", "expected_offset", "expected_crop_shape"),
+    [
+        pytest.param(
+            [(10, 20), (40, 20), (40, 30), (10, 30)],
+            [10, 20],
+            (11, 31),
+            id="inside-image",
+        ),
+        pytest.param(
+            [(-5, -5), (8, -5), (8, 6), (-5, 6)],
+            [0, 0],
+            (7, 9),
+            id="crosses-top-left-corner",
+        ),
+        pytest.param(
+            [(40, 50), (70, 50), (70, 70), (40, 70)],
+            [40, 50],
+            (10, 24),
+            id="crosses-bottom-right-corner",
+        ),
+    ],
+)
+def test_polygon_prediction_compact_mask_is_cropped_to_polygon(
+    points: list[tuple[int, int]],
+    expected_offset: list[int],
+    expected_crop_shape: tuple[int, int],
+) -> None:
+    """A compact polygon mask covers the polygon's own box, not the whole image."""
+    roboflow_result = _result(
+        _pred(points=[{"x": x, "y": y} for x, y in points]),
+        img_w=64,
+        img_h=60,
+    )
+
+    _, _, _, masks, _, _ = process_roboflow_result(roboflow_result, compact_masks=True)
+
+    assert isinstance(masks, CompactMask)
+    assert masks.offsets[0].tolist() == expected_offset
+    assert masks.crop(0).shape == expected_crop_shape
+
+
+def test_polygon_prediction_compact_masks_match_dense_masks() -> None:
+    """Compact polygon masks hold the same pixels as dense ones, at the borders too."""
+    rng = np.random.default_rng(0)
+    predictions = []
+    for _ in range(25):
+        center_x, center_y = rng.uniform(-10, 74), rng.uniform(-10, 70)
+        radius = rng.uniform(2, 20)
+        angles = np.sort(rng.uniform(0, 2 * np.pi, rng.integers(3, 12)))
+        points = [
+            {"x": center_x + radius * np.cos(a), "y": center_y + radius * np.sin(a)}
+            for a in angles
+        ]
+        predictions.append(_pred(points=points))
+    roboflow_result = _result(*predictions, img_w=64, img_h=60)
+
+    _, _, _, compact, _, _ = process_roboflow_result(
+        roboflow_result, compact_masks=True
+    )
+    _, _, _, dense, _, _ = process_roboflow_result(roboflow_result)
+
+    assert isinstance(compact, CompactMask)
+    np.testing.assert_array_equal(compact.to_dense(), dense)
+
+
+@pytest.mark.parametrize("compact_masks", [False, True])
+def test_polygon_prediction_rounds_decimal_vertices(compact_masks: bool) -> None:
+    """Sub-pixel polygon vertices are rounded to the nearest pixel, not truncated."""
+    roboflow_result = _result(
+        _pred(
+            yx=(5.1, 5.1),
+            size=(5.0, 5.0),
+            points=[
+                {"x": 2.6, "y": 2.6},
+                {"x": 7.6, "y": 2.6},
+                {"x": 7.6, "y": 7.6},
+                {"x": 2.6, "y": 7.6},
+            ],
+        ),
+        img_w=12,
+        img_h=12,
+    )
+    expected_mask = np.zeros((1, 12, 12), dtype=bool)
+    expected_mask[0, 3:9, 3:9] = True
+
+    _, _, _, masks, _, _ = process_roboflow_result(
+        roboflow_result, compact_masks=compact_masks
+    )
+
+    assert masks is not None
+    dense_masks = masks.to_dense() if isinstance(masks, CompactMask) else masks
+    np.testing.assert_array_equal(dense_masks, expected_mask)
+
+
+@pytest.mark.parametrize("vertex", [float("nan"), float("inf")])
+def test_polygon_prediction_rejects_non_finite_vertex(vertex: float) -> None:
+    """A polygon vertex that is not a finite number is rejected with a clear error."""
+    roboflow_result = _result(
+        _pred(
+            yx=(5.1, 5.1),
+            size=(5.0, 5.0),
+            points=[
+                {"x": 2.6, "y": 2.6},
+                {"x": vertex, "y": 2.6},
+                {"x": 7.6, "y": 7.6},
+                {"x": 2.6, "y": 7.6},
+            ],
+        ),
+        img_w=12,
+        img_h=12,
+    )
+
+    with pytest.raises(ValueError, match="has a vertex that is not a finite number"):
+        process_roboflow_result(roboflow_result)
+
+
 def test_box_only_compact_masks_true_returns_none_mask() -> None:
-    """box-only predictions with compact_masks=True yield None mask."""
+    """Box-only predictions with compact_masks=True yield None mask."""
     roboflow_result = _result(
         _pred(yx=(2.0, 2.0), size=(3.0, 3.0), class_name="cat"),
         img_w=5,
@@ -793,7 +968,7 @@ def test_rle_size_mismatch_resizes_dense_mask() -> None:
 def test_merge_data(
     data_list: list[dict[str, Any]],
     expected_result: dict[str, Any] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = merge_data(data_list=data_list)
@@ -969,10 +1144,12 @@ def test_get_data_item(
     data: dict[str, Any],
     index: Any,
     expected_result: dict[str, Any] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Data dict fields are sliced consistently for every supported index type."""
     with exception:
         result = get_data_item(data=data, index=index)
+        assert expected_result is not None
         for key in result:
             if isinstance(result[key], np.ndarray):
                 assert np.array_equal(result[key], expected_result[key]), (
@@ -982,6 +1159,61 @@ def test_get_data_item(
                 assert result[key] == expected_result[key], (
                     f"Mismatch in non-array data for key {key}"
                 )
+
+
+class TestGetDataItemListSelection:
+    def test_small_integer_selection_uses_bounded_memory(self) -> None:
+        """Selecting a few list rows avoids allocation for unselected rows."""
+        values = list(range(100_000))
+        data: dict[str, Any] = {"label": values}
+        tracemalloc.start()
+        try:
+            result = get_data_item(data, [0, -1, 0])
+            _, peak_bytes = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+
+        assert result == {"label": [0, 99_999, 0]}
+        # A full int64 positions array requires 800 KB for this real input.
+        assert peak_bytes < 64_000
+
+    @pytest.mark.parametrize(
+        ("index", "expected"),
+        [
+            pytest.param([True, False, True], [0, 2], id="mixed-mask"),
+            pytest.param([True, True, True], [0, 1, 2], id="all-true-mask"),
+            pytest.param([False, False, False], [], id="all-false-mask"),
+            pytest.param([np.True_, np.False_, np.True_], [0, 2], id="numpy-bools"),
+            pytest.param([2, -3, 2], [2, 0, 2], id="reordered-repeated-integers"),
+            pytest.param([np.True_, 0], [1, 0], id="mixed-bool-integer"),
+            pytest.param([], [], id="empty-index"),
+        ],
+    )
+    def test_matches_numpy_rows(
+        self, index: list[int | bool | np.bool_], expected: list[int]
+    ) -> None:
+        """Python-list metadata follows NumPy mask and positional semantics."""
+        data: dict[str, Any] = {"label": [0, 1, 2], "score": np.arange(3)}
+
+        result = get_data_item(data, cast(list[int], index))
+
+        assert result["label"] == expected
+        np.testing.assert_array_equal(result["score"], expected)
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pytest.param([3], id="past-end"),
+            pytest.param([-4], id="before-start"),
+            pytest.param([True, False], id="short-mask"),
+        ],
+    )
+    def test_rejects_out_of_bounds_rows(self, index: list[int | bool]) -> None:
+        """Invalid positions and mask lengths remain indexing errors."""
+        data: dict[str, Any] = {"label": [0, 1, 2]}
+
+        with pytest.raises(IndexError):
+            get_data_item(data, index)
 
 
 @pytest.mark.parametrize(
@@ -1168,11 +1400,17 @@ def test_get_data_item(
         ),
     ],
 )
-def test_merge_metadata(metadata_list, expected_result, exception) -> None:
+def test_merge_metadata(
+    metadata_list: list[dict[str, Any]],
+    expected_result: dict[str, Any] | None,
+    exception: AbstractContextManager[object],
+) -> None:
+    """Metadata dicts merge when values agree and raise on conflicting values."""
     with exception:
         result = merge_metadata(metadata_list)
-        if expected_result is None:
-            assert result is None, f"Expected an error, but got a result {result}"
+        assert expected_result is not None, (
+            f"Expected an error, but got a result {result}"
+        )
         for key, value in result.items():
             assert key in expected_result
             if isinstance(value, np.ndarray):
@@ -1277,3 +1515,183 @@ def test_cross_product_sign(
     """Verify cross_product returns correct sign for known anchor/vector pairs."""
     result = cross_product(anchors, vector)
     assert int(np.sign(result[0, 0])) == expected_sign
+
+
+class _RaisesOnCompare:
+    """Object whose equality comparison raises, mimicking strict third-party types."""
+
+    def __eq__(self, other: object) -> bool:
+        """Always raise TypeError instead of returning a verdict."""
+        raise TypeError("comparison is not supported")
+
+
+class TestMetadataValuesEqual:
+    """Contract of the total metadata-value equality predicate."""
+
+    @pytest.mark.parametrize(
+        ("value_a", "value_b", "expected"),
+        [
+            pytest.param(
+                np.array([1, 2, 3]), np.array([1, 2, 3]), True, id="ndarray-equal"
+            ),
+            pytest.param(
+                np.array([1, 2, 3]), np.array([4, 5, 6]), False, id="ndarray-differing"
+            ),
+            pytest.param(
+                np.array([1, 2]), [1, 2], False, id="ndarray-vs-list-asymmetric"
+            ),
+            pytest.param(
+                [1, 2], np.array([1, 2]), False, id="list-vs-ndarray-asymmetric"
+            ),
+            pytest.param(
+                np.array([1.0, np.nan, 3.0]),
+                np.array([1.0, np.nan, 3.0]),
+                True,
+                id="float-ndarray-with-nan-equal",
+            ),
+            pytest.param(
+                np.array([1.0, np.nan]),
+                np.array([1.0, 2.0]),
+                False,
+                id="float-ndarray-nan-vs-value",
+            ),
+            pytest.param(
+                np.array(["a", "b"]),
+                np.array(["a", "b"]),
+                True,
+                id="non-float-dtype-equal",
+            ),
+            pytest.param(
+                [np.array([1, 2])],
+                [np.array([1, 2])],
+                False,
+                id="list-of-ndarray-ambiguous",
+            ),
+            pytest.param(
+                {"k": np.array([1, 2])},
+                {"k": np.array([1, 2])},
+                False,
+                id="dict-of-ndarray-ambiguous",
+            ),
+            pytest.param(
+                (np.array([1, 2]),),
+                (np.array([1, 2]),),
+                False,
+                id="tuple-of-ndarray-ambiguous",
+            ),
+            pytest.param(
+                _RaisesOnCompare(), "anything", False, id="comparison-raises-typeerror"
+            ),
+            pytest.param("source.png", "source.png", True, id="scalar-equal"),
+            pytest.param("source.png", "other.png", False, id="scalar-differing"),
+        ],
+    )
+    def test_returns_verdict_without_raising(
+        self, value_a: Any, value_b: Any, expected: bool
+    ) -> None:
+        """Every value pair yields a boolean verdict instead of propagating an error."""
+        assert metadata_values_equal(value_a, value_b) is expected
+
+
+class TestIsMetadataEqual:
+    """Metadata-dict comparison used by `Detections.__eq__`."""
+
+    def test_mixed_list_and_ndarray_values_are_unequal(self) -> None:
+        """A list value compared against an array value returns False, never raises."""
+        assert is_metadata_equal({"key1": [1, 2]}, {"key1": np.array([1, 2])}) is False
+
+    def test_nan_arrays_compare_equal_to_themselves(self) -> None:
+        """Identical float arrays containing NaN are reported as equal metadata."""
+        calibration = np.array([1.0, np.nan, 3.0])
+
+        assert (
+            is_metadata_equal({"calib": calibration}, {"calib": calibration.copy()})
+            is True
+        )
+
+    def test_differing_key_sets_are_unequal(self) -> None:
+        """Metadata dicts with different key sets are unequal regardless of values."""
+        assert is_metadata_equal({"key1": 1}, {"key2": 1}) is False
+
+
+def test_merge_metadata_preserves_nan_array_values() -> None:
+    """A float metadata array holding NaN survives a merge across identical slices."""
+    calibration = np.array([1.0, np.nan, 3.0])
+
+    result = merge_metadata([{"calib": calibration}, {"calib": calibration.copy()}])
+
+    np.testing.assert_array_equal(result["calib"], calibration)
+
+
+class TestMergeMetadataLenient:
+    def test_empty_list_merges_to_empty_result(self) -> None:
+        """An empty metadata list merges to an empty dict with nothing dropped."""
+        assert merge_metadata_lenient([]) == ({}, set())
+
+    def test_single_dictionary_survives_unchanged(self) -> None:
+        """A lone metadata dict is returned as-is, since no key can conflict."""
+        assert merge_metadata_lenient([{"key1": 1, "key2": "a"}]) == (
+            {"key1": 1, "key2": "a"},
+            set(),
+        )
+
+    def test_uniform_keys_are_merged(self) -> None:
+        """Keys whose values agree across every dict survive the merge."""
+        metadata_list: list[dict[str, Any]] = [{"key1": 1}, {"key1": 1}, {"key1": 1}]
+
+        assert merge_metadata_lenient(metadata_list) == ({"key1": 1}, set())
+
+    def test_conflicting_scalar_is_dropped(self) -> None:
+        """A key holding different scalars across dicts is dropped, not raised on."""
+        merged, dropped = merge_metadata_lenient(
+            [{"key1": 1, "key2": "same"}, {"key1": 2, "key2": "same"}]
+        )
+
+        assert merged == {"key2": "same"}
+        assert dropped == {"key1"}
+
+    def test_conflicting_array_is_dropped(self) -> None:
+        """Differing ndarray values drop the key instead of raising ValueError."""
+        merged, dropped = merge_metadata_lenient(
+            [{"key1": np.array([1, 2])}, {"key1": np.array([3, 4])}]
+        )
+
+        assert merged == {}
+        assert dropped == {"key1"}
+
+    def test_key_present_only_in_first_dictionary_is_dropped(self) -> None:
+        """A key missing from a later dict is dropped even though it never conflicts."""
+        merged, dropped = merge_metadata_lenient(
+            [{"shared": 1, "only_first": True}, {"shared": 1}]
+        )
+
+        assert merged == {"shared": 1}
+        assert dropped == {"only_first"}
+
+    def test_key_present_only_in_later_dictionary_is_dropped(self) -> None:
+        """A key appearing first in a later dict is dropped for the same reason."""
+        merged, dropped = merge_metadata_lenient(
+            [{"shared": 1}, {"shared": 1, "only_second": True}]
+        )
+
+        assert merged == {"shared": 1}
+        assert dropped == {"only_second"}
+
+    def test_identical_nan_arrays_survive(self) -> None:
+        """A float array holding NaN is uniform across slices and is not dropped."""
+        calibration = np.array([1.0, np.nan, 3.0])
+
+        merged, dropped = merge_metadata_lenient(
+            [{"calib": calibration}, {"calib": calibration.copy()}]
+        )
+
+        np.testing.assert_array_equal(merged["calib"], calibration)
+        assert dropped == set()
+
+    def test_surviving_value_comes_from_first_dictionary(self) -> None:
+        """The merged value is the first-seen one, matching the comparison anchor."""
+        first = np.array([1, 2])
+
+        merged, _ = merge_metadata_lenient([{"key1": first}, {"key1": first.copy()}])
+
+        assert merged["key1"] is first

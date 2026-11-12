@@ -1,22 +1,27 @@
 from __future__ import annotations
 
-import warnings
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, patch
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 import requests
 from PIL import Image, ImageChops
 
 from supervision import _cv2 as cv2
+from supervision._cv2._image import _imdecode
+from supervision.draw.color import Color
 from supervision.utils.image import (
     ImageSink,
     _overlay_image,
     crop_image,
     get_image_resolution_wh,
+    grayscale_image,
     letterbox_image,
     load_image_from_url,
-    overlay_image,
     resize_image,
     scale_image,
     tint_image,
@@ -24,7 +29,31 @@ from supervision.utils.image import (
 
 
 class TestLoadImageFromUrl:
-    def test_returns_decoded_image(self, tmp_path) -> None:
+    @pytest.mark.parametrize("use_cache", [True, False])
+    def test_grayscale_flag_returns_single_channel(
+        self, tmp_path: Path, use_cache: bool
+    ) -> None:
+        """The fallback URL loader honors grayscale reads with or without a cache."""
+        image = np.full((10, 20, 3), (0, 255, 0), dtype=np.uint8)
+        response = Mock()
+        response.content = cv2.imencode(".png", image)[1].tobytes()
+        response.raise_for_status.return_value = None
+
+        with (
+            patch("supervision.utils.file.requests.get", return_value=response),
+            patch("supervision.utils.image.cv2.imdecode", side_effect=_imdecode),
+        ):
+            result = load_image_from_url(
+                "https://example.test/image.png",
+                cv_imread_flags=0,
+                cache_dir=tmp_path,
+                use_cache=use_cache,
+            )
+
+        assert result.shape == image.shape[:2]
+        assert result.dtype == np.uint8
+
+    def test_returns_decoded_image(self, tmp_path: Path) -> None:
         """Valid image URL returns an OpenCV image."""
         # given
         image = np.full((10, 20, 3), 127, dtype=np.uint8)
@@ -51,7 +80,7 @@ class TestLoadImageFromUrl:
         assert result.dtype == np.uint8
         response.close.assert_called_once()
 
-    def test_uses_cached_image_on_repeated_calls(self, tmp_path) -> None:
+    def test_uses_cached_image_on_repeated_calls(self, tmp_path: Path) -> None:
         """Repeated image URL loads use the local cache."""
         # given
         image = np.full((10, 20, 3), 127, dtype=np.uint8)
@@ -76,7 +105,7 @@ class TestLoadImageFromUrl:
         assert first_result.shape == image.shape
         assert second_result.shape == image.shape
 
-    def test_downloads_each_time_when_cache_is_disabled(self, tmp_path) -> None:
+    def test_downloads_each_time_when_cache_is_disabled(self, tmp_path: Path) -> None:
         """Disabled cache skips cache reads and writes."""
         # given
         image = np.full((10, 20, 3), 127, dtype=np.uint8)
@@ -110,7 +139,7 @@ class TestLoadImageFromUrl:
         assert second_result.shape == image.shape
         assert list(tmp_path.iterdir()) == []
 
-    def test_force_reload_refreshes_cached_image(self, tmp_path) -> None:
+    def test_force_reload_refreshes_cached_image(self, tmp_path: Path) -> None:
         """Force reload bypasses the cached image and refreshes it."""
         # given
         first_image = np.zeros((10, 20, 3), dtype=np.uint8)
@@ -142,7 +171,7 @@ class TestLoadImageFromUrl:
         assert cached_result.shape == first_image.shape
         assert refreshed_result.shape == second_image.shape
 
-    def test_redownloads_when_cached_image_is_invalid(self, tmp_path) -> None:
+    def test_redownloads_when_cached_image_is_invalid(self, tmp_path: Path) -> None:
         """Invalid cached image bytes are discarded and downloaded again."""
         # given
         image = np.full((10, 20, 3), 127, dtype=np.uint8)
@@ -173,7 +202,7 @@ class TestLoadImageFromUrl:
         assert get.call_count == 2
         assert result.shape == image.shape
 
-    def test_raises_when_bytes_are_not_image(self, tmp_path) -> None:
+    def test_raises_when_bytes_are_not_image(self, tmp_path: Path) -> None:
         """Invalid image bytes raise ValueError."""
         # given
         response = Mock()
@@ -191,7 +220,7 @@ class TestLoadImageFromUrl:
             )
         response.close.assert_called_once()
 
-    def test_raises_for_request_error(self, tmp_path) -> None:
+    def test_raises_for_request_error(self, tmp_path: Path) -> None:
         """Request failures are propagated."""
         # given
         request_error = requests.RequestException("boom")
@@ -253,6 +282,106 @@ def test_resize_image_for_pillow_image() -> None:
     assert difference.getbbox() is None, (
         "Expected no difference in resized image content as the image is all zeros"
     )
+
+
+@pytest.mark.parametrize(
+    ("image_hw", "resolution_wh", "expected_hw"),
+    [
+        pytest.param((480, 640), (1024, 1024), (768, 1024), id="landscape"),
+        pytest.param((640, 480), (1024, 1024), (1024, 768), id="portrait"),
+        pytest.param(
+            (1080, 1920), (1000, 1000), (562, 1000), id="positive-fraction-truncates"
+        ),
+        pytest.param((8, 1200), (100, 100), (1, 100), id="height-would-round-to-zero"),
+        pytest.param((1200, 8), (100, 100), (100, 1), id="width-would-round-to-zero"),
+    ],
+)
+def test_resize_image_keeps_at_least_one_pixel_per_axis(
+    image_hw: tuple[int, int],
+    resolution_wh: tuple[int, int],
+    expected_hw: tuple[int, int],
+) -> None:
+    """Aspect-ratio fitting never derives a zero-sized target."""
+    # given
+    image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+    # when
+    result = resize_image(
+        image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
+    )
+
+    # then
+    assert result.shape == (*expected_hw, 3)
+
+
+class TestResizeImageKeepAspectRatio:
+    @pytest.mark.parametrize(
+        ("image_hw", "resolution_wh", "expected_hw"),
+        [
+            pytest.param((427, 640), (640, 427), (427, 640), id="same-resolution"),
+            pytest.param((427, 640), (640, 640), (427, 640), id="width-already-fits"),
+            pytest.param((427, 640), (1280, 854), (854, 1280), id="double-resolution"),
+            pytest.param((480, 245), (480, 480), (480, 245), id="height-already-fits"),
+            pytest.param((93, 1), (1, 93), (93, 1), id="thin-strip"),
+        ],
+    )
+    def test_keeps_whole_pixel_size_of_fitted_axis(
+        self,
+        image_hw: tuple[int, int],
+        resolution_wh: tuple[int, int],
+        expected_hw: tuple[int, int],
+    ) -> None:
+        """A target that fits the aspect ratio exactly loses no pixel on either axis."""
+        # given
+        image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+        # when
+        result = resize_image(
+            image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
+        )
+
+        # then
+        assert result.shape == (*expected_hw, 3)
+
+
+@pytest.mark.parametrize(
+    ("image_hw", "scale_factor", "expected_hw"),
+    [
+        pytest.param((100, 100), 0.5, (50, 50), id="shrink"),
+        pytest.param((100, 100), 2.0, (200, 200), id="enlarge"),
+        pytest.param((3, 3), 0.3, (1, 1), id="both-axes-would-round-to-zero"),
+        pytest.param((40, 2), 0.25, (10, 1), id="one-axis-would-round-to-zero"),
+    ],
+)
+def test_scale_image_keeps_at_least_one_pixel_per_axis(
+    image_hw: tuple[int, int], scale_factor: float, expected_hw: tuple[int, int]
+) -> None:
+    """Scaling down never derives a zero-sized target."""
+    # given
+    image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+    # when
+    result = scale_image(image=image, scale_factor=scale_factor)
+
+    # then
+    assert result.shape == (*expected_hw, 3)
+
+
+def test_letterbox_image_for_extreme_aspect_ratio() -> None:
+    """A strip too thin to scale into the target still fills the target resolution."""
+    # given
+    image = np.zeros((8, 1200, 3), dtype=np.uint8)
+
+    # when
+    result = letterbox_image(
+        image=image, resolution_wh=(100, 100), color=(255, 255, 255)
+    )
+
+    # then
+    assert result.shape == (100, 100, 3)
+    assert np.array_equal(result[49], np.zeros((100, 3), dtype=np.uint8))
+    assert np.all(result[:49] == 255)
+    assert np.all(result[50:] == 255)
 
 
 def test_letterbox_image_for_opencv_image() -> None:
@@ -344,6 +473,125 @@ def test_letterbox_image_for_pillow_image() -> None:
     )
 
 
+class TestLetterboxImage:
+    def test_keeps_source_pixels_when_width_already_fits(self) -> None:
+        """A 640x427 image letterboxed to 640x640 is padded, not resampled."""
+        # given
+        image = np.random.default_rng(0).integers(
+            0, 256, size=(427, 640, 3), dtype=np.uint8
+        )
+
+        # when
+        result = letterbox_image(
+            image=image, resolution_wh=(640, 640), color=(255, 255, 255)
+        )
+
+        # then
+        assert np.array_equal(result[106:533], image)
+        assert np.all(result[:106] == 255)
+        assert np.all(result[533:] == 255)
+
+
+def test_tint_image_leaves_numpy_input_unchanged() -> None:
+    """Tinting a NumPy image returns a tinted copy and leaves the input untouched."""
+    # given
+    image = np.full((4, 4, 3), 200, dtype=np.uint8)
+    original = image.copy()
+
+    # when
+    result = tint_image(image=image, color=Color.RED, opacity=0.5)
+
+    # then
+    assert np.array_equal(image, original)
+    assert not np.array_equal(result, original)
+
+
+def test_tint_image_leaves_pillow_input_unchanged() -> None:
+    """Tinting a Pillow image returns a tinted copy and leaves the input untouched."""
+    # given
+    image = Image.new(mode="RGB", size=(4, 4), color=(200, 200, 200))
+    original = image.copy()
+
+    # when
+    result = tint_image(image=image, color=Color.RED, opacity=0.5)
+
+    # then
+    assert ImageChops.difference(image, original).getbbox() is None
+    assert ImageChops.difference(result, original).getbbox() is not None
+
+
+def test_tint_image_blends_towards_color() -> None:
+    """Tinting at 0.5 opacity averages the image with the tint colour."""
+    # given
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+
+    # when
+    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+
+    # then
+    assert np.array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
+
+
+def test_tint_image_accepts_grayscale_array() -> None:
+    """A single-channel array is tinted in color instead of failing to broadcast the BGR
+    overlay."""
+    # given
+    image = np.zeros((2, 2), dtype=np.uint8)
+
+    # when
+    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+
+    # then
+    np.testing.assert_array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(Image.new("L", (2, 2), color=0), id="L-image"),
+        pytest.param(Image.new("LA", (2, 2), color=(0, 255)), id="LA-image"),
+    ],
+)
+def test_tint_image_accepts_grayscale_pillow_image(image: Image.Image) -> None:
+    """A single-channel Pillow image is tinted in color and returned as RGB."""
+    # when
+    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+
+    # then
+    assert result.mode == "RGB"
+    assert result.getpixel((0, 0)) == (128, 128, 128)
+
+
+def test_grayscale_image_accepts_grayscale_array() -> None:
+    """A single-channel array is broadcast to three channels instead of being fed to
+    ``COLOR_BGR2GRAY``."""
+    # given
+    image = np.full((2, 2), 77, dtype=np.uint8)
+
+    # when
+    result = grayscale_image(image=image)
+
+    # then
+    np.testing.assert_array_equal(result, np.full((2, 2, 3), 77, dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(Image.new("L", (2, 2), color=77), id="L-image"),
+        pytest.param(Image.new("LA", (2, 2), color=(77, 255)), id="LA-image"),
+    ],
+)
+def test_grayscale_image_accepts_grayscale_pillow_image(image: Image.Image) -> None:
+    """A single-channel Pillow image is broadcast to three channels as RGB."""
+    # when
+    result = grayscale_image(image=image)
+
+    # then
+    assert result.mode == "RGB"
+    assert result.getpixel((0, 0)) == (77, 77, 77)
+
+
 def test_overlay_image_blends_rgba_with_float32_rounding() -> None:
     """RGBA overlay uses current float32 blend semantics."""
     # given
@@ -352,44 +600,10 @@ def test_overlay_image_blends_rgba_with_float32_rounding() -> None:
     expected = np.full((1, 1, 3), 26, dtype=np.uint8)
 
     # when
-    result = overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+    result = _overlay_image(image=image, overlay=overlay, anchor=(0, 0))
 
     # then
     np.testing.assert_array_equal(result, expected)
-
-
-def test_overlay_image_public_wrapper_delegates_to_internal() -> None:
-    """Public `overlay_image` still produces the internal `_overlay_image` result."""
-    # given
-    image = np.full((1, 1, 3), 22, dtype=np.uint8)
-    overlay = np.array([[[39, 39, 39, 60]]], dtype=np.uint8)
-    expected = _overlay_image(image=image.copy(), overlay=overlay, anchor=(0, 0))
-
-    # when
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        result = overlay_image(image=image.copy(), overlay=overlay, anchor=(0, 0))
-
-    # then
-    np.testing.assert_array_equal(result, expected)
-
-
-def test_overlay_image_emits_future_warning() -> None:
-    """Public overlay_image must still emit FutureWarning after internal refactor."""
-    # given
-    image = np.zeros((2, 2, 3), dtype=np.uint8)
-    overlay = np.full((1, 1, 3), 255, dtype=np.uint8)
-    # pyDeprecate tracks per-function warned_calls (default num_warns=1) so the
-    # warning fires only once per process. Reset to make this test order-independent.
-    overlay_image._state.warned_calls = 0
-
-    # when
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        overlay_image(image=image, overlay=overlay, anchor=(0, 0))
-
-    # then
-    assert any(issubclass(w.category, FutureWarning) for w in caught)
 
 
 def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:
@@ -408,10 +622,62 @@ def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:
     expected[:2, :2] = overlay[1:, 1:, :3]
 
     # when
-    result = overlay_image(image=image, overlay=overlay, anchor=(-1, -1))
+    result = _overlay_image(image=image, overlay=overlay, anchor=(-1, -1))
 
     # then
     np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("image_shape", "overlay_shape"),
+    [
+        pytest.param((3, 3), (2, 2), id="2d-scene-2d-overlay"),
+        pytest.param((3, 3, 1), (2, 2), id="channel-scene-2d-overlay"),
+        pytest.param((3, 3, 1), (2, 2, 1), id="channel-scene-channel-overlay"),
+    ],
+)
+def test_overlay_image_pastes_grayscale_overlay_on_grayscale_scene(
+    image_shape: tuple[int, ...], overlay_shape: tuple[int, ...]
+) -> None:
+    """A grayscale overlay is pasted into a grayscale scene in the scene's layout."""
+    # given
+    image = np.zeros(image_shape, dtype=np.uint8)
+    overlay = np.full(overlay_shape, 9, dtype=np.uint8)
+    expected = np.zeros((3, 3), dtype=np.uint8)
+    expected[1:, 1:] = 9
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(1, 1))
+
+    # then
+    assert result.shape == image_shape
+    np.testing.assert_array_equal(result.reshape(3, 3), expected)
+
+
+@pytest.mark.parametrize(
+    "image_shape",
+    [
+        pytest.param((2, 2), id="2d-scene"),
+        pytest.param((2, 2, 1), id="channel-scene"),
+    ],
+)
+def test_overlay_image_blends_bgra_overlay_as_gray_on_grayscale_scene(
+    image_shape: tuple[int, ...],
+) -> None:
+    """A BGRA overlay is blended into a grayscale scene as its gray luminance."""
+    # given
+    image = np.full(image_shape, 100, dtype=np.uint8)
+    overlay = np.zeros((2, 2, 4), dtype=np.uint8)
+    overlay[0] = (255, 255, 255, 255)
+    overlay[1] = (255, 255, 255, 0)
+    expected = np.array([[255, 255], [100, 100]], dtype=np.uint8)
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+    # then
+    assert result.shape == image_shape
+    np.testing.assert_array_equal(result.reshape(2, 2), expected)
 
 
 @pytest.mark.parametrize(
@@ -443,15 +709,21 @@ def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:
         ),
     ],
 )
-def test_crop_image(image, xyxy, expected_size) -> None:
-    cropped = crop_image(image=image, xyxy=xyxy)
+def test_crop_image(
+    image: npt.NDArray[np.uint8] | Image.Image,
+    xyxy: tuple[int, int, int, int],
+    expected_size: tuple[int, int],
+) -> None:
+    """Cropping keeps the input image type and yields the expected size."""
     if isinstance(image, np.ndarray):
-        assert isinstance(cropped, np.ndarray)
-        assert cropped.shape[1] == expected_size[0]  # width
-        assert cropped.shape[0] == expected_size[1]  # height
+        cropped_array = crop_image(image=image, xyxy=xyxy)
+        assert isinstance(cropped_array, np.ndarray)
+        assert cropped_array.shape[1] == expected_size[0]  # width
+        assert cropped_array.shape[0] == expected_size[1]  # height
     else:
-        assert isinstance(cropped, Image.Image)
-        assert cropped.size == expected_size
+        cropped_image = crop_image(image=image, xyxy=xyxy)
+        assert isinstance(cropped_image, Image.Image)
+        assert cropped_image.size == expected_size
 
 
 def test_crop_image_clips_out_of_bounds_coordinates() -> None:
@@ -467,25 +739,64 @@ def test_crop_image_clips_out_of_bounds_coordinates() -> None:
     )
 
 
+class TestCropImageLargeCoordinates:
+    @pytest.mark.parametrize("as_pillow", [False, True])
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param((-(2**31) - 1, 0, 2**31 + 1, 3), id="past-int32"),
+            pytest.param((-(2**32), 0, 2**32, 3), id="int32-wraparound"),
+            pytest.param((-1e100, 0, 1e100, 3), id="large-float"),
+        ],
+    )
+    def test_clips_before_converting_to_integer(
+        self, as_pillow: bool, xyxy: tuple[int | float, ...]
+    ) -> None:
+        """Finite crop bounds outside int32 retain the image pixels."""
+        pixels = np.arange(12, dtype=np.uint8).reshape(3, 4)
+        box = np.array(xyxy)
+
+        if as_pillow:
+            cropped = np.asarray(crop_image(image=Image.fromarray(pixels), xyxy=box))
+        else:
+            cropped = crop_image(image=pixels, xyxy=box)
+
+        np.testing.assert_array_equal(cropped, pixels)
+
+
 @pytest.mark.parametrize(
     ("image", "expected"),
     [
-        # NumPy RGB
-        (np.zeros((4, 6, 3), dtype=np.uint8), (6, 4)),
-        # NumPy grayscale
-        (np.zeros((10, 20), dtype=np.uint8), (20, 10)),
-        # Pillow RGB
-        (Image.new("RGB", (6, 4), color=0), (6, 4)),
-        # Pillow grayscale
-        (Image.new("L", (20, 10), color=0), (20, 10)),
+        pytest.param(np.zeros((4, 6, 3), dtype=np.uint8), (6, 4), id="rgb"),
+        pytest.param(np.zeros((10, 20), dtype=np.uint8), (20, 10), id="grayscale"),
     ],
 )
-def test_get_image_resolution_wh(image, expected) -> None:
+def test_get_image_resolution_wh_for_array(
+    image: npt.NDArray[np.uint8], expected: tuple[int, int]
+) -> None:
+    """Resolution of a NumPy image is reported as ``(width, height)``."""
     resolution = get_image_resolution_wh(image)
     assert resolution == expected
 
 
-def test_image_sink_raises_when_cv2_write_fails(monkeypatch, tmp_path) -> None:
+@pytest.mark.parametrize(
+    ("image", "expected"),
+    [
+        pytest.param(Image.new("RGB", (6, 4), color=0), (6, 4), id="rgb"),
+        pytest.param(Image.new("L", (20, 10), color=0), (20, 10), id="grayscale"),
+    ],
+)
+def test_get_image_resolution_wh_for_pillow_image(
+    image: Image.Image, expected: tuple[int, int]
+) -> None:
+    """Resolution of a Pillow image is reported as ``(width, height)``."""
+    resolution = get_image_resolution_wh(image)
+    assert resolution == expected
+
+
+def test_image_sink_raises_when_cv2_write_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """ImageSink.save_image raises and keeps count stable when OpenCV write fails."""
     monkeypatch.setattr(cv2, "imwrite", lambda *_: False)
 
@@ -507,7 +818,70 @@ def test_image_sink_raises_when_cv2_write_fails(monkeypatch, tmp_path) -> None:
         pytest.param(tint_image, {}, id="tint_image"),
     ],
 )
-def test_image_utils_wrong_type_raises(func, kwargs):
+def test_image_utils_wrong_type_raises(
+    func: Callable[..., Any], kwargs: dict[str, Any]
+) -> None:
     """Wrong image type raises TypeError via decorator."""
     with pytest.raises(TypeError, match="Unsupported image type"):
         func(image="not_an_image", **kwargs)
+
+
+class TestSingleChannelArrays:
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(
+                lambda image: resize_image(image, resolution_wh=(5, 3)), id="resize"
+            ),
+            pytest.param(
+                lambda image: resize_image(
+                    image, resolution_wh=(9, 9), keep_aspect_ratio=True
+                ),
+                id="resize-keep-aspect-ratio",
+            ),
+            pytest.param(
+                lambda image: scale_image(image, scale_factor=0.5), id="scale"
+            ),
+            pytest.param(
+                lambda image: letterbox_image(
+                    image, resolution_wh=(10, 10), color=(255, 255, 255)
+                ),
+                id="letterbox",
+            ),
+        ],
+    )
+    def test_geometry_keeps_channel_axis(
+        self, transform: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Return ``(H, W, 1)`` for ``(H, W, 1)`` input on every backend."""
+        # given
+        image = np.arange(48, dtype=np.uint8).reshape(6, 8) * 5
+
+        # when
+        result = transform(image[..., np.newaxis])
+
+        # then
+        np.testing.assert_array_equal(result, transform(image)[..., np.newaxis])
+
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(
+                lambda image: tint_image(image, color=Color.WHITE, opacity=0.5),
+                id="tint",
+            ),
+            pytest.param(grayscale_image, id="grayscale"),
+        ],
+    )
+    def test_color_output_matches_two_dimensional_gray(
+        self, transform: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Convert ``(H, W, 1)`` input like ``(H, W)`` input instead of raising."""
+        # given
+        image = np.arange(12, dtype=np.uint8).reshape(3, 4) * 20
+
+        # when
+        result = transform(image[..., np.newaxis])
+
+        # then
+        np.testing.assert_array_equal(result, transform(image))

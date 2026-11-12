@@ -1,7 +1,41 @@
+import importlib.util
+
+import pytest
+
 from supervision.key_points.skeletons import (
     SKELETONS_BY_EDGE_COUNT,
     SKELETONS_BY_VERTEX_COUNT,
     Skeleton,
+)
+
+# Independently-verified-correct MediaPipe hand topology: 21 keypoints (wrist +
+# 4 joints per finger), 21 edges (wrist-to-knuckle spokes replaced by a palm
+# ring connecting the 4 knuckles, plus the wrist-to-index-knuckle and
+# wrist-to-pinky-knuckle spokes). Kept independent of skeletons.py so this test
+# fails loudly if Skeleton.HAND regresses, rather than comparing the value to
+# itself.
+HAND = (
+    (1, 2),
+    (1, 6),
+    (1, 18),
+    (6, 10),
+    (10, 14),
+    (14, 18),
+    (2, 3),
+    (3, 4),
+    (4, 5),
+    (6, 7),
+    (7, 8),
+    (8, 9),
+    (10, 11),
+    (11, 12),
+    (12, 13),
+    (14, 15),
+    (15, 16),
+    (16, 17),
+    (18, 19),
+    (19, 20),
+    (20, 21),
 )
 
 
@@ -58,3 +92,43 @@ class TestSkeletons:
         # For each vertex count, the stored skeleton should be the last one encountered
         for vertex_count, skeleton_value in expected_mapping.items():
             assert SKELETONS_BY_VERTEX_COUNT[vertex_count] == skeleton_value
+
+    def test_hand_skeleton_definition(self):
+        """Test MediaPipe hand skeleton definition matches the verified topology."""
+        hand_skeleton = Skeleton.HAND.value
+
+        assert len(hand_skeleton) == 21
+        assert len({vertex for edge in hand_skeleton for vertex in edge}) == 21
+        assert SKELETONS_BY_VERTEX_COUNT[21] == hand_skeleton
+        assert SKELETONS_BY_EDGE_COUNT[21] == hand_skeleton
+
+    def test_hand_skeleton_edges(self):
+        """Test MediaPipe hand skeleton follows expected palm and finger connections.
+
+        The palm is the closing knuckle arch defined by MediaPipe's
+        `HAND_PALM_CONNECTIONS`, not a spoke-fan from the wrist: the wrist links only to
+        the thumb, index and pinky bases, and the knuckles chain across. Asserted
+        against the independently-transcribed `HAND` tuple above, not imported from
+        `skeletons.py`, so this fails loudly on a regression there.
+        """
+        assert Skeleton.HAND.value == HAND
+
+    @pytest.mark.integration
+    @pytest.mark.skipif(
+        importlib.util.find_spec("mediapipe") is None,
+        reason="MediaPipe reference is installed in the dedicated parity job",
+    )
+    def test_ghum_skeleton_matches_mediapipe_pose_connections(self) -> None:
+        """Compare the GHUM edges with MediaPipe pose connections."""
+        from mediapipe.tasks.python.vision.pose_landmarker import (
+            PoseLandmarksConnections,
+        )
+
+        expected = sorted(
+            (edge.start + 1, edge.end + 1)
+            for edge in PoseLandmarksConnections.POSE_LANDMARKS
+        )
+
+        actual = sorted(Skeleton.GHUM.value)
+
+        assert actual == expected

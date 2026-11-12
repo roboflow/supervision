@@ -6,23 +6,21 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import numpy.typing as npt
 
+from supervision.utils.internal import _to_numpy
+
 if TYPE_CHECKING:
     import torch  # type: ignore[import-not-found, unused-ignore]
 
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
-    """
-    Ensure that class_id is a 1d np.ndarray with (n, ) shape.
-    """
+    """Ensure that class_id is a 1d np.ndarray with (n, ) shape."""
     is_valid = isinstance(class_id, np.ndarray) and class_id.shape == (n,)
     if not is_valid:
         raise ValueError("class_id must be 1d np.ndarray with (n, ) shape")
 
 
 def _validate_confidence(confidence: Any, n: int) -> None:
-    """
-    Ensure that confidence is a 1d np.ndarray with (n, ) shape.
-    """
+    """Ensure that confidence is a 1d np.ndarray with (n, ) shape."""
     if confidence is not None:
         is_valid = isinstance(confidence, np.ndarray) and confidence.shape == (n,)
         if not is_valid:
@@ -35,18 +33,14 @@ class Classifications:
     confidence: npt.NDArray[np.floating] | None = None
 
     def __post_init__(self) -> None:
-        """
-        Validate the classification inputs.
-        """
+        """Validate the classification inputs."""
         n = len(self.class_id)
 
         _validate_class_ids(self.class_id, n)
         _validate_confidence(self.confidence, n)
 
     def __eq__(self, other: object) -> bool:
-        """
-        Compare classifications by value across numpy-backed fields.
-        """
+        """Compare classifications by value across numpy-backed fields."""
         if not isinstance(other, Classifications):
             return NotImplemented
         if not np.array_equal(self.class_id, other.class_id):
@@ -56,9 +50,7 @@ class Classifications:
         return bool(np.array_equal(self.confidence, other.confidence))
 
     def __len__(self) -> int:
-        """
-        Returns the number of classifications.
-        """
+        """Returns the number of classifications."""
         return len(self.class_id)
 
     @classmethod
@@ -73,6 +65,10 @@ class Classifications:
         Returns:
             A new Classifications object.
 
+        Note:
+            Bfloat16 probabilities are returned as float32 because NumPy has no
+            native bfloat16 dtype. Other dtypes keep their existing behavior.
+
         Example:
             ```python
             from PIL import Image
@@ -81,7 +77,7 @@ class Classifications:
 
             model, preprocess = clip.load('ViT-B/32')
 
-            image = cv2.imread(SOURCE_IMAGE_PATH)
+            image = Image.open(SOURCE_IMAGE_PATH)
             image = preprocess(image).unsqueeze(0)
 
             text = clip.tokenize(["a diagram", "a dog", "a cat"])
@@ -90,7 +86,10 @@ class Classifications:
             ```
         """
 
-        confidence = clip_results.softmax(dim=-1).cpu().detach().numpy()[0]
+        probabilities = clip_results.softmax(dim=-1).cpu().detach()
+        if str(probabilities.dtype) == "torch.bfloat16":
+            probabilities = probabilities.float()
+        confidence = probabilities.numpy()[0]
 
         if len(confidence) == 0:
             return cls(
@@ -108,7 +107,8 @@ class Classifications:
         [ultralytics](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            ultralytics_results: The inference result from ultralytics model.
+            ultralytics_results: The inference result from ultralytics model,
+                with tensor or NumPy properties (including `Results.numpy()`).
 
         Returns:
             A new Classifications object.
@@ -126,7 +126,7 @@ class Classifications:
             classifications = sv.Classifications.from_ultralytics(output)
             ```
         """
-        confidence = ultralytics_results.probs.data.cpu().numpy()
+        confidence = _to_numpy(ultralytics_results.probs.data)
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     @classmethod
@@ -138,6 +138,8 @@ class Classifications:
         Note:
             Returned confidences are softmax-normalized probabilities, so
             thresholds calibrated against raw logits may need recalibration.
+            Bfloat16 probabilities are returned as float32 because NumPy has no
+            native bfloat16 dtype. Other dtypes keep their existing behavior.
 
         Args:
             timm_results: The inference result from timm model.
@@ -168,7 +170,10 @@ class Classifications:
             classifications = sv.Classifications.from_timm(output)
             ```
         """
-        confidence = timm_results.softmax(dim=-1).cpu().detach().numpy()[0]
+        probabilities = timm_results.softmax(dim=-1).cpu().detach()
+        if str(probabilities.dtype) == "torch.bfloat16":
+            probabilities = probabilities.float()
+        confidence = probabilities.numpy()[0]
 
         if len(confidence) == 0:
             return cls(
@@ -182,15 +187,17 @@ class Classifications:
     def get_top_k(
         self, k: int
     ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating]]:
-        """
-        Retrieve the top k class IDs and confidences,
-            ordered in descending order by confidence.
+        """Retrieve the top k class IDs and confidences, ordered in descending order by
+        confidence.
 
         Args:
             k: The number of top class IDs and confidences to retrieve.
 
         Returns:
             A tuple containing the top k class IDs and confidences.
+
+        Raises:
+            ValueError: If confidence is missing or `k` is negative.
 
         Example:
             ```pycon
@@ -207,6 +214,8 @@ class Classifications:
         """
         if self.confidence is None:
             raise ValueError("top_k could not be calculated, confidence is None")
+        if k < 0:
+            raise ValueError("k must be non-negative")
 
         order = np.argsort(self.confidence)[::-1]
         top_k_order = order[:k]

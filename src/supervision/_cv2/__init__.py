@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import numpy.typing as npt
@@ -40,7 +41,11 @@ from supervision._cv2._image import (
     _resize,
 )
 from supervision._cv2._text import _get_text_size, _put_text
-from supervision._cv2._transform import _blur
+from supervision._cv2._transform import (
+    _blur,
+    _get_perspective_transform,
+    _perspective_transform,
+)
 from supervision._cv2._video import (
     _video_writer_fourcc,
     _VideoCapture,
@@ -70,6 +75,7 @@ from supervision._cv2.constants import (
     _FONT_HERSHEY_TRIPLEX,
     _FONT_ITALIC,
     _IMREAD_COLOR,
+    _IMREAD_GRAYSCALE,
     _IMREAD_UNCHANGED,
     _INTER_LINEAR,
     _INTER_NEAREST,
@@ -110,6 +116,7 @@ if _IS_CV2_AVAILABLE:
         FONT_HERSHEY_TRIPLEX,
         FONT_ITALIC,
         IMREAD_COLOR,
+        IMREAD_GRAYSCALE,
         IMREAD_UNCHANGED,
         INTER_LINEAR,
         INTER_NEAREST,
@@ -133,6 +140,7 @@ if _IS_CV2_AVAILABLE:
         ellipse,
         fillPoly,
         flip,
+        getPerspectiveTransform,
         getTextSize,
         imdecode,
         imencode,
@@ -142,6 +150,7 @@ if _IS_CV2_AVAILABLE:
         line,
         mean,
         merge,
+        perspectiveTransform,
         polylines,
         putText,
         rectangle,
@@ -155,6 +164,14 @@ if _IS_CV2_AVAILABLE:
     BACKEND_NAME = "opencv"
 else:
     BACKEND_NAME = "fallback"
+
+    warnings.warn(
+        "OpenCV (`opencv-python`) is not installed; supervision is using its "
+        "pure NumPy fallback backend instead. Some operations may be slower "
+        "or behave slightly differently. Install `opencv-python` for full "
+        "performance and compatibility.",
+        stacklevel=2,
+    )
 
     BORDER_CONSTANT = _BORDER_CONSTANT
     CAP_PROP_FPS = _CAP_PROP_FPS
@@ -178,6 +195,7 @@ else:
     FONT_HERSHEY_TRIPLEX = _FONT_HERSHEY_TRIPLEX
     FONT_ITALIC = _FONT_ITALIC
     IMREAD_COLOR = _IMREAD_COLOR
+    IMREAD_GRAYSCALE = _IMREAD_GRAYSCALE
     IMREAD_UNCHANGED = _IMREAD_UNCHANGED
     INTER_LINEAR = _INTER_LINEAR
     INTER_NEAREST = _INTER_NEAREST
@@ -205,6 +223,7 @@ else:
     fillPoly = _fill_poly  # type: ignore[assignment]
     _find_contours_impl = _find_contours
     flip = _flip  # type: ignore[assignment]
+    getPerspectiveTransform = _get_perspective_transform  # type: ignore[assignment]
     getTextSize = _get_text_size  # type: ignore[assignment]
     imdecode = _imdecode  # type: ignore[assignment]
     imencode = _imencode  # type: ignore[assignment]
@@ -214,6 +233,7 @@ else:
     line = _line  # type: ignore[assignment]
     mean = _mean  # type: ignore[assignment]
     merge = _merge  # type: ignore[assignment]
+    perspectiveTransform = _perspective_transform  # type: ignore[assignment]
     polylines = _polylines  # type: ignore[assignment]
     putText = _put_text  # type: ignore[assignment]
     rectangle = _rectangle  # type: ignore[assignment]
@@ -251,6 +271,7 @@ __all__ = [
     "FONT_HERSHEY_TRIPLEX",
     "FONT_ITALIC",
     "IMREAD_COLOR",
+    "IMREAD_GRAYSCALE",
     "IMREAD_UNCHANGED",
     "INTER_LINEAR",
     "INTER_NEAREST",
@@ -276,6 +297,7 @@ __all__ = [
     "fillPoly",
     "find_contours",
     "flip",
+    "getPerspectiveTransform",
     "getTextSize",
     "imdecode",
     "imencode",
@@ -285,6 +307,7 @@ __all__ = [
     "line",
     "mean",
     "merge",
+    "perspectiveTransform",
     "polylines",
     "putText",
     "rectangle",

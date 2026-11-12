@@ -22,6 +22,7 @@ Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com
 - [Documentation](#documentation)
 - [Cookbooks](#cookbooks)
 - [Tests](#tests)
+  - [Reference parity tests](#reference-parity-tests)
 - [License](#license)
 
 ## Contribution Guidelines
@@ -46,7 +47,7 @@ Before you contribute a new feature, consider submitting an Issue to discuss the
 
 Supervision APIs should remain generic, composable, and predictable across model families. Before adding a new integration, annotator option, or data conversion method, check the existing `sv.Detections`, `sv.KeyPoints`, and annotator patterns and follow these principles:
 
-1. **Model integrations normalize raw external outputs into existing Supervision containers.** Use `sv.Detections` for detection, segmentation, and other instance-level predictions that include boxes, masks, class ids, confidence scores, or extra per-instance fields. Use `sv.KeyPoints` for standalone keypoint or pose predictions when keypoints exist independently of detection boxes (e.g. pure pose estimation, landmark detection on pre-cropped images). Use `Detections.keypoints` when keypoints are always co-incident with boxes from the same model — the field stores an `(n, K, 2)` or `(n, K, 3)` array where the optional third channel is per-point confidence in `[0, 1]`.
+1. **Model integrations normalize raw external outputs into existing Supervision containers.** Use `sv.Detections` for detection, segmentation, and other instance-level predictions that include boxes, masks, class ids, confidence scores, or extra per-instance fields. Use `sv.KeyPoints` for keypoint and pose predictions. Store an available per-instance confidence vector in `KeyPoints.detection_confidence`; leave it `None` when the source does not provide one. `sv.Detections` has no keypoint field; `KeyPoints.as_detections()` derives boxes from the key points when a `Detections` object is needed, for example for tracking.
 2. **Do not add a `from_<model>` method when the model already returns a Supervision object.** `from_*` methods are for converting raw outputs from external packages such as Ultralytics, Transformers, Inference, or MediaPipe. If a model's `predict()` method already returns `sv.Detections`, keep that result type and store additional structured payloads in `detections.data` or `detections.metadata` using documented keys.
 3. **Annotators render data; filtering and visibility are container state.** Filtering by confidence, class id, tracker id, geometry, or custom data should happen before annotation through the container slicing APIs, for example `detections[detections.confidence > 0.7]` or `key_points[key_points.confidence > 0.5]`. Per-point presentation state, such as a `KeyPoints.visible` mask, may live on the container and be honored consistently by annotators.
 4. **Annotator constructor arguments should describe visual presentation, not model-quality gates.** Use constructor arguments for color, thickness, opacity, text, position, style, and generic visualization parameters such as sigma levels. Annotators may skip invalid geometry defensively, including missing points, zero-area boxes, non-finite coordinates, or points marked invisible on the container. They should not introduce confidence thresholds or model-specific quality gates as rendering options.
@@ -64,7 +65,7 @@ Then, run `git clone` to download the project code to your computer.
 You should also set up `roboflow/supervision` as an "upstream" remote (that is, tell git that the reference Supervision repository was the source of your fork of it):
 
 ```bash
-git remote add upstream https://github.com/roboflow/supervision.git
+git remote add -t develop upstream https://github.com/roboflow/supervision.git
 git fetch upstream
 ```
 
@@ -164,7 +165,7 @@ Before starting your work on the project, set up your development environment:
 2. **Set up the upstream remote:**
 
    ```bash
-   git remote add upstream https://github.com/roboflow/supervision.git
+   git remote add -t develop upstream https://github.com/roboflow/supervision.git
    git fetch upstream
    ```
 
@@ -240,6 +241,8 @@ All new functions and classes in `supervision` should include docstrings. This i
 
 `supervision` adheres to the [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods). Please refer to the style guide while writing docstrings for your contribution.
 
+When a docstring refers to a local class, function, or method, use the Sphinx cross-reference role (`:class:`, `:func:`, or `:meth:`) with a fully qualified target rooted at `supervision.` instead of a plain code literal or relative name. Prefix the target with `~` to display only its short name, for example, \`\`:class:\`~supervision.detection.core.Detections\`\`\`.
+
 Every docstring should include a usage example. When the example only uses `supervision`, NumPy, and the standard library — no optional extras, no external files or network access — strongly prefer `>>>` doctest format so it is automatically verified by the test suite. See [Doctests](#doctests) below for syntax guidance and for when fenced ```` ```python ```` blocks are appropriate instead.
 
 ### Type checking
@@ -270,7 +273,7 @@ Always specify both the deprecation version and the planned removal version in t
 
 ### Deprecated module aliases
 
-`supervision.keypoint` is deprecated since `0.27.0` and will be removed in `0.30.0`. Always import from `supervision.key_points`:
+`supervision.keypoint` was deprecated since `0.27.0` and removed in `0.31.0`. Always import from `supervision.key_points`:
 
 ```python
 from supervision.key_points import KeyPoints  # correct
@@ -339,7 +342,7 @@ class TestDetectionsWithNms:
     def test_raises_when_confidence_missing(self): ...
 ```
 
-**Parametrize aggressively:** Three or more structurally identical tests should become a single `@pytest.mark.parametrize` case. Use `pytest.param(..., id="slug")` per case — not `ids=[...]` on the decorator — so the ID stays co-located with its arguments and survives reordering.
+**Parametrize aggressively:** Three or more structurally identical tests should become a single `@pytest.mark.parametrize` case. Use bare strings, numbers, booleans, and `None` values. Use `pytest.param(..., id="semantic-slug")` when a case passes a function, object, or compound setup; needs a per-case mark; or would otherwise produce an unclear or empty ID. Never use a parallel `ids=[...]` list: co-locate an explicit ID with its arguments so it survives reordering. Move a trailing comment that only names a case into that ID; retain comments only when they explain a non-obvious invariant.
 
 ```python
 @pytest.mark.parametrize(
@@ -357,6 +360,12 @@ def test_overlap_metric_determines_suppression(
 ```
 
 **Docstrings:** Every test function/method requires at minimum a one-line docstring (within the project line length configured in `pyproject.toml`). Describe the scenario, not the implementation.
+
+### Reference parity tests
+
+When tests claim parity with or compare results to a reference implementation or golden standard, compute the reference results using the live package on the same inputs rather than hardcoded expected values. Keep reference packages in the development dependency group; do not add them to runtime dependencies or optional extras.
+
+> **Exception:** a reference package that is also a documented, opt-in runtime backend may additionally appear in an optional extra. Currently this covers only `pycocotools` in the `coco` extra, which backs `mask_rasterizer="pycocotools"`; test-only reference packages stay in the development group. Revisit this exception when the default rasterizer changes (no earlier than `0.35.0`), after deciding whether to port the algorithm natively or make `pycocotools` a core dependency.
 
 ### Doctests
 

@@ -19,10 +19,10 @@ CreateMLDict = dict[str, Any]
 def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
     """Resolve and validate an image path against the images directory.
 
-    Rejects annotations whose ``image`` field escapes ``images_directory_path``
-    (via ``..`` traversal, an absolute path, or a symlink pointing outside),
-    mirroring the protection used by the COCO loader. Returns the canonical
-    resolved path so aliases collapse to a single dataset entry.
+    Rejects annotations whose ``image`` field escapes ``images_directory_path`` (via
+    ``..`` traversal, an absolute path, or a symlink pointing outside), mirroring the
+    protection used by the COCO loader. Returns the canonical resolved path so aliases
+    collapse to a single dataset entry.
     """
     images_directory_resolved = Path(images_directory_path).resolve()
     image_path = Path(images_directory_path) / Path(image_name)
@@ -57,7 +57,8 @@ def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
 def createml_annotations_to_detections(
     image_annotations: list[CreateMLDict], class_to_index: dict[str, int]
 ) -> Detections:
-    """Convert a single image's CreateML annotations into ``Detections``.
+    """Convert a single image's CreateML annotations into
+    :class:`~supervision.detection.core.Detections`.
 
     CreateML stores each box as a pixel-space centre point plus width/height
     (``{"x", "y", "width", "height"}``); they are converted to ``xyxy`` corners.
@@ -69,29 +70,34 @@ def createml_annotations_to_detections(
         class_to_index: Mapping from class name to zero-based integer id.
 
     Returns:
-        A ``Detections`` instance with ``xyxy`` boxes and ``class_id`` set.
+        A :class:`~supervision.detection.core.Detections` instance with
+        ``xyxy`` boxes and ``class_id`` set.
         Returns ``Detections.empty()`` when ``image_annotations`` is empty.
 
     Raises:
         ValueError: If an annotation is missing required keys (``"coordinates"``,
-            ``"label"``, or any coordinate sub-key), or if a coordinate value
-            cannot be converted to float.
+            ``"label"``, or any coordinate sub-key), if a coordinate value
+            cannot be converted to float, or if ``"width"`` or ``"height"`` is
+            negative. A negative extent would place ``x_max`` before ``x_min``
+            once the corners are formed; a zero extent is accepted.
 
-    Examples:
-        ```python
-        import supervision as sv
-        from supervision.dataset.formats.createml import (
-            createml_annotations_to_detections,
-        )
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.createml import (
+        ...     createml_annotations_to_detections,
+        ... )
+        >>> annotations = [
+        ...     {
+        ...         "label": "dog",
+        ...         "coordinates": {"x": 50, "y": 50, "width": 20, "height": 20},
+        ...     }
+        ... ]
+        >>> detections = createml_annotations_to_detections(annotations, {"dog": 0})
+        >>> detections.xyxy
+        array([[40., 40., 60., 60.]], dtype=float32)
+        >>> detections.class_id
+        array([0])
 
-        annotations = [
-            {
-                "label": "dog",
-                "coordinates": {"x": 50, "y": 50, "width": 20, "height": 20},
-            }
-        ]
-        detections = createml_annotations_to_detections(annotations, {"dog": 0})
-        # detections.xyxy → [[40, 40, 60, 60]]
         ```
     """
     if not image_annotations:
@@ -111,6 +117,12 @@ def createml_annotations_to_detections(
             raise ValueError(
                 f"Malformed CreateML annotation entry {annotation!r}: {exc}"
             ) from exc
+        if width < 0 or height < 0:
+            raise ValueError(
+                f"Invalid box extent ({coordinates['width']}, "
+                f"{coordinates['height']}) in CreateML annotation for label "
+                f"{label!r}; expected a non-negative width and height."
+            )
         xyxy.append(
             [
                 x_center - width / 2,
@@ -132,7 +144,8 @@ def load_createml_annotations(
     annotations_path: str,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """Load CreateML object-detection annotations and convert them to ``Detections``.
+    """Load CreateML object-detection annotations and convert them to
+    :class:`~supervision.detection.core.Detections`.
 
     CreateML uses a single JSON file containing a list of per-image entries, each
     holding axis-aligned bounding boxes. Class names are inferred from the labels
@@ -154,7 +167,7 @@ def load_createml_annotations(
         - ``image_paths`` (``list[str]``): canonical resolved path for every
           entry in the JSON, in file order.
         - ``annotations`` (``dict[str, Detections]``): mapping from canonical
-          resolved image path to its ``Detections``.
+          resolved image path to its :class:`~supervision.detection.core.Detections`.
 
     Raises:
         ValueError: If the JSON root is not a list.
@@ -222,7 +235,8 @@ def load_createml_annotations(
 def detections_to_createml_annotations(
     detections: Detections, classes: list[str]
 ) -> list[CreateMLDict]:
-    """Convert ``Detections`` into a list of CreateML annotation dicts.
+    """Convert :class:`~supervision.detection.core.Detections` into a list of CreateML
+    annotation dicts.
 
     Each bounding box is stored as a pixel-space centre point plus width and
     height, which is the CreateML object-detection convention.
@@ -238,22 +252,24 @@ def detections_to_createml_annotations(
         ``"height"`` in pixel space.
 
     Raises:
-        ValueError: If ``detections.class_id`` is ``None``.
+        ValueError: If ``detections.class_id`` is ``None`` or if any
+            ``class_id`` value is out of range for ``classes``.
 
-    Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-        from supervision.dataset.formats.createml import (
-            detections_to_createml_annotations,
-        )
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.dataset.formats.createml import (
+        ...     detections_to_createml_annotations,
+        ... )
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[40, 40, 60, 60]], dtype=np.float32),
+        ...     class_id=np.array([0], dtype=int),
+        ... )
+        >>> detections_to_createml_annotations(detections, classes=["dog"])
+        [{'label': 'dog', 'coordinates':
+          {'x': 50.0, 'y': 50.0, 'width': 20.0, 'height': 20.0}}]
 
-        detections = sv.Detections(
-            xyxy=np.array([[40, 40, 60, 60]], dtype=np.float32),
-            class_id=np.array([0], dtype=int),
-        )
-        detections_to_createml_annotations(detections, classes=["dog"])
-        # [{"label": "dog", "coordinates": {"x": 50.0, "y": 50.0, ...}}]
         ```
     """
     class_ids = detections.class_id
@@ -263,11 +279,22 @@ def detections_to_createml_annotations(
             "Detections has class_id=None."
         )
     annotations: list[CreateMLDict] = []
-    for xyxy, class_id in zip(detections.xyxy, class_ids):
+    for index, (xyxy, class_id) in enumerate(zip(detections.xyxy, class_ids)):
+        class_index = int(class_id)
+        # A negative index would silently pick a class from the end of the list.
+        if class_index < 0 or class_index >= len(classes):
+            raise ValueError(
+                f"class_id {class_index} at detection index {index} is out of "
+                f"range for classes list of length {len(classes)}."
+            )
         x_min, y_min, x_max, y_max = (float(value) for value in xyxy)
+        # Order the corners first: a reversed box would otherwise be written
+        # with a negative width or height, which the loader now rejects.
+        x_min, x_max = min(x_min, x_max), max(x_min, x_max)
+        y_min, y_max = min(y_min, y_max), max(y_min, y_max)
         annotations.append(
             {
-                "label": classes[int(class_id)],
+                "label": classes[class_index],
                 "coordinates": {
                     "x": (x_min + x_max) / 2,
                     "y": (y_min + y_max) / 2,
@@ -283,7 +310,8 @@ def save_createml_annotations(
     dataset: DetectionDataset,
     annotations_path: str,
 ) -> None:
-    """Export a ``DetectionDataset`` to a CreateML object-detection JSON file.
+    """Export a :class:`~supervision.dataset.core.DetectionDataset` to a CreateML
+    object-detection JSON file.
 
     Only the filename component of each image path is stored in the JSON (e.g.
     ``"img.jpg"`` rather than ``"/data/train/img.jpg"``). This matches CreateML
@@ -293,7 +321,7 @@ def save_createml_annotations(
     key, so the exporter rejects that case before writing.
 
     Args:
-        dataset: The ``DetectionDataset`` to write.
+        dataset: The :class:`~supervision.dataset.core.DetectionDataset` to write.
         annotations_path: Output path for the CreateML JSON file. Parent
             directories are created if they do not already exist.
 
@@ -301,7 +329,7 @@ def save_createml_annotations(
         ValueError: If two image paths share the same basename and would map to
             the same CreateML ``image`` entry.
 
-    Examples:
+    Example:
         ```python
         import supervision as sv
         from supervision.dataset.formats.createml import save_createml_annotations

@@ -1,10 +1,12 @@
 import warnings
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from PIL import Image
 
 from supervision import (
     ClassificationDataset,
@@ -188,18 +190,58 @@ def _create_image(fill_value: int) -> npt.NDArray[np.uint8]:
 def test_dataset_merge(
     dataset_list: list[DetectionDataset],
     expected_result: DetectionDataset | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
-    """
-    Verify that multiple DetectionDataset objects can be successfully merged.
+    """Verify that multiple DetectionDataset objects can be successfully merged.
 
     Ensures that multiple `DetectionDataset` objects can be merged into single dataset.
-    This is vital for users who need to combine data from different sources or
-    augment their datasets with additional labeled examples.
+    This is vital for users who need to combine data from different sources or augment
+    their datasets with additional labeled examples.
     """
     with exception:
         result = DetectionDataset.merge(dataset_list=dataset_list)
         assert result == expected_result
+
+
+class TestMergeUnlabeledDetections:
+    def test_preserves_unlabeled_and_remaps_labeled_annotations(self) -> None:
+        """Merge datasets even when an annotation has no class IDs."""
+        unlabeled = Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            confidence=np.array([0.75]),
+            data={"source": np.array(["camera"])},
+        )
+        first = DetectionDataset(
+            classes=["cat"],
+            images=["unlabeled.png"],
+            annotations={"unlabeled.png": unlabeled},
+        )
+        second = DetectionDataset(
+            classes=["dog"],
+            images=["labeled.png"],
+            annotations={
+                "labeled.png": _create_detections(xyxy=[[1, 1, 2, 2]], class_id=[0])
+            },
+        )
+
+        merged = DetectionDataset.merge([first, second])
+
+        assert merged.classes == ["cat", "dog"]
+        assert merged.annotations["unlabeled.png"].class_id is None
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].xyxy, unlabeled.xyxy
+        )
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].confidence, [0.75]
+        )
+        np.testing.assert_array_equal(
+            merged.annotations["unlabeled.png"].data["source"], ["camera"]
+        )
+        assert not np.shares_memory(
+            merged.annotations["unlabeled.png"].xyxy,
+            first.annotations["unlabeled.png"].xyxy,
+        )
+        np.testing.assert_array_equal(merged.annotations["labeled.png"].class_id, [1])
 
 
 class TestClassNamePopulation:
@@ -464,6 +506,53 @@ class TestDetectionDatasetInMemoryImages:
         assert ds_a != ds_b
 
 
+class TestDetectionDatasetExportIntoSourceFolder:
+    """Exporting into the folder the images were loaded from keeps them intact."""
+
+    @pytest.mark.parametrize(
+        ("export_format", "annotation_file"),
+        [
+            pytest.param("yolo", "labels/photo.txt", id="yolo"),
+            pytest.param("pascal_voc", "photo.xml", id="pascal-voc"),
+            pytest.param("coco", "_annotations.coco.json", id="coco"),
+            pytest.param("createml", "_annotations.createml.json", id="createml"),
+            pytest.param("labelme", "photo.json", id="labelme"),
+        ],
+    )
+    def test_export_into_image_folder_keeps_image_files(
+        self, tmp_path: Path, export_format: str, annotation_file: str
+    ) -> None:
+        """Each exporter writes its annotations next to the unchanged image file."""
+        image_path = tmp_path / "photo.jpg"
+        rng = np.random.default_rng(0)
+        pixels = rng.integers(0, 255, (8, 8, 3), dtype=np.uint8)
+        Image.fromarray(pixels).save(image_path)
+        original_bytes = image_path.read_bytes()
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(image_path)],
+            annotations={
+                str(image_path): _create_detections(xyxy=[[1, 1, 6, 6]], class_id=[0])
+            },
+        )
+        export_kwargs = {
+            "yolo": {"annotations_directory_path": str(tmp_path / "labels")},
+            "pascal_voc": {"annotations_directory_path": str(tmp_path)},
+            "coco": {"annotations_path": str(tmp_path / "_annotations.coco.json")},
+            "createml": {
+                "annotations_path": str(tmp_path / "_annotations.createml.json")
+            },
+            "labelme": {"annotations_directory_path": str(tmp_path)},
+        }[export_format]
+
+        getattr(dataset, f"as_{export_format}")(
+            images_directory_path=str(tmp_path), **export_kwargs
+        )
+
+        assert image_path.read_bytes() == original_bytes
+        assert (tmp_path / annotation_file).is_file()
+
+
 class TestDatasetEqualityContracts:
     """Dataset equality must respect class order and NumPy-backed annotations."""
 
@@ -705,10 +794,188 @@ class TestDetectionDatasetSplit:
         assert train.classes == ["cat", "dog"]
         assert test.classes == ["cat", "dog"]
 
+    @pytest.mark.parametrize(
+        "split_ratio",
+        [
+            -0.2,
+            1.2,
+            pytest.param(80.0, id="percentage-instead-of-fraction"),
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_split_raises_for_out_of_range_ratio(
+        self, split_ratio: float, shuffle: bool
+    ) -> None:
+        """A ratio outside [0, 1] raises instead of returning a plausible split."""
+        ds = _make_detection_dataset(10)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=split_ratio, shuffle=shuffle)
+
+    def test_split_raises_for_out_of_range_ratio_on_empty_dataset(self) -> None:
+        """An invalid ratio is rejected even when the dataset has no images."""
+        ds = _make_detection_dataset(0)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=1.2, shuffle=False)
+
+
+# ---------------------------------------------------------------------------
+# TST-03 - ClassificationDataset.split()
+# ---------------------------------------------------------------------------
+
+
+def _make_classification_dataset(n: int) -> ClassificationDataset:
+    """Build a ClassificationDataset with n images using list[str] path API."""
+    image_paths = [f"img{i}.jpg" for i in range(n)]
+    annotations = {
+        path: Classifications(class_id=np.array([0])) for path in image_paths
+    }
+    return ClassificationDataset(
+        classes=["cat"], images=image_paths, annotations=annotations
+    )
+
+
+class TestClassificationDatasetSplit:
+    """ClassificationDataset.split() partitions images correctly."""
+
+    def test_split_ratio_zero_empties_train(self) -> None:
+        """split_ratio=0.0 sends all images to the test set."""
+        ds = _make_classification_dataset(6)
+        train, test = ds.split(split_ratio=0.0, shuffle=False)
+        assert len(train) == 0
+        assert len(test) == 6
+
+    def test_split_ratio_one_empties_test(self) -> None:
+        """split_ratio=1.0 sends all images to the train set."""
+        ds = _make_classification_dataset(6)
+        train, test = ds.split(split_ratio=1.0, shuffle=False)
+        assert len(train) == 6
+        assert len(test) == 0
+
+    @pytest.mark.parametrize(
+        "split_ratio",
+        [
+            -0.2,
+            1.2,
+            pytest.param(80.0, id="percentage-instead-of-fraction"),
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_split_raises_for_out_of_range_ratio(
+        self, split_ratio: float, shuffle: bool
+    ) -> None:
+        """A ratio outside [0, 1] raises instead of returning a plausible split."""
+        ds = _make_classification_dataset(10)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=split_ratio, shuffle=shuffle)
+
+    def test_split_raises_for_out_of_range_ratio_on_empty_dataset(self) -> None:
+        """An invalid ratio is rejected even when the dataset has no images."""
+        ds = _make_classification_dataset(0)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=-0.2, shuffle=False)
+
 
 # ---------------------------------------------------------------------------
 # TST-03 - ClassificationDataset folder-structure round-trip
 # ---------------------------------------------------------------------------
+
+
+class TestClassificationDatasetExportCollisions:
+    """Folder exports must not overwrite images assigned to the same class."""
+
+    @pytest.mark.parametrize("second_name", ["image.png", "IMAGE.png"])
+    @pytest.mark.parametrize("with_confidence", [False, True])
+    def test_rejects_collisions_before_writing(
+        self, tmp_path: Path, second_name: str, with_confidence: bool
+    ) -> None:
+        """Resolve the winning class and reject duplicate output paths up front."""
+        paths = ["first/image.png", f"second/{second_name}"]
+        annotations = {p: Classifications(class_id=np.array([0])) for p in paths}
+        if with_confidence:
+            annotations = {
+                paths[0]: Classifications(
+                    class_id=np.array([1, 0]), confidence=np.array([0.1, 0.9])
+                ),
+                paths[1]: Classifications(
+                    class_id=np.array([0, 1]), confidence=np.array([0.9, 0.1])
+                ),
+            }
+        dataset = ClassificationDataset(
+            classes=["cats", "dogs"],
+            images={p: np.zeros((4, 4, 3), dtype=np.uint8) for p in paths},
+            annotations=annotations,
+        )
+        output = tmp_path / "export"
+
+        with pytest.raises(
+            ValueError, match="Ensure all output paths are unique before exporting"
+        ) as error:
+            dataset.as_folder_structure(str(output))
+
+        assert paths[0] in str(error.value)
+        assert paths[1] in str(error.value)
+        assert not output.exists()
+
+    def test_allows_same_basename_in_different_classes(self, tmp_path: Path) -> None:
+        """Distinct class directories preserve both images with a shared basename."""
+        from supervision import _cv2
+
+        paths = ["first/image.png", "second/image.png"]
+        images = {
+            p: np.full((4, 4, 3), i * 255, dtype=np.uint8) for i, p in enumerate(paths)
+        }
+        dataset = ClassificationDataset(
+            classes=["cats", "dogs"],
+            images=images,
+            annotations={
+                p: Classifications(class_id=np.array([i])) for i, p in enumerate(paths)
+            },
+        )
+
+        dataset.as_folder_structure(str(tmp_path))
+
+        for class_name, path in zip(dataset.classes, paths):
+            saved = _cv2.imread(str(tmp_path / class_name / "image.png"))
+            np.testing.assert_array_equal(saved, images[path])
+
+
+class TestClassificationDatasetImageWrites:
+    """Classification folder exports surface failed in-memory image writes."""
+
+    def test_raises_when_image_cannot_be_written(self, tmp_path: Path) -> None:
+        """An unwritable image path raises with the destination path in the error."""
+        dataset = ClassificationDataset(
+            classes=["cat"],
+            images={"image.png": np.zeros((4, 4, 3), dtype=np.uint8)},
+            annotations={"image.png": Classifications(class_id=np.array([0]))},
+        )
+        image_path = tmp_path / "cat" / "image.png"
+        image_path.mkdir(parents=True)
+
+        with pytest.raises(OSError, match="Failed to save image") as error:
+            dataset.as_folder_structure(str(tmp_path))
+
+        assert str(image_path) in str(error.value)
+
+    def test_writes_in_memory_pixels(self, tmp_path: Path) -> None:
+        """A successful export keeps the image in its class directory unchanged."""
+        from supervision import _cv2
+
+        image = np.full((4, 4, 3), 127, dtype=np.uint8)
+        dataset = ClassificationDataset(
+            classes=["cat"],
+            images={"image.png": image},
+            annotations={"image.png": Classifications(class_id=np.array([0]))},
+        )
+
+        dataset.as_folder_structure(str(tmp_path))
+
+        saved = _cv2.imread(str(tmp_path / "cat" / "image.png"))
+        np.testing.assert_array_equal(saved, image)
 
 
 class TestClassificationDatasetFolderRoundTrip:
@@ -763,6 +1030,49 @@ class TestClassificationDatasetFolderRoundTrip:
             class_id = int(ann.class_id[0])
             assert 0 <= class_id < len(ds2.classes)
             assert ds2.classes[class_id] == Path(image_path).parent.name
+
+    @pytest.mark.parametrize(
+        ("file_name", "shape", "dtype"),
+        [
+            pytest.param("alpha.png", (8, 8, 4), np.uint8, id="png-with-alpha"),
+            pytest.param("gray.png", (8, 8), np.uint8, id="grayscale-png"),
+            pytest.param("depth.png", (8, 8), np.uint16, id="16-bit-png"),
+            pytest.param("photo.jpg", (8, 8, 3), np.uint8, id="jpeg"),
+        ],
+    )
+    def test_export_copies_image_files_unchanged(
+        self,
+        tmp_path: Path,
+        file_name: str,
+        shape: tuple[int, ...],
+        dtype: type[np.unsignedinteger],
+    ) -> None:
+        """Exported images are byte-identical to the files they were loaded from."""
+        source_path = tmp_path / "source" / "cats" / file_name
+        source_path.parent.mkdir(parents=True)
+        rng = np.random.default_rng(0)
+        pixels = rng.integers(0, np.iinfo(dtype).max, shape, dtype=dtype)
+        Image.fromarray(pixels).save(source_path)
+        dataset = ClassificationDataset.from_folder_structure(str(tmp_path / "source"))
+
+        dataset.as_folder_structure(str(tmp_path / "export"))
+
+        exported_path = tmp_path / "export" / "cats" / file_name
+        assert exported_path.read_bytes() == source_path.read_bytes()
+
+    def test_export_into_source_folder_keeps_image_files(self, tmp_path: Path) -> None:
+        """Exporting into the folder the dataset was loaded from leaves files intact."""
+        image_path = tmp_path / "cats" / "photo.jpg"
+        image_path.parent.mkdir(parents=True)
+        rng = np.random.default_rng(0)
+        pixels = rng.integers(0, 255, (8, 8, 3), dtype=np.uint8)
+        Image.fromarray(pixels).save(image_path)
+        original_bytes = image_path.read_bytes()
+        dataset = ClassificationDataset.from_folder_structure(str(tmp_path))
+
+        dataset.as_folder_structure(str(tmp_path))
+
+        assert image_path.read_bytes() == original_bytes
 
     def test_root_clutter_is_ignored(self, tmp_path: Path) -> None:
         """Clutter and non-image files do not break folder loading."""

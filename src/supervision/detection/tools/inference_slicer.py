@@ -3,7 +3,9 @@ from __future__ import annotations
 import threading
 import warnings
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
+from copy import copy
+from functools import partial
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 if TYPE_CHECKING:
@@ -12,10 +14,11 @@ if TYPE_CHECKING:
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ORIENTED_BOX_COORDINATES, SOURCE_IMAGE_METADATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
+from supervision.detection.utils.internal import merge_metadata_lenient
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
@@ -28,9 +31,11 @@ from supervision.utils.iterables import create_batches
 class WindowedRasterDataset(Protocol):
     """Structural type for a rasterio-style dataset read window-by-window.
 
-    Matched structurally by `_is_windowed_raster` rather than by import so
-    `rasterio` stays an optional dependency — any object exposing these members
-    works. `rasterio.io.DatasetReader` satisfies this protocol.
+    Matched structurally by
+    :func:`~supervision.detection.tools.inference_slicer._is_windowed_raster`
+    rather than by import so `rasterio`
+    stays an optional dependency — any object exposing these members works.
+    `rasterio.io.DatasetReader` satisfies this protocol.
     """
 
     width: int
@@ -43,8 +48,8 @@ class WindowedRasterDataset(Protocol):
 def _is_windowed_raster(image: object) -> TypeGuard[WindowedRasterDataset]:
     """Duck-type check for a rasterio-style dataset that supports windowed reads.
 
-    Avoids importing rasterio so it remains an optional dependency. numpy arrays
-    and PIL images do not expose this combination of attributes.
+    Avoids importing rasterio so it remains an optional dependency. numpy arrays and PIL
+    images do not expose this combination of attributes.
     """
     return (
         callable(getattr(image, "read", None))
@@ -102,8 +107,7 @@ def move_detections(
 
 
 class InferenceSlicer:
-    """
-    Perform tiled inference on large images by slicing them into overlapping patches.
+    """Perform tiled inference on large images by slicing them into overlapping patches.
 
     This class divides an input image into overlapping slices of configurable size
     and overlap, runs inference on each slice through a user-provided callback, and
@@ -190,7 +194,8 @@ class InferenceSlicer:
         model = RFDETRMedium()
 
         def callback(tile):
-            return model.predict(tile)
+            # Tiles are BGR slices of the image; RF-DETR expects RGB.
+            return model.predict(tile[:, :, ::-1])
 
         slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
 
@@ -304,19 +309,50 @@ class InferenceSlicer:
         self._out_of_slice_bounds_lock = threading.Lock()
         self._obb_thread_workers_warned: bool = False
         self._obb_thread_workers_lock = threading.Lock()
+        self._dropped_metadata_warned: bool = False
+        self._dropped_metadata_lock = threading.Lock()
         self._raster_read_lock = threading.Lock()
 
     def __call__(self, image: ImageType | WindowedRasterDataset) -> Detections:
-        """
-        Perform tiled inference on the full image and return merged detections.
+        """Perform tiled inference on the full image and return merged detections.
 
         The first slice always runs synchronously so the output type can be
         inspected before committing to a threading strategy. Detections are
         merged in a deterministic order: the first slice is always at index 0,
         followed by any probe slices, then the remaining slices in source order.
-        If oriented bounding boxes are detected, all remaining slices are
-        processed sequentially and a ``SupervisionWarnings`` warning is emitted
+        Empty slices or batches are probed synchronously until the output geometry
+        is known. If oriented bounding boxes are detected, all remaining slices are
+        processed sequentially and a
+        :class:`~supervision.utils.internal.SupervisionWarnings` warning is emitted
         once per slicer instance.
+
+        Per-slice ``metadata`` is merged leniently: a key survives only when
+        every slice carries it with an equal value; otherwise it is dropped and
+        a :class:`~supervision.utils.internal.SupervisionWarnings` warning is
+        emitted once per slicer instance,
+        naming the dropped keys — a key meant to be global (``video_name``,
+        ``camera_id``, …) would otherwise vanish silently. The merged
+        ``metadata`` dict returned is always freshly built, never the same
+        dict object as any slice's own metadata.
+
+        ``source_image`` is the one metadata key handled specially: it is
+        removed from every slice before the lenient merge, then reattached
+        afterward as a reference to ``image`` itself — not a copy, and not the
+        per-slice tile — for in-memory input (array or PIL image); a windowed
+        raster dataset has no full in-memory image to give back, so its result
+        carries no ``source_image``. Because the stored value is a reference,
+        mutating the returned ``metadata["source_image"]`` mutates the caller's
+        own ``image``, and every
+        :class:`~supervision.detection.core.Detections` derived from the result via
+        :meth:`~supervision.detection.core.Detections.select`,
+        :meth:`~supervision.detection.core.Detections.__getitem__`, or
+        :meth:`~supervision.detection.core.Detections.with_nms` shares that same
+        reference — a long-lived derived result (e.g. held across a video
+        processing loop) keeps the full input frame alive.
+
+        Callback results are left unchanged, including dense masks converted
+        for ``compact_masks=True``, so sequential callbacks can reuse their output
+        buffers.
 
         Args:
             image: The full image to run inference on. In addition to in-memory
@@ -346,13 +382,17 @@ class InferenceSlicer:
         )
 
         if self.batch_size > 1:
-            batched = list(create_batches(offsets, self.batch_size))
-            # Run first batch synchronously: fail-fast type validation + OBB probe.
-            first_batch_results = self._run_callback_batch(image, batched[0])
-            detections_list.extend(first_batch_results)
-            obb_detected = any(
-                ORIENTED_BOX_COORDINATES in det.data for det in first_batch_results
-            )
+            remaining_batches = create_batches(offsets, self.batch_size)
+            obb_detected = False
+            # Empty batches cannot identify geometry, so keep probing as for slices.
+            for offset_batch in remaining_batches:
+                batch_results = self._run_callback_batch(image, offset_batch)
+                detections_list.extend(batch_results)
+                obb_detected = any(
+                    ORIENTED_BOX_COORDINATES in det.data for det in batch_results
+                )
+                if obb_detected or any(len(det) > 0 for det in batch_results):
+                    break
             if obb_detected and self.thread_workers > 1:
                 with self._obb_thread_workers_lock:
                     if not self._obb_thread_workers_warned:
@@ -365,7 +405,6 @@ class InferenceSlicer:
                             category=SupervisionWarnings,
                             stacklevel=2,
                         )
-            remaining_batches = batched[1:]
             if self.thread_workers == 1 or obb_detected:
                 for offset_batch in remaining_batches:
                     detections_list.extend(
@@ -373,14 +412,14 @@ class InferenceSlicer:
                     )
             else:
                 with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-                    batch_futures = [
-                        executor.submit(self._run_callback_batch, image, ob)
-                        for ob in remaining_batches
-                    ]
-                    for batch_future in as_completed(batch_futures):
-                        detections_list.extend(batch_future.result())
-            merged = Detections.merge(detections_list=detections_list)
-            return self._apply_overlap_filter(merged)
+                    # `Executor.map` yields in submission order, so batches merge in
+                    # source order no matter which thread finishes first.
+                    for batch_detections in executor.map(
+                        partial(self._run_callback_batch, image), remaining_batches
+                    ):
+                        detections_list.extend(batch_detections)
+
+            return self._merge_and_filter(detections_list, image)
 
         first_offset = offsets[0]
         first_detections = self._run_callback(image, first_offset)
@@ -425,15 +464,112 @@ class InferenceSlicer:
                 detections_list.append(self._run_callback(image, offset))
         else:
             with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-                futures = [
-                    executor.submit(self._run_callback, image, offset)
-                    for offset in remaining_offsets
-                ]
-                for future in as_completed(futures):
-                    detections_list.append(future.result())
+                # `Executor.map` yields in submission order, so slices merge in
+                # source order no matter which thread finishes first.
+                detections_list.extend(
+                    executor.map(partial(self._run_callback, image), remaining_offsets)
+                )
 
+        return self._merge_and_filter(detections_list, image)
+
+    def _merge_and_filter(
+        self,
+        detections_list: list[Detections],
+        image: ImageType | WindowedRasterDataset,
+    ) -> Detections:
+        """Merge per-slice detections, apply the overlap filter, restore the source.
+
+        The source image is attached only after filtering. Overlap filters propagate
+        ``metadata`` forward untouched, so the output is identical either way — but
+        ``NON_MAX_MERGE`` compares metadata values per merge group, and a whole
+        ``(H, W, C)`` array compared once per group dominates the filter's runtime.
+
+        Args:
+            detections_list: Per-slice detections in full-image coordinates.
+            image: The full image the slices were cut from.
+
+        Returns:
+            The merged, overlap-filtered detections.
+        """
+        merged, had_source_image = self._merge_slice_detections(detections_list, image)
+        filtered = self._apply_overlap_filter(merged)
+        if had_source_image:
+            filtered.metadata[SOURCE_IMAGE_METADATA_FIELD] = image
+        return filtered
+
+    def _merge_slice_detections(
+        self,
+        detections_list: list[Detections],
+        image: ImageType | WindowedRasterDataset,
+    ) -> tuple[Detections, bool]:
+        """Merge per-slice detections, reconciling their metadata leniently.
+
+        Metadata keys that disagree across slices, or that only some slices carry,
+        are dropped rather than raising — slices legitimately differ in per-tile
+        metadata. The source image is the one such key worth recovering: when any
+        slice carried it, the caller restores the full input image — array or PIL
+        alike, but not a windowed raster, which has no full in-memory image to hand
+        back. Any other key lost this way is reported once per slicer instance,
+        since a key the user meant to be global (``video_name``, ``camera_id``, …)
+        would otherwise vanish silently.
+
+        Because the source image is restored wholesale, it is removed from every
+        slice up front: leaving it in would make the lenient merge — and every
+        downstream merge group of ``NON_MAX_MERGE`` — compare whole image arrays
+        only to overwrite the result afterwards. Slices of a windowed raster keep
+        the key, since nothing restores it for them.
+
+        Args:
+            detections_list: Per-slice detections in full-image coordinates.
+            image: The full image the slices were cut from.
+
+        Returns:
+            The merged detections before overlap filtering, and whether any slice
+            carried a source image that the caller should restore.
+        """
+        non_empty = [d for d in detections_list if not d.is_empty()]
+
+        restorable = not _is_windowed_raster(image)
+        had_source_image = False
+        if restorable:
+            for d in non_empty:
+                if SOURCE_IMAGE_METADATA_FIELD in d.metadata:
+                    del d.metadata[SOURCE_IMAGE_METADATA_FIELD]
+                    had_source_image = True
+
+        merged_metadata, dropped_keys = merge_metadata_lenient(
+            [d.metadata for d in non_empty]
+        )
+
+        # `Detections.merge` would re-compare the same metadata and raise on the
+        # conflicts just resolved, so hand it empty dicts and attach the result.
+        for d in non_empty:
+            d.metadata = {}
         merged = Detections.merge(detections_list=detections_list)
-        return self._apply_overlap_filter(merged)
+        merged.metadata = merged_metadata
+
+        self._warn_dropped_metadata(dropped_keys)
+
+        return merged, had_source_image
+
+    def _warn_dropped_metadata(self, dropped_keys: set[str]) -> None:
+        """Warn once per slicer instance about metadata keys lost while merging."""
+        if not dropped_keys or self._dropped_metadata_warned:
+            return
+        with self._dropped_metadata_lock:
+            # Re-check under the lock so concurrent calls warn exactly once.
+            if self._dropped_metadata_warned:
+                return
+            self._dropped_metadata_warned = True
+            keys = ", ".join(sorted(dropped_keys))
+            warnings.warn(
+                "InferenceSlicer dropped metadata keys that were not identical "
+                f"across all slices: {keys}. Metadata must agree on every slice to "
+                "survive merging. If the value is genuinely per-detection, store it "
+                "in `Detections.data` instead, which is merged per detection.",
+                category=SupervisionWarnings,
+                stacklevel=2,
+            )
 
     def _get_resolution_wh(
         self, image: ImageType | WindowedRasterDataset
@@ -474,8 +610,8 @@ class InferenceSlicer:
     def _run_callback(
         self, image: ImageType | WindowedRasterDataset, offset: npt.NDArray[Any]
     ) -> Detections:
-        """
-        Run detection callback on a sliced portion of the image and adjust coordinates.
+        """Run detection callback on a sliced portion of the image and adjust
+        coordinates.
 
         Args:
             image: The full image.
@@ -511,11 +647,14 @@ class InferenceSlicer:
                 np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
                 (len(detections), 1),
             )
-            detections.mask = CompactMask.from_dense(
+            compact_mask = CompactMask.from_dense(
                 detections.mask,
                 full_slice_xyxy,
                 image_shape=(slice_h, slice_w),
             )
+            # A shallow copy preserves callback buffers without copying dense masks.
+            detections = copy(detections)
+            detections.mask = compact_mask
 
         # Fast-path: skip locking and bounds checking when the warning has already
         # been emitted or when there are no detections to inspect.
@@ -594,18 +733,25 @@ class InferenceSlicer:
             )
 
         if self.compact_masks:
-            for det, image_slice in zip(detections_in_slices, slices):
+            # A callback may retain both its result list and the detections in it.
+            detections_in_slices = list(detections_in_slices)
+            for index, (det, image_slice) in enumerate(
+                zip(detections_in_slices, slices)
+            ):
                 if det.mask is not None and isinstance(det.mask, np.ndarray):
                     slice_w, slice_h = get_image_resolution_wh(image_slice)
                     full_slice_xyxy = np.tile(
                         np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
                         (len(det), 1),
                     )
-                    det.mask = CompactMask.from_dense(
+                    compact_mask = CompactMask.from_dense(
                         det.mask,
                         full_slice_xyxy,
                         image_shape=(slice_h, slice_w),
                     )
+                    det = copy(det)
+                    det.mask = compact_mask
+                    detections_in_slices[index] = det
 
         if not self._out_of_slice_bounds_warned:
             for det, offset in zip(detections_in_slices, offsets):
@@ -696,8 +842,8 @@ class InferenceSlicer:
         slice_wh: tuple[int, int],
         overlap_wh: tuple[int, int],
     ) -> npt.NDArray[Any]:
-        """
-        Generate bounding boxes defining the coordinates of image slices with overlap.
+        """Generate bounding boxes defining the coordinates of image slices with
+        overlap.
 
         Args:
             resolution_wh: Image resolution `(width, height)`.

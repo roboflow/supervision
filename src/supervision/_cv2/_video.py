@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import tempfile
 from collections.abc import Callable, Iterator
@@ -10,7 +11,6 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
-import av
 import numpy as np
 import numpy.typing as npt
 
@@ -25,6 +25,13 @@ from supervision._cv2.constants import (
 
 logger = logging.getLogger(__name__)
 
+# PyAV is imported locally in each function below, not at module scope: it
+# bundles its own `libavdevice`, which macOS's Objective-C runtime treats as
+# a duplicate of the one OpenCV's wheel already bundles when both are loaded
+# into the same process (GH-2505). Deferring the import until a PyAV-backed
+# capture/writer/remux call actually happens keeps an OpenCV-only import
+# from ever touching PyAV's native libraries.
+
 _CODECS = {
     "mp4v": ("mpeg4", "yuv420p"),
     "xvid": ("mpeg4", "yuv420p"),
@@ -33,6 +40,15 @@ _CODECS = {
     "mjpg": ("mjpeg", "yuvj420p"),
     "vp09": ("libvpx-vp9", "yuv420p"),
 }
+
+# OpenCV caps the encoder bit rate at INT_MAX and copies it into the bit rate
+# tolerance, a C `int` that PyAV refuses to set any higher.
+_MAX_BIT_RATE = 2**31 - 1
+
+# Bits per pixel per frame that OpenCV's FFmpeg writer targets, keyed by PyAV
+# codec. libx264 is absent on purpose: OpenCV encodes it at CRF 23, libx264's
+# own default, so it needs no options.
+_BITS_PER_PIXEL = {"mpeg4": 2, "mjpeg": 6, "libvpx-vp9": 2}
 
 
 def _video_writer_fourcc(*chars: str) -> int:
@@ -56,17 +72,58 @@ def _codec_details(fourcc: int) -> tuple[str, str]:
         raise ValueError(f"Unsupported video codec: {code!r}") from exc
 
 
+def _opencv_encoder_options(
+    codec: str, fps: float, frame_size: tuple[int, int]
+) -> dict[str, int]:
+    """Return the encoder settings `cv2.VideoWriter` uses for a PyAV codec.
+
+    OpenCV's FFmpeg writer sets the bit rate of every encoder except libx264 from
+    the frame rate and size: two bits per pixel per frame, six for MJPEG. It uses
+    the same value as the rate tolerance, a minimum quantizer of 3 and a keyframe
+    every 12 frames. PyAV leaves the bit rate unset, which encodes the same frames
+    at a lower rate and quality. libx264 needs no options, since OpenCV encodes it
+    at CRF 23, libx264's own default. A frame rate or size that rounds the bit
+    rate down to zero also needs none: a zero rate tolerance makes FFmpeg abort the
+    process, so the encoder keeps PyAV's defaults instead.
+    """
+    bits_per_pixel = _BITS_PER_PIXEL.get(codec)
+    if bits_per_pixel is None:
+        return {}
+    width, height = frame_size
+    bit_rate = int(min(bits_per_pixel * fps * width * height, _MAX_BIT_RATE))
+    if bit_rate < 1:
+        return {}
+    return {
+        "bit_rate": bit_rate,
+        "bit_rate_tolerance": bit_rate,
+        "qmin": 3,
+        "gop_size": 12,
+    }
+
+
+def _quarter_turns(rotation: int) -> int:
+    """Return the counterclockwise quarter turns OpenCV applies for a display rotation.
+
+    Phones store a portrait video as landscape frames plus a display matrix, and
+    OpenCV's FFmpeg backend turns every frame upright by that matrix, but only for
+    multiples of 90 degrees; any other angle is left alone.
+    """
+    quarter_turns, remainder = divmod(rotation, 90)
+    return 0 if remainder else quarter_turns % 4
+
+
 class _VideoCapture:
     """Expose OpenCV-shaped file capture backed by PyAV decoding."""
 
     def __init__(self, source: str | os.PathLike[str] | int) -> None:
-        """Open a file source and retain a lazy PyAV frame iterator."""
+        """Open a file source and retain a lazy iterator for its first video stream."""
         self._container: Any = None
         self._stream: Any = None
         self._frames: Iterator[Any] | None = None
         self._source = source
         self._position = 0
         self._frame_count_cache: int | None = None
+        self._rotation_cache: int | None = None
         self._opened = False
         self._error: Exception | None = None
 
@@ -75,11 +132,14 @@ class _VideoCapture:
                 raise BackendUnavailableError(
                     "PyAV fallback supports file paths, not webcam device indexes."
                 )
+            import av
+
             self._container = av.open(str(source), mode="r")
             if not self._container.streams.video:
                 raise ValueError(f"Video source has no video stream: {source}")
             self._stream = self._container.streams.video[0]
-            self._frames = iter(self._container.decode(video=self._stream.index))
+            # PyAV's video selector indexes video streams, not all container streams.
+            self._frames = iter(self._container.decode(video=0))
             self._opened = True
         except Exception as exc:
             self._error = exc
@@ -97,22 +157,49 @@ class _VideoCapture:
 
         count = int(getattr(self._stream, "frames", 0) or 0)
         if count <= 0 and not isinstance(self._source, int):
+            import av
+
             container = av.open(str(self._source), mode="r")
             try:
-                count = sum(1 for _ in container.decode(video=self._stream.index))
+                count = sum(1 for _ in container.decode(video=0))
             finally:
                 container.close()
         self._frame_count_cache = count
         return count
 
+    def _rotation(self) -> int:
+        """Return the stream's display rotation, decoding one frame on a second handle.
+
+        PyAV only exposes the display matrix on decoded frames, so the first frame is
+        decoded from a separate container to leave this capture's position untouched.
+        """
+        if self._rotation_cache is not None:
+            return self._rotation_cache
+
+        import av
+
+        container = av.open(str(self._source), mode="r")
+        try:
+            frames = container.decode(video=0)
+            rotation = next((int(frame.rotation) for frame in frames), 0)
+        finally:
+            container.close()
+        self._rotation_cache = rotation
+        return rotation
+
     def get(self, property_id: int) -> float:
-        """Return the supported OpenCV capture property as a float."""
+        """Return the supported OpenCV capture property as a float.
+
+        Width and height are those of the upright frames `read` returns, so they swap
+        for a video whose display matrix turns it by a quarter, as in OpenCV.
+        """
         if not self._opened:
             return 0.0
-        if property_id == _CAP_PROP_FRAME_WIDTH:
-            return float(self._stream.width)
-        if property_id == _CAP_PROP_FRAME_HEIGHT:
-            return float(self._stream.height)
+        if property_id in (_CAP_PROP_FRAME_WIDTH, _CAP_PROP_FRAME_HEIGHT):
+            width, height = self._stream.width, self._stream.height
+            if _quarter_turns(self._rotation()) % 2:
+                width, height = height, width
+            return float(width if property_id == _CAP_PROP_FRAME_WIDTH else height)
         if property_id == _CAP_PROP_FPS:
             rate = getattr(self._stream, "average_rate", None) or getattr(
                 self._stream, "base_rate", None
@@ -127,7 +214,7 @@ class _VideoCapture:
     def _reset(self) -> None:
         """Seek the decoder to the first frame and reset the logical position."""
         self._container.seek(0, stream=self._stream, backward=True)
-        self._frames = iter(self._container.decode(video=self._stream.index))
+        self._frames = iter(self._container.decode(video=0))
         self._position = 0
 
     def set(self, property_id: int, value: float) -> bool:
@@ -146,7 +233,7 @@ class _VideoCapture:
         return True
 
     def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
-        """Decode and return the next frame in OpenCV's BGR array format."""
+        """Decode and return the next frame upright in OpenCV's BGR array format."""
         if not self._opened or self._frames is None:
             return False, None
         try:
@@ -158,7 +245,11 @@ class _VideoCapture:
             return False, None
 
         self._position += 1
-        return True, frame.to_ndarray(format="bgr24")
+        image = frame.to_ndarray(format="bgr24")
+        quarter_turns = _quarter_turns(int(frame.rotation))
+        if quarter_turns:
+            image = np.ascontiguousarray(np.rot90(image, quarter_turns))
+        return True, image
 
     def grab(self) -> bool:
         """Decode and discard one frame."""
@@ -189,10 +280,16 @@ class _VideoWriter:
     ) -> None:
         """Open a PyAV writer for the requested codec and frame dimensions.
 
+        The encoder runs with the rate control `cv2.VideoWriter` sets for the
+        codec, so a video keeps its quality whichever backend writes it.
+
         The PyAV fallback always encodes 3-channel BGR frames, so grayscale
         output is unsupported. ``is_color=False`` is rejected up front rather
         than silently ignored, keeping the OpenCV-shaped contract honest for
         callers that would otherwise expect single-channel writes.
+
+        A frame rate that is not a positive finite number leaves the writer
+        closed, as `cv2.VideoWriter` does, so `isOpened()` returns ``False``.
 
         Raises:
             NotImplementedError: If ``is_color`` is ``False``; grayscale
@@ -210,6 +307,10 @@ class _VideoWriter:
         self._error: Exception | None = None
 
         try:
+            import av
+
+            if not math.isfinite(fps) or fps <= 0:
+                raise ValueError(f"Video frame rate must be positive, got {fps}")
             codec, pixel_format = _codec_details(fourcc)
             self._container = av.open(str(filename), mode="w")
             rate = Fraction(str(fps)).limit_denominator(100_000)
@@ -217,6 +318,13 @@ class _VideoWriter:
             self._stream.width = self._width
             self._stream.height = self._height
             self._stream.pix_fmt = pixel_format
+            encoder_options = _opencv_encoder_options(codec, fps, frame_size)
+            if encoder_options:
+                codec_context = self._stream.codec_context
+                codec_context.bit_rate = encoder_options["bit_rate"]
+                codec_context.bit_rate_tolerance = encoder_options["bit_rate_tolerance"]
+                codec_context.qmin = encoder_options["qmin"]
+                codec_context.gop_size = encoder_options["gop_size"]
             self._opened = True
         except Exception as exc:
             self._error = exc
@@ -237,6 +345,8 @@ class _VideoWriter:
             )
         if frame.dtype != np.uint8:
             raise ValueError("Video frames must use uint8 dtype")
+
+        import av
 
         video_frame = av.VideoFrame.from_ndarray(
             np.ascontiguousarray(frame), format="bgr24"
@@ -270,8 +380,8 @@ def _best_effort_cleanup(action: Callable[[], None], description: str) -> None:
     """Run a cleanup action, logging and suppressing any failure.
 
     Cleanup steps in a ``finally`` block must never raise, otherwise a failing
-    ``container.close()`` (or file removal) would mask or replace the primary
-    result or the original exception that sent control into ``finally``.
+    ``container.close()`` (or file removal) would mask or replace the primary result or
+    the original exception that sent control into ``finally``.
     """
     try:
         action()
@@ -286,6 +396,8 @@ def _mux_audio(source_path: str, video_path: str) -> None:
     output_container: Any = None
     temporary_path: str | None = None
     try:
+        import av
+
         source_container = av.open(source_path, mode="r")
         video_container = av.open(video_path, mode="r")
         if not source_container.streams.audio or not video_container.streams.video:

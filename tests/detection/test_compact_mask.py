@@ -1,6 +1,8 @@
 """Unit tests for CompactMask and its private RLE helpers."""
 
+from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -9,6 +11,7 @@ from supervision import _cv2 as cv2
 from supervision.detection.compact_mask import (
     CompactMask,
     _rle_area,
+    _rle_counts_int32,
 )
 from supervision.detection.utils.converters import (
     _mask_to_rle_counts,
@@ -23,6 +26,8 @@ from supervision.detection.utils.masks import (
     move_masks,
 )
 
+_INT32_LIMIT = np.iinfo(np.int32).max
+
 
 def _make_cm(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
     """Build a CompactMask whose crops equal the full bounding-box extents."""
@@ -35,10 +40,9 @@ def _make_cm(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
 class TestRleHelpers:
     """Tests for _mask_to_rle_counts, _rle_counts_to_mask, and _rle_area.
 
-    Verifies that the private RLE encoding round-trips correctly for a range
-    of mask shapes (all-False, all-True, diagonal, L-shape, checkerboard,
-    single-pixel, and empty), and that _rle_area matches np.sum on the
-    original boolean array.
+    Verifies that the private RLE encoding round-trips correctly for a range of mask
+    shapes (all-False, all-True, diagonal, L-shape, checkerboard, single-pixel, and
+    empty), and that _rle_area matches np.sum on the original boolean array.
     """
 
     @pytest.mark.parametrize(
@@ -144,12 +148,77 @@ class TestRleHelpers:
         assert _mask_to_rle_counts(mask_2d).tolist() == mask_to_rle(mask_2d)
 
 
+class TestRleCountsInt32:
+    """Tests for _rle_counts_int32's oversized-run splitting.
+
+    Verifies that runs within the int32 limit pass through as a plain cast, that a
+    single oversized run splits into limit/zero pairs plus a remainder wherever it sits
+    in the array, that an exact multiple of the limit leaves a full-limit remainder
+    rather than a zero one, that a run needing more than one split produces the right
+    number of limit/zero pairs, and that multiple oversized runs each split
+    independently while the runs between and around them survive untouched.
+    """
+
+    def test_returns_unchanged_when_no_run_exceeds_limit(self) -> None:
+        """Runs within the limit round-trip through a plain int32 cast."""
+        counts = np.array([1, _INT32_LIMIT, 3, _INT32_LIMIT - 1], dtype=np.int64)
+
+        result = _rle_counts_int32(counts)
+
+        np.testing.assert_array_equal(result, counts.astype(np.int32))
+        assert result.dtype == np.int32
+
+    @pytest.mark.parametrize(
+        ("counts", "expected"),
+        [
+            pytest.param(
+                [1, _INT32_LIMIT + 5, 3],
+                [1, _INT32_LIMIT, 0, 5, 3],
+                id="oversized-run-in-middle",
+            ),
+            pytest.param(
+                [_INT32_LIMIT + 5, 3],
+                [_INT32_LIMIT, 0, 5, 3],
+                id="oversized-run-first",
+            ),
+            pytest.param(
+                [3, _INT32_LIMIT + 5],
+                [3, _INT32_LIMIT, 0, 5],
+                id="oversized-run-last",
+            ),
+            pytest.param(
+                [2, 2 * _INT32_LIMIT, 4],
+                [2, _INT32_LIMIT, 0, _INT32_LIMIT, 4],
+                id="exact-multiple-of-limit-keeps-full-remainder",
+            ),
+            pytest.param(
+                [3 * _INT32_LIMIT + 7],
+                [_INT32_LIMIT, 0, _INT32_LIMIT, 0, _INT32_LIMIT, 0, 7],
+                id="run-needs-two-splits",
+            ),
+            pytest.param(
+                [1, _INT32_LIMIT + 1, 2, _INT32_LIMIT + 2, 3],
+                [1, _INT32_LIMIT, 0, 1, 2, _INT32_LIMIT, 0, 2, 3],
+                id="multiple-oversized-runs-preserve-runs-between",
+            ),
+        ],
+    )
+    def test_splits_oversized_runs_with_zero_parity(
+        self, counts: list[int], expected: list[int]
+    ) -> None:
+        """Oversized runs split into limit/zero pairs plus a remainder in place."""
+        result = _rle_counts_int32(np.array(counts, dtype=np.int64))
+
+        assert result.tolist() == expected
+        assert result.dtype == np.int32
+
+
 class TestFromDenseToDense:
     """Tests for CompactMask.from_dense and to_dense.
 
-    Verifies that the from_dense → to_dense round-trip is lossless when the
-    bounding boxes span the full image (no True pixels fall outside the crop).
-    Covers N=0 (empty), N=1 (single mask), and N=5 (several random masks).
+    Verifies that the from_dense → to_dense round-trip is lossless when the bounding
+    boxes span the full image (no True pixels fall outside the crop). Covers N=0
+    (empty), N=1 (single mask), and N=5 (several random masks).
     """
 
     @pytest.mark.parametrize(
@@ -361,9 +430,9 @@ class TestFromCocoRle:
     )
     def test_raises_on_invalid_input(
         self,
-        rles: list,
+        rles: list[Any],
         xyxy_arr: np.ndarray,
-        image_shape: tuple,
+        image_shape: tuple[int, int],
         err_match: str,
     ) -> None:
         """from_coco_rle raises ValueError for each documented invalid-input path."""
@@ -437,7 +506,7 @@ class TestCocoRleCountsToArray:
         ],
     )
     def test_str_and_bytes_decode_identically(self, counts: object) -> None:
-        """str and bytes inputs decode to the same run-length array."""
+        """Str and bytes inputs decode to the same run-length array."""
         from supervision.detection.compact_mask import _coco_rle_counts_to_array
 
         result = _coco_rle_counts_to_array(counts)
@@ -582,25 +651,25 @@ class TestGetItem:
 class TestProperties:
     """Tests for len, shape, dtype, and area properties.
 
-    Verifies that the shape tuple follows the (N, H, W) dense convention,
-    dtype is always bool, and area returns per-mask True-pixel counts that
-    match np.sum on the corresponding dense masks.
+    Verifies that the shape tuple follows the (N, H, W) dense convention, dtype is
+    always bool, and area returns per-mask True-pixel counts that match np.sum on the
+    corresponding dense masks.
     """
 
     def test_len(self) -> None:
-        """len() returns the number of masks in the collection."""
+        """Len() returns the number of masks in the collection."""
         masks = np.zeros((3, 10, 10), dtype=bool)
         cm = _make_cm(masks, (10, 10))
         assert len(cm) == 3
 
     def test_shape(self) -> None:
-        """shape follows the (N, H, W) dense array convention."""
+        """Shape follows the (N, H, W) dense array convention."""
         masks = np.zeros((3, 10, 10), dtype=bool)
         cm = _make_cm(masks, (10, 10))
         assert cm.shape == (3, 10, 10)
 
     def test_shape_empty(self) -> None:
-        """shape reports N=0 for an empty CompactMask while keeping (H, W)."""
+        """Shape reports N=0 for an empty CompactMask while keeping (H, W)."""
         cm = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
@@ -610,12 +679,12 @@ class TestProperties:
         assert cm.shape == (0, 480, 640)
 
     def test_dtype(self) -> None:
-        """dtype is always bool regardless of the input mask dtype."""
+        """Dtype is always bool regardless of the input mask dtype."""
         cm = _make_cm(np.zeros((1, 5, 5), dtype=bool), (5, 5))
         assert cm.dtype == np.dtype(bool)
 
     def test_area_matches_dense(self) -> None:
-        """area returns per-mask True-pixel counts matching np.sum on dense masks."""
+        """Area returns per-mask True-pixel counts matching np.sum on dense masks."""
         img_h, img_w = 20, 20
         rng = np.random.default_rng(3)
         masks = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
@@ -625,7 +694,7 @@ class TestProperties:
         np.testing.assert_array_equal(cm.area, expected)
 
     def test_area_empty(self) -> None:
-        """area is an empty (0,) array for an empty CompactMask."""
+        """Area is an empty (0,) array for an empty CompactMask."""
         cm = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
@@ -635,12 +704,112 @@ class TestProperties:
         assert cm.area.shape == (0,)
 
 
+_AREA_IMAGE_SHAPE = (6, 8)
+
+
+def _rectangle_masks(
+    boxes: list[tuple[int, int, int, int]],
+    rectangles: list[tuple[int, int, int, int] | None],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build 6x8 masks with one inclusive-xyxy foreground rectangle (or none) each."""
+    masks = np.zeros((len(boxes), *_AREA_IMAGE_SHAPE), dtype=bool)
+    for mask_idx, rectangle in enumerate(rectangles):
+        if rectangle is not None:
+            x1, y1, x2, y2 = rectangle
+            masks[mask_idx, y1 : y2 + 1, x1 : x2 + 1] = True
+    return masks, np.array(boxes, dtype=np.float32).reshape(-1, 4)
+
+
+class TestArea:
+    """Tests for CompactMask.area against per-mask RLE sums and dense pixel counts.
+
+    Boxes are the crops stored by from_dense, so a rectangle at a box corner makes the
+    crop's RLE start with an empty background run or end with a foreground run.
+    """
+
+    @pytest.mark.parametrize(
+        ("boxes", "rectangles"),
+        [
+            pytest.param([], [], id="empty-collection"),
+            pytest.param([(0, 0, 7, 5)], [None], id="all-false"),
+            pytest.param([(0, 0, 7, 5)], [(0, 0, 7, 5)], id="all-true"),
+            pytest.param([(1, 1, 5, 4)], [(3, 2, 3, 2)], id="single-pixel"),
+            pytest.param([(2, 1, 6, 4)], [(2, 1, 3, 2)], id="crop-starts-true"),
+            pytest.param([(2, 1, 7, 4)], [(6, 3, 7, 4)], id="crop-ends-true"),
+            pytest.param(
+                [(1, 1, 6, 4), (0, 0, 7, 5), (3, 2, 3, 2), (0, 0, 7, 5), (5, 0, 7, 1)],
+                [(2, 2, 5, 3), None, (3, 2, 3, 2), (0, 0, 7, 5), (5, 0, 7, 1)],
+                id="mixed-crop-sizes",
+            ),
+        ],
+    )
+    def test_matches_rle_and_dense_counts(
+        self,
+        boxes: list[tuple[int, int, int, int]],
+        rectangles: list[tuple[int, int, int, int] | None],
+    ) -> None:
+        """Each area equals its RLE foreground sum and its dense pixel count."""
+        masks, xyxy = _rectangle_masks(boxes, rectangles)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=_AREA_IMAGE_SHAPE)
+
+        area = cm.area
+
+        assert area.dtype == np.int64
+        assert area.shape == (len(boxes),)
+        np.testing.assert_array_equal(area, [_rle_area(rle) for rle in cm._rles])
+        np.testing.assert_array_equal(area, masks.sum(axis=(1, 2)))
+
+    @pytest.mark.parametrize("chunk_runs", [1, 7, 100, 65536])
+    def test_random_masks_match_rle_and_dense_counts(
+        self, chunk_runs: int, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Seeded masks with loose, empty and all-True crops match both references.
+
+        The collection holds about 3,400 runs, so small chunk sizes put chunk bounds
+        between masks, after empty masks and around masks larger than one chunk.
+        """
+        monkeypatch.setattr(
+            "supervision.detection.compact_mask._AREA_CHUNK_RUNS", chunk_runs
+        )
+        rng = np.random.default_rng(0)
+        num_masks, img_h, img_w = 64, 40, 60
+        corners = rng.integers(0, (img_w, img_h), size=(num_masks, 2, 2))
+        xyxy = np.sort(corners, axis=1).reshape(num_masks, 4).astype(np.float32)
+        x1, y1, x2, y2 = xyxy.T[:, :, None, None]
+        rows, cols = np.ogrid[:img_h, :img_w]
+        inside = (x1 <= cols) & (cols <= x2) & (y1 <= rows) & (rows <= y2)
+        density = rng.choice([0.0, 0.1, 0.5, 1.0], size=(num_masks, 1, 1))
+        masks = inside & (rng.random((num_masks, img_h, img_w)) < density)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+
+        area = cm.area
+
+        assert area.dtype == np.int64
+        np.testing.assert_array_equal(area, [_rle_area(rle) for rle in cm._rles])
+        np.testing.assert_array_equal(area, masks.sum(axis=(1, 2)))
+
+    def test_counts_split_runs_beyond_int32_range(self) -> None:
+        """A foreground run split at the int32 limit sums past it without overflow."""
+        foreground = _INT32_LIMIT + 5
+        rles = [
+            np.array([3], dtype=np.int32),
+            _rle_counts_int32(np.array([0, foreground], dtype=np.int64)),
+        ]
+        crop_shapes = np.array([[1, 3], [2, foreground // 2]], dtype=np.int32)
+        cm = CompactMask(
+            rles, crop_shapes, np.zeros((2, 2), dtype=np.int32), (2, foreground // 2)
+        )
+
+        area = cm.area
+
+        assert area.tolist() == [0, foreground]
+
+
 class TestCrop:
     """Tests for CompactMask.crop.
 
-    Verifies that crop(index) returns an array shaped (crop_h, crop_w)
-    containing only the pixels within the bounding box, without allocating
-    the full (H, W) image.
+    Verifies that crop(index) returns an array shaped (crop_h, crop_w) containing only
+    the pixels within the bounding box, without allocating the full (H, W) image.
     """
 
     def test_returns_crop_shape(self) -> None:
@@ -658,8 +827,8 @@ class TestCrop:
 class TestArrayProtocol:
     """Tests for the __array__ protocol.
 
-    Verifies that np.asarray(cm) materialises the full (N, H, W) dense array
-    and that optional dtype casting (e.g. to uint8) is correctly applied.
+    Verifies that np.asarray(cm) materialises the full (N, H, W) dense array and that
+    optional dtype casting (e.g. to uint8) is correctly applied.
     """
 
     def test_array_protocol(self) -> None:
@@ -679,14 +848,94 @@ class TestArrayProtocol:
         assert arr.dtype == np.uint8
         assert arr.sum() == 25
 
+    @pytest.mark.parametrize(
+        ("fn_converter", "kwargs"),
+        [
+            pytest.param(np.array, {}, id="array-default"),
+            pytest.param(np.array, {"copy": True}, id="array-copy"),
+            pytest.param(np.asarray, {}, id="asarray-default"),
+            pytest.param(
+                np.asarray,
+                {"copy": True},
+                id="asarray-copy",
+                marks=pytest.mark.skipif(
+                    np.lib.NumpyVersion(np.__version__) < "2.0.0",
+                    reason="np.asarray gained copy in NumPy 2",
+                ),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            None,
+            pytest.param(np.dtype(bool), id="bool"),
+            pytest.param(np.dtype(np.uint8), id="uint8"),
+        ],
+    )
+    def test_returns_dense_pixels_without_warnings(
+        self,
+        fn_converter: Callable[..., np.ndarray],
+        kwargs: dict[str, bool],
+        dtype: np.dtype | None,
+    ) -> None:
+        """Default and explicit copies retain the mask pixels and requested dtype."""
+        masks = np.eye(3, dtype=bool)[None, ...]
+        cm = _make_cm(masks, (3, 3))
+
+        result = fn_converter(cm, dtype=dtype, **kwargs)
+
+        np.testing.assert_array_equal(result, masks)
+        assert result.dtype == (np.dtype(bool) if dtype is None else dtype)
+
+    @pytest.mark.skipif(
+        np.lib.NumpyVersion(np.__version__) < "2.0.0",
+        reason="NumPy 1 allows allocation when copy=False",
+    )
+    @pytest.mark.parametrize(
+        "fn_converter",
+        [pytest.param(np.array, id="array"), pytest.param(np.asarray, id="asarray")],
+    )
+    def test_rejects_zero_copy_before_materializing(
+        self, fn_converter: Callable[..., np.ndarray], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A zero-copy request fails before allocating the dense mask tensor."""
+        cm = _make_cm(np.ones((1, 3, 3), dtype=bool), (3, 3))
+        monkeypatch.setattr(
+            CompactMask, "to_dense", lambda self: pytest.fail("Unexpected allocation")
+        )
+
+        with pytest.raises(ValueError, match="copy=False"):
+            fn_converter(cm, copy=False)
+
+    def test_copies_empty_masks(self) -> None:
+        """Explicit copies retain the spatial dimensions of empty mask collections."""
+        masks = np.empty((0, 3, 4), dtype=bool)
+        cm = _make_cm(masks, (3, 4))
+
+        result = np.array(cm, copy=True)
+
+        np.testing.assert_array_equal(result, masks)
+        assert result.dtype == bool
+
+    def test_copy_mutation_leaves_compact_masks_unchanged(self) -> None:
+        """Mutating the copied dense array leaves the source RLE masks intact."""
+        masks = np.ones((1, 3, 3), dtype=bool)
+        cm = _make_cm(masks, (3, 3))
+        result = np.array(cm, copy=True)
+
+        result[:] = False
+
+        np.testing.assert_array_equal(cm.to_dense(), masks)
+
 
 class TestMerge:
     """Tests for CompactMask.merge.
 
-    Verifies that multiple CompactMask instances with the same image_shape
-    can be concatenated into a single CompactMask, that merging with an empty
-    instance works, that an empty input list raises ValueError, and that
-    mismatched image shapes raise ValueError.
+    Verifies that multiple CompactMask instances with the same image_shape can be
+    concatenated into a single CompactMask, that merging with an empty instance works,
+    that an empty input list raises ValueError, and that mismatched image shapes raise
+    ValueError.
     """
 
     def test_merge(self) -> None:
@@ -741,8 +990,8 @@ class TestMerge:
 class TestEquality:
     """Tests for CompactMask.__eq__.
 
-    Verifies element-wise equality between two CompactMask instances and
-    between a CompactMask and an equivalent dense (N, H, W) boolean array.
+    Verifies element-wise equality between two CompactMask instances and between a
+    CompactMask and an equivalent dense (N, H, W) boolean array.
     """
 
     def test_eq_identical(self) -> None:
@@ -794,7 +1043,7 @@ class TestEdgeCases:
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
     def test_xyxy_beyond_image_clipped(self) -> None:
-        """xyxy values beyond the image boundary should be clipped silently."""
+        """Xyxy values beyond the image boundary should be clipped silently."""
         img_h, img_w = 10, 10
         masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 5:10, 5:10] = True
@@ -869,7 +1118,7 @@ class TestEdgeCases:
         np.testing.assert_array_equal(cm_shifted.to_dense(), expected)
 
     def test_repack_tightens_loose_bbox(self) -> None:
-        """repack() shrinks the crop to the minimal True-pixel rectangle."""
+        """Repack() shrinks the crop to the minimal True-pixel rectangle."""
         img_h, img_w = 20, 20
         masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 5:10, 6:12] = True  # True block at (5,6)-(9,11)
@@ -890,7 +1139,7 @@ class TestEdgeCases:
         np.testing.assert_array_equal(repacked.to_dense(), masks)
 
     def test_repack_preserves_all_false_mask(self) -> None:
-        """repack() normalises an all-False mask to a 1x1 crop."""
+        """Repack() normalises an all-False mask to a 1x1 crop."""
         img_h, img_w = 10, 10
         masks = np.zeros((2, img_h, img_w), dtype=bool)
         masks[1, 3:6, 3:6] = True  # only mask 1 is non-empty
@@ -904,7 +1153,7 @@ class TestEdgeCases:
         np.testing.assert_array_equal(repacked.to_dense(), masks)
 
     def test_repack_empty_collection(self) -> None:
-        """repack() on an empty CompactMask returns another empty CompactMask."""
+        """Repack() on an empty CompactMask returns another empty CompactMask."""
         cm = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
@@ -916,7 +1165,7 @@ class TestEdgeCases:
         assert repacked._image_shape == (10, 10)
 
     def test_repack_already_tight(self) -> None:
-        """repack() is a no-op when bboxes are already tight."""
+        """Repack() is a no-op when bboxes are already tight."""
         img_h, img_w = 15, 15
         masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 4:9, 3:8] = True
@@ -934,8 +1183,8 @@ class TestEdgeCases:
 class TestCalculateMasksCentroidsCompact:
     """Verify calculate_masks_centroids gives identical results for CompactMask.
 
-    The function has a dedicated CompactMask branch that computes centroids
-    per-crop.  Results must match the dense path to within integer rounding.
+    The function has a dedicated CompactMask branch that computes centroids per-crop.
+    Results must match the dense path to within integer rounding.
     """
 
     def test_centroids_compact_matches_dense(self) -> None:
@@ -992,9 +1241,9 @@ class TestCalculateMasksCentroidsCompact:
 class TestContainsHolesCompact:
     """Verify contains_holes result is unchanged after CompactMask roundtrip.
 
-    contains_holes works on a 2D boolean mask.  Encoding then decoding via
-    CompactMask must preserve pixel topology so that the function returns
-    the same result as on the original array.
+    contains_holes works on a 2D boolean mask.  Encoding then decoding via CompactMask
+    must preserve pixel topology so that the function returns the same result as on the
+    original array.
     """
 
     @pytest.mark.parametrize(
@@ -1038,8 +1287,8 @@ class TestContainsHolesCompact:
 class TestContainsMultipleSegmentsCompact:
     """Verify contains_multiple_segments result survives CompactMask roundtrip.
 
-    Encoding and decoding must preserve connected-component topology so
-    that the multi-segment predicate returns the same value.
+    Encoding and decoding must preserve connected-component topology so that the multi-
+    segment predicate returns the same value.
     """
 
     @pytest.mark.parametrize(
@@ -1119,9 +1368,9 @@ def _random_masks_and_xyxy(
     """Generate *num_masks* random boolean masks with matching tight xyxy boxes.
 
     Each mask is built by filling a random sub-rectangle with Bernoulli noise at
-    ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``.
-    This guarantees every mask has at least one True pixel (for non-degenerate
-    bounding boxes).
+    ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``. This
+    guarantees every mask has at least one True pixel (for non-degenerate bounding
+    boxes).
     """
     masks = np.zeros((num_masks, img_h, img_w), dtype=bool)
     for mask_idx in range(num_masks):
@@ -1142,8 +1391,8 @@ def _random_masks_and_xyxy(
 class TestCompactMaskRoundtripRandom:
     """from_dense -> to_dense pixel equality across 10 random seeds.
 
-    Uses tight bounding boxes so the round-trip must be lossless (all True
-    pixels lie strictly within the crop).
+    Uses tight bounding boxes so the round-trip must be lossless (all True pixels lie
+    strictly within the crop).
     """
 
     @pytest.mark.parametrize("seed", list(range(10)))
@@ -1163,7 +1412,7 @@ class TestCompactMaskRoundtripRandom:
 
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_shape_and_len(self, seed: int) -> None:
-        """len() and .shape must agree with the dense array."""
+        """Len() and .shape must agree with the dense array."""
         rng = np.random.default_rng(seed)
         num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
@@ -1173,7 +1422,7 @@ class TestCompactMaskRoundtripRandom:
 
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_individual_mask_access(self, seed: int) -> None:
-        """cm[i] must equal masks[i] for every index."""
+        """Cm[i] must equal masks[i] for every index."""
         rng = np.random.default_rng(seed)
         num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
@@ -1187,7 +1436,7 @@ class TestCompactMaskRoundtripRandom:
 
 
 class TestCompactMaskAreaRandom:
-    """area from CompactMask equals dense .sum(axis=(1,2)) across 10 seeds."""
+    """Area from CompactMask equals dense .sum(axis=(1,2)) across 10 seeds."""
 
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_parity_seed(self, seed: int) -> None:
@@ -1249,7 +1498,7 @@ class TestCompactMaskFilterRandom:
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
-        num_selected = min(num_masks, max(1, rng.integers(1, num_masks + 1)))
+        num_selected = min(num_masks, max(1, int(rng.integers(1, num_masks + 1))))
         indices = sorted(
             rng.choice(num_masks, size=num_selected, replace=False).tolist()
         )
@@ -1270,7 +1519,7 @@ class TestCompactMaskWithOffsetRandom:
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
         # Use smaller images to keep move_masks fast.
-        num_masks = rng.integers(1, 10)
+        num_masks = int(rng.integers(1, 10))
         img_h, img_w = int(rng.integers(30, 80)), int(rng.integers(30, 80))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
@@ -1299,7 +1548,7 @@ class TestCompactMaskWithOffsetRandom:
     def test_offset_into_larger_canvas(self, seed: int) -> None:
         """Offset into a larger destination image must preserve pixels."""
         rng = np.random.default_rng(seed + 100)
-        num_masks = rng.integers(1, 8)
+        num_masks = int(rng.integers(1, 8))
         img_h, img_w = int(rng.integers(20, 50)), int(rng.integers(20, 50))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
@@ -1385,10 +1634,10 @@ class TestRleSplitCols:
     def test_join_true_true_junction_no_zero_run(self) -> None:
         """_rle_join_cols merges True/True boundary; no zero-length False run inserted.
 
-        When column A ends True and column B starts True (leading False count = 0),
-        the junction must produce a single merged True run, not a zero-length False
-        run between two True runs.  A zero-length run would inflate len(rle) and
-        misroute density-based dispatch in _resize_crop.
+        When column A ends True and column B starts True (leading False count = 0), the
+        junction must produce a single merged True run, not a zero-length False run
+        between two True runs.  A zero-length run would inflate len(rle) and misroute
+        density-based dispatch in _resize_crop.
         """
         from supervision.detection.compact_mask import _rle_join_cols
 
@@ -1407,9 +1656,112 @@ class TestRleSplitCols:
 class TestCompactMaskResize:
     """Tests for CompactMask.resize method.
 
-    Verifies scaling behaviour, coordinate arithmetic, identity resize,
-    empty collections, invalid dimensions, and dense parity with cv2.
+    Verifies scaling behaviour, coordinate arithmetic, identity resize, empty
+    collections, invalid dimensions, and dense parity with cv2.
     """
+
+    @pytest.mark.parametrize("num_masks", [1, 8])
+    @pytest.mark.parametrize("pattern", ["solid", "checkerboard"])
+    @pytest.mark.parametrize(
+        ("src_shape", "crop", "target_shape"),
+        [
+            pytest.param((10, 10), (2, 3, 3, 4), (100, 100), id="singleton-upscale"),
+            pytest.param((10, 10), (0, 10, 0, 10), (100, 100), id="full-upscale"),
+            pytest.param((4, 4), (1, 2, 1, 2), (2, 2), id="unsampled-singleton"),
+            pytest.param((7, 9), (1, 6, 2, 8), (13, 5), id="offset-anisotropic"),
+            pytest.param((6, 6), (1, 5, 2, 6), (34, 34), id="fractional-upscale"),
+        ],
+    )
+    def test_image_grid_sampling(
+        self,
+        src_shape: tuple[int, int],
+        crop: tuple[int, int, int, int],
+        target_shape: tuple[int, int],
+        pattern: str,
+        num_masks: int,
+    ) -> None:
+        """Resize compact crops on the same sampling grid as the full image."""
+        masks = np.zeros((num_masks, *src_shape), dtype=bool)
+        y1, y2, x1, x2 = crop
+        rows, cols = np.indices((y2 - y1, x2 - x1))
+        region = np.ones(rows.shape, dtype=bool)
+        if pattern == "checkerboard":
+            region = (rows + cols) % 2 == 0
+        crop_h, crop_w = y2 - y1, x2 - x1
+        origins = [(y1, x1)] + [
+            (row, col)
+            for row in range(src_shape[0] - crop_h + 1)
+            for col in range(src_shape[1] - crop_w + 1)
+            if (row, col) != (y1, x1)
+        ]
+        for mask_index in range(num_masks):
+            origin_y, origin_x = origins[mask_index % len(origins)]
+            mask_region = region
+            if mask_index >= len(origins):
+                mask_region = region.copy()
+                row, col = divmod(mask_index - len(origins), crop_w)
+                mask_region[row, col] = not mask_region[row, col]
+            masks[
+                mask_index,
+                origin_y : origin_y + crop_h,
+                origin_x : origin_x + crop_w,
+            ] = mask_region
+        cm = CompactMask.from_dense(masks, mask_to_xyxy(masks), src_shape)
+        original = cm.to_dense()
+        expected = np.stack(
+            [
+                cv2.resize(
+                    mask.astype(np.uint8),
+                    (target_shape[1], target_shape[0]),
+                    interpolation=cv2.INTER_NEAREST,
+                ).astype(bool)
+                for mask in masks
+            ]
+        )
+
+        resized = cm.resize(target_shape)
+
+        np.testing.assert_array_equal(resized.to_dense(), expected)
+        np.testing.assert_array_equal(resized.area, expected.sum(axis=(1, 2)))
+        np.testing.assert_array_equal(cm.to_dense(), original)
+
+    @pytest.mark.parametrize("num_masks", [1, 8])
+    def test_sparse_image_grid_sampling(self, num_masks: int) -> None:
+        """Sparse crops follow full-image sampling in serial and threaded batches."""
+        image_shape = (17, 19)
+        masks = np.zeros((num_masks, *image_shape), dtype=bool)
+        region = np.zeros((9, 10), dtype=bool)
+        region[1:5, 1:4] = True
+        region[6:8, 7:9] = True
+        for mask_index in range(num_masks):
+            row_offset, col_offset = divmod(mask_index, 4)
+            masks[
+                mask_index,
+                row_offset : row_offset + region.shape[0],
+                col_offset : col_offset + region.shape[1],
+            ] = region
+
+        cm = CompactMask.from_dense(masks, mask_to_xyxy(masks), image_shape)
+        for rle, crop_shape in zip(cm._rles, cm._crop_shapes):
+            crop_area = int(crop_shape[0] * crop_shape[1])
+            assert len(rle) / crop_area < 0.25
+
+        target_shape = (11, 13)
+        expected = np.stack(
+            [
+                cv2.resize(
+                    mask.astype(np.uint8),
+                    (target_shape[1], target_shape[0]),
+                    interpolation=cv2.INTER_NEAREST,
+                ).astype(bool)
+                for mask in masks
+            ]
+        )
+
+        resized = cm.resize(target_shape)
+
+        np.testing.assert_array_equal(resized.to_dense(), expected)
+        np.testing.assert_array_equal(resized.area, expected.sum(axis=(1, 2)))
 
     @pytest.mark.parametrize(
         ("src_shape", "mask_slice", "target_shape", "description"),
@@ -1544,335 +1896,174 @@ class TestCompactMaskResize:
         dense = resized.to_dense()
         assert dense.shape == (1, 2, 2)
 
-    @pytest.mark.parametrize("seed", list(range(10)))
-    def test_dense_parity_roundtrip(self, seed: int) -> None:
-        """Resized CompactMask matches OpenCV-resized dense masks within 1px."""
+    @pytest.mark.parametrize(
+        ("src_shape", "box", "new_shape"),
+        [
+            pytest.param(
+                (640, 640), (100, 120, 100, 120), (1920, 1920), id="upscale-3x"
+            ),
+            pytest.param((100, 100), (10, 50, 20, 60), (50, 50), id="downscale-2x"),
+            pytest.param(
+                (100, 100), (13, 47, 22, 71), (137, 61), id="non-integer-ratio"
+            ),
+            pytest.param((90, 160), (10, 60, 30, 130), (200, 70), id="non-square"),
+            pytest.param((100, 100), (10, 11, 10, 90), (200, 200), id="one-pixel-line"),
+            pytest.param((100, 100), (60, 100, 70, 100), (250, 150), id="touches-edge"),
+            pytest.param(
+                (101, 99), (0, 101, 0, 99), (50, 33), id="full-image-odd-size"
+            ),
+        ],
+    )
+    def test_matches_dense_nearest_resize(
+        self,
+        src_shape: tuple[int, int],
+        box: tuple[int, int, int, int],
+        new_shape: tuple[int, int],
+    ) -> None:
+        """Resized mask equals the dense INTER_NEAREST resize pixel for pixel."""
+        y1, y2, x1, x2 = box
+        mask = np.zeros(src_shape, dtype=bool)
+        mask[y1:y2, x1:x2] = True
+        xyxy = np.array([[x1, y1, x2 - 1, y2 - 1]], dtype=np.float32)
+        cm = CompactMask.from_dense(mask[np.newaxis], xyxy, image_shape=src_shape)
+        expected = cv2.resize(
+            mask.astype(np.uint8),
+            (new_shape[1], new_shape[0]),
+            interpolation=cv2.INTER_NEAREST,
+        ).astype(bool)
+
+        actual = cm.resize(new_shape).to_dense()[0]
+
+        assert np.array_equal(actual, expected)
+
+    @pytest.mark.parametrize("seed", list(range(20)))
+    def test_matches_dense_nearest_resize_random(self, seed: int) -> None:
+        """Random masks, loose boxes, and scales match the dense nearest resize."""
         rng = np.random.default_rng(seed + 500)
-        img_h, img_w = 80, 120
-        target_h, target_w = 40, 60
+        img_h, img_w = (int(v) for v in rng.integers(20, 150, size=2))
+        new_h, new_w = (int(v) for v in rng.integers(5, 300, size=2))
         num_masks = int(rng.integers(1, 5))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        xyxy[:, :2] = np.maximum(xyxy[:, :2] - 3, 0)
+        xyxy[:, 2] = np.minimum(xyxy[:, 2] + 3, img_w - 1)
+        xyxy[:, 3] = np.minimum(xyxy[:, 3] + 3, img_h - 1)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+        expected = np.stack(
+            [
+                cv2.resize(
+                    mask.astype(np.uint8),
+                    (new_w, new_h),
+                    interpolation=cv2.INTER_NEAREST,
+                ).astype(bool)
+                for mask in masks
+            ]
+        )
 
-        resized = cm.resize((target_h, target_w))
-        resized_dense = resized.to_dense()
+        actual = cm.resize((new_h, new_w)).to_dense()
 
-        for i in range(num_masks):
-            expected = cv2.resize(
-                masks[i].astype(np.uint8),
-                (target_w, target_h),
-                interpolation=cv2.INTER_NEAREST,
-            ).astype(bool)
-            actual = resized_dense[i]
-            diff = np.abs(actual.astype(int) - expected.astype(int)).max()
-            assert int(diff) <= 1, (
-                f"Dense parity mismatch for seed={seed}, mask={i}: "
-                f"max pixel diff={diff}"
-            )
+        assert np.array_equal(actual, expected)
+
+    @pytest.mark.parametrize("pixel", [503, 999])
+    def test_unsampled_crop_becomes_empty_1x1_crop(self, pixel: int) -> None:
+        """A mask no output pixel samples becomes an in-bounds 1x1 all-False crop."""
+        masks = np.zeros((1, 1000, 1000), dtype=bool)
+        masks[0, pixel, pixel] = True
+        xyxy = mask_to_xyxy(masks)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(1000, 1000))
+
+        resized = cm.resize((10, 10))
+
+        assert resized._crop_shapes.tolist() == [[1, 1]]
+        assert not resized.crop(0).any()
+        assert not resized.to_dense().any()
+        assert (resized.offsets >= 0).all()
+        assert (resized.offsets <= 9).all()
+
+    def test_resized_crops_stay_inside_image(self) -> None:
+        """Every resized crop lies within the new image for non-uniform scaling."""
+        rng = np.random.default_rng(7)
+        masks, xyxy = _random_masks_and_xyxy(rng, 12, 83, 117)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(83, 117))
+
+        resized = cm.resize((211, 29))
+
+        crop_hs, crop_ws = resized._crop_shapes[:, 0], resized._crop_shapes[:, 1]
+        assert (crop_hs >= 1).all()
+        assert (crop_ws >= 1).all()
+        assert (resized.offsets[:, 1] + crop_hs <= 211).all()
+        assert (resized.offsets[:, 0] + crop_ws <= 29).all()
 
 
-class TestRleResize:
-    """Tests for _rle_resize direct F-order RLE resizing.
+class TestNearestSourceIndex:
+    """Tests for _nearest_source_index, the per-axis INTER_NEAREST sampling map."""
 
-    Verifies that _rle_resize produces identical results to the decode ->
-    cv2.resize(INTER_NEAREST) -> encode path for identity, upscale, downscale,
-    non-square, all-False, all-True, single-pixel, and random masks.
-    """
+    @pytest.mark.parametrize(
+        ("src_size", "dst_size"),
+        [(1, 7), (7, 1), (5, 5), (2, 98), (3, 10), (10, 3), (101, 33), (640, 1920)],
+    )
+    def test_matches_resized_ramp(self, src_size: int, dst_size: int) -> None:
+        """Map equals the source column each pixel of a resized column ramp takes."""
+        from supervision.detection.compact_mask import _nearest_source_index
 
-    def test_identity_4x4(self) -> None:
-        """Identity resize (same dimensions) preserves the decoded mask."""
-        from supervision.detection.compact_mask import _rle_resize
+        ramp = np.arange(src_size, dtype=np.int32).reshape(1, src_size)
+        expected = cv2.resize(ramp, (dst_size, 1), interpolation=cv2.INTER_NEAREST)[0]
+
+        actual = _nearest_source_index(src_size, dst_size)
+
+        assert np.array_equal(actual, expected)
+
+    @pytest.mark.parametrize(
+        ("src_size", "dst_size"), [(640, 1920), (1000, 10), (97, 211)]
+    )
+    def test_is_non_decreasing_and_in_range(self, src_size: int, dst_size: int) -> None:
+        """Map is non-decreasing and only references valid source indices."""
+        from supervision.detection.compact_mask import _nearest_source_index
+
+        result = _nearest_source_index(src_size, dst_size)
+
+        assert len(result) == dst_size
+        assert (np.diff(result) >= 0).all()
+        assert result.min() >= 0
+        assert result.max() <= src_size - 1
+
+
+class TestResizeCrop:
+    """Tests for _resize_crop, which gathers source rows and columns of one crop."""
+
+    def test_gathers_rows_and_columns(self) -> None:
+        """Output pixel (r, c) copies source pixel (row_idx[r], col_idx[c])."""
+        from supervision.detection.compact_mask import _resize_crop
 
         mask = np.array(
-            [
-                [False, True, True, False],
-                [True, True, False, False],
-                [False, False, True, True],
-                [True, False, False, True],
-            ],
-            dtype=bool,
+            [[True, False, False], [False, True, False], [False, False, True]]
         )
         rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, 4, 4, 4, 4)
-        result = _rle_counts_to_mask(result_rle, 4, 4)
-        np.testing.assert_array_equal(result, mask)
+        row_idx = np.array([0, 0, 2], dtype=np.int32)
+        col_idx = np.array([1, 0], dtype=np.int32)
 
-    def test_2x_upscale(self) -> None:
-        """2x upscale of a 2x2 mask doubles each pixel."""
-        from supervision.detection.compact_mask import _rle_resize
+        result_rle = _resize_crop(rle, 3, 3, row_idx, col_idx)
 
-        mask = np.array(
-            [
-                [True, False],
-                [False, True],
-            ],
-            dtype=bool,
-        )
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, 2, 2, 4, 4)
-        result = _rle_counts_to_mask(result_rle, 4, 4)
+        result = _rle_counts_to_mask(result_rle, 3, 2)
+        assert np.array_equal(result, mask[row_idx[:, None], col_idx])
 
-        expected = cv2.resize(
-            mask.astype(np.uint8), (4, 4), interpolation=cv2.INTER_NEAREST
-        ).astype(bool)
-        np.testing.assert_array_equal(result, expected)
+    def test_all_false_crop_stays_all_false(self) -> None:
+        """An all-False crop resizes to a single all-False run of the new size."""
+        from supervision.detection.compact_mask import _resize_crop
 
-    def test_2x_downscale(self) -> None:
-        """2x downscale of a 4x4 block mask halves dimensions."""
-        from supervision.detection.compact_mask import _rle_resize
+        rle = _mask_to_rle_counts(np.zeros((4, 4), dtype=bool))
+        row_idx = np.arange(6, dtype=np.int32) // 2
+        col_idx = np.arange(5, dtype=np.int32) // 2
 
-        mask = np.array(
-            [
-                [True, True, False, False],
-                [True, True, False, False],
-                [False, False, True, True],
-                [False, False, True, True],
-            ],
-            dtype=bool,
-        )
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, 4, 4, 2, 2)
-        result = _rle_counts_to_mask(result_rle, 2, 2)
+        result_rle = _resize_crop(rle, 4, 4, row_idx, col_idx)
 
-        expected = cv2.resize(
-            mask.astype(np.uint8), (2, 2), interpolation=cv2.INTER_NEAREST
-        ).astype(bool)
-        np.testing.assert_array_equal(result, expected)
-
-    def test_non_square_scale(self) -> None:
-        """Non-square resize: 4x6 to 2x3 with independent axis scaling."""
-        from supervision.detection.compact_mask import _rle_resize
-
-        mask = np.zeros((4, 6), dtype=bool)
-        mask[0:2, 0:3] = True
-        mask[2:4, 3:6] = True
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, 4, 6, 2, 3)
-        result = _rle_counts_to_mask(result_rle, 2, 3)
-
-        expected = cv2.resize(
-            mask.astype(np.uint8), (3, 2), interpolation=cv2.INTER_NEAREST
-        ).astype(bool)
-        np.testing.assert_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        ("src_shape", "dst_shape"),
-        [
-            ((3, 3), (6, 6)),
-            ((5, 5), (2, 2)),
-            ((4, 6), (8, 12)),
-            ((10, 10), (3, 3)),
-        ],
-    )
-    def test_all_false(
-        self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
-    ) -> None:
-        """All-False mask resizes to all-False regardless of dimensions."""
-        from supervision.detection.compact_mask import _rle_resize
-
-        mask = np.zeros(src_shape, dtype=bool)
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, *src_shape, *dst_shape)
-        result = _rle_counts_to_mask(result_rle, *dst_shape)
-        assert not result.any()
-
-    @pytest.mark.parametrize(
-        ("src_shape", "dst_shape"),
-        [
-            ((3, 3), (6, 6)),
-            ((5, 5), (2, 2)),
-            ((4, 6), (8, 12)),
-            ((10, 10), (3, 3)),
-        ],
-    )
-    def test_all_true(
-        self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
-    ) -> None:
-        """All-True mask resizes to all-True regardless of dimensions."""
-        from supervision.detection.compact_mask import _rle_resize
-
-        mask = np.ones(src_shape, dtype=bool)
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, *src_shape, *dst_shape)
-        result = _rle_counts_to_mask(result_rle, *dst_shape)
-        assert result.all()
-
-    def test_single_pixel_true_upscale(self) -> None:
-        """Single True pixel in a 3x3 mask upscaled preserves position."""
-        from supervision.detection.compact_mask import _rle_resize
-
-        mask = np.zeros((3, 3), dtype=bool)
-        mask[1, 1] = True
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, 3, 3, 6, 6)
-        result = _rle_counts_to_mask(result_rle, 6, 6)
-
-        expected = cv2.resize(
-            mask.astype(np.uint8), (6, 6), interpolation=cv2.INTER_NEAREST
-        ).astype(bool)
-        np.testing.assert_array_equal(result, expected)
-
-    @pytest.mark.parametrize("seed", list(range(45)))
-    def test_roundtrip_parity_with_cv2(self, seed: int) -> None:
-        """_rle_resize matches cv2.resize(INTER_NEAREST) within 1-pixel tolerance."""
-        from supervision.detection.compact_mask import _rle_resize
-
-        rng = np.random.default_rng(seed + 7000)
-        crop_h = int(rng.integers(1, 50))
-        crop_w = int(rng.integers(1, 50))
-        new_crop_h = int(rng.integers(1, 100))
-        new_crop_w = int(rng.integers(1, 100))
-
-        mask = rng.random((crop_h, crop_w)) < 0.3
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, crop_h, crop_w, new_crop_h, new_crop_w)
-        result = _rle_counts_to_mask(result_rle, new_crop_h, new_crop_w)
-
-        expected = cv2.resize(
-            mask.astype(np.uint8),
-            (new_crop_w, new_crop_h),
-            interpolation=cv2.INTER_NEAREST,
-        ).astype(bool)
-        diff = np.abs(result.astype(int) - expected.astype(int)).max()
-        assert diff <= 1, (
-            f"Parity mismatch >1px for seed={seed}, "
-            f"src=({crop_h},{crop_w}), dst=({new_crop_h},{new_crop_w}): "
-            f"max diff={diff}"
-        )
-
-    @pytest.mark.parametrize(
-        ("src_shape", "dst_shape"),
-        [
-            ((1, 10), (1, 5)),
-            ((10, 1), (5, 1)),
-            ((1, 20), (1, 40)),
-            ((20, 1), (40, 1)),
-        ],
-    )
-    def test_tall_and_wide_crops(
-        self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
-    ) -> None:
-        """Single-row and single-col crops scale correctly with cv2 parity."""
-        from supervision.detection.compact_mask import _rle_resize
-
-        rng = np.random.default_rng(src_shape[0] * 31 + dst_shape[1] * 17)
-        mask = rng.random(src_shape) < 0.5
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, *src_shape, *dst_shape)
-        result = _rle_counts_to_mask(result_rle, *dst_shape)
-
-        expected = cv2.resize(
-            mask.astype(np.uint8),
-            (dst_shape[1], dst_shape[0]),
-            interpolation=cv2.INTER_NEAREST,
-        ).astype(bool)
-        np.testing.assert_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        ("src_shape", "dst_shape"),
-        [
-            ((7, 11), (5, 13)),
-            ((13, 7), (17, 3)),
-            ((3, 5), (11, 7)),
-            ((11, 13), (7, 17)),
-        ],
-    )
-    def test_prime_sized_crops(
-        self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
-    ) -> None:
-        """Prime-sized crops with non-integer scale ratios match cv2 exactly."""
-        from supervision.detection.compact_mask import _rle_resize
-
-        rng = np.random.default_rng(src_shape[0] * 101 + dst_shape[1] * 53)
-        mask = rng.random(src_shape) < 0.4
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, *src_shape, *dst_shape)
-        result = _rle_counts_to_mask(result_rle, *dst_shape)
-
-        expected = cv2.resize(
-            mask.astype(np.uint8),
-            (dst_shape[1], dst_shape[0]),
-            interpolation=cv2.INTER_NEAREST,
-        ).astype(bool)
-        np.testing.assert_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        ("src_val", "src_shape", "dst_shape"),
-        [
-            (True, (1, 1), (32, 32)),
-            (False, (1, 1), (32, 32)),
-        ],
-    )
-    def test_large_scale_ratio(
-        self,
-        src_val: bool,
-        src_shape: tuple[int, int],
-        dst_shape: tuple[int, int],
-    ) -> None:
-        """1x1 source resized to large shape fills entirely True or False."""
-        from supervision.detection.compact_mask import _rle_resize
-
-        mask = np.full(src_shape, src_val, dtype=bool)
-        rle = _mask_to_rle_counts(mask)
-        result_rle = _rle_resize(rle, *src_shape, *dst_shape)
-        result = _rle_counts_to_mask(result_rle, *dst_shape)
-
-        if src_val:
-            assert result.all(), "1x1 True -> large shape must be all True"
-        else:
-            assert not result.any(), "1x1 False -> large shape must be all False"
-
-    def test_resize_dispatch_uses_l3_for_sparse(self) -> None:
-        """resize() dispatches to _rle_resize for sparse masks."""
-        img_h, img_w = 100, 100
-        masks = np.zeros((1, img_h, img_w), dtype=bool)
-        masks[0, 50, 50] = True
-        xyxy = mask_to_xyxy(masks).astype(np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
-
-        resized = cm.resize((200, 200))
-
-        assert resized.shape == (1, 200, 200)
-        dense = resized.to_dense()
-        assert dense.sum() > 0
-
-    def test_resize_dispatch_uses_cv2_for_dense(self) -> None:
-        """_resize_crop falls back to cv2 for dense masks (above _L3_DENSITY_THRESHOLD).
-
-        Checkerboard yields ~1 run per pixel, far above the 0.25 threshold.
-        Result must match cv2.resize(INTER_NEAREST) within 1 pixel.
-        """
-        from supervision.detection.compact_mask import (
-            _L3_DENSITY_THRESHOLD,
-            _resize_crop,
-        )
-        from supervision.detection.utils.converters import _mask_to_rle_counts
-
-        h, w = 20, 20
-        # Checkerboard: alternates True/False → very dense RLE.
-        rows, cols = np.meshgrid(np.arange(h), np.arange(w), indexing="ij")
-        mask = ((rows + cols) % 2).astype(bool)
-        rle = _mask_to_rle_counts(mask)
-        density = len(rle) / max(1, h * w)
-        assert density >= _L3_DENSITY_THRESHOLD, (
-            f"Test precondition failed: density {density:.3f} < threshold "
-            f"{_L3_DENSITY_THRESHOLD}; checkerboard should be dense"
-        )
-
-        result_rle = _resize_crop(rle, h, w, h // 2, w // 2)
-        result = _rle_counts_to_mask(result_rle, h // 2, w // 2)
-        expected = cv2.resize(
-            mask.astype(np.uint8), (w // 2, h // 2), interpolation=cv2.INTER_NEAREST
-        ).astype(bool)
-        diff = np.abs(result.astype(int) - expected.astype(int)).max()
-        assert int(diff) <= 1, f"Dense-path cv2 parity failed; max pixel diff={diff}"
+        assert result_rle.tolist() == [30]
 
 
 class TestResizeParallelPath:
     """Tests for CompactMask.resize() thread-pool code path (N >= 8 masks)."""
 
     def test_parallel_resize_correctness(self) -> None:
-        """resize() with N=10 masks exercises ThreadPoolExecutor; output is correct."""
+        """Resize() with N=10 masks exercises ThreadPoolExecutor; output is correct."""
         img_h, img_w = 80, 80
         n = 10  # above _PARALLEL_THRESHOLD = 8
         masks = np.zeros((n, img_h, img_w), dtype=bool)
@@ -1916,3 +2107,177 @@ class TestResizeParallelPath:
         # Both return correct shapes.
         assert resized_par.shape == (n_parallel, target[0], target[1])
         assert resized_seq.shape == (n_sequential, target[0], target[1])
+
+
+class TestCompactMaskSum:
+    """Tests that sum reductions on a CompactMask match the equivalent dense mask."""
+
+    @staticmethod
+    def _masks() -> np.ndarray:
+        """Return dense masks whose sums differ on every axis combination."""
+        masks = np.zeros((3, 6, 8), dtype=bool)
+        masks[0, 1:3, 1:3] = True
+        masks[1, 2:6, 2:7] = True
+        masks[2, 0, 0] = True
+        return masks
+
+    @pytest.mark.parametrize(
+        "axis",
+        [
+            None,
+            0,
+            1,
+            2,
+            -1,
+            -2,
+            -3,
+            pytest.param((), id="no-axes"),
+            pytest.param((0,), id="tuple-0"),
+            pytest.param((0, 1), id="0-1"),
+            pytest.param((0, 2), id="0-2"),
+            pytest.param((1, 2), id="1-2-area"),
+            pytest.param((2, 1), id="2-1"),
+            pytest.param((-2, -1), id="negative-2-1"),
+            pytest.param((0, 1, 2), id="0-1-2"),
+            pytest.param(np.int64(0), id="np-int64-0"),
+            pytest.param(np.int64(-1), id="np-int64-negative-1"),
+            pytest.param(np.array(1), id="zero-dim-array-1"),
+            pytest.param((np.int64(1), np.int64(2)), id="np-int64-tuple-area"),
+        ],
+    )
+    def test_np_sum_matches_dense_on_every_axis(self, axis: Any) -> None:
+        """np.sum on a CompactMask matches the dense values, shape and dtype."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        result = np.sum(cm, axis=axis)
+
+        expected = np.sum(masks, axis=axis)
+        np.testing.assert_array_equal(result, expected)
+        assert np.shape(result) == np.shape(expected)
+        assert result.dtype == expected.dtype
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({"axis": (1, 2), "dtype": np.float32}, id="area-axis-dtype"),
+            pytest.param({"dtype": np.uint8}, id="total-dtype"),
+            pytest.param({"axis": (1, 2), "keepdims": True}, id="area-axis-keepdims"),
+            pytest.param({"keepdims": True}, id="total-keepdims"),
+            pytest.param({"axis": (1, 2), "initial": 5}, id="area-axis-initial"),
+            pytest.param({"initial": 5}, id="total-initial"),
+            pytest.param(
+                {"axis": (1, 2), "where": np.arange(8) < 2}, id="area-axis-where"
+            ),
+            pytest.param({"axis": 0, "where": np.arange(8) < 2}, id="axis-0-where"),
+        ],
+    )
+    def test_np_sum_honours_reduction_keywords(self, kwargs: dict[str, Any]) -> None:
+        """Reduction keywords reach the result, including on the fast-path axis."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        result = np.sum(cm, **kwargs)
+
+        expected = np.sum(masks, **kwargs)
+        np.testing.assert_array_equal(result, expected)
+        assert np.shape(result) == np.shape(expected)
+        assert result.dtype == expected.dtype
+
+    @pytest.mark.parametrize(
+        ("axis", "shape"),
+        [
+            pytest.param((1, 2), (3,), id="per-mask"),
+            pytest.param(0, (6, 8), id="per-pixel"),
+        ],
+    )
+    def test_np_sum_writes_into_out(
+        self, axis: int | tuple[int, ...], shape: tuple[int, ...]
+    ) -> None:
+        """An out array receives the result and is returned, as NumPy does."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+        out = np.zeros(shape, dtype=np.int64)
+
+        result = np.sum(cm, axis=axis, out=out)
+
+        assert result is out
+        np.testing.assert_array_equal(out, masks.sum(axis=axis))
+
+    def test_positional_arguments_follow_ndarray_sum_order(self) -> None:
+        """cm.sum accepts axis, dtype and out positionally, like ndarray.sum."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+        out = np.zeros(3, dtype=np.float64)
+
+        result = cm.sum((1, 2), np.float64, out)
+
+        assert result is out
+        np.testing.assert_array_equal(out, masks.sum(axis=(1, 2)))
+
+    def test_np_sum_per_mask_area_does_not_materialise_dense(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """np.sum(cm, axis=(1, 2)) keeps the RLE area fast path."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        def fail_to_dense(self: CompactMask) -> np.ndarray:
+            """Fail the test if the dense masks are built."""
+            raise AssertionError("to_dense must not be called")
+
+        monkeypatch.setattr(CompactMask, "to_dense", fail_to_dense)
+
+        result = np.sum(cm, axis=(1, 2))
+
+        np.testing.assert_array_equal(result, masks.sum(axis=(1, 2)))
+
+    def test_array_axis_raises_type_error_like_dense(self) -> None:
+        """A 1-D array axis raises TypeError as dense does, not ValueError."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+        axis: Any = np.array([1, 2])
+
+        with pytest.raises(TypeError):
+            masks.sum(axis=axis)
+        with pytest.raises(TypeError):
+            cm.sum(axis=axis)
+
+    @pytest.mark.parametrize(
+        "axis",
+        [
+            pytest.param((1.0, 2.0), id="float-axes"),
+            pytest.param((True, 2), id="boolean-axis"),
+        ],
+    )
+    def test_invalid_tuple_axes_raise_type_error(self, axis: Any) -> None:
+        """Invalid tuple axes raise the same error for compact and dense masks."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        with pytest.raises(TypeError):
+            np.sum(masks, axis=axis)
+        with pytest.raises(TypeError):
+            np.sum(cm, axis=axis)
+
+    def test_rejects_unknown_keyword(self) -> None:
+        """An unknown keyword raises TypeError instead of being ignored."""
+        cm = _make_cm(self._masks(), (6, 8))
+
+        with pytest.raises(TypeError, match="not_a_keyword"):
+            cm.sum(axis=(1, 2), not_a_keyword=True)
+
+    @pytest.mark.parametrize("axis", [None, 0, pytest.param((1, 2), id="1-2-area")])
+    def test_np_sum_matches_dense_when_empty(
+        self, axis: int | tuple[int, ...] | None
+    ) -> None:
+        """np.sum on a CompactMask with no masks matches an empty dense mask."""
+        masks = np.zeros((0, 6, 8), dtype=bool)
+        cm = _make_cm(masks, (6, 8))
+
+        result = np.sum(cm, axis=axis)
+
+        expected = np.sum(masks, axis=axis)
+        np.testing.assert_array_equal(result, expected)
+        assert np.shape(result) == np.shape(expected)
+        assert result.dtype == expected.dtype

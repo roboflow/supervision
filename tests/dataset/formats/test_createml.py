@@ -3,6 +3,7 @@
 import json
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -81,7 +82,7 @@ class TestCreatemlAnnotationsToDetections:
     )
     def test_converts_annotations(
         self,
-        image_annotations: list[dict],
+        image_annotations: list[dict[str, Any]],
         class_to_index: dict[str, int],
         expected_result: Detections,
     ) -> None:
@@ -121,7 +122,7 @@ class TestCreatemlAnnotationsToDetections:
     )
     def test_raises_on_malformed_annotation(
         self,
-        image_annotations: list[dict],
+        image_annotations: list[dict[str, Any]],
         class_to_index: dict[str, int],
     ) -> None:
         """Raises ValueError with 'Malformed' for any missing required field."""
@@ -157,6 +158,23 @@ class TestDetectionsToCreatemlAnnotations:
 
         with pytest.raises(ValueError, match="class_id"):
             detections_to_createml_annotations(detections=detections, classes=["dog"])
+
+    @pytest.mark.parametrize("class_id", [-1, 2])
+    def test_raises_when_class_id_is_out_of_range(self, class_id: int) -> None:
+        """An out-of-range class_id raises instead of exporting a wrong label.
+
+        A negative id used to index ``classes`` from the end, so -1 was silently written
+        as the last class.
+        """
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([class_id], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match="out of range"):
+            detections_to_createml_annotations(
+                detections=detections, classes=["cat", "dog"]
+            )
 
 
 class TestLoadCreatemlAnnotations:
@@ -217,10 +235,11 @@ class TestLoadCreatemlAnnotations:
 
         original_resolve = Path.resolve
 
-        def fake_resolve(self: Path, *args: object, **kwargs: object) -> Path:
+        def fake_resolve(self: Path, strict: bool = False) -> Path:
+            """Raise OSError for the bad image path, delegate for every other path."""
             if self == tmp_path / "bad.jpg":
                 raise OSError("unresolvable path")
-            return original_resolve(self, *args, **kwargs)
+            return original_resolve(self, strict)
 
         monkeypatch.setattr(Path, "resolve", fake_resolve)
 
@@ -283,7 +302,7 @@ class TestLoadCreatemlAnnotations:
         )
 
     @pytest.mark.parametrize(
-        ("setup_fn", "match"),
+        ("fn_setup", "match"),
         [
             pytest.param(
                 lambda p: ("../evil.jpg", str(p / "images")),
@@ -305,11 +324,11 @@ class TestLoadCreatemlAnnotations:
     def test_raises_on_unsafe_image_path(
         self,
         tmp_path: Path,
-        setup_fn: Callable[[Path], tuple[str, str]],
+        fn_setup: Callable[[Path], tuple[str, str]],
         match: str,
     ) -> None:
         """Raises ValueError for unsafe image path: traversal, absolute, directory."""
-        image, images_dir = setup_fn(tmp_path)
+        image, images_dir = fn_setup(tmp_path)
         annotations_path = tmp_path / "annotations.json"
         annotations_path.write_text(json.dumps([{"image": image, "annotations": []}]))
 
@@ -345,7 +364,7 @@ class TestLoadCreatemlAnnotations:
     def test_raises_on_malformed_json(
         self,
         tmp_path: Path,
-        payload: dict | list,
+        payload: dict[str, Any] | list[Any],
         match: str,
     ) -> None:
         """Raises ValueError for malformed JSON: bad root, missing key, duplicate."""
@@ -436,3 +455,74 @@ class TestSaveCreatemlAnnotations:
         loaded = loaded_annotations[image_paths[0]]
         np.testing.assert_array_almost_equal(loaded.xyxy, xyxy, decimal=decimal)
         np.testing.assert_array_equal(loaded.class_id, class_id)
+
+
+class TestCreatemlBoxExtent:
+    """Tests for how the CreateML loader and exporter handle a reversed box."""
+
+    @pytest.mark.parametrize(
+        ("width", "height"),
+        [
+            pytest.param(-40, 40, id="negative-width"),
+            pytest.param(40, -40, id="negative-height"),
+            pytest.param(-40, -40, id="negative-both"),
+        ],
+    )
+    def test_rejects_a_negative_box_extent(self, width: int, height: int) -> None:
+        """A negative extent puts x_min past x_max once corners are formed."""
+        annotations = [
+            {
+                "label": "thing",
+                "coordinates": {"x": 50, "y": 50, "width": width, "height": height},
+            }
+        ]
+
+        with pytest.raises(
+            ValueError, match=r"Invalid box extent \(.*\) in CreateML annotation"
+        ):
+            createml_annotations_to_detections(
+                image_annotations=annotations, class_to_index={"thing": 0}
+            )
+
+    @pytest.mark.parametrize(
+        ("width", "height", "expected_xyxy"),
+        [
+            pytest.param(0.0, 40.0, [50.0, 30.0, 50.0, 70.0], id="zero-width"),
+            pytest.param(40.0, 0.0, [30.0, 50.0, 70.0, 50.0], id="zero-height"),
+            pytest.param(
+                -0.0, 40.0, [50.0, 30.0, 50.0, 70.0], id="negative-zero-width"
+            ),
+            pytest.param(
+                40.0, -0.0, [30.0, 50.0, 70.0, 50.0], id="negative-zero-height"
+            ),
+        ],
+    )
+    def test_loads_a_zero_box_extent(
+        self, width: float, height: float, expected_xyxy: list[float]
+    ) -> None:
+        """A zero extent is degenerate but valid, so it must keep loading."""
+        annotations = [
+            {
+                "label": "thing",
+                "coordinates": {"x": 50, "y": 50, "width": width, "height": height},
+            }
+        ]
+
+        result = createml_annotations_to_detections(
+            image_annotations=annotations, class_to_index={"thing": 0}
+        )
+
+        assert result.xyxy[0].tolist() == expected_xyxy
+
+    def test_exports_a_reversed_box_with_ordered_corners(self) -> None:
+        """Export must not write a box the loader would refuse to read back."""
+        detections = Detections(
+            xyxy=np.array([[70, 70, 30, 30]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        coordinates = detections_to_createml_annotations(detections, classes=["thing"])[
+            0
+        ]["coordinates"]
+
+        assert coordinates == {"x": 50.0, "y": 50.0, "width": 40.0, "height": 40.0}

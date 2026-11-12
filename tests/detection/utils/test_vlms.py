@@ -60,7 +60,10 @@ from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
         ("123ABC!", "123abc!", False, 0),
     ],
 )
-def test_edit_distance(string_1, string_2, case_sensitive, expected_result) -> None:
+def test_edit_distance(
+    string_1: str, string_2: str, case_sensitive: bool, expected_result: int
+) -> None:
+    """Edit distance matches the expected count for varied strings and casing."""
     assert (
         edit_distance(string_1, string_2, case_sensitive=case_sensitive)
         == expected_result
@@ -104,8 +107,13 @@ def test_edit_distance(string_1, string_2, case_sensitive, expected_result) -> N
     ],
 )
 def test_fuzzy_match_index(
-    candidates, query, threshold, case_sensitive, expected_result
+    candidates: list[str],
+    query: str,
+    threshold: int,
+    case_sensitive: bool,
+    expected_result: int | None,
 ) -> None:
+    """Fuzzy matching returns the first candidate within the threshold."""
     assert (
         fuzzy_match_index(
             candidates=candidates,

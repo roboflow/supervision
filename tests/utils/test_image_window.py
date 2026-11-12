@@ -9,15 +9,23 @@ from PIL import Image
 from supervision.utils.image_window import ImageWindow, _bgr_to_pil, _fit_image
 
 
+def _fake_tkinter() -> MagicMock:
+    """Return a fake tkinter module whose root reports a 1000 x 800 screen."""
+    fake_tkinter = MagicMock()
+    fake_tkinter.Tk.return_value.winfo_screenwidth.return_value = 1000
+    fake_tkinter.Tk.return_value.winfo_screenheight.return_value = 800
+    return fake_tkinter
+
+
 class TestBgrToPil:
-    def test_grayscale(self):
+    def test_grayscale(self) -> None:
         """Grayscale (H,W) array produces an L-mode PIL image of the same size."""
         arr = np.zeros((10, 20), dtype=np.uint8)
         img = _bgr_to_pil(arr)
         assert img.mode == "L"
         assert img.size == (20, 10)
 
-    def test_bgr(self):
+    def test_bgr(self) -> None:
         """BGR (H,W,3) array is converted to RGB-mode PIL image."""
         arr = np.zeros((10, 20, 3), dtype=np.uint8)
         arr[:, :, 0] = 10  # B
@@ -28,7 +36,7 @@ class TestBgrToPil:
         pixel = img.getpixel((0, 0))
         assert pixel == (30, 20, 10)  # R, G, B after swap
 
-    def test_bgra(self):
+    def test_bgra(self) -> None:
         """BGRA (H,W,4) array is reordered to RGBA-mode PIL image."""
         arr = np.zeros((10, 20, 4), dtype=np.uint8)
         arr[:, :, 0] = 10  # B
@@ -48,7 +56,7 @@ class TestBgrToPil:
             pytest.param((10, 20, 3, 1), id="4d"),
         ],
     )
-    def test_invalid_shape_raises(self, shape):
+    def test_invalid_shape_raises(self, shape: tuple[int, ...]) -> None:
         """Unsupported array shapes raise ValueError."""
         arr = np.zeros(shape, dtype=np.uint8)
         with pytest.raises(ValueError, match="Expected shape"):
@@ -56,43 +64,43 @@ class TestBgrToPil:
 
 
 class TestFitImage:
-    def test_scale_down_width_limited(self):
+    def test_scale_down_width_limited(self) -> None:
         """Width-constrained image is scaled so width fits exactly."""
         img = Image.new("RGB", (200, 100))
         result = _fit_image(img, 100, 200)
         assert result.size == (100, 50)
 
-    def test_scale_down_height_limited(self):
+    def test_scale_down_height_limited(self) -> None:
         """Height-constrained image is scaled so height fits exactly."""
         img = Image.new("RGB", (100, 200))
         result = _fit_image(img, 200, 100)
         assert result.size == (50, 100)
 
-    def test_scale_up(self):
+    def test_scale_up(self) -> None:
         """Image smaller than the window is scaled up to fill it."""
         img = Image.new("RGB", (50, 50))
         result = _fit_image(img, 200, 200)
         assert result.size == (200, 200)
 
-    def test_same_size_returns_original(self):
+    def test_same_size_returns_original(self) -> None:
         """Image already matching the window is returned unchanged."""
         img = Image.new("RGB", (100, 100))
         result = _fit_image(img, 100, 100)
         assert result is img
 
-    def test_aspect_ratio_preserved_by_default(self):
+    def test_aspect_ratio_preserved_by_default(self) -> None:
         """Non-square image keeps its aspect ratio when scaled."""
         img = Image.new("RGB", (400, 200))
         result = _fit_image(img, 100, 100)
         assert result.size == (100, 50)
 
-    def test_free_form_stretches_to_exact_size(self):
+    def test_free_form_stretches_to_exact_size(self) -> None:
         """keep_aspect_ratio=False stretches the image to the exact window size."""
         img = Image.new("RGB", (400, 200))
         result = _fit_image(img, 100, 100, keep_aspect_ratio=False)
         assert result.size == (100, 100)
 
-    def test_free_form_same_size_returns_original(self):
+    def test_free_form_same_size_returns_original(self) -> None:
         """keep_aspect_ratio=False with matching size returns the original."""
         img = Image.new("RGB", (100, 100))
         result = _fit_image(img, 100, 100, keep_aspect_ratio=False)
@@ -117,14 +125,16 @@ class TestImageWindowShow:
             ),
         ],
     )
-    def test_show_raises_for_invalid_input(self, array, exc_type, match):
-        """show() rejects arrays with invalid dtype or shape."""
+    def test_show_raises_for_invalid_input(
+        self, array: np.ndarray, exc_type: type[Exception], match: str
+    ) -> None:
+        """Show() rejects arrays with invalid dtype or shape."""
         window = ImageWindow("test")
         with pytest.raises(exc_type, match=match):
             window.show(array)
 
-    def test_show_creates_window_and_updates(self):
-        """show() creates a Tk window, sets the PhotoImage, and calls update."""
+    def test_show_creates_window_and_updates(self) -> None:
+        """Show() creates a Tk window, sets the PhotoImage, and calls update."""
         window = ImageWindow("preview")
         mock_root = MagicMock()
         mock_label = MagicMock()
@@ -147,22 +157,96 @@ class TestImageWindowShow:
         mock_root.update_idletasks.assert_called_once()
         mock_root.update.assert_called_once()
 
+    def test_show_draws_frame_on_call_that_opens_window(self) -> None:
+        """The first show() puts its frame on the label it has just created."""
+        window = ImageWindow("preview")
+        fake_tkinter = _fake_tkinter()
+        fake_imagetk = MagicMock()
+        frame = np.zeros((4, 4, 3), dtype=np.uint8)
+
+        with patch.dict(
+            "sys.modules", {"tkinter": fake_tkinter, "PIL.ImageTk": fake_imagetk}
+        ):
+            window.show(frame)
+
+        fake_tkinter.Label.return_value.configure.assert_called_once_with(
+            image=fake_imagetk.PhotoImage.return_value
+        )
+        assert window._pil_image is not None
+
+    def test_show_draws_frame_on_call_that_reopens_window(self) -> None:
+        """A show() after close() puts its frame on the recreated window's label."""
+        window = ImageWindow("preview")
+        fake_tkinter = _fake_tkinter()
+        fake_imagetk = MagicMock()
+        frame = np.zeros((4, 4, 3), dtype=np.uint8)
+        label = fake_tkinter.Label.return_value
+
+        with patch.dict(
+            "sys.modules", {"tkinter": fake_tkinter, "PIL.ImageTk": fake_imagetk}
+        ):
+            window._ensure_window()
+            window.close()
+            window.show(frame)
+
+        label.configure.assert_called_once_with(
+            image=fake_imagetk.PhotoImage.return_value
+        )
+        assert window._pil_image is not None
+
+    def test_show_sizes_window_to_frame_only_when_opening_it(self) -> None:
+        """Only the opening show() sets the size, and the label cannot change it.
+
+        Under real Tk the window grew on every redraw when the label's size fed back
+        into it, and for wide frames show() did not return. Mocks cannot reproduce that
+        loop, so this pins the settings that remove it.
+        """
+        window = ImageWindow("preview")
+        fake_tkinter = _fake_tkinter()
+        root = fake_tkinter.Tk.return_value
+        frame = np.zeros((48, 64, 3), dtype=np.uint8)
+
+        with patch.dict(
+            "sys.modules", {"tkinter": fake_tkinter, "PIL.ImageTk": MagicMock()}
+        ):
+            window.show(frame)
+            window.show(frame)
+
+        root.geometry.assert_called_once_with("64x48")
+        root.pack_propagate.assert_called_once_with(False)
+        fake_tkinter.Label.assert_called_once_with(
+            root, borderwidth=0, padx=0, pady=0, highlightthickness=0
+        )
+
+    def test_show_limits_opening_window_to_screen_size(self) -> None:
+        """A frame larger than the screen opens a window no larger than the screen."""
+        window = ImageWindow("preview")
+        fake_tkinter = _fake_tkinter()
+        frame = np.zeros((900, 1920, 3), dtype=np.uint8)
+
+        with patch.dict(
+            "sys.modules", {"tkinter": fake_tkinter, "PIL.ImageTk": MagicMock()}
+        ):
+            window.show(frame)
+
+        fake_tkinter.Tk.return_value.geometry.assert_called_once_with("1000x800")
+
 
 class TestImageWindowUpdateDisplay:
-    def test_no_op_without_pil_image(self):
+    def test_no_op_without_pil_image(self) -> None:
         """_update_display() is a no-op when no image has been shown yet."""
         window = ImageWindow()
         window._label = MagicMock()
         window._update_display()
         window._label.configure.assert_not_called()
 
-    def test_no_op_without_label(self):
+    def test_no_op_without_label(self) -> None:
         """_update_display() does not raise when the window has no label."""
         window = ImageWindow()
         window._pil_image = Image.new("RGB", (10, 10))
         window._update_display()  # must not raise
 
-    def test_uses_native_size_when_window_size_unknown(self):
+    def test_uses_native_size_when_window_size_unknown(self) -> None:
         """Native resolution is used when _win_w/_win_h are still 0."""
         window = ImageWindow()
         window._pil_image = Image.new("RGB", (80, 60))
@@ -176,7 +260,7 @@ class TestImageWindowUpdateDisplay:
         displayed = fake_imagetk.PhotoImage.call_args[0][0]
         assert displayed.size == (80, 60)
 
-    def test_scales_image_to_window_size(self):
+    def test_scales_image_to_window_size(self) -> None:
         """Image is rescaled to fit _win_w x _win_h when dimensions are known."""
         window = ImageWindow()
         window._pil_image = Image.new("RGB", (400, 200))
@@ -192,7 +276,7 @@ class TestImageWindowUpdateDisplay:
         displayed = fake_imagetk.PhotoImage.call_args[0][0]
         assert displayed.size == (200, 100)
 
-    def test_stretches_image_when_keep_aspect_ratio_false(self):
+    def test_stretches_image_when_keep_aspect_ratio_false(self) -> None:
         """Image is stretched to fill window when keep_aspect_ratio=False."""
         window = ImageWindow(keep_aspect_ratio=False)
         window._pil_image = Image.new("RGB", (400, 200))
@@ -209,7 +293,31 @@ class TestImageWindowUpdateDisplay:
 
 
 class TestImageWindowOnConfigure:
-    def test_non_root_widget_is_ignored(self):
+    @pytest.mark.parametrize(
+        ("frame_size", "window_size"),
+        [
+            pytest.param((1, 900), (1, 800), id="one-pixel-wide"),
+            pytest.param((1200, 1), (1000, 1), id="one-pixel-high"),
+        ],
+    )
+    def test_single_pixel_dimension_fits_frame(
+        self, frame_size: tuple[int, int], window_size: tuple[int, int]
+    ) -> None:
+        """A one-pixel window dimension still fits an oversized frame."""
+        window = ImageWindow()
+        root = MagicMock()
+        window._root = root
+        window._label = MagicMock()
+        window._pil_image = Image.new("RGB", frame_size)
+        event = MagicMock(widget=root, width=window_size[0], height=window_size[1])
+        fake_imagetk = MagicMock()
+
+        with patch.dict("sys.modules", {"PIL.ImageTk": fake_imagetk}):
+            window._on_configure(event)
+
+        assert fake_imagetk.PhotoImage.call_args.args[0].size == window_size
+
+    def test_non_root_widget_is_ignored(self) -> None:
         """<Configure> events from child widgets do not update dimensions."""
         window = ImageWindow()
         mock_root = MagicMock()
@@ -226,7 +334,7 @@ class TestImageWindowOnConfigure:
         assert window._win_h == 0
         mock_update.assert_not_called()
 
-    def test_same_size_event_is_ignored(self):
+    def test_same_size_event_is_ignored(self) -> None:
         """<Configure> with unchanged dimensions does not trigger a redraw."""
         window = ImageWindow()
         mock_root = MagicMock()
@@ -243,14 +351,14 @@ class TestImageWindowOnConfigure:
 
         mock_update.assert_not_called()
 
-    def test_degenerate_size_is_ignored(self):
-        """<Configure> with width or height <= 1 (pre-geometry) is skipped."""
+    def test_degenerate_size_is_ignored(self) -> None:
+        """<Configure> with a nonpositive dimension is skipped."""
         window = ImageWindow()
         mock_root = MagicMock()
         window._root = mock_root
         event = MagicMock()
         event.widget = mock_root
-        event.width = 1
+        event.width = 0
         event.height = 100
 
         with patch.object(window, "_update_display") as mock_update:
@@ -259,7 +367,7 @@ class TestImageWindowOnConfigure:
         assert window._win_w == 0
         mock_update.assert_not_called()
 
-    def test_new_size_updates_dimensions_and_redraws(self):
+    def test_new_size_updates_dimensions_and_redraws(self) -> None:
         """<Configure> with new dimensions updates _win_w/_win_h and redraws."""
         window = ImageWindow()
         mock_root = MagicMock()
@@ -277,7 +385,7 @@ class TestImageWindowOnConfigure:
         assert window._win_h == 240
         mock_update.assert_called_once()
 
-    def test_new_size_without_image_skips_redraw(self):
+    def test_new_size_without_image_skips_redraw(self) -> None:
         """<Configure> with new dimensions but no image updates dims only."""
         window = ImageWindow()
         mock_root = MagicMock()
@@ -296,13 +404,13 @@ class TestImageWindowOnConfigure:
 
 
 class TestImageWindowWaitKey:
-    def test_wait_key_returns_none_when_no_window(self):
+    def test_wait_key_returns_none_when_no_window(self) -> None:
         """wait_key() returns None immediately when no window exists."""
         window = ImageWindow()
         assert window.wait_key(delay_ms=0) is None
         assert window.wait_key(delay_ms=1) is None
 
-    def test_wait_key_returns_none_when_closed_mid_wait(self):
+    def test_wait_key_returns_none_when_closed_mid_wait(self) -> None:
         """wait_key(0) returns None when close() fires during blocking wait."""
         window = ImageWindow()
         mock_root = MagicMock()
@@ -316,7 +424,7 @@ class TestImageWindowWaitKey:
         assert result is None
         assert window._root is None
 
-    def test_wait_key_returns_queued_key_immediately(self):
+    def test_wait_key_returns_queued_key_immediately(self) -> None:
         """wait_key() returns the first queued keysym without calling update."""
         window = ImageWindow()
         window._root = MagicMock()
@@ -325,7 +433,7 @@ class TestImageWindowWaitKey:
         assert result == "q"
         assert window._key_queue == ["Escape"]
 
-    def test_wait_key_blocks_with_tk_event_loop(self):
+    def test_wait_key_blocks_with_tk_event_loop(self) -> None:
         """Blocking wait_key() uses Tk wait_variable instead of update polling."""
         window = ImageWindow()
         mock_root = MagicMock()
@@ -340,7 +448,7 @@ class TestImageWindowWaitKey:
         mock_root.wait_variable.assert_called_once_with(mock_event)
         mock_root.update.assert_not_called()
 
-    def test_wait_key_returns_none_on_timeout(self):
+    def test_wait_key_returns_none_on_timeout(self) -> None:
         """wait_key() returns None when no key arrives before the deadline."""
         window = ImageWindow()
         mock_root = MagicMock()
@@ -359,7 +467,7 @@ class TestImageWindowWaitKey:
 
 
 class TestImageWindowClose:
-    def test_is_open_reports_window_state(self):
+    def test_is_open_reports_window_state(self) -> None:
         """is_open reflects whether the underlying Tk root still exists."""
         window = ImageWindow()
         assert window.is_open is False
@@ -372,8 +480,8 @@ class TestImageWindowClose:
         mock_root.winfo_exists.return_value = 0
         assert window.is_open is False
 
-    def test_close_destroys_root(self):
-        """close() calls destroy() on the Tk root and nulls internal refs."""
+    def test_close_destroys_root(self) -> None:
+        """Close() calls destroy() on the Tk root and nulls internal refs."""
         window = ImageWindow()
         mock_root = MagicMock()
         window._root = mock_root
@@ -387,8 +495,8 @@ class TestImageWindowClose:
         assert window._label is None
         assert window._photo is None
 
-    def test_close_signals_waiters_and_clears_key_event(self):
-        """close() wakes wait_key() callers and clears stale Tk references."""
+    def test_close_signals_waiters_and_clears_key_event(self) -> None:
+        """Close() wakes wait_key() callers and clears stale Tk references."""
         window = ImageWindow()
         mock_root = MagicMock()
         mock_event = MagicMock()
@@ -403,21 +511,21 @@ class TestImageWindowClose:
         assert window._root is None
         assert window._key_event is None
 
-    def test_close_is_idempotent(self):
-        """close() on an already-closed window does not raise."""
+    def test_close_is_idempotent(self) -> None:
+        """Close() on an already-closed window does not raise."""
         window = ImageWindow()
         window.close()  # no window created
         window.close()  # second call must not raise
 
-    def test_close_clears_key_queue(self):
-        """close() discards stale keys so they don't fire on next open."""
+    def test_close_clears_key_queue(self) -> None:
+        """Close() discards stale keys so they don't fire on next open."""
         window = ImageWindow()
         window._root = MagicMock()
         window._key_queue = ["q", "Escape"]
         window.close()
         assert window._key_queue == []
 
-    def test_window_exists_returns_false_for_destroyed_root(self):
+    def test_window_exists_returns_false_for_destroyed_root(self) -> None:
         """Destroyed Tk roots are not reused after a window-manager close."""
         window = ImageWindow()
         mock_root = MagicMock()
@@ -428,15 +536,15 @@ class TestImageWindowClose:
 
 
 class TestImageWindowContextManager:
-    def test_context_manager_closes_on_exit(self):
+    def test_context_manager_closes_on_exit(self) -> None:
         """The with-statement calls close() when the block exits normally."""
         with patch.object(ImageWindow, "close") as mock_close:
             with ImageWindow("ctx") as w:
                 assert isinstance(w, ImageWindow)
             mock_close.assert_called_once()
 
-    def test_context_manager_closes_on_exception(self):
-        """close() is called even when the body raises."""
+    def test_context_manager_closes_on_exception(self) -> None:
+        """Close() is called even when the body raises."""
         with patch.object(ImageWindow, "close") as mock_close:
             with pytest.raises(RuntimeError):
                 with ImageWindow("ctx"):
@@ -445,21 +553,21 @@ class TestImageWindowContextManager:
 
 
 class TestImageWindowMouseCallback:
-    def test_set_mouse_callback_stores_callable(self):
+    def test_set_mouse_callback_stores_callable(self) -> None:
         """set_mouse_callback() stores the callable for later use."""
         window = ImageWindow()
         cb = MagicMock()
         window.set_mouse_callback(cb)
         assert window._mouse_callback is cb
 
-    def test_set_mouse_callback_none_removes_callback(self):
+    def test_set_mouse_callback_none_removes_callback(self) -> None:
         """Passing None removes a previously set callback."""
         window = ImageWindow()
         window.set_mouse_callback(MagicMock())
         window.set_mouse_callback(None)
         assert window._mouse_callback is None
 
-    def test_on_mouse_forwards_raw_coords_without_image(self):
+    def test_on_mouse_forwards_raw_coords_without_image(self) -> None:
         """_on_mouse() forwards raw coordinates when no image has been shown."""
         window = ImageWindow()
         cb = MagicMock()
@@ -470,7 +578,7 @@ class TestImageWindowMouseCallback:
         window._on_mouse(event, "down")
         cb.assert_called_once_with(5, 10, "down")
 
-    def test_on_mouse_maps_scaled_coords_to_image_pixels(self):
+    def test_on_mouse_maps_scaled_coords_to_image_pixels(self) -> None:
         """Event coordinates are unscaled back to original image pixels."""
         window = ImageWindow()
         window._pil_image = Image.new("RGB", (400, 200))
@@ -485,7 +593,7 @@ class TestImageWindowMouseCallback:
         window._on_mouse(event, "move")
         cb.assert_called_once_with(200, 0, "move")
 
-    def test_on_mouse_clamps_coords_into_image_bounds(self):
+    def test_on_mouse_clamps_coords_into_image_bounds(self) -> None:
         """Coordinates outside the displayed image are clamped to its bounds."""
         window = ImageWindow()
         window._pil_image = Image.new("RGB", (400, 200))
@@ -500,7 +608,7 @@ class TestImageWindowMouseCallback:
         window._on_mouse(event, "down")
         cb.assert_called_once_with(399, 0, "down")
 
-    def test_on_mouse_after_configure_resize_maps_correct_coords(self):
+    def test_on_mouse_after_configure_resize_maps_correct_coords(self) -> None:
         """End-to-end: a <Configure> resize followed by a click maps to image pixels."""
         window = ImageWindow()
         window._pil_image = Image.new("RGB", (400, 200))
@@ -524,7 +632,7 @@ class TestImageWindowMouseCallback:
         window._on_mouse(mouse_event, "down")
         cb.assert_called_once_with(200, 0, "down")
 
-    def test_on_mouse_maps_coords_when_stretched(self):
+    def test_on_mouse_maps_coords_when_stretched(self) -> None:
         """Event coords unscale correctly when keep_aspect_ratio=False (stretched)."""
         window = ImageWindow(keep_aspect_ratio=False)
         window._pil_image = Image.new("RGB", (400, 200))

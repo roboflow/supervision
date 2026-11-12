@@ -23,9 +23,9 @@ class Assets(Enum):
 
 
 class VideoAssets(Assets):
-    """
-    Each member of this class represents a video asset. The value associated with each
-    member has a filename and hash of the video. File names and links can be seen below.
+    """Each member of this class represents a video asset.
+
+    The value associated with each member has a filename and hash of the video. File names and links can be seen below.
 
     | Asset                  | Video Filename             | Video URL                                                                             |
     |------------------------|----------------------------|---------------------------------------------------------------------------------------|
@@ -47,7 +47,7 @@ class VideoAssets(Assets):
         "9e8fb6e883f842a38b3d34267290bdc7",
     )
     VEHICLES_2 = ("vehicles-2.mp4", "830af6fba21ffbf14867a7fea595937b")
-    GROCERY_STORE = ("grocery-store.mp4", "48608fb4a8981f1c2469fa492adeec9c")
+    GROCERY_STORE = ("grocery-store.mp4", "11402e7b861c1980527d3d74cbe3b366")
     SUBWAY = ("subway.mp4", "453475750691fb23c56a0cffef089194")
     MARKET_SQUARE = ("market-square.mp4", "859179bf4a21f80a8baabfdb2ed716dc")
     PEOPLE_WALKING = ("people-walking.mp4", "0574c053c8686c3f1dc0aa3743e45cb9")
@@ -57,15 +57,14 @@ class VideoAssets(Assets):
 
 
 class ImageAssets(Assets):
-    """
-    Each member of this enum represents a image asset. The value associated with each
-    member is the filename of the image.
+    """Each member of this enum represents a image asset.
+
+    The value associated with each member is the filename of the image.
 
     | Asset              | Image Filename         | Video URL                                                                             |
     |--------------------|------------------------|---------------------------------------------------------------------------------------|
     | `PEOPLE_WALKING`   | `people-walking.jpg`   | [Link](https://media.roboflow.com/supervision/image-examples/people-walking.jpg)      |
     | `SOCCER`           | `soccer.jpg`           | [Link](https://media.roboflow.com/supervision/image-examples/soccer.jpg)              |
-
     """  # noqa: E501 // docs
 
     PEOPLE_WALKING = ("people-walking.jpg", "e6bda00b47f2908eeae7df86ef995dcd")

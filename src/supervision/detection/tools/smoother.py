@@ -4,13 +4,31 @@ from copy import deepcopy
 
 import numpy as np
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
+from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.utils.internal import SupervisionWarnings
 
 
+def _align_oriented_corners(corners: np.ndarray, reference: np.ndarray) -> np.ndarray:
+    """Align OBB corner starts and winding with a reference representation."""
+    variants = [corners, corners[:, ::-1]]
+    candidates = np.stack(
+        [
+            np.roll(candidate, shift, axis=1)
+            for candidate in variants
+            for shift in range(4)
+        ]
+    )
+    comparison_dtype = np.result_type(candidates.dtype, reference.dtype, np.float64)
+    deltas = candidates.astype(comparison_dtype, copy=False) - reference[None, ...]
+    distances = np.sum(deltas**2, axis=(-2, -1))
+    best = np.argmin(distances, axis=0)
+    return np.asarray(candidates[best, np.arange(corners.shape[0])])
+
+
 class DetectionsSmoother:
-    """
-    A utility class for smoothing detections over multiple frames in video tracking.
+    """A utility class for smoothing detections over multiple frames in video tracking.
     It maintains a history of detections for each track and provides smoothed
     predictions based on these histories.
 
@@ -22,8 +40,9 @@ class DetectionsSmoother:
 
     !!! warning
 
-        - `DetectionsSmoother` requires the `tracker_id` for each detection. Refer to
-          [Roboflow Trackers](/latest/trackers/) for
+        - :class:`~supervision.detection.tools.smoother.DetectionsSmoother`
+          requires the `tracker_id` for each detection. Refer to
+          [Roboflow Trackers](https://trackers.roboflow.com/latest/) for
           information on integrating tracking into your inference pipeline.
         - This class is not compatible with segmentation models.
         - When detections in a frame disagree on confidence presence — some tracks
@@ -60,23 +79,28 @@ class DetectionsSmoother:
         ```python
         import supervision as sv
 
-        from ultralytics import YOLO
+        from rfdetr import RFDETRMedium
+        from trackers import ByteTrackTracker
 
         video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_FILE_PATH>")
         frame_generator = sv.get_video_frames_generator(
             source_path="<SOURCE_FILE_PATH>")
 
-        model = YOLO("<MODEL_PATH>")
-        tracker = sv.ByteTrack(frame_rate=video_info.fps)
+        model = RFDETRMedium()
+        tracker = ByteTrackTracker(
+            frame_rate=video_info.fps,
+            track_activation_threshold=0.25,
+            minimum_consecutive_frames=1,
+        )
         smoother = sv.DetectionsSmoother()
 
         box_annotator = sv.BoxAnnotator()
 
         with sv.VideoSink("<TARGET_FILE_PATH>", video_info=video_info) as sink:
             for frame in frame_generator:
-                result = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(result)
-                detections = tracker.update_with_detections(detections)
+                detections = model.predict(frame[:, :, ::-1])
+                detections = tracker.update(detections)
+                detections = detections[detections.tracker_id != -1]
                 detections = smoother.update_with_detections(detections)
 
                 annotated_frame = box_annotator.annotate(frame.copy(), detections)
@@ -88,17 +112,17 @@ class DetectionsSmoother:
         """
         Args:
             length: The maximum number of frames to consider for smoothing
-                detections. Defaults to 5.
+                detections. Each update counts as one frame, including frames
+                without tracker IDs. Defaults to 5.
         """
         self.tracks: defaultdict[int, deque[Detections | None]] = defaultdict(
             lambda: deque(maxlen=length)
         )
 
     def reset(self) -> None:
-        """
-        Clears the per-track detection history so the smoother can be reused
-        across independent streams without carrying over frames from a
-        previous stream. The configured window `length` is preserved.
+        """Clears the per-track detection history so the smoother can be reused across
+        independent streams without carrying over frames from a previous stream. The
+        configured window `length` is preserved.
 
         Examples:
             ```pycon
@@ -122,53 +146,109 @@ class DetectionsSmoother:
         self.tracks.clear()
 
     def update_with_detections(self, detections: Detections) -> Detections:
-        """
-        Updates the smoother with a new set of detections from a frame.
+        """Updates the smoother with a new set of detections from a frame.
+
+        Every call counts as one frame toward the window `length`. Frames without
+        tracker IDs, including empty ones, still age the cached history, but their
+        detections are returned unchanged and each such frame emits a warning. The
+        warning is raised before the history changes, so a warning turned into an
+        error leaves the cached history intact.
+
+        Detections with a negative `tracker_id` belong to tracks the tracker has not
+        confirmed yet and may share one ID, so they are not smoothed and have no
+        history. They are returned unchanged, after the smoothed tracks.
+        When the current frame has oriented corners but confirmed tracks cannot
+        retain smoothed corners, all confirmed tracks use corners of their
+        axis-aligned smoothed bounds so unconfirmed detections retain their original
+        oriented geometry.
 
         Args:
             detections: The detections to add to the smoother.
-        """
 
-        if detections.tracker_id is None:
+        Returns:
+            Smoothed detections for the tracks present in this frame, followed by
+            the detections with a negative `tracker_id`. When `detections` has no
+            `tracker_id`, the input object itself is returned.
+        """
+        tracker_ids = detections.tracker_id
+        if tracker_ids is None:
             warnings.warn(
                 "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
-                "https://supervision.roboflow.com/latest/trackers for more "
+                "https://trackers.roboflow.com/latest/ for more "
                 "information.",
                 category=SupervisionWarnings,
             )
+            self._age_tracks(active_ids=set())
             return detections
 
-        for detection_idx in range(len(detections)):
-            tracker_id_value = detections.tracker_id[detection_idx]
-            tracker_id = int(tracker_id_value)
+        # Unconfirmed tracks share a negative ID; pooling them would average unrelated
+        # boxes, so they skip the history and are returned unchanged.
+        unconfirmed = tracker_ids < 0
+        for detection_idx in np.flatnonzero(~unconfirmed):
+            tracker_id = int(tracker_ids[detection_idx])
+            self.tracks[tracker_id].append(detections.select(int(detection_idx)))
 
-            self.tracks[tracker_id].append(detections.select(detection_idx))
+        active_ids = set(tracker_ids[~unconfirmed].tolist())
+        self._age_tracks(active_ids=active_ids)
+        smoothed = self.get_smoothed_detections(track_ids=active_ids)
+        if not unconfirmed.any():
+            return smoothed
 
+        unsmoothed = detections.select(unconfirmed)
+        if len(smoothed) > 0:
+            # `Detections.merge` needs every row to agree on optional fields and
+            # data keys, and smoothing can drop confidence or oriented corners.
+            if unsmoothed.confidence is None:
+                smoothed.confidence = None
+            if ORIENTED_BOX_COORDINATES in unsmoothed.data:
+                # A merged data field needs one row per detection. If history cannot
+                # supply oriented corners, use the smoothed axis-aligned envelope.
+                if ORIENTED_BOX_COORDINATES not in smoothed.data:
+                    smoothed.data[ORIENTED_BOX_COORDINATES] = smoothed.xyxy[
+                        :, [[0, 1], [2, 1], [2, 3], [0, 3]]
+                    ]
+                unsmoothed.data[ORIENTED_BOX_COORDINATES] = np.asarray(
+                    unsmoothed.data[ORIENTED_BOX_COORDINATES]
+                )
+        return Detections.merge([smoothed, unsmoothed])
+
+    def _age_tracks(self, active_ids: set[int]) -> None:
+        """Advance every cached track by one frame and drop fully expired tracks.
+
+        Args:
+            active_ids: Track IDs that received a detection in the current frame.
+        """
+        # Tracks without a detection this frame get an empty sample, so the window
+        # slides on every call and old samples fall out even while a track is absent.
         for track_id in self.tracks.keys():
-            if track_id not in detections.tracker_id:
+            if track_id not in active_ids:
                 self.tracks[track_id].append(None)
 
         for track_id in list(self.tracks.keys()):
-            if all([d is None for d in self.tracks[track_id]]):
+            if all(d is None for d in self.tracks[track_id]):
                 del self.tracks[track_id]
 
-        current_track_ids = {int(track_id) for track_id in detections.tracker_id}
-        return self.get_smoothed_detections(track_ids=current_track_ids)
-
     def get_track(self, track_id: int) -> Detections | None:
-        """Return the smoothed `Detections` for a single track.
+        """Return the smoothed :class:`~supervision.detection.core.Detections` for a
+        single track.
 
         Averages `xyxy` over all valid (non-`None`) frames in the track window.
         `confidence` is averaged only over frames that carry it; frames with
-        `confidence=None` are excluded. Returns `None` when the track is unknown
-        or its entire window is empty.
+        `confidence=None` are excluded. When every valid frame carries compatible
+        oriented-box corners, those corners are aligned and averaged too, and
+        `xyxy` is derived from their resulting envelope. Mixed or incompatible
+        oriented-box metadata is dropped to keep the returned geometry consistent.
+        Every other field, such as `class_id`, `data` and `metadata`, is taken from
+        the track's most recent frame.
+        Returns `None` when the track is unknown or its entire window is empty.
 
         Args:
             track_id: The tracker ID whose smoothed detection to retrieve.
 
         Returns:
-            Smoothed `Detections` for the track, or `None` if the track is
-            unknown or all frames in its window are empty.
+            Smoothed :class:`~supervision.detection.core.Detections` for the
+            track, or `None` if the track is unknown or all frames in its window
+            are empty.
         """
         track = self.tracks.get(track_id, None)
         if track is None:
@@ -178,13 +258,33 @@ class DetectionsSmoother:
         if len(valid) == 0:
             return None
 
-        ret = deepcopy(valid[0])
+        # Build on the newest frame: for a track active in the current frame that is
+        # the current detection, so its class and data are up to date, and every
+        # emitted track carries the same frame's metadata, which `Detections.merge`
+        # requires to agree.
+        ret = deepcopy(valid[-1])
         ret.xyxy = np.mean(np.stack([d.xyxy for d in valid], axis=0), axis=0)
         # Average confidence only over frames that carry it; frames with
         # confidence=None contribute nothing to the mean. Retain None when
         # no frame in the window carries confidence.
         confidences = [d.confidence for d in valid if d.confidence is not None]
         ret.confidence = np.mean(np.array(confidences), axis=0) if confidences else None
+
+        corner_sets = [
+            np.asarray(d.data[ORIENTED_BOX_COORDINATES])
+            for d in valid
+            if ORIENTED_BOX_COORDINATES in d.data
+        ]
+        if len(corner_sets) == len(valid) and len({c.shape for c in corner_sets}) == 1:
+            reference = corner_sets[0]
+            aligned = [
+                _align_oriented_corners(corners, reference) for corners in corner_sets
+            ]
+            smoothed_corners = np.mean(np.stack(aligned, axis=0), axis=0)
+            ret.data[ORIENTED_BOX_COORDINATES] = smoothed_corners
+            ret.xyxy = xyxyxyxy_to_xyxy(smoothed_corners)
+        else:
+            ret.data.pop(ORIENTED_BOX_COORDINATES, None)
 
         return ret
 
@@ -195,6 +295,19 @@ class DetectionsSmoother:
             track_ids: Optional set of track IDs to include in the output. When
                 provided, tracks absent from the current frame are excluded from the
                 emitted detections but their history stays cached.
+
+        Returns:
+            The merged smoothed detections. Oriented-box corners are included only
+            when every returned track has them.
+
+        Example:
+            ```pycon
+            >>> import supervision as sv
+            >>> smoother = sv.DetectionsSmoother(length=2)
+            >>> len(smoother.get_smoothed_detections())
+            0
+
+            ```
         """
         tracked_detections = []
         for track_id in self.tracks:
@@ -210,6 +323,15 @@ class DetectionsSmoother:
         if tracked_detections and any(d.confidence is None for d in tracked_detections):
             for d in tracked_detections:
                 d.confidence = None
+
+        oriented_tracks = [
+            track
+            for track in tracked_detections
+            if ORIENTED_BOX_COORDINATES in track.data
+        ]
+        if len(oriented_tracks) != len(tracked_detections):
+            for track in oriented_tracks:
+                del track.data[ORIENTED_BOX_COORDINATES]
 
         detections = Detections.merge(tracked_detections)
         if len(detections) == 0:

@@ -1,11 +1,14 @@
+import re
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 from PIL import Image
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.dataset.formats.yolo import (
     _extract_class_names,
@@ -32,7 +35,7 @@ def _arrays_almost_equal(
 ) -> bool:
     equal_elements = np.equal(arr1, arr2)
     proportion_equal = np.mean(equal_elements)
-    return proportion_equal >= threshold
+    return bool(proportion_equal >= threshold)
 
 
 @pytest.mark.parametrize(
@@ -59,11 +62,26 @@ def _arrays_almost_equal(
             True,
             DoesNotRaise(),
         ),  # yolo annotation file with two lines - one box and one polygon
+        pytest.param(
+            ["0 0.5 0.5 0.2 0.4 0.95"],
+            False,
+            DoesNotRaise(),
+            id="box-with-trailing-confidence",
+        ),
+        pytest.param(
+            ["0 0.5 0.5 0.2 0.4 3"],
+            False,
+            DoesNotRaise(),
+            id="box-with-trailing-tracker-id",
+        ),
     ],
 )
 def test_with_mask(
-    lines: list[str], expected_result: bool | None, exception: Exception
+    lines: list[str],
+    expected_result: bool | None,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Detect polygon lines; a sixth box token is not a mask."""
     with exception:
         result = _with_seg_mask(lines=lines)
         assert result == expected_result
@@ -198,17 +216,569 @@ def test_yolo_annotations_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
     expected_result: Detections | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = yolo_annotations_to_detections(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
+        assert expected_result is not None
         assert np.array_equal(result.xyxy, expected_result.xyxy)
+        assert result.class_id is not None
+        assert expected_result.class_id is not None
         assert np.array_equal(result.class_id, expected_result.class_id)
-        assert (
-            result.mask is None and expected_result.mask is None
-        ) or _arrays_almost_equal(result.mask, expected_result.mask)
+        if result.mask is not None or expected_result.mask is not None:
+            assert isinstance(result.mask, np.ndarray)
+            assert isinstance(expected_result.mask, np.ndarray)
+            assert _arrays_almost_equal(result.mask, expected_result.mask)
+
+
+class TestYoloAnnotationsToDetectionsClassId:
+    """Tests for how ``yolo_annotations_to_detections`` reads the class id column."""
+
+    @pytest.mark.parametrize(
+        "class_token",
+        [
+            "2",
+            "2.0",
+            pytest.param("2.000000000000000000e+00", id="numpy-savetxt-default"),
+        ],
+    )
+    def test_loads_whole_number_class_id(self, class_token: str) -> None:
+        """Class ids written as whole numbers load as integers in any notation."""
+        lines = [f"{class_token} 0.5 0.5 0.2 0.2"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(100, 100), with_masks=False
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([2]))
+        np.testing.assert_allclose(result.xyxy, [[40.0, 40.0, 60.0, 60.0]])
+
+    @pytest.mark.parametrize(
+        "class_token",
+        [
+            "2.5",
+            "nan",
+            "inf",
+            "dog",
+            pytest.param("2.0000000000000001", id="binary-rounding"),
+            pytest.param("1e-400", id="binary-underflow"),
+        ],
+    )
+    def test_rejects_class_id_that_is_not_a_whole_number(
+        self, class_token: str
+    ) -> None:
+        """Class ids that are not finite whole numbers raise ValueError."""
+        lines = [f"{class_token} 0.5 0.5 0.2 0.2"]
+
+        with pytest.raises(ValueError, match="class id"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
+
+class TestYoloAnnotationsToDetectionsMalformedLine:
+    """Tests for YOLO lines that match no known annotation shape."""
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            pytest.param("0", id="class-only"),
+            pytest.param("0 0.5", id="one-coordinate"),
+            pytest.param("0 0.5 0.5", id="two-coordinates"),
+            pytest.param("0 0.5 0.5 0.2", id="missing-height"),
+            pytest.param("", id="blank"),
+            pytest.param("   ", id="whitespace-only"),
+        ],
+    )
+    def test_rejects_a_line_that_is_too_short(self, line: str) -> None:
+        """Rejects a line with fewer than five tokens."""
+        expected = re.escape(
+            f"Invalid YOLO annotation line {line!r}; expected at least 5 tokens "
+            f"(class id and four box values), got {len(line.split())}."
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            yolo_annotations_to_detections(
+                lines=[line], resolution_wh=(100, 100), with_masks=False
+            )
+
+    @pytest.mark.parametrize(
+        "coordinate_count",
+        [
+            pytest.param(4, id="axis-aligned-box"),
+            pytest.param(5, id="too-few"),
+            pytest.param(7, id="odd-count"),
+            pytest.param(9, id="corners-with-confidence"),
+            pytest.param(10, id="too-many"),
+        ],
+    )
+    def test_rejects_an_obb_line_that_is_not_four_corners(
+        self, coordinate_count: int
+    ) -> None:
+        """Rejects an OBB line that is not a class id and four corner pairs."""
+        line = " ".join(["0"] + ["0.5"] * coordinate_count)
+        expected = re.escape(
+            f"Invalid YOLO OBB annotation line {line!r}; expected 9 tokens "
+            f"(class id and four corner pairs), got {coordinate_count + 1}."
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            yolo_annotations_to_detections(
+                lines=[line], resolution_wh=(100, 100), with_masks=False, is_obb=True
+            )
+
+    def test_reports_the_short_line_rather_than_the_class_id(self) -> None:
+        """Reports a short line that follows a valid one by quoting the short line."""
+        valid_line = "0 0.5 0.5 0.2 0.2"
+        short_line = "0 0.5 0.5 0.2"
+        expected = re.escape(
+            f"Invalid YOLO annotation line {short_line!r}; expected at least 5 "
+            f"tokens (class id and four box values), got 4."
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            yolo_annotations_to_detections(
+                lines=[valid_line, short_line],
+                resolution_wh=(100, 100),
+                with_masks=False,
+            )
+
+
+class TestYoloAnnotationsToDetectionsBoxExtent:
+    """Tests for how ``yolo_annotations_to_detections`` reads box width and height."""
+
+    @pytest.mark.parametrize(
+        ("width_token", "height_token"),
+        [
+            pytest.param("-0.4", "0.4", id="negative-width"),
+            pytest.param("0.4", "-0.4", id="negative-height"),
+            pytest.param("-0.4", "-0.4", id="negative-both"),
+            pytest.param("-1e-9", "0.4", id="tiny-negative-width"),
+        ],
+    )
+    def test_rejects_a_negative_box_extent(
+        self, width_token: str, height_token: str
+    ) -> None:
+        """A negative extent puts x_min past x_max, which the library never expects."""
+        lines = [f"0 0.5 0.5 {width_token} {height_token}"]
+
+        with pytest.raises(
+            ValueError, match=r"Invalid box extent \(.*\) in YOLO annotation"
+        ):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
+    @pytest.mark.parametrize("token", ["nan", "inf", "-inf"])
+    @pytest.mark.parametrize(
+        "line_template",
+        [
+            pytest.param("0 {} 0.5 0.2 0.4", id="x-center"),
+            pytest.param("0 0.5 {} 0.2 0.4", id="y-center"),
+            pytest.param("0 0.5 0.5 {} 0.4", id="width"),
+            pytest.param("0 0.5 0.5 0.2 {}", id="height"),
+        ],
+    )
+    def test_rejects_a_non_finite_box_value(
+        self, line_template: str, token: str
+    ) -> None:
+        """A nan or infinite center, width or height is rejected as not finite."""
+        lines = [line_template.format(token)]
+        expected = (
+            rf"Invalid box \(.*'{re.escape(token)}'.*\) in YOLO annotation; "
+            r"expected a finite center, width and height\."
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
+    @pytest.mark.parametrize(
+        ("line", "with_masks", "is_obb"),
+        [
+            pytest.param(
+                "0 0.5 0.5 -0.4 0.4 0.9", False, False, id="box-with-confidence"
+            ),
+            pytest.param("0 0.5 0.5 -0.4 0.4", True, False, id="box-with-masks"),
+        ],
+    )
+    def test_rejects_a_negative_extent_on_every_box_line_shape(
+        self, line: str, with_masks: bool, is_obb: bool
+    ) -> None:
+        """The guard also covers confidence-suffixed and masked boxes."""
+        with pytest.raises(ValueError, match="Invalid box extent"):
+            yolo_annotations_to_detections(
+                lines=[line],
+                resolution_wh=(100, 100),
+                with_masks=with_masks,
+                is_obb=is_obb,
+            )
+
+    @pytest.mark.parametrize(
+        ("width_token", "height_token", "expected_xyxy"),
+        [
+            pytest.param("0.0", "0.4", [50.0, 30.0, 50.0, 70.0], id="zero-width"),
+            pytest.param("0.4", "0.0", [30.0, 50.0, 70.0, 50.0], id="zero-height"),
+            pytest.param(
+                "-0.0", "0.4", [50.0, 30.0, 50.0, 70.0], id="negative-zero-width"
+            ),
+            pytest.param(
+                "0.4", "-0.0", [30.0, 50.0, 70.0, 50.0], id="negative-zero-height"
+            ),
+        ],
+    )
+    def test_loads_a_zero_box_extent(
+        self, width_token: str, height_token: str, expected_xyxy: list[float]
+    ) -> None:
+        """A zero extent, written ``-0.0`` or ``0.0``, is ordered and keeps loading."""
+        lines = [f"0 0.5 0.5 {width_token} {height_token}"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(100, 100), with_masks=False
+        )
+
+        np.testing.assert_allclose(result.xyxy, [expected_xyxy], atol=1e-4)
+
+
+class TestYoloAnnotationsToDetectionsTrailingToken:
+    """Tests for YOLO box and polygon lines carrying a confidence or tracker id."""
+
+    @pytest.mark.parametrize(
+        "extra_token",
+        [
+            "0.95",
+            "3",
+            pytest.param("9.500000000000000000e-01", id="numpy-savetxt-confidence"),
+        ],
+    )
+    def test_loads_box_that_has_a_trailing_token(self, extra_token: str) -> None:
+        """A sixth token is ignored so Ultralytics save_txt labels load as boxes."""
+        lines = [f"0 0.5 0.5 0.2 0.4 {extra_token}"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(100, 80), with_masks=False
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([0]))
+        np.testing.assert_allclose(result.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+        assert result.mask is None
+
+    def test_rejects_a_nonnumeric_trailing_token(self) -> None:
+        """Reject malformed trailing fields instead of accepting corrupt labels."""
+        lines = ["0 0.5 0.5 0.2 0.4 garbage"]
+
+        with pytest.raises(ValueError, match="garbage"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 80), with_masks=False
+            )
+
+    def test_three_point_polygon_still_loads_as_a_mask(self) -> None:
+        """Seven tokens remain a polygon: class id plus three xy pairs."""
+        lines = ["1 0.1 0.1 0.9 0.1 0.5 0.9"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(10, 10), with_masks=True
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([1]))
+        np.testing.assert_allclose(result.xyxy, [[1.0, 1.0, 9.0, 9.0]])
+        assert isinstance(result.mask, np.ndarray)
+        assert result.mask.shape == (1, 10, 10)
+        assert bool(result.mask[0, 5, 5])
+
+    @pytest.mark.parametrize(
+        "extra_token",
+        [
+            pytest.param("0.87", id="confidence"),
+            pytest.param("3", id="tracker-id"),
+        ],
+    )
+    def test_loads_a_polygon_that_has_a_trailing_token(self, extra_token: str) -> None:
+        """A saved confidence or track id does not change polygon geometry."""
+        lines = [f"1 0.1 0.1 0.9 0.1 0.5 0.9 {extra_token}"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(10, 10), with_masks=True
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([1]))
+        np.testing.assert_allclose(result.xyxy, [[1.0, 1.0, 9.0, 9.0]])
+        assert isinstance(result.mask, np.ndarray)
+        assert bool(result.mask[0, 5, 5])
+
+    def test_rejects_a_nonnumeric_trailing_token_after_a_polygon(self) -> None:
+        """Guard that the token dropped from a polygon line is parsed, not discarded."""
+        lines = ["1 0.1 0.1 0.9 0.1 0.5 0.9 garbage"]
+
+        with pytest.raises(ValueError, match="garbage"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(10, 10), with_masks=True
+            )
+
+
+def test_from_yolo_loads_segmentation_saved_with_confidence(tmp_path: Path) -> None:
+    """Dataset import accepts an Ultralytics polygon with saved confidence."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new("RGB", (10, 10)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text("1 0.1 0.1 0.9 0.1 0.5 0.9 0.87\n")
+    (tmp_path / "data.yaml").write_text("names: ['cat', 'dog']\n")
+
+    dataset = DetectionDataset.from_yolo(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+    )
+    _, _, detections = dataset[0]
+
+    np.testing.assert_array_equal(detections.class_id, np.array([1]))
+    np.testing.assert_allclose(detections.xyxy, [[1.0, 1.0, 9.0, 9.0]])
+    assert isinstance(detections.mask, np.ndarray)
+    assert bool(detections.mask[0, 5, 5])
+
+
+def test_from_yolo_loads_labels_saved_with_ultralytics_save_conf(
+    tmp_path: Path,
+) -> None:
+    """Label files written by Ultralytics ``save_txt(..., save_conf=True)`` load."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text("1 0.5 0.5 0.2 0.4 0.87\n")
+    (tmp_path / "data.yaml").write_text("names: ['cat', 'dog']\n")
+
+    dataset = DetectionDataset.from_yolo(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+    )
+    _, _, detections = dataset[0]
+
+    np.testing.assert_array_equal(detections.class_id, np.array([1]))
+    np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+    assert detections.mask is None
+
+
+def test_from_yolo_loads_labels_saved_with_numpy_savetxt(tmp_path: Path) -> None:
+    """Label files written by ``np.savetxt``, floats in every column, load."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / "test.png")
+    np.savetxt(labels_dir / "test.txt", np.array([[1, 0.5, 0.5, 0.2, 0.4]]))
+    (tmp_path / "data.yaml").write_text("names: ['cat', 'dog']\n")
+
+    dataset = DetectionDataset.from_yolo(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+    )
+    _, _, detections = dataset[0]
+
+    np.testing.assert_array_equal(detections.class_id, np.array([1]))
+    np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+
+
+def _write_yolo_dataset(root: Path, label: str) -> tuple[str, str, str]:
+    """Write a one-image YOLO dataset and return the paths `from_yolo` takes."""
+    images_dir = root / "images"
+    labels_dir = root / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text(label)
+    (root / "data.yaml").write_text("names: ['cat', 'dog']\n")
+    return str(images_dir), str(labels_dir), str(root / "data.yaml")
+
+
+class TestFromYoloLabelLines:
+    """Tests for how ``DetectionDataset.from_yolo`` reads the lines of a label file."""
+
+    @pytest.mark.parametrize(
+        ("valid_line", "invalid_line", "is_obb", "line_error"),
+        [
+            pytest.param(
+                "0 0.5 0.5 0.2 0.4",
+                "1 0.5 0.5 0.2",
+                False,
+                "Invalid YOLO annotation line '1 0.5 0.5 0.2'; expected at least 5 "
+                "tokens (class id and four box values), got 4.",
+                id="box-missing-height",
+            ),
+            pytest.param(
+                "0 0.1 0.1 0.9 0.1 0.9 0.9 0.1 0.9",
+                "1 0.5 0.5 0.2 0.4",
+                True,
+                "Invalid YOLO OBB annotation line '1 0.5 0.5 0.2 0.4'; expected 9 "
+                "tokens (class id and four corner pairs), got 5.",
+                id="obb-axis-aligned-box",
+            ),
+        ],
+    )
+    def test_names_the_file_and_the_invalid_line(
+        self,
+        tmp_path: Path,
+        valid_line: str,
+        invalid_line: str,
+        is_obb: bool,
+        line_error: str,
+    ) -> None:
+        """An invalid line between valid ones is reported with its file and its text."""
+        paths = _write_yolo_dataset(
+            tmp_path, label=f"{valid_line}\n{invalid_line}\n{valid_line}\n"
+        )
+        label_path = tmp_path / "labels" / "test.txt"
+        expected = re.escape(
+            f"Invalid YOLO annotation file '{label_path}': {line_error}"
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            DetectionDataset.from_yolo(*paths, is_obb=is_obb)
+
+    def test_skips_trailing_blank_and_whitespace_only_lines(
+        self, tmp_path: Path
+    ) -> None:
+        """A label file ending in blank and whitespace-only lines loads its box."""
+        paths = _write_yolo_dataset(tmp_path, label="0 0.5 0.5 0.2 0.4\n\n   \n\t\n")
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        _, _, detections = dataset[0]
+        np.testing.assert_array_equal(detections.class_id, np.array([0]))
+        np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+
+
+def _write_pose_dataset(
+    root: Path, label: str, kpt_shape: str = "[2, 3]"
+) -> tuple[str, str, str]:
+    """Write a one-image pose dataset and return the paths `from_yolo` takes."""
+    images_dir = root / "images"
+    labels_dir = root / "labels"
+    images_dir.mkdir(parents=True)
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text(label)
+    (root / "data.yaml").write_text(f"names: ['person']\nkpt_shape: {kpt_shape}\n")
+    return str(images_dir), str(labels_dir), str(root / "data.yaml")
+
+
+class TestFromYoloPoseLabels:
+    @pytest.mark.parametrize(
+        ("kpt_shape", "keypoints"),
+        [
+            pytest.param("[2, 3]", "0.45 0.3 2 0.55 0.6 0", id="xy-visibility"),
+            pytest.param("[2, 2]", "0.45 0.3 0.55 0.6", id="xy-only"),
+            pytest.param("[2.0, 3]", "0.45 0.3 2 0.55 0.6 0", id="whole-number-floats"),
+        ],
+    )
+    def test_reads_the_box_and_skips_the_keypoints(
+        self, tmp_path: Path, kpt_shape: str, keypoints: str
+    ) -> None:
+        """Pose labels load as their boxes, with no mask built from keypoints."""
+        paths = _write_pose_dataset(
+            tmp_path,
+            label=f"0 0.5 0.5 0.2 0.4 {keypoints}\n0 0.25 0.25 0.1 0.1 {keypoints}\n",
+            kpt_shape=kpt_shape,
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        _, _, detections = dataset[0]
+        np.testing.assert_allclose(
+            detections.xyxy, [[40.0, 24.0, 60.0, 56.0], [20.0, 16.0, 30.0, 24.0]]
+        )
+        assert detections.mask is None
+
+    def test_forced_masks_cover_the_box_not_the_keypoints(self, tmp_path: Path) -> None:
+        """With `force_masks`, a pose label gets the same mask as its box alone."""
+        box_paths = _write_pose_dataset(tmp_path / "box", label="0 0.5 0.5 0.2 0.4\n")
+        box_dataset = DetectionDataset.from_yolo(*box_paths, force_masks=True)
+        pose_paths = _write_pose_dataset(
+            tmp_path / "pose", label="0 0.5 0.5 0.2 0.4 0.05 0.05 2 0.95 0.95 2\n"
+        )
+
+        dataset = DetectionDataset.from_yolo(*pose_paths, force_masks=True)
+
+        np.testing.assert_array_equal(dataset[0][2].mask, box_dataset[0][2].mask)
+
+    def test_reads_rows_of_other_lengths_as_before(self, tmp_path: Path) -> None:
+        """Only pose-length rows drop keypoints; boxes and polygons load as before."""
+        paths = _write_pose_dataset(
+            tmp_path,
+            label=(
+                "0 0.5 0.5 0.2 0.4 0.45 0.3 2 0.55 0.6 0\n"
+                "0 0.5 0.5 0.2 0.4\n"
+                "0 0.1 0.1 0.9 0.1 0.5 0.9\n"
+            ),
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        np.testing.assert_allclose(
+            dataset[0][2].xyxy,
+            [
+                [40.0, 24.0, 60.0, 56.0],
+                [40.0, 24.0, 60.0, 56.0],
+                [10.0, 8.0, 90.0, 72.0],
+            ],
+        )
+
+    def test_reads_a_polygon_of_pose_length_as_a_box(self, tmp_path: Path) -> None:
+        """A triangle as long as a `[1, 2]` pose row is read as a box, with no mask."""
+        paths = _write_pose_dataset(
+            tmp_path, label="0 0.5 0.5 0.2 0.4 0.1 0.9\n", kpt_shape="[1, 2]"
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        _, _, detections = dataset[0]
+        np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+        assert detections.mask is None
+
+    def test_obb_rows_keep_their_corners(self, tmp_path: Path) -> None:
+        """An OBB row as long as a `[2, 2]` pose row keeps all four corners."""
+        paths = _write_pose_dataset(
+            tmp_path,
+            label="0 0.1 0.1 0.9 0.1 0.9 0.9 0.1 0.9\n",
+            kpt_shape="[2, 2]",
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths, is_obb=True)
+
+        corners = np.asarray(
+            dataset[0][2].data[ORIENTED_BOX_COORDINATES], dtype=np.float64
+        )
+        assert corners.shape == (1, 4, 2)
+        np.testing.assert_allclose(
+            corners, [[[10.0, 8.0], [90.0, 8.0], [90.0, 72.0], [10.0, 72.0]]]
+        )
+
+    @pytest.mark.parametrize(
+        "kpt_shape",
+        ["[17]", "[17, 4]", "[0, 3]", "[17.5, 3]", "[true, 3]", "[17, 3, 1]", "null"],
+    )
+    @pytest.mark.parametrize(
+        "is_obb",
+        [pytest.param(False, id="boxes"), pytest.param(True, id="obb")],
+    )
+    def test_raises_on_an_invalid_kpt_shape(
+        self, tmp_path: Path, kpt_shape: str, is_obb: bool
+    ) -> None:
+        """A `kpt_shape` other than `[K, 2]` or `[K, 3]` is rejected."""
+        paths = _write_pose_dataset(
+            tmp_path, label="0 0.5 0.5 0.2 0.4\n", kpt_shape=kpt_shape
+        )
+
+        with pytest.raises(ValueError, match="kpt_shape"):
+            DetectionDataset.from_yolo(*paths, is_obb=is_obb)
 
 
 @pytest.mark.parametrize(
@@ -225,7 +795,9 @@ def test_yolo_annotations_to_detections(
     ],
 )
 def test_image_name_to_annotation_name(
-    image_name: str, expected_result: str | None, exception: Exception
+    image_name: str,
+    expected_result: str | None,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = _image_name_to_annotation_name(image_name=image_name)
@@ -267,7 +839,7 @@ def test_extract_class_names_sorts_numeric_string_keys(
     tmp_path: Path,
     yaml_text: str,
     expected_names: list[str] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     """_extract_class_names returns class names sorted by class index."""
     data_yaml_path = tmp_path / "data.yaml"
@@ -337,7 +909,7 @@ def test_object_to_yolo(
     image_shape: tuple[int, int, int],
     polygon: np.ndarray | None,
     expected_result: str | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = object_to_yolo(
@@ -384,7 +956,7 @@ def test_detections_to_yolo_annotations_raises_for_non_integer_class_id() -> Non
 def test_load_yolo_annotations_mask_behaviour(
     tmp_path: Path,
     annotation_line: str,
-    load_kwargs: dict,
+    load_kwargs: dict[str, Any],
     expect_mask: bool,
 ) -> None:
     """Mask presence depends on annotation format and OBB/segmentation flag."""
@@ -439,11 +1011,37 @@ def test_load_yolo_annotations_accepts_pil_readable_image_modes(
     )
 
 
+def test_from_yolo_scales_annotations_to_exif_rotated_image(tmp_path: Path) -> None:
+    """Boxes and masks match the image as loaded, after its EXIF rotation."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    Image.new("RGB", (100, 40)).save(images_dir / "photo.jpg", exif=exif.tobytes())
+    (labels_dir / "photo.txt").write_text("0 0.5 0.5 0.5 0.5\n")
+    (tmp_path / "data.yaml").write_text("names: ['object']\n")
+
+    dataset = DetectionDataset.from_yolo(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+        force_masks=True,
+    )
+    _, image, detections = dataset[0]
+
+    assert image.shape[:2] == (100, 40)
+    assert isinstance(detections.mask, np.ndarray)
+    assert detections.mask.shape == (1, 100, 40)
+    np.testing.assert_allclose(detections.xyxy, [[10.0, 25.0, 30.0, 75.0]])
+
+
 def test_polygons_to_masks_multiple_polygons_shape() -> None:
     """Regression test for #1746: _polygons_to_masks must return shape (N, H, W).
 
-    The original PR rewrite processed only a single polygon and always returned
-    shape (1, H, W), breaking multi-polygon detections.
+    The original PR rewrite processed only a single polygon and always returned shape
+    (1, H, W), breaking multi-polygon detections.
     """
     from supervision.dataset.formats.yolo import _polygons_to_masks
 
@@ -556,7 +1154,7 @@ def test_yolo_polygon_mask_precision_no_coord_drift_round_trip_iou(
     union = np.logical_or(original_mask, saved_mask).sum()
     assert union > 0
     # Keep polygon round-trip drift bounded while avoiding vertex-order assumptions.
-    iou = intersection / union
+    iou = float(intersection) / float(union)
     assert iou > 0.95, (
         f"Mask IoU {iou:.6f} too low after YOLO load/save round-trip — "
         "precision regression in polygon mask conversion"
@@ -742,8 +1340,8 @@ def test_dataset_as_yolo_obb_round_trip_corner_accuracy(tmp_path: Path) -> None:
     original = next(iter(loaded.annotations.values()))
     round_tripped = next(iter(reloaded.annotations.values()))
     np.testing.assert_allclose(
-        round_tripped.data[ORIENTED_BOX_COORDINATES],
-        original.data[ORIENTED_BOX_COORDINATES],
+        np.asarray(round_tripped.data[ORIENTED_BOX_COORDINATES], dtype=np.float64),
+        np.asarray(original.data[ORIENTED_BOX_COORDINATES], dtype=np.float64),
         atol=1e-3,
     )
 
@@ -781,3 +1379,426 @@ def test_dataset_as_yolo_obb_round_trip_with_background_image(
     assert bg_label.read_text().strip() == "", (
         "Background image label file must be empty"
     )
+
+
+class TestObjectToYoloBoxOrdering:
+    """Tests that ``object_to_yolo`` writes a width and height the loader accepts."""
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([70.0, 30.0, 30.0, 70.0], id="reversed-x"),
+            pytest.param([30.0, 70.0, 70.0, 30.0], id="reversed-y"),
+            pytest.param([70.0, 70.0, 30.0, 30.0], id="reversed-both"),
+        ],
+    )
+    def test_writes_a_non_negative_extent_for_a_reversed_box(
+        self, xyxy: list[float]
+    ) -> None:
+        """Detections allows a reversed box, so order the corners before measuring."""
+        line = object_to_yolo(
+            xyxy=np.array(xyxy), class_id=0, image_shape=(100, 100, 3)
+        )
+
+        result = yolo_annotations_to_detections(
+            lines=[line], resolution_wh=(100, 100), with_masks=False
+        )
+
+        assert line == "0 0.50000 0.50000 0.40000 0.40000"
+        np.testing.assert_allclose(result.xyxy, [[30.0, 30.0, 70.0, 70.0]], atol=1e-3)
+
+    def test_keeps_a_non_finite_corner_visible(self) -> None:
+        """A NaN corner is written as ``nan`` rather than hidden as a zero-width box."""
+        line = object_to_yolo(
+            xyxy=np.array([30.0, 30.0, np.nan, 70.0]),
+            class_id=0,
+            image_shape=(100, 100, 3),
+        )
+
+        assert "nan" in line.lower()
+
+    def test_reversed_box_survives_a_dataset_export_and_reload(
+        self, tmp_path: Path
+    ) -> None:
+        """A reversed box written by ``as_yolo`` reloads through ``from_yolo``."""
+        detections = Detections(
+            xyxy=np.array([[70.0, 30.0, 30.0, 70.0]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.png": np.zeros((100, 100, 3), dtype=np.uint8)},
+            annotations={"image.png": detections},
+        )
+        images_dir = tmp_path / "images"
+        labels_dir = tmp_path / "labels"
+        data_yaml = tmp_path / "data.yaml"
+        dataset.as_yolo(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(labels_dir),
+            data_yaml_path=str(data_yaml),
+        )
+
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(labels_dir),
+            data_yaml_path=str(data_yaml),
+        )
+
+        (reloaded_detections,) = reloaded.annotations.values()
+        np.testing.assert_allclose(
+            reloaded_detections.xyxy, [[30.0, 30.0, 70.0, 70.0]], atol=1e-3
+        )
+        np.testing.assert_allclose(
+            reloaded_detections.area.astype(np.float64), [1600.0], atol=0.2
+        )
+
+
+_EMPTY_MASK = np.zeros((100, 100), dtype=bool)
+
+
+class TestDetectionsToYoloAnnotationsEmptyMask:
+    """detections_to_yolo_annotations: detections whose mask has no pixels."""
+
+    @pytest.mark.parametrize(
+        ("detections", "expected_lines"),
+        [
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[60, 60, 90, 90]], dtype=np.float32),
+                    class_id=np.array([1]),
+                    mask=_EMPTY_MASK[np.newaxis],
+                ),
+                ["1 0.75000 0.75000 0.30000 0.30000"],
+                id="only-empty-mask",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array(
+                        [[10, 10, 50, 50], [60, 60, 90, 90]], dtype=np.float32
+                    ),
+                    class_id=np.array([0, 1]),
+                    mask=np.stack(
+                        [_mock_simple_mask((100, 100), [10, 10, 50, 50]), _EMPTY_MASK]
+                    ),
+                ),
+                [
+                    "0 0.10000 0.10000 0.10000 0.49000 0.49000 0.49000 0.49000 0.10000",
+                    "1 0.75000 0.75000 0.30000 0.30000",
+                ],
+                id="empty-mask-beside-polygon",
+            ),
+        ],
+    )
+    def test_writes_bounding_box_for_empty_mask(
+        self, detections: Detections, expected_lines: list[str]
+    ) -> None:
+        """A detection with an empty mask is written as its bounding box line."""
+        lines = detections_to_yolo_annotations(
+            detections=detections, image_shape=(100, 100, 3)
+        )
+
+        assert lines == expected_lines
+
+    def test_writes_bounding_box_for_nonempty_mask_without_contour(self) -> None:
+        """A nonempty mask without a valid contour is written as a box."""
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 30, 40] = True
+        detections = Detections(
+            xyxy=np.array([[30, 20, 50, 40]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+
+        lines = detections_to_yolo_annotations(
+            detections=detections, image_shape=(100, 100, 3)
+        )
+
+        assert lines == ["0 0.40000 0.30000 0.20000 0.20000"]
+
+    def test_keeps_area_filter_for_masks_with_contours(self) -> None:
+        """A valid contour filtered by maximum area remains omitted."""
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 10:90, 10:90] = True
+        detections = Detections(
+            xyxy=np.array([[10, 10, 90, 90]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+
+        lines = detections_to_yolo_annotations(
+            detections=detections,
+            image_shape=(100, 100, 3),
+            max_image_area_percentage=0.5,
+        )
+
+        assert lines == []
+
+
+class TestDetectionDatasetYoloImageShapes:
+    """YOLO exports normalize coordinates for grayscale and color images."""
+
+    @pytest.mark.parametrize(
+        "image_shape",
+        [
+            pytest.param((16, 24), id="grayscale"),
+            pytest.param((16, 24, 3), id="color"),
+        ],
+    )
+    @pytest.mark.parametrize("with_mask", [False, True])
+    def test_preserves_normalized_geometry_and_source_image(
+        self, tmp_path: Path, image_shape: tuple[int, ...], with_mask: bool
+    ) -> None:
+        """Grayscale and color boxes and masks use the same width and height."""
+        image = np.arange(np.prod(image_shape), dtype=np.uint8).reshape(image_shape)
+        original_image = image.copy()
+        mask = np.zeros((1, 16, 24), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 15, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask if with_mask else None,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_yolo(annotations_directory_path=str(tmp_path))
+
+        lines = (tmp_path / "image.txt").read_text().splitlines()
+        assert len(lines) == 1
+        if with_mask:
+            tokens = lines[0].split()
+            assert tokens[0] == "0"
+            points = np.array(tokens[1:], dtype=float).reshape(-1, 2)
+            assert sorted(points.tolist()) == [
+                [0.125, 0.125],
+                [0.125, 0.625],
+                [0.625, 0.125],
+                [0.625, 0.625],
+            ]
+        else:
+            assert lines == ["0 0.37500 0.37500 0.50000 0.50000"]
+        np.testing.assert_array_equal(image, original_image)
+
+    def test_writes_nine_normalized_obb_tokens_for_grayscale_image(
+        self, tmp_path: Path
+    ) -> None:
+        """A grayscale OBB export preserves class and normalized corners."""
+        image = np.zeros((16, 24), dtype=np.uint8)
+        corners = np.array(
+            [[[3.0, 2.0], [15.0, 2.0], [15.0, 10.0], [3.0, 10.0]]],
+            dtype=np.float32,
+        )
+        detections = Detections(
+            xyxy=np.array([[3.0, 2.0, 15.0, 10.0]], dtype=np.float32),
+            class_id=np.array([1]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        dataset = DetectionDataset(
+            classes=["background", "object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_yolo(annotations_directory_path=str(tmp_path), is_obb=True)
+
+        tokens = (tmp_path / "image.txt").read_text().split()
+        assert len(tokens) == 9
+        assert tokens[0] == "1"
+        np.testing.assert_allclose(
+            np.array(tokens[1:], dtype=np.float32),
+            np.array(
+                [0.125, 0.125, 0.625, 0.125, 0.625, 0.625, 0.125, 0.625],
+                dtype=np.float32,
+            ),
+            atol=1e-5,
+        )
+
+
+class TestAsYoloMaskWithHole:
+    """Tests for exporting a mask that contains a hole through `as_yolo`."""
+
+    def test_round_trip_keeps_one_instance_with_hole(self, tmp_path: Path) -> None:
+        """A ring mask reloads as one instance with its hole intact."""
+        image_path = str(tmp_path / "source" / "ring.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (150, 100)).save(image_path)
+        mask = np.zeros((1, 100, 150), dtype=bool)
+        mask[0, 10:60, 10:60] = True
+        mask[0, 25:45, 25:45] = False
+        detections = Detections(
+            xyxy=np.array([[10, 10, 59, 59]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["ring"], images=[image_path], annotations={image_path: detections}
+        )
+
+        dataset.as_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+        )
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+            force_masks=True,
+        )
+
+        result = next(iter(reloaded.annotations.values()))
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.mask, mask)
+
+    def test_simplified_export_keeps_hole_behind_thin_walls(
+        self, tmp_path: Path, ragged_mask_with_hole: np.ndarray
+    ) -> None:
+        """A ragged mask exports with simplification instead of raising."""
+        mask = ragged_mask_with_hole[np.newaxis, ...]
+        image_path = str(tmp_path / "source" / "ragged.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (7, 10)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[1, 1, 5, 8]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["blob"], images=[image_path], annotations={image_path: detections}
+        )
+
+        dataset.as_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+            approximation_percentage=0.5,
+        )
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+            force_masks=True,
+        )
+
+        result = next(iter(reloaded.annotations.values()))
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.mask, mask)
+
+
+class TestAsYoloMultiSegmentMask:
+    """Tests for exporting masks consisting of disconnected segments to YOLO."""
+
+    def test_multi_segment_mask_exported_as_single_line_by_default(
+        self, tmp_path: Path
+    ) -> None:
+        """A multi-part mask is merged and exported as one continuous YOLO line."""
+        image_path = str(tmp_path / "source" / "two_blobs.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 5:15, 5:15] = True
+        mask[0, 5:15, 35:45] = True
+        detections = Detections(
+            xyxy=np.array([[5, 5, 45, 15]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir))
+
+        ann_file = labels_dir / "two_blobs.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 1
+        assert lines[0].startswith("0 ")
+
+    def test_multi_segment_mask_split_when_merge_segments_false(
+        self, tmp_path: Path
+    ) -> None:
+        """When merge_segments=False, each component is written separately."""
+        image_path = str(tmp_path / "source" / "two_blobs.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 5:15, 5:15] = True
+        mask[0, 5:15, 35:45] = True
+        detections = Detections(
+            xyxy=np.array([[5, 5, 45, 15]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(
+            annotations_directory_path=str(labels_dir), merge_segments=False
+        )
+
+        ann_file = labels_dir / "two_blobs.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 2
+
+
+class TestAsYoloCrowdAnnotations:
+    """Tests for handling COCO iscrowd annotations during YOLO export."""
+
+    def test_crowd_annotations_skipped_by_default(self, tmp_path: Path) -> None:
+        """Crowd regions (iscrowd=1) are omitted by default during YOLO export."""
+        image_path = str(tmp_path / "source" / "sample.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[10, 10, 20, 20], [30, 30, 80, 80]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        dataset = DetectionDataset(
+            classes=["person"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir))
+
+        ann_file = labels_dir / "sample.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 1
+
+    def test_crowd_annotations_exported_when_ignore_crowd_false(
+        self, tmp_path: Path
+    ) -> None:
+        """When ignore_crowd=False, crowd annotations are exported."""
+        image_path = str(tmp_path / "source" / "sample.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[10, 10, 20, 20], [30, 30, 80, 80]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        dataset = DetectionDataset(
+            classes=["person"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir), ignore_crowd=False)
+
+        ann_file = labels_dir / "sample.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 2

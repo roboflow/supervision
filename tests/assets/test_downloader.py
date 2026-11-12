@@ -53,7 +53,9 @@ class TestDownloadAssets:
     @patch("supervision.assets.downloader.logger")
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.exists", return_value=True)
-    def test_already_exists_and_valid(self, mock_exists, mock_md5, mock_logger) -> None:
+    def test_already_exists_and_valid(
+        self, mock_exists: MagicMock, mock_md5: MagicMock, mock_logger: MagicMock
+    ) -> None:
         """Test download_assets when file already exists and is valid."""
         filename = "vehicles.mp4"
         result = download_assets(filename)
@@ -69,7 +71,12 @@ class TestDownloadAssets:
     )
     @patch("pathlib.Path.exists", return_value=True)
     def test_already_exists_but_corrupted(
-        self, mock_exists, mock_md5, mock_download, mock_remove, mock_logger
+        self,
+        mock_exists: MagicMock,
+        mock_md5: MagicMock,
+        mock_download: MagicMock,
+        mock_remove: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         """Test download_assets when file exists but is corrupted (re-downloads)."""
         filename = "vehicles.mp4"
@@ -86,7 +93,11 @@ class TestDownloadAssets:
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.exists", return_value=False)
     def test_download_new_file(
-        self, mock_exists, mock_md5, mock_download, mock_logger
+        self,
+        mock_exists: MagicMock,
+        mock_md5: MagicMock,
+        mock_download: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         """Test download_assets verifies a freshly downloaded file."""
         filename = "vehicles.mp4"
@@ -107,7 +118,12 @@ class TestDownloadAssets:
     )
     @patch("pathlib.Path.exists", return_value=False)
     def test_download_new_file_retries_corrupted_payload(
-        self, mock_exists, mock_md5, mock_download, mock_remove, mock_logger
+        self,
+        mock_exists: MagicMock,
+        mock_md5: MagicMock,
+        mock_download: MagicMock,
+        mock_remove: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         """Test download_assets retries once when a fresh payload fails MD5."""
         filename = "vehicles.mp4"
@@ -128,7 +144,12 @@ class TestDownloadAssets:
     )
     @patch("pathlib.Path.exists", return_value=False)
     def test_download_new_file_raises_after_second_md5_mismatch(
-        self, mock_exists, mock_md5, mock_download, mock_remove, mock_logger
+        self,
+        mock_exists: MagicMock,
+        mock_md5: MagicMock,
+        mock_download: MagicMock,
+        mock_remove: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         """Test download_assets fails after the verified retry is also corrupted."""
         filename = "vehicles.mp4"
@@ -143,7 +164,7 @@ class TestDownloadAssets:
     @patch("supervision.assets.downloader.logger")
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     def test_download_new_file_to_custom_directory(
-        self, mock_md5, mock_logger, tmp_path
+        self, mock_md5: MagicMock, mock_logger: MagicMock, tmp_path: Path
     ) -> None:
         """Test download_assets writes into an explicit output directory."""
         filename = "vehicles.mp4"
@@ -162,7 +183,7 @@ class TestDownloadAssets:
 
     @patch("os.replace")
     def test_partial_download_does_not_leave_final_file(
-        self, mock_replace, tmp_path
+        self, mock_replace: MagicMock, tmp_path: Path
     ) -> None:
         """Test _download_asset stages downloads so failed replaces do not leak."""
         filename = "vehicles.mp4"
@@ -180,7 +201,7 @@ class TestDownloadAssets:
         assert list(tmp_path.iterdir()) == []
 
     @patch("pathlib.Path.exists", return_value=False)
-    def test_invalid_asset(self, mock_exists) -> None:
+    def test_invalid_asset(self, mock_exists: MagicMock) -> None:
         """Test download_assets with invalid asset name."""
         invalid_filename = "invalid.mp4"
 
@@ -191,7 +212,7 @@ class TestDownloadAssets:
         assert "vehicles.mp4" in str(exc_info.value)
 
     @patch("pathlib.Path.exists", return_value=True)
-    def test_invalid_asset_when_file_exists(self, mock_exists) -> None:
+    def test_invalid_asset_when_file_exists(self, mock_exists: MagicMock) -> None:
         """Test download_assets with invalid asset name that already exists."""
         invalid_filename = "invalid.mp4"
 
@@ -206,7 +227,11 @@ class TestDownloadAssets:
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.exists", return_value=False)
     def test_with_video_enum(
-        self, mock_exists, mock_md5, mock_download, mock_logger
+        self,
+        mock_exists: MagicMock,
+        mock_md5: MagicMock,
+        mock_download: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         """Test download_assets with VideoAssets enum."""
         asset = VideoAssets.VEHICLES
@@ -227,7 +252,11 @@ class TestDownloadAssets:
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.exists", return_value=False)
     def test_with_image_enum(
-        self, mock_exists, mock_md5, mock_download, mock_logger
+        self,
+        mock_exists: MagicMock,
+        mock_md5: MagicMock,
+        mock_download: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         """Test download_assets with ImageAssets enum."""
         asset = ImageAssets.SOCCER

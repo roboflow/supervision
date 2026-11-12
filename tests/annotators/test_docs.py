@@ -88,9 +88,9 @@ def _extract_annotator_tab_groups() -> dict[str, list[str]]:
 def test_all_expected_annotators_have_tab_entries() -> None:
     """Assert every annotator in EXPECTED_ANNOTATOR_TAB_GROUPS has a tab in the docs.
 
-    Tests flat membership only — does not enforce which category each annotator
-    belongs to. Update EXPECTED_ANNOTATOR_TAB_GROUPS when adding or removing
-    annotator tab entries.
+    Tests flat membership only — does not enforce which category each annotator belongs
+    to. Update EXPECTED_ANNOTATOR_TAB_GROUPS when adding or removing annotator tab
+    entries.
     """
     tab_groups = _extract_annotator_tab_groups()
     actual_tabs = {tab for group in tab_groups.values() for tab in group}

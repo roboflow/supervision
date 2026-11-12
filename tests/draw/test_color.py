@@ -1,5 +1,6 @@
 import importlib
 import sys
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 
 import pytest
@@ -56,10 +57,11 @@ from supervision.draw.color import Color, ColorPalette, unify_to_bgr
     ],
 )
 def test_color_from_hex(
-    color_hex, expected_result: Color | None, exception: Exception
+    color_hex: str,
+    expected_result: Color | None,
+    exception: AbstractContextManager[object],
 ) -> None:
-    """
-    Verify that Color.from_hex correctly parses various hex string formats.
+    """Verify that Color.from_hex correctly parses various hex string formats.
 
     Scenario: Creating a `Color` object from various hex string formats (3-, 4-, 6-,
     and 8-digit, with/without # prefix).
@@ -89,10 +91,9 @@ def test_color_from_hex(
     ],
 )
 def test_color_as_hex(
-    color: Color, expected_result: str | None, exception: Exception
+    color: Color, expected_result: str | None, exception: AbstractContextManager[object]
 ) -> None:
-    """
-    Verify that Color.as_hex correctly converts Color objects to hex strings.
+    """Verify that Color.as_hex correctly converts Color objects to hex strings.
 
     Scenario: Converting a `Color` object back to a hex string.
     Expected: 6-digit hex (#RRGGBB) when alpha is 255, 8-digit hex (#RRGGBBAA)
@@ -139,7 +140,7 @@ def test_color_as_hex(
 def test_color_from_rgb_tuple(
     color_tuple: tuple[int, int, int],
     expected_result: Color | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = Color.from_rgb_tuple(color_tuple=color_tuple)
@@ -182,7 +183,7 @@ def test_color_from_rgb_tuple(
 def test_color_from_bgr_tuple(
     color_tuple: tuple[int, int, int],
     expected_result: Color | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = Color.from_bgr_tuple(color_tuple=color_tuple)
@@ -214,7 +215,7 @@ def test_color_from_bgr_tuple(
 def test_color_from_rgba_tuple(
     color_tuple: tuple[int, int, int, int],
     expected_result: Color | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = Color.from_rgba_tuple(color_tuple=color_tuple)
@@ -246,7 +247,7 @@ def test_color_from_rgba_tuple(
 def test_color_from_bgra_tuple(
     color_tuple: tuple[int, int, int, int],
     expected_result: Color | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = Color.from_bgra_tuple(color_tuple=color_tuple)
@@ -281,7 +282,7 @@ def test_color_constructor_rejects_out_of_range_channels(
 def test_color_as_rgba(
     color: Color,
     expected_result: tuple[int, int, int, int] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = color.as_rgba()
@@ -299,7 +300,7 @@ def test_color_as_rgba(
 def test_color_as_bgra(
     color: Color,
     expected_result: tuple[int, int, int, int] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = color.as_bgra()
@@ -359,6 +360,30 @@ def test_from_matplotlib_accepts_single_color() -> None:
     palette = ColorPalette.from_matplotlib("jet", 1)
 
     assert len(palette) == 1
+
+
+@pytest.mark.parametrize(
+    ("palette_name", "color_count"),
+    [
+        ("Accent", 8),
+        ("viridis", 5),
+        ("plasma", 5),
+    ],
+)
+def test_from_matplotlib_matches_matplotlib_hex(
+    palette_name: str, color_count: int
+) -> None:
+    """Palette colors round to the same 8-bit values as Matplotlib's hex codes."""
+    from matplotlib import colormaps
+    from matplotlib.colors import to_hex
+
+    mpl_palette = colormaps[palette_name].resampled(color_count)
+    positions = [i / (color_count - 1) for i in range(color_count)]
+    expected = [to_hex(mpl_palette(position)) for position in positions]
+
+    palette = ColorPalette.from_matplotlib(palette_name, color_count)
+
+    assert [color.as_hex() for color in palette.colors] == expected
 
 
 def test_draw_color_import_does_not_import_matplotlib_pyplot() -> None:

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Script to augment relative links in markdown files to GitHub URLs.
-"""
+"""Script to augment relative links in markdown files to GitHub URLs."""
 
 import argparse
 import os
@@ -16,8 +14,7 @@ def get_repo_root() -> str:
 
 
 def augment_links_in_file(file_path: str, branch: str = "main") -> None:
-    """
-    Augment relative links in a markdown file to GitHub URLs.
+    """Augment relative links in a markdown file to GitHub URLs.
 
     Args:
         file_path: Path to the markdown file.
@@ -32,6 +29,7 @@ def augment_links_in_file(file_path: str, branch: str = "main") -> None:
         content = f.read()
 
     def replace_link(match: Match[str]) -> str:
+        """Rewrite one markdown link to a GitHub URL when it points at a repo path."""
         full_match = match.group(0)
         text = match.group(2)
         url = match.group(3)
@@ -55,6 +53,7 @@ def augment_links_in_file(file_path: str, branch: str = "main") -> None:
 
 
 def main() -> None:
+    """Entry point: rewrite relative links in every markdown file given on argv."""
     parser = argparse.ArgumentParser(
         description="Augment relative links to GitHub URLs."
     )

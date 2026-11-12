@@ -5,7 +5,7 @@ authors:
   - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
-date_modified: 2026-04-22
+date_modified: 2026-11-12
 ---
 
 With supervision, you can count the number of objects in a zone in an image or video. In this guide, we will show how to count the number of cars in a traffic video.
@@ -22,19 +22,19 @@ download_assets(VideoAssets.VEHICLES_2)
 
 ## Initialize a Model and Load Video
 
-First, we need to initialize a model. Let's use a YOLOv8 model with the default COCO checkpoint. We also need to load a video on which to run inference.
+First, we need to initialize a model. Let's use [RF-DETR](https://github.com/roboflow/rf-detr) with its default COCO checkpoint -- its `predict` method returns a `Detections` object directly, no conversion step needed. We also need to load a video on which to run inference.
 
-Create a YOLO model instance and download the source video. The model will process each frame during inference. A shared color palette ensures consistent zone coloring throughout the output video.
+Create an RF-DETR model instance and download the source video. The model will process each frame during inference. A shared color palette ensures consistent zone coloring throughout the output video.
 
 ```python
 import numpy as np
 import supervision as sv
 import cv2
 
-from ultralytics import YOLO
+from rfdetr import RFDETRMedium
 from supervision.assets import VideoAssets, download_assets
 
-model = YOLO("yolov8s.pt")
+model = RFDETRMedium()
 
 VIDEO = download_assets(VideoAssets.VEHICLES_2)
 
@@ -104,12 +104,11 @@ box_annotators = [
 
 We can run inference on a video using the [sv.process_video](https://supervision.roboflow.com/utils/video/#process_video) function. This function accepts a callback that runs inference on each frame and compiles the results into a video.
 
-Below, we can call our YOLOv8 model, annotate predictions and zones, then save the results to a file called `result.mp4`.
+Below, we can call our RF-DETR model, annotate predictions and zones, then save the results to a file called `result.mp4`.
 
 ```python
 def process_frame(frame: np.ndarray, i) -> np.ndarray:
-    results = model(frame, imgsz=1280, verbose=False)[0]
-    detections = sv.Detections.from_ultralytics(results)
+    detections = model.predict(frame[:, :, ::-1])
 
     for zone, zone_annotator, box_annotator in zip(
         zones, zone_annotators, box_annotators
@@ -131,6 +130,28 @@ Here is an example of inference run on the video:
   <source src="https://blog.roboflow.com/content/media/2023/03/trim-counting.mp4" type="video/mp4">
 </video>
 
+## Follow a Moving Camera
+
+`PolygonZone` and `LineZone` assume a static camera: a zone drawn on one frame slides off its target when the camera pans or tilts. Pass a per-frame `coord_transform` to `trigger` to test detections in the coordinates of the frame the zone was drawn on. It can be any object with `abs_to_rel` and `rel_to_abs` (see [`sv.CoordinatesTransformation`](../utils/geometry.md#supervision.geometry.core.CoordinatesTransformation)), such as the transformations returned by the [`trackers`](https://trackers.roboflow.com/latest/) motion estimator, which are relative to the first frame it sees:
+
+```python
+from trackers import MotionEstimator
+
+motion_estimator = MotionEstimator()
+zone = sv.PolygonZone(polygon=polygons[0])  # drawn on the first frame
+zone_annotator = sv.PolygonZoneAnnotator(zone=zone)
+
+for frame in sv.get_video_frames_generator(VIDEO):
+    coord_transform = motion_estimator.update(frame)
+    detections = model.predict(frame[:, :, ::-1])
+    in_zone = zone.trigger(detections, coord_transform=coord_transform)
+    frame = zone_annotator.annotate(frame, coord_transform=coord_transform)
+```
+
+- Pass the same transform to `PolygonZoneAnnotator.annotate` and `LineZoneAnnotator.annotate` to draw the zone, line and count labels where they appear in the current frame. `LineZoneAnnotatorMulticlass` draws a count table at a fixed frame corner, so it needs no transform.
+- A zone or line with any point mapped to a non-finite coordinate, or beyond `2**20` pixels, is not drawn on that frame. A homography can map points behind the camera to finite but mirrored coordinates, so a zone that crosses the horizon may be drawn folded.
+- Use one reference frame per zone and pass a transform on every call; `LineZone` keeps its crossing history in that frame.
+
 ## Frequently Asked Questions
 
 ### How do I count objects in a zone with supervision?
@@ -143,7 +164,7 @@ Yes. Use `sv.LineZone` — define a start and end point. `zone.trigger(detection
 
 ### Can I combine zone counting with tracking?
 
-Yes. You can pass tracker IDs from `sv.ByteTrack` alongside your detections, but `sv.PolygonZone` still evaluates the zone on each frame and reports which objects are currently inside it. If you want to count each object only once when it first enters the zone, maintain a set of seen `tracker_id` values after filtering detections with `zone.trigger(detections)`, or use a dedicated entry/crossing counting tool such as `sv.LineZone` when it better matches your use case.
+Yes. You can pass tracker IDs from `ByteTrackTracker` (external `trackers` package; `sv.ByteTrack` was removed as of `supervision-0.31.0`) alongside your detections, but `sv.PolygonZone` still evaluates the zone on each frame and reports which objects are currently inside it. If you want to count each object only once when it first enters the zone, first discard unconfirmed detections with `detections = detections[detections.tracker_id != -1]`, then call `mask = zone.trigger(detections)` and update your set from `detections.tracker_id[mask]`. Use a dedicated entry/crossing counting tool such as `sv.LineZone` when it better matches your use case.
 
 ## Author
 

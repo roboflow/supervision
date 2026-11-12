@@ -1,5 +1,4 @@
 import importlib.metadata as importlib_metadata
-from typing import TYPE_CHECKING, Any
 
 try:
     # This will read version from pyproject.toml
@@ -43,8 +42,18 @@ from supervision.dataset.core import (
     BaseDataset,
     ClassificationDataset,
     DetectionDataset,
+    KeyPointsDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
+from supervision.depth.annotators import DepthAnnotator, DepthClipRange
+from supervision.depth.colormaps import DepthColormap
+from supervision.depth.core import (
+    DepthCamera,
+    DepthKind,
+    DepthMap,
+    DepthResizeMethod,
+    DepthScale,
+)
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import (
@@ -109,12 +118,14 @@ from supervision.detection.utils.masks import (
     mask_to_roi,
     move_masks,
 )
+from supervision.detection.utils.matching import match_detections
 from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
+    merge_multi_segment,
 )
 from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
-from supervision.detection.vlm import LMM, VLM
+from supervision.detection.vlm import VLM
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     calculate_optimal_line_thickness,
@@ -127,7 +138,7 @@ from supervision.draw.utils import (
     draw_rectangle,
     draw_text,
 )
-from supervision.geometry.core import Point, Position, Rect
+from supervision.geometry.core import CoordinatesTransformation, Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.key_points.annotators import (
     EdgeAnnotator,
@@ -139,7 +150,7 @@ from supervision.key_points.annotators import (
     VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
-from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
+from supervision.metrics.detection import ConfusionMatrix
 from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
@@ -149,7 +160,6 @@ from supervision.utils.image import (
     grayscale_image,
     letterbox_image,
     load_image_from_url,
-    overlay_image,
     resize_image,
     scale_image,
     tint_image,
@@ -164,18 +174,13 @@ from supervision.utils.video import (
     process_video,
 )
 
-if TYPE_CHECKING:
-    from supervision.tracker.byte_tracker.core import ByteTrack
-
 __all__ = [
-    "LMM",
     "VLM",
     "BackgroundOverlayAnnotator",
     "BaseDataset",
     "BlurAnnotator",
     "BoxAnnotator",
     "BoxCornerAnnotator",
-    "ByteTrack",
     "CSVSink",
     "CircleAnnotator",
     "ClassificationDataset",
@@ -187,7 +192,16 @@ __all__ = [
     "CompactMask",
     "ComparisonAnnotator",
     "ConfusionMatrix",
+    "CoordinatesTransformation",
     "CropAnnotator",
+    "DepthAnnotator",
+    "DepthCamera",
+    "DepthClipRange",
+    "DepthColormap",
+    "DepthKind",
+    "DepthMap",
+    "DepthResizeMethod",
+    "DepthScale",
     "DetectionDataset",
     "Detections",
     "DetectionsSmoother",
@@ -203,12 +217,12 @@ __all__ = [
     "InferenceSlicer",
     "JSONSink",
     "KeyPoints",
+    "KeyPointsDataset",
     "LabelAnnotator",
     "LineZone",
     "LineZoneAnnotator",
     "LineZoneAnnotatorMulticlass",
     "MaskAnnotator",
-    "MeanAveragePrecision",
     "OrientedBoxAnnotator",
     "OverlapFilter",
     "OverlapMetric",
@@ -280,12 +294,13 @@ __all__ = [
     "mask_to_rle",
     "mask_to_roi",
     "mask_to_xyxy",
+    "match_detections",
+    "merge_multi_segment",
     "move_boxes",
     "move_masks",
     "oriented_box_iou_batch",
     "oriented_box_non_max_merge",
     "oriented_box_non_max_suppression",
-    "overlay_image",
     "pad_boxes",
     "pillow_to_cv2",
     "plot_image",
@@ -307,13 +322,3 @@ __all__ = [
     "xyxy_to_xywh",
     "xyxyxyxy_to_xyxy",
 ]
-
-
-def __getattr__(name: str) -> Any:
-    """Lazily resolve deprecated compatibility exports."""
-    if name == "ByteTrack":
-        from supervision.tracker.byte_tracker.core import ByteTrack as byte_track
-
-        globals()[name] = byte_track
-        return byte_track
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

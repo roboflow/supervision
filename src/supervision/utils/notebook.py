@@ -10,8 +10,7 @@ from supervision.utils.conversion import pillow_to_cv2
 def plot_image(
     image: ImageType, size: tuple[int, int] = (12, 12), cmap: str | None = "gray"
 ) -> None:
-    """
-    Plots image using matplotlib.
+    """Plots image using matplotlib.
 
     Args:
         image: The frame to be displayed ImageType
@@ -21,7 +20,6 @@ def plot_image(
 
     Examples:
         ```pycon
-        >>> import cv2
         >>> import numpy as np
         >>> import matplotlib
         >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
@@ -58,8 +56,7 @@ def plot_images_grid(
     size: tuple[int, int] = (12, 12),
     cmap: str | None = "gray",
 ) -> None:
-    """
-    Plots images in a grid using matplotlib.
+    """Plots images in a grid using matplotlib.
 
     Args:
        images: A list of images as ImageType
@@ -77,7 +74,6 @@ def plot_images_grid(
 
     Examples:
         ```pycon
-        >>> import cv2
         >>> import numpy as np
         >>> import matplotlib
         >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
@@ -108,7 +104,8 @@ def plot_images_grid(
     # Keep pyplot lazy so importing notebook helpers does not import matplotlib.
     import matplotlib.pyplot as plt
 
-    _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
+    # Without `squeeze=False`, a 1x1 grid returns a lone `Axes` that has no `.flat`.
+    _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size, squeeze=False)
 
     for idx, ax in enumerate(axes.flat):
         if idx < len(images_np):

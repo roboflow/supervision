@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from typing import cast
 
@@ -7,12 +8,14 @@ import pytest
 from supervision.annotators.utils import (
     ColorLookup,
     Trace,
+    get_labels_text,
     hex_to_rgba,
     is_valid_hex,
     resolve_color,
     resolve_color_idx,
     resolve_text_background_xyxy,
     rgba_to_hex,
+    snap_boxes,
     wrap_text,
 )
 from supervision.detection.core import Detections
@@ -110,7 +113,7 @@ def test_resolve_color_idx(
     detection_idx: int,
     color_lookup: ColorLookup | np.ndarray,
     expected_result: int | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = resolve_color_idx(
@@ -138,7 +141,9 @@ def test_resolve_color_accepts_negative_class_id() -> None:
 
 def test_resolve_color_accepts_palette_from_src_namespace() -> None:
     """Palette instances imported through src.supervision still resolve by index."""
-    from src.supervision.draw.color import ColorPalette as SrcColorPalette
+    from importlib import import_module
+
+    SrcColorPalette = import_module("src.supervision.draw.color").ColorPalette
 
     detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
 
@@ -161,6 +166,11 @@ def test_resolve_color_accepts_palette_from_src_namespace() -> None:
         (12345, None, ["12345"], DoesNotRaise()),  # plain integer
         (-6789, None, ["-6789"], DoesNotRaise()),  # negative integer
         (np.int64(1000), None, ["1000"], DoesNotRaise()),  # NumPy int64
+        pytest.param(0, None, ["0"], DoesNotRaise(), id="integer-zero"),
+        pytest.param(0, 10, ["0"], DoesNotRaise(), id="integer-zero-wrapped"),
+        pytest.param(np.int64(0), None, ["0"], DoesNotRaise(), id="numpy-int-zero"),
+        pytest.param(0.0, None, ["0.0"], DoesNotRaise(), id="float-zero"),
+        pytest.param(False, None, ["False"], DoesNotRaise(), id="boolean-false"),
         ([1, 2, 3], None, ["[1, 2, 3]"], DoesNotRaise()),  # list to string
         (
             "When you play the game of thrones, you win or you die.\nFear cuts deeper than swords.\nA mind needs books as a sword needs a whetstone.",  # noqa: E501
@@ -209,7 +219,7 @@ def test_wrap_text(
     text: object,
     max_line_length: int | None,
     expected_result: list[str],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = wrap_text(text=text, max_line_length=max_line_length)
@@ -254,6 +264,10 @@ def test_trace_put_requires_tracker_id_before_mutation() -> None:
         ("00FF0080", (0, 255, 0, 128)),
         ("  #ff00ff80  ", (255, 0, 255, 128)),
         ("abcdef", (171, 205, 239, 255)),
+        pytest.param("#F0F", (255, 0, 255, 255), id="shorthand-rgb-prefixed"),
+        pytest.param("f0f", (255, 0, 255, 255), id="shorthand-rgb-no-prefix"),
+        pytest.param("#F0F8", (255, 0, 255, 136), id="shorthand-rgba-prefixed"),
+        pytest.param("  #fff  ", (255, 255, 255, 255), id="shorthand-rgb-whitespace"),
     ],
 )
 def test_hex_to_rgba_valid(
@@ -267,7 +281,9 @@ def test_hex_to_rgba_valid(
     [
         pytest.param("#FF00F", id="five-digits"),
         pytest.param("#GGHHII", id="non-hex-digits"),
-        pytest.param("#FFF", id="short-form"),
+        pytest.param("#FF", id="two-digits"),
+        pytest.param("#GGG", id="short-form-non-hex-digits"),
+        pytest.param("##FFF", id="short-form-multiple-prefixes"),
         pytest.param("1234567", id="seven-digits"),
         pytest.param("##000000", id="multiple-prefixes"),
     ],
@@ -320,3 +336,247 @@ def test_rgba_to_hex_invalid(rgba: tuple[int, ...]) -> None:
 )
 def test_is_valid_hex(hex_color: str, expected_result: bool) -> None:
     assert is_valid_hex(hex_color) is expected_result
+
+
+class TestGetLabelsText:
+    """Tests for the get_labels_text helper."""
+
+    def test_returns_custom_labels_when_provided(self) -> None:
+        """Custom labels are returned as-is without inspecting detections."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[0])
+        custom = ["cat"]
+        assert get_labels_text(detections, custom) is custom
+
+    def test_uses_class_name_data_field(self) -> None:
+        """Labels come from CLASS_NAME_DATA_FIELD when present in data."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        assert get_labels_text(detections, None) == ["cat", "dog"]
+
+    def test_falls_back_to_class_id(self) -> None:
+        """Labels fall back to class_id strings when no class_name data."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[5, 3],
+        )
+        assert get_labels_text(detections, None) == ["5", "3"]
+
+    def test_falls_back_to_class_id_single_detection(self) -> None:
+        """class_id fallback holds for a single detection (N=1 edge case)."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[7])
+        assert get_labels_text(detections, None) == ["7"]
+
+    def test_falls_back_to_index(self) -> None:
+        """Labels fall back to detection indices when no class_id."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]],
+        )
+        assert get_labels_text(detections, None) == ["0", "1", "2"]
+
+    def test_falls_back_to_index_single_detection(self) -> None:
+        """Index fallback holds for a single detection (N=1 edge case)."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]])
+        assert get_labels_text(detections, None) == ["0"]
+
+    def test_custom_labels_take_precedence_over_class_name(self) -> None:
+        """Custom labels win over the class_name branch specifically."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        custom = ["a", "b"]
+        assert get_labels_text(detections, custom) is custom
+
+    def test_uses_class_name_data_field_with_non_str_dtype(self) -> None:
+        """Str() coercion is load-bearing when class_name holds a non-str dtype."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array([1, 2])},
+        )
+        assert get_labels_text(detections, None) == ["1", "2"]
+
+    def test_empty_detections(self) -> None:
+        """Empty detections produce an empty label list, via the class_id branch."""
+        detections = Detections.empty()
+        assert detections.class_id is not None
+        assert get_labels_text(detections, None) == []
+
+    def test_raises_on_class_name_length_mismatch(self) -> None:
+        """A class_name array shorter than detections raises instead of truncating."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        detections.data["class_name"] = np.array(["cat"])  # bypass alignment checks
+
+        with pytest.raises(ValueError, match="class_name"):
+            get_labels_text(detections, None)
+
+    def test_raises_on_class_id_length_mismatch(self) -> None:
+        """A class_id array shorter than detections raises instead of truncating."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+        )
+        detections.class_id = np.array([0])  # bypass alignment checks
+
+        with pytest.raises(ValueError, match="class_id"):
+            get_labels_text(detections, None)
+
+
+class TestTraceEmptyFrames:
+    """Tests for Trace.put on frames that contain no detections."""
+
+    def test_empty_detections_without_tracker_id_are_accepted(self) -> None:
+        """A frame that detected nothing has no tracker ids to require."""
+        trace = Trace()
+
+        trace.put(Detections.empty())
+
+        assert len(trace.xy) == 0
+        assert len(trace.tracker_id) == 0
+
+    def test_empty_detections_advance_the_frame_counter(self) -> None:
+        """An empty frame is still an elapsed frame for the max_size window."""
+        trace = Trace()
+
+        trace.put(Detections.empty())
+
+        assert trace.current_frame_id == 1
+
+    def test_track_reappearing_after_a_long_gap_drops_its_stale_trail(self) -> None:
+        """A history that fills max_size is pruned by elapsed frames on reappearance."""
+        trace = Trace(max_size=3)
+        for x in (10, 20, 30):
+            trace.put(
+                _create_detections(
+                    xyxy=[[x, 0, x + 5, 5]], class_id=[0], tracker_id=[1]
+                )
+            )
+        for _ in range(5):
+            trace.put(Detections.empty())
+
+        trace.put(
+            _create_detections(xyxy=[[90, 0, 95, 5]], class_id=[0], tracker_id=[1])
+        )
+
+        assert np.array_equal(trace.get(tracker_id=1), np.array([[92.5, 2.5]]))
+
+    def test_track_reappearing_with_an_under_filled_history_keeps_its_trail(
+        self,
+    ) -> None:
+        """Below max_size stored frames the prune gate stays shut on reappearance."""
+        trace = Trace(max_size=5)
+        for x in (10, 20):
+            trace.put(
+                _create_detections(
+                    xyxy=[[x, 0, x + 5, 5]], class_id=[0], tracker_id=[1]
+                )
+            )
+        for _ in range(20):
+            trace.put(Detections.empty())
+
+        trace.put(
+            _create_detections(xyxy=[[90, 0, 95, 5]], class_id=[0], tracker_id=[1])
+        )
+
+        assert np.array_equal(
+            trace.get(tracker_id=1),
+            np.array([[12.5, 2.5], [22.5, 2.5], [92.5, 2.5]]),
+        )
+
+    def test_center_of_mass_anchor_accepts_an_empty_first_frame(self) -> None:
+        """An empty batch never reaches the mask-requiring anchor lookup.
+
+        `Position.CENTER_OF_MASS` normally demands a detection mask, but an empty batch
+        is short-circuited before `get_anchors_coordinates` is called, so it must not
+        raise even though it carries no mask.
+        """
+        trace = Trace(anchor=Position.CENTER_OF_MASS)
+
+        trace.put(Detections.empty())
+
+        assert len(trace.xy) == 0
+        assert trace.current_frame_id == 1
+
+    def test_center_of_mass_anchor_records_masked_batch_after_empty_frame(
+        self,
+    ) -> None:
+        """A populated, masked frame after an empty one still records an anchor."""
+        trace = Trace(anchor=Position.CENTER_OF_MASS)
+        trace.put(Detections.empty())
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 40:60, 30:70] = True
+        detections = _create_detections(
+            xyxy=[[30, 40, 70, 60]],
+            mask=list(mask),
+            class_id=[0],
+            tracker_id=[1],
+        )
+
+        trace.put(detections)
+
+        assert trace.xy.shape == (1, 2)
+
+    def test_center_of_mass_anchor_still_requires_mask_on_populated_batch(
+        self,
+    ) -> None:
+        """A populated, maskless batch still raises for `CENTER_OF_MASS`.
+
+        The empty-batch short-circuit must not swallow the mask requirement for frames
+        that actually carry detections.
+        """
+        trace = Trace(anchor=Position.CENTER_OF_MASS)
+        trace.put(Detections.empty())
+        detections = _create_detections(
+            xyxy=[[30, 40, 70, 60]], class_id=[0], tracker_id=[1]
+        )
+
+        with pytest.raises(ValueError, match="without a detection mask"):
+            trace.put(detections)
+
+
+class TestSnapBoxes:
+    """Tests for `snap_boxes`, which moves label boxes into the frame."""
+
+    @pytest.mark.parametrize(
+        ("xyxy", "expected"),
+        [
+            pytest.param(
+                [-10, 10, 30, 50], [0, 10, 40, 50], id="off-left-edge-shifts-right"
+            ),
+            pytest.param(
+                [310, 200, 350, 250],
+                [280, 190, 320, 240],
+                id="off-right-and-bottom-edges-shift-in",
+            ),
+            pytest.param(
+                [-20, 10, 350, 50],
+                [0, 10, 370, 50],
+                id="wider-than-frame-from-outside-keeps-left-edge",
+            ),
+            pytest.param(
+                [10, 10, 400, 50],
+                [0, 10, 390, 50],
+                id="wider-than-frame-from-inside-keeps-left-edge",
+            ),
+            pytest.param(
+                [10, 10, 40, 300],
+                [10, 0, 40, 290],
+                id="taller-than-frame-from-inside-keeps-top-edge",
+            ),
+        ],
+    )
+    def test_snaps_box_into_frame_prioritizing_top_left(
+        self, xyxy: list[float], expected: list[float]
+    ) -> None:
+        """A box moves into the frame; one too large for it keeps its top-left."""
+        snapped = snap_boxes(np.array([xyxy], dtype=np.float32), (320, 240))
+
+        assert np.array_equal(snapped, np.array([expected], dtype=np.float32))

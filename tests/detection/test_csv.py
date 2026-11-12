@@ -1,13 +1,47 @@
 import csv
+import errno
+import io
+import json
 import os
+from collections.abc import Callable
+from functools import partial
+from pathlib import Path
 from typing import Any
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
 
 import supervision as sv
+from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.tools import csv_sink as csv_sink_module
 from supervision.detection.tools.csv_sink import CSVSink
 from tests.helpers import _create_detections
+
+
+class TestCSVSinkEncoding:
+    @pytest.mark.parametrize("label", ["café", "猫"])
+    def test_preserves_unicode_with_non_utf8_default(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, label: str
+    ) -> None:
+        """CSV labels and custom fields round-trip even under a legacy locale."""
+        path = tmp_path / "detections.csv"
+        monkeypatch.setattr(
+            csv_sink_module, "open", partial(open, encoding="cp1252"), raising=False
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[1, 2, 3, 4]]),
+            data={"class_name": np.array([label])},
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"note": f'{label}, "quoted"\nline'})
+
+        with path.open(encoding="utf-8", newline="") as file:
+            rows = list(csv.DictReader(file))
+        assert len(rows) == 1
+        assert rows[0]["class_name"] == label
+        assert rows[0]["note"] == f'{label}, "quoted"\nline'
 
 
 @pytest.mark.parametrize(
@@ -513,7 +547,8 @@ def test_csv_sink_manual(
     assert_csv_equal(file_name, expected_result)
 
 
-def assert_csv_equal(file_name, expected_rows) -> None:
+def assert_csv_equal(file_name: str, expected_rows: list[list[Any]]) -> None:
+    """Assert a CSV sink file holds the expected rows, then delete it."""
     with open(file_name, newline="") as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
@@ -614,3 +649,563 @@ class TestCSVSinkLifecycle:
                 "second_label": "second",
             }
         ]
+
+
+def _run_empty_csv_session(sink: CSVSink, body_error: BaseException | None) -> None:
+    """Exit an empty CSV session, optionally raising a processing error."""
+    with sink:
+        sink.append(sv.Detections.empty())
+        if body_error is not None:
+            raise body_error
+
+
+class TestCSVSinkExitErrors:
+    @pytest.mark.parametrize("failure_phase", ["header", "flush"])
+    @pytest.mark.parametrize(
+        "body_error_type",
+        [
+            None,
+            pytest.param(ValueError, id="callback"),
+            pytest.param(KeyboardInterrupt, id="interrupt"),
+            pytest.param(SystemExit, id="system-exit"),
+        ],
+    )
+    def test_reports_cleanup_failure_without_replacing_body_error(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        failure_phase: str,
+        body_error_type: type[BaseException] | None,
+    ) -> None:
+        """Keep the block error when deferred-header writing or flushing fails."""
+        buffer = io.BytesIO()
+        stream = io.TextIOWrapper(
+            buffer, encoding="utf-8", write_through=failure_phase == "header"
+        )
+        cleanup_error = OSError(errno.ENOSPC, "No space left on device")
+        monkeypatch.setattr(buffer, "write", Mock(side_effect=cleanup_error))
+        monkeypatch.setattr(
+            csv_sink_module, "open", Mock(return_value=stream), raising=False
+        )
+        monkeypatch.setattr(csv_sink_module.logger, "handlers", [caplog.handler])
+        body_error = (
+            None if body_error_type is None else body_error_type("processing failed")
+        )
+        expected_error = cleanup_error if body_error is None else body_error
+        sink = CSVSink(str(tmp_path / "detections.csv"))
+
+        with pytest.raises(type(expected_error)) as caught:
+            _run_empty_csv_session(sink, body_error)
+
+        assert caught.value is expected_error
+        assert stream.closed
+        assert buffer.closed
+        if body_error is None:
+            assert not caplog.records
+        else:
+            assert len(caplog.records) == 1
+            record = caplog.records[0]
+            assert (
+                record.getMessage()
+                == "Failed to close CSV sink while handling an error."
+            )
+            assert record.exc_info is not None
+            assert record.exc_info[1] is cleanup_error
+
+    def test_preserves_body_error_when_close_succeeds(self, tmp_path: Path) -> None:
+        """Closing the CSV after a processing error still writes its deferred header."""
+        path = tmp_path / "detections.csv"
+        sink = CSVSink(str(path))
+        body_error = ValueError("processing failed")
+
+        with pytest.raises(ValueError, match="processing failed") as caught:
+            _run_empty_csv_session(sink, body_error)
+
+        assert caught.value is body_error
+        assert sink.file is not None
+        assert sink.file.closed
+        with path.open(encoding="utf-8", newline="") as file:
+            assert list(csv.reader(file)) == [csv_sink_module.BASE_HEADER]
+
+
+class TestCSVSinkEmptyBatches:
+    """Tests for appending batches that contain no detections.
+
+    Also covers close() idempotency for the deferred-header path, since that behavior is
+    only reachable through an empty-batch-only session.
+    """
+
+    def test_empty_first_batch_does_not_drop_later_columns(self, tmp_path: Any) -> None:
+        """A detection-free first frame leaves the header to the first real frame."""
+        path = tmp_path / "empty_first.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(detections, custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert rows == [
+            {
+                "x_min": "10",
+                "y_min": "20",
+                "x_max": "30",
+                "y_max": "40",
+                "class_id": "",
+                "confidence": "",
+                "tracker_id": "",
+                "class_name": "person",
+                "frame_number": "1",
+            }
+        ]
+
+    def test_empty_batch_does_not_warn_about_field_names(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A detection-free frame is not a header mismatch worth reporting.
+
+        The trailing empty batch must also contribute zero data rows: it is
+        not just silent about the field-name mismatch, it writes nothing at
+        all beyond the header the first, populated batch already fixed.
+        """
+        path = tmp_path / "empty_second.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+        warnings: list[tuple[Any, ...]] = []
+        monkeypatch.setattr(
+            csv_sink_module.logger,
+            "warning",
+            lambda *args, **kwargs: warnings.append(args),
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 1})
+
+        assert warnings == []
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+        assert len(rows) == 2  # header row plus the one populated detection row
+
+    def test_only_empty_batches_still_write_header(self, tmp_path: Any) -> None:
+        """A run that never detects anything stays readable as an empty table."""
+        path = tmp_path / "all_empty.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            reader = csv.reader(file)
+            rows = list(reader)
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+                "frame_number",
+            ]
+        ]
+
+    def test_closing_twice_does_not_duplicate_header(self, tmp_path: Any) -> None:
+        """The deferred header is written once, however often close() is called."""
+        path = tmp_path / "double_close.csv"
+        sink = sv.CSVSink(str(path))
+
+        sink.open()
+        sink.append(sv.Detections.empty())
+        sink.close()
+        sink.close()
+
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+            ]
+        ]
+
+    def test_differing_schema_empty_batches_use_first_batch_header(
+        self, tmp_path: Any
+    ) -> None:
+        """Empty batches with differing custom_data keys resolve via first-wins.
+
+        No batch in this run ever carries a detection, so the deferred header is built
+        entirely from empty-batch schemas. When those empty batches disagree on their
+        custom_data keys, the file must keep the schema remembered from the first empty
+        batch, not silently overwrite it with the schema of a later, equally empty
+        batch.
+        """
+        path = tmp_path / "differing_empty_schema.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"camera_id": "north"})
+
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+                "frame_number",
+            ]
+        ]
+
+    def test_failing_deferred_header_write_still_closes_file(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A writer failing on the deferred header still releases the file handle."""
+        path = tmp_path / "failing_header.csv"
+        sink = sv.CSVSink(str(path))
+        sink.open()
+        sink.append(sv.Detections.empty())
+        failing_writer = Mock(spec=csv_sink_module.WriterProtocol)
+        failing_writer.writerow.side_effect = OSError("disk full")
+        monkeypatch.setattr(sink, "writer", failing_writer)
+
+        with pytest.raises(OSError, match="disk full"):
+            sink.close()
+
+        assert sink.file is not None
+        assert sink.file.closed
+
+    def test_reopening_after_all_empty_session_resets_deferred_schema(
+        self, tmp_path: Any
+    ) -> None:
+        """Reopening after an all-empty session drops the stale deferred schema.
+
+        Session 1 never appends a real detection, so ``open()`` resetting
+        ``deferred_field_names`` is the only thing standing between session 2 and a
+        header still carrying columns from a run that detected nothing.
+        """
+        path = tmp_path / "reopen_after_empty.csv"
+        populated_detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+        sink = sv.CSVSink(str(path))
+
+        with sink:
+            sink.append(sv.Detections.empty(), custom_data={"stale_field": 0})
+        with sink:
+            sink.append(populated_detections, custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            reader = csv.DictReader(file)
+            field_names = reader.fieldnames
+
+        assert field_names == [
+            "x_min",
+            "y_min",
+            "x_max",
+            "y_max",
+            "class_id",
+            "confidence",
+            "tracker_id",
+            "class_name",
+            "frame_number",
+        ]
+
+
+class TestCSVSinkArrayData:
+    """Tests for writing array-valued detection data to CSV cells."""
+
+    @staticmethod
+    def _write_rows(path: Path, detections: sv.Detections) -> list[dict[str, str]]:
+        """Write detections through CSVSink and return the rows read back."""
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections)
+        with path.open(newline="") as file:
+            return list(csv.DictReader(file))
+
+    def test_high_dimensional_embedding_round_trips_exactly(
+        self, tmp_path: Path
+    ) -> None:
+        """A 1536-d float32 embedding per detection is recoverable from its cell."""
+        embedding = np.random.default_rng(0).random((2, 1536), dtype=np.float32)
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={"embedding": embedding},
+        )
+
+        rows = self._write_rows(tmp_path / "embedding.csv", detections)
+
+        for row, expected in zip(rows, embedding):
+            restored = np.array(json.loads(row["embedding"]), dtype=np.float32)
+            np.testing.assert_array_equal(restored, expected)
+
+    def test_oriented_box_corners_written_without_newlines(
+        self, tmp_path: Path
+    ) -> None:
+        """Each detection's (4, 2) corner array is a single-line JSON list."""
+        corners = np.array(
+            [
+                [[0.5, 0.25], [10.0, 0.0], [10.0, 5.0], [0.0, 5.0]],
+                [[1.0, 1.0], [2.0, 1.0], [2.0, 2.0], [1.0, 2.0]],
+            ]
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 5], [1, 1, 2, 2]]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+        rows = self._write_rows(tmp_path / "obb.csv", detections)
+
+        assert [row[ORIENTED_BOX_COORDINATES] for row in rows] == [
+            "[[0.5, 0.25], [10.0, 0.0], [10.0, 5.0], [0.0, 5.0]]",
+            "[[1.0, 1.0], [2.0, 1.0], [2.0, 2.0], [1.0, 2.0]]",
+        ]
+
+    @pytest.mark.parametrize(
+        ("array", "expected_cells"),
+        [
+            pytest.param(
+                np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int16),
+                ["[1, 2, 3]", "[4, 5, 6]"],
+                id="int",
+            ),
+            pytest.param(
+                np.array([[True, False], [False, True]]),
+                ["[true, false]", "[false, true]"],
+                id="bool",
+            ),
+            pytest.param(
+                np.array([["a", "b"], ["c", "d"]]),
+                ['["a", "b"]', '["c", "d"]'],
+                id="str",
+            ),
+            pytest.param(np.zeros((2, 0)), ["[]", "[]"], id="empty"),
+        ],
+    )
+    def test_non_float_arrays_written_as_json_lists(
+        self, tmp_path: Path, array: np.ndarray, expected_cells: list[str]
+    ) -> None:
+        """Integer, boolean, string and empty per-detection arrays become JSON."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={"values": array},
+        )
+
+        rows = self._write_rows(tmp_path / "values.csv", detections)
+
+        assert [row["values"] for row in rows] == expected_cells
+
+    def test_non_finite_floats_round_trip(self, tmp_path: Path) -> None:
+        """NaN and infinities are written as JSON tokens and parse back."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={"values": np.array([[np.nan, np.inf, -np.inf, 1.5]])},
+        )
+
+        rows = self._write_rows(tmp_path / "non_finite.csv", detections)
+
+        restored = np.array(json.loads(rows[0]["values"]))
+        np.testing.assert_array_equal(restored, detections.data["values"][0])
+
+    def test_broadcast_array_written_in_full_to_every_row(self, tmp_path: Path) -> None:
+        """A custom array whose length differs from the batch size is not sliced."""
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]))
+        path = tmp_path / "broadcast.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(
+                detections, custom_data={"embedding": np.array([1.5, 2.5, 3.5])}
+            )
+        with path.open(newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert [row["embedding"] for row in rows] == ["[1.5, 2.5, 3.5]"] * 2
+
+    def test_unserializable_array_does_not_raise(self, tmp_path: Path) -> None:
+        """An array JSON cannot represent falls back to its string form."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={"values": np.array([[1 + 2j, 3 + 4j]])},
+        )
+
+        rows = self._write_rows(tmp_path / "complex.csv", detections)
+
+        assert rows[0]["values"] == str(np.array([1 + 2j, 3 + 4j]))
+
+    def test_scalar_and_string_data_output_is_unchanged(self, tmp_path: Path) -> None:
+        """Per-detection scalars and strings keep their plain str() output."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={
+                "class_name": np.array(["person"]),
+                "score": np.array([0.85], dtype=np.float32),
+                "flag": np.array([True]),
+                "zero_dim": np.array(7),
+            },
+        )
+
+        rows = self._write_rows(tmp_path / "scalars.csv", detections)
+
+        assert (
+            rows[0]["class_name"],
+            rows[0]["score"],
+            rows[0]["flag"],
+            rows[0]["zero_dim"],
+        ) == ("person", "0.85", "True", "7")
+
+    def test_matches_json_sink_values(self, tmp_path: Path) -> None:
+        """Array cells parse to the same values JSONSink writes for them."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={
+                "embedding": np.random.default_rng(1).random((2, 8), dtype=np.float32),
+                ORIENTED_BOX_COORDINATES: np.arange(16.0).reshape(2, 4, 2),
+            },
+        )
+        json_path = tmp_path / "output.json"
+
+        rows = self._write_rows(tmp_path / "output.csv", detections)
+        with sv.JSONSink(str(json_path)) as sink:
+            sink.append(detections)
+        with json_path.open() as file:
+            json_rows = json.load(file)
+
+        for row, json_row in zip(rows, json_rows):
+            assert json.loads(row["embedding"]) == json_row["embedding"]
+            assert (
+                json.loads(row[ORIENTED_BOX_COORDINATES])
+                == json_row[ORIENTED_BOX_COORDINATES]
+            )
+
+    def test_circular_object_array_falls_back_to_string(self, tmp_path: Path) -> None:
+        """Circular object arrays keep the CSV writer's string fallback."""
+        cycle: list[object] = []
+        cycle.append(cycle)
+        values = np.empty(1, dtype=object)
+        values[0] = cycle
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]))
+        path = tmp_path / "circular.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"values": values})
+        with path.open(newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert [row["values"] for row in rows] == [str(values)] * 2
+
+
+class TestCSVSinkReservedColumns:
+    """Cover collisions with built-in detection columns."""
+
+    @pytest.mark.parametrize("count", [0, 1])
+    @pytest.mark.parametrize(
+        ("field_name", "from_custom_data"),
+        [
+            pytest.param("confidence", True, id="custom-data"),
+            pytest.param("x_min", False, id="detection-data"),
+        ],
+    )
+    def test_rejects_collision_without_writing_a_header(
+        self,
+        tmp_path: Path,
+        count: int,
+        field_name: str,
+        from_custom_data: bool,
+    ) -> None:
+        """An invalid batch cannot establish a CSV schema."""
+        path = tmp_path / "detections.csv"
+        custom_data = {field_name: 0.25} if from_custom_data else None
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]])[:count],
+            confidence=np.full(count, 0.75),
+            data={} if from_custom_data else {field_name: np.full(count, 42)},
+        )
+
+        with CSVSink(str(path)) as sink:
+            with pytest.raises(
+                ValueError, match=rf"reserved CSV column names {field_name}"
+            ):
+                sink.append(detections, custom_data=custom_data)
+
+        assert path.read_bytes() == b""
+
+    @pytest.mark.parametrize(
+        "parse", [CSVSink.parse_detection_data, CSVSink.parse_field_names]
+    )
+    def test_parsers_report_all_conflicts(self, parse: Callable[..., object]) -> None:
+        """The public row and header helpers share the reserved-name policy."""
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]]),
+            data={"x_min": np.array([42])},
+        )
+
+        with pytest.raises(
+            ValueError, match="reserved CSV column names confidence, x_min"
+        ):
+            parse(detections, custom_data={"confidence": 0.25, "x_min": 99})
+
+    def test_rejected_batch_preserves_existing_rows_and_extra_fields(
+        self, tmp_path: Path
+    ) -> None:
+        """A rejected batch leaves the sink usable and valid extra fields intact."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]]),
+            confidence=np.array([0.75]),
+            data={"frame": np.array([0])},
+        )
+
+        with CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame": 1})
+            with pytest.raises(
+                ValueError, match="reserved CSV column names confidence"
+            ):
+                sink.append(detections, custom_data={"frame": 2, "confidence": 0.25})
+            sink.append(detections, custom_data={"frame": 3})
+
+        with path.open(newline="", encoding="utf-8") as file:
+            rows = list(csv.reader(file))
+        assert rows == [
+            [*csv_sink_module.BASE_HEADER, "frame"],
+            ["2.0", "3.0", "7.0", "8.0", "", "0.75", "", "1"],
+            ["2.0", "3.0", "7.0", "8.0", "", "0.75", "", "3"],
+        ]
+
+    def test_rejected_empty_batch_preserves_deferred_header(
+        self, tmp_path: Path
+    ) -> None:
+        """Rejecting an empty batch retains the previously deferred header."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections.empty()
+
+        with CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame": 1})
+            with pytest.raises(
+                ValueError, match="reserved CSV column names tracker_id"
+            ):
+                sink.append(detections, custom_data={"tracker_id": 3})
+
+        with path.open(newline="", encoding="utf-8") as file:
+            assert list(csv.reader(file)) == [[*csv_sink_module.BASE_HEADER, "frame"]]

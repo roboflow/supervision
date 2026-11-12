@@ -1,5 +1,8 @@
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
-from typing import ClassVar
+from pathlib import Path
+from typing import Any, ClassVar, cast
 
 import numpy as np
 import pytest
@@ -11,36 +14,20 @@ from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
 from supervision.metrics.detection import (
     ConfusionMatrix,
-    MeanAveragePrecision,
     _split_detections_by_outcome,
     _validate_input_tensors,
     detections_to_tensor,
 )
 from tests.helpers import (
     _create_detections,
-    assert_almost_equal,
     create_predictions_with_class_iou_tests,
 )
 
 
-def _call_confusion_matrix_from_detections_masks() -> None:
-    ConfusionMatrix.from_detections(
-        predictions=[
-            Detections(
-                xyxy=np.zeros((1, 4), dtype=np.float32),
-                class_id=np.array([0]),
-                confidence=np.array([0.9]),
-            )
-        ],
-        targets=[
-            Detections(
-                xyxy=np.zeros((1, 4), dtype=np.float32),
-                class_id=np.array([0]),
-            )
-        ],
-        classes=["box"],
-        metric_target=MetricTarget.MASKS,
-    )
+def _required(values: np.ndarray | None) -> np.ndarray:
+    """Narrow a ``Detections`` field that the test data always sets."""
+    assert values is not None
+    return values
 
 
 def _call_confusion_matrix_from_tensors_masks() -> None:
@@ -63,16 +50,44 @@ def _call_confusion_matrix_evaluate_detection_batch_masks() -> None:
     )
 
 
+def _call_detections_to_tensor_masks() -> None:
+    """Ask ``detections_to_tensor`` for a mask tensor, which does not exist."""
+    detections_to_tensor(
+        Detections(
+            xyxy=np.zeros((1, 4), dtype=np.float32),
+            class_id=np.array([0]),
+        ),
+        metric_target=MetricTarget.MASKS,
+    )
+
+
+def _mask_detections(
+    boxes: list[list[int]],
+    class_id: list[int],
+    confidence: list[float] | None = None,
+    resolution: tuple[int, int] = (32, 32),
+) -> Detections:
+    """Detections whose masks are the filled rectangles given by ``boxes``."""
+    masks = np.zeros((len(boxes), *resolution), dtype=bool)
+    for index, (x_min, y_min, x_max, y_max) in enumerate(boxes):
+        masks[index, y_min:y_max, x_min:x_max] = True
+    return Detections(
+        xyxy=np.array(boxes, dtype=np.float32),
+        mask=masks,
+        class_id=np.array(class_id),
+        confidence=None if confidence is None else np.array(confidence),
+    )
+
+
 class TestDetectionMetrics:
-    """
-    Verify that detection metrics are computed accurately.
+    """Verify that detection metrics are computed accurately.
 
     Ensures that detection metrics (mAP, Conf. Matrix, etc.) are computed accurately.
     These metrics are the primary way users evaluate the performance of their models
     within the `supervision` ecosystem.
     """
 
-    CLASSES = np.arange(80)
+    CLASSES: ClassVar[list[str]] = [str(class_id) for class_id in range(80)]
     NUM_CLASSES = len(CLASSES)
 
     PREDICTIONS = np.array(
@@ -121,8 +136,8 @@ class TestDetectionMetrics:
         np.concatenate(
             [
                 det.xyxy,
-                np.expand_dims(det.class_id, 1),
-                np.expand_dims(det.confidence, 1),
+                np.expand_dims(_required(det.class_id), 1),
+                np.expand_dims(_required(det.confidence), 1),
             ],
             axis=1,
         )
@@ -132,7 +147,7 @@ class TestDetectionMetrics:
         np.concatenate(
             [
                 det.xyxy,
-                np.expand_dims(det.class_id, 1),
+                np.expand_dims(_required(det.class_id), 1),
                 np.ones((len(det), 1)),
             ],
             axis=1,
@@ -150,36 +165,38 @@ class TestDetectionMetrics:
     )
 
     @staticmethod
-    def create_empty_conf_matrix(num_classes: int, do_add_dummy_class: bool = True):
+    def create_empty_conf_matrix(
+        num_classes: int, do_add_dummy_class: bool = True
+    ) -> np.ndarray:
         if do_add_dummy_class:
             num_classes += 1
         return np.zeros((num_classes, num_classes))
 
     @staticmethod
-    def update_ideal_conf_matrix(conf_matrix: np.ndarray, class_ids: np.ndarray):
+    def update_ideal_conf_matrix(
+        conf_matrix: np.ndarray, class_ids: np.ndarray
+    ) -> np.ndarray:
         for class_id, count in zip(*np.unique(class_ids, return_counts=True)):
             class_id = int(class_id)
             conf_matrix[class_id, class_id] += count
         return conf_matrix
 
     @staticmethod
-    def worsen_ideal_conf_matrix(conf_matrix: np.ndarray, class_ids: np.ndarray | list):
+    def worsen_ideal_conf_matrix(
+        conf_matrix: np.ndarray, class_ids: np.ndarray | list[int]
+    ) -> np.ndarray:
         for class_id in class_ids:
             class_id = int(class_id)
             conf_matrix[class_id, class_id] -= 1
             conf_matrix[class_id, 80] += 1
         return conf_matrix
 
-    IDEAL_CONF_MATRIX = create_empty_conf_matrix.__func__(NUM_CLASSES)
-    IDEAL_CONF_MATRIX = update_ideal_conf_matrix.__func__(
-        IDEAL_CONF_MATRIX, PREDICTIONS[:, 5]
-    )
+    IDEAL_CONF_MATRIX = create_empty_conf_matrix(NUM_CLASSES)
+    IDEAL_CONF_MATRIX = update_ideal_conf_matrix(IDEAL_CONF_MATRIX, PREDICTIONS[:, 5])
 
-    GOOD_CONF_MATRIX = worsen_ideal_conf_matrix.__func__(
-        IDEAL_CONF_MATRIX.copy(), [62, 72]
-    )
+    GOOD_CONF_MATRIX = worsen_ideal_conf_matrix(IDEAL_CONF_MATRIX.copy(), [62, 72])
 
-    BAD_CONF_MATRIX = worsen_ideal_conf_matrix.__func__(
+    BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
         IDEAL_CONF_MATRIX.copy(), [62, 72, 72, 39, 39, 39, 39, 56]
     )
 
@@ -368,10 +385,9 @@ class TestDetectionMetrics:
         with_confidence: bool,
         metric_target: MetricTarget,
         expected_result: np.ndarray | None,
-        exception: Exception,
+        exception: AbstractContextManager[object],
     ) -> None:
-        """
-        Verify that Detections objects are correctly converted to NumPy tensors.
+        """Verify that Detections objects are correctly converted to NumPy tensors.
 
         Scenario: Converting Detections objects to NumPy tensors.
         Expected: Tensors are correctly formatted for consumption by metric functions,
@@ -383,6 +399,7 @@ class TestDetectionMetrics:
                 with_confidence=with_confidence,
                 metric_target=metric_target,
             )
+            assert expected_result is not None
             np.testing.assert_allclose(result, expected_result, atol=1e-5)
 
     @pytest.mark.parametrize(
@@ -411,7 +428,7 @@ class TestDetectionMetrics:
                 CLASSES,
                 0.2,
                 0.5,
-                create_empty_conf_matrix.__func__(NUM_CLASSES),
+                create_empty_conf_matrix(NUM_CLASSES),
                 DoesNotRaise(),
             ),
             (
@@ -505,13 +522,13 @@ class TestDetectionMetrics:
     )
     def test_from_tensors(
         self,
-        predictions,
-        targets,
-        classes,
-        conf_threshold,
-        iou_threshold,
+        predictions: list[np.ndarray],
+        targets: list[np.ndarray],
+        classes: list[str],
+        conf_threshold: float,
+        iou_threshold: float,
         expected_result: np.ndarray | None,
-        exception: Exception,
+        exception: AbstractContextManager[object],
     ) -> None:
         with exception:
             result = ConfusionMatrix.from_tensors(
@@ -522,6 +539,7 @@ class TestDetectionMetrics:
                 iou_threshold=iou_threshold,
             )
 
+        assert expected_result is not None
         assert result.matrix.diagonal().sum() == expected_result.diagonal().sum()
         assert np.array_equal(result.matrix, expected_result)
 
@@ -549,13 +567,13 @@ class TestDetectionMetrics:
     )
     def test_evaluate_detection_batch(
         self,
-        predictions,
-        targets,
-        num_classes,
-        conf_threshold,
-        iou_threshold,
+        predictions: np.ndarray,
+        targets: np.ndarray,
+        num_classes: int,
+        conf_threshold: float,
+        iou_threshold: float,
         expected_result: np.ndarray | None,
-        exception: Exception,
+        exception: AbstractContextManager[object],
     ) -> None:
         with exception:
             result = ConfusionMatrix.evaluate_detection_batch(
@@ -566,6 +584,7 @@ class TestDetectionMetrics:
                 iou_threshold=iou_threshold,
             )
 
+        assert expected_result is not None
         assert result.diagonal().sum() == result.sum()
         assert np.array_equal(result, expected_result)
 
@@ -609,72 +628,15 @@ class TestDetectionMetrics:
     )
     def test_drop_extra_matches(
         self,
-        matches,
+        matches: np.ndarray,
         expected_result: np.ndarray | None,
-        exception: Exception,
+        exception: AbstractContextManager[object],
     ) -> None:
         with exception:
             result = ConfusionMatrix._drop_extra_matches(matches)
 
+            assert expected_result is not None
             assert np.array_equal(result, expected_result)
-
-    @pytest.mark.parametrize(
-        ("recall", "precision", "expected_result", "exception"),
-        [
-            (
-                np.array([1.0]),
-                np.array([1.0]),
-                1.0,
-                DoesNotRaise(),
-            ),  # perfect recall and precision
-            (
-                np.array([0.0]),
-                np.array([0.0]),
-                0.0,
-                DoesNotRaise(),
-            ),  # no recall and precision
-            (
-                np.array([0.0, 0.2, 0.2, 0.8, 0.8, 1.0]),
-                np.array([0.7, 0.8, 0.4, 0.5, 0.1, 0.2]),
-                0.5,
-                DoesNotRaise(),
-            ),
-            (
-                np.array([0.0, 0.5, 0.5, 1.0]),
-                np.array([0.75, 0.75, 0.75, 0.75]),
-                0.75,
-                DoesNotRaise(),
-            ),
-        ],
-    )
-    def test_compute_average_precision(
-        self,
-        recall: np.ndarray,
-        precision: np.ndarray,
-        expected_result: float,
-        exception: Exception,
-    ) -> None:
-        """
-        Verify that Average Precision is correctly calculated from PR curve points.
-
-        Scenario: Computing Average Precision (AP) from PR curve points.
-        Expected: AP is correctly calculated using the area under the curve, which is
-        the standard for evaluating detection models (mAP components).
-        """
-        with exception:
-            result = MeanAveragePrecision.compute_average_precision(
-                recall=recall, precision=precision
-            )
-            assert_almost_equal(result, expected_result, tolerance=0.01)
-
-    def test_compute_average_precision_perfect_curve_is_exact_one(self) -> None:
-        """COCO 101-point AP should give exactly 1.0 for a perfect PR curve."""
-        result = MeanAveragePrecision.compute_average_precision(
-            recall=np.array([1.0]),
-            precision=np.array([1.0]),
-        )
-
-        assert result == pytest.approx(1.0, abs=1e-12)
 
     @pytest.mark.parametrize(
         (
@@ -697,7 +659,7 @@ class TestDetectionMetrics:
                     )
                 ],
                 [_create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],  # GT bboxes
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence Threshold
                 0.5,  # IOU Threshold
                 np.array(  # Expected confusion matrix
@@ -729,7 +691,7 @@ class TestDetectionMetrics:
                         xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -756,7 +718,7 @@ class TestDetectionMetrics:
                         xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -786,7 +748,7 @@ class TestDetectionMetrics:
                         xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -814,7 +776,7 @@ class TestDetectionMetrics:
                         class_id=[0, 1, 2],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -841,7 +803,7 @@ class TestDetectionMetrics:
                         xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int)
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -868,7 +830,7 @@ class TestDetectionMetrics:
                         xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int)
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.zeros((4, 4)),
@@ -889,7 +851,7 @@ class TestDetectionMetrics:
                         class_id=[0, 1, 2],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -928,7 +890,7 @@ class TestDetectionMetrics:
                         class_id=[0, 1, 2, 0],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -968,7 +930,7 @@ class TestDetectionMetrics:
                         class_id=[0, 1, 2, 0],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,  # conf_threshold filters out last prediction
                 0.5,
                 np.array(
@@ -1012,7 +974,7 @@ class TestDetectionMetrics:
                         class_id=[0, 0, 0, 1, 1, 2, 2],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -1056,7 +1018,7 @@ class TestDetectionMetrics:
                         class_id=[0, 0, 1, 1, 2, 2],
                     )
                 ],
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
                 np.array(
@@ -1079,7 +1041,7 @@ class TestDetectionMetrics:
                     )
                 ],
                 [Detections.empty()],
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
                 np.array(
@@ -1100,7 +1062,7 @@ class TestDetectionMetrics:
                         xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]], class_id=[0, 0]
                     )
                 ],
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
                 np.array(
@@ -1117,7 +1079,7 @@ class TestDetectionMetrics:
             (
                 [Detections.empty()],
                 [Detections.empty()],
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
                 np.array(
@@ -1134,13 +1096,13 @@ class TestDetectionMetrics:
     )
     def test_confusion_matrix(
         self,
-        predictions,
-        targets,
-        classes,
-        conf_threshold,
-        iou_threshold,
-        expected_result,
-        exception: Exception,
+        predictions: list[Detections],
+        targets: list[Detections],
+        classes: list[str],
+        conf_threshold: float,
+        iou_threshold: float,
+        expected_result: np.ndarray,
+        exception: AbstractContextManager[object],
     ) -> None:
         with exception:
             confusion_matrix = ConfusionMatrix.from_detections(
@@ -1155,15 +1117,16 @@ class TestDetectionMetrics:
         # AssertionError if the two arrays are not equal
         np.testing.assert_array_equal(confusion_matrix.matrix, expected_result)
 
-    def test_confusion_matrix_on_yolo_dataset(self, yolo_dataset_structure) -> None:
-        """
-        Test confusion matrix calculation on a YOLO-format dataset.
+    def test_confusion_matrix_on_yolo_dataset(
+        self, yolo_dataset_structure: dict[str, Any]
+    ) -> None:
+        """Test confusion matrix calculation on a YOLO-format dataset.
 
-        This test verifies that the confusion matrix fix (considering both IoU AND
-        class agreement) works correctly when applied to a dataset loaded from
-        roboflow-format YOLO data. It creates a synthetic dataset with specific
-        scenarios where predictions have high IoU but wrong class, ensuring only
-        predictions with correct class are matched.
+        This test verifies that the confusion matrix fix (considering both IoU AND class
+        agreement) works correctly when applied to a dataset loaded from roboflow-format
+        YOLO data. It creates a synthetic dataset with specific scenarios where
+        predictions have high IoU but wrong class, ensuring only predictions with
+        correct class are matched.
         """
         dataset_info = yolo_dataset_structure
         classes = ["dog", "cat", "person"]
@@ -1217,7 +1180,7 @@ class TestDetectionMetrics:
         confusion_matrix = ConfusionMatrix.from_detections(
             predictions=predictions,
             targets=targets,
-            classes=list(range(len(classes))),
+            classes=classes,
             conf_threshold=0.5,
             iou_threshold=0.5,
         )
@@ -1250,8 +1213,8 @@ class TestDetectionMetrics:
 
     def test_confusion_matrix_benchmark_saves_validation_visualizations(
         self,
-        tmp_path,
-    ):
+        tmp_path: Path,
+    ) -> None:
         image = np.zeros((32, 32, 3), dtype=np.uint8)
         targets = Detections(
             xyxy=np.array([[2, 2, 12, 12], [18, 18, 28, 28]], dtype=np.float32),
@@ -1266,14 +1229,14 @@ class TestDetectionMetrics:
         class Dataset:
             classes: ClassVar[list[str]] = ["cat", "dog"]
 
-            def __iter__(self):
+            def __iter__(self) -> Iterator[tuple[str, np.ndarray, Detections]]:
                 yield "sample.jpg", image, targets
 
         def callback(_: np.ndarray) -> Detections:
             return predictions
 
         confusion_matrix = ConfusionMatrix.benchmark(
-            dataset=Dataset(),
+            dataset=cast(DetectionDataset, Dataset()),
             callback=callback,
             save_directory_path=tmp_path,
         )
@@ -1340,14 +1303,18 @@ class TestDetectionMetrics:
         ],
     )
     def test_validate_input_tensors_obb(
-        self, predictions, targets, metric_target, exception
-    ):
+        self,
+        predictions: list[np.ndarray],
+        targets: list[np.ndarray],
+        metric_target: MetricTarget,
+        exception: AbstractContextManager[object],
+    ) -> None:
         with exception:
             _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
-    def test_confusion_matrix_obb(self):
-        """
-        Verify OBB support in ConfusionMatrix.
+    def test_confusion_matrix_obb(self) -> None:
+        """Verify OBB support in ConfusionMatrix.
+
         Test scenarios:
         1. Perfect OBB overlap (Rotation Match)
         2. Rotation Sensitivity (Same AABB, different rotation)
@@ -1428,7 +1395,7 @@ class TestDetectionMetrics:
         assert cm_sensitivity_obb.matrix[0, 0] == 0
         assert cm_sensitivity_boxes.matrix[0, 0] == 1
 
-    def test_confusion_matrix_obb_regression_1760(self):
+    def test_confusion_matrix_obb_regression_1760(self) -> None:
         """Regression for #1760: thin OBBs with same AABB must not match.
 
         Two thin bars (100 px long, 10 px wide) at 45° and -45° share an identical
@@ -1541,8 +1508,12 @@ class TestDetectionMetrics:
         ],
     )
     def test_confusion_matrix_from_tensors_obb(
-        self, pred_tensor, target_tensor, iou_threshold, expected_matrix
-    ):
+        self,
+        pred_tensor: np.ndarray,
+        target_tensor: np.ndarray,
+        iou_threshold: float,
+        expected_matrix: np.ndarray,
+    ) -> None:
         """Direct from_tensors OBB end-to-end coverage with pre-built tensors."""
         cm = ConfusionMatrix.from_tensors(
             predictions=[pred_tensor],
@@ -1554,12 +1525,8 @@ class TestDetectionMetrics:
         np.testing.assert_array_equal(cm.matrix, expected_matrix)
 
     @pytest.mark.parametrize(
-        "call",
+        "fn_call",
         [
-            pytest.param(
-                _call_confusion_matrix_from_detections_masks,
-                id="from_detections",
-            ),
             pytest.param(
                 _call_confusion_matrix_from_tensors_masks,
                 id="from_tensors",
@@ -1568,14 +1535,21 @@ class TestDetectionMetrics:
                 _call_confusion_matrix_evaluate_detection_batch_masks,
                 id="evaluate_detection_batch",
             ),
+            pytest.param(
+                _call_detections_to_tensor_masks,
+                id="detections_to_tensor",
+            ),
         ],
     )
-    def test_confusion_matrix_masks_rejection(self, call):
-        """MetricTarget.MASKS raises ValueError at every public entry point."""
-        with pytest.raises(ValueError, match=r"MetricTarget\.MASKS"):
-            call()
+    def test_confusion_matrix_masks_rejected_by_tensor_entry_points(
+        self, fn_call: Callable[[], None]
+    ) -> None:
+        """Masks have no tensor layout: the tensor entry points raise and point the
+        caller at ``from_detections``."""
+        with pytest.raises(ValueError, match=r"MetricTarget\.MASKS.*from_detections"):
+            fn_call()
 
-    def test_confusion_matrix_multiclass_obb(self):
+    def test_confusion_matrix_multiclass_obb(self) -> None:
         """Multi-class OBB: TP for exact match, FP+FN for rotation mismatch."""
         classes = ["box", "circle"]
 
@@ -1626,7 +1600,7 @@ class TestDetectionMetrics:
         assert cm.matrix[1, 2] == 1  # FN class 1 (unmatched GT)
         assert cm.matrix[2, 1] == 1  # FP class 1 (unmatched pred)
 
-    def test_confusion_matrix_metric_target_persistence_from_detections(self):
+    def test_confusion_matrix_metric_target_persistence_from_detections(self) -> None:
         """metric_target field reflects the value passed to from_detections."""
         xyxy = np.array([[0, 0, 10, 10]], dtype=np.float32)
         cm = ConfusionMatrix.from_detections(
@@ -1641,7 +1615,7 @@ class TestDetectionMetrics:
         )
         assert cm.metric_target == MetricTarget.BOXES
 
-    def test_confusion_matrix_metric_target_persistence_from_tensors(self):
+    def test_confusion_matrix_metric_target_persistence_from_tensors(self) -> None:
         """metric_target field reflects the value passed to from_tensors."""
         cm = ConfusionMatrix.from_tensors(
             predictions=[np.array([[0, 0, 10, 10, 0, 0.9]], dtype=np.float32)],
@@ -1651,118 +1625,11 @@ class TestDetectionMetrics:
         )
         assert cm.metric_target == MetricTarget.BOXES
 
-    def test_greedy_matching_two_valid_pairs(self):
-        """Greedy matching finds both TPs; np.unique style missed the second pair."""
-        preds = Detections(
-            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
-            confidence=np.array([0.95, 0.90]),
-            class_id=np.array([0, 0]),
-        )
-        targets = Detections(
-            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
-            class_id=np.array([0, 0]),
-        )
-
-        result = MeanAveragePrecision.from_detections(
-            predictions=[preds], targets=[targets]
-        )
-
-        assert result.map50 == pytest.approx(1.0, abs=0.01)
-
-
-class TestMeanAveragePrecisionBackgroundFalsePositives:
-    """MeanAveragePrecision.from_tensors penalizes predictions on GT-empty images."""
-
-    def test_background_false_positives_lower_map(self) -> None:
-        """False positives on a GT-empty image drop map50 below the FP-free baseline."""
-        # Arrange
-        matched_target = np.array([[0.0, 0.0, 10.0, 10.0, 0]], dtype=np.float32)
-        matched_prediction = np.array(
-            [[0.0, 0.0, 10.0, 10.0, 0, 0.9]], dtype=np.float32
-        )
-        background_target = np.zeros((0, 5), dtype=np.float32)
-        background_predictions = np.array(
-            [
-                [100.0, 100.0, 110.0, 110.0, 0, 0.95],
-                [200.0, 200.0, 210.0, 210.0, 0, 0.95],
-                [300.0, 300.0, 310.0, 310.0, 0, 0.95],
-            ],
-            dtype=np.float32,
-        )
-
-        # Act
-        without_fp = MeanAveragePrecision.from_tensors(
-            predictions=[matched_prediction],
-            targets=[matched_target],
-        )
-        with_fp = MeanAveragePrecision.from_tensors(
-            predictions=[matched_prediction, background_predictions],
-            targets=[matched_target, background_target],
-        )
-
-        # Assert
-        assert without_fp.map50 == pytest.approx(1.0, abs=0.01)
-        assert with_fp.map50 < without_fp.map50
-        assert with_fp.map50 < 0.5
-        assert with_fp.map75 < without_fp.map75
-        assert with_fp.map50_95 < without_fp.map50_95
-
-    def test_ground_truth_present_path_uses_coco_101_point_ap(self) -> None:
-        """GT-present scenario uses the corrected COCO 101-point AP value."""
-        # Arrange
-        targets = [
-            np.array(
-                [
-                    [0.0, 0.0, 3.0, 3.0, 0],
-                    [2.0, 2.0, 5.0, 5.0, 0],
-                    [6.0, 1.0, 8.0, 3.0, 1],
-                ],
-                dtype=np.float32,
-            )
-        ]
-        predictions = [
-            np.array(
-                [
-                    [0.0, 0.0, 3.0, 3.0, 0, 0.9],
-                    [0.1, 0.1, 3.0, 3.0, 0, 0.9],
-                    [6.0, 1.0, 8.0, 3.0, 1, 0.8],
-                ],
-                dtype=np.float32,
-            )
-        ]
-
-        # Act
-        result = MeanAveragePrecision.from_tensors(
-            predictions=predictions, targets=targets
-        )
-
-        # Assert
-        assert result.map50 == pytest.approx(0.7524752475, abs=1e-9)
-
-    def test_all_background_predictions_return_zero_not_nan(self) -> None:
-        """All-background dataset with predictions must yield 0.0 mAP, not NaN."""
-        # Arrange — no GT objects anywhere; model still fires predictions
-        background_target = np.zeros((0, 5), dtype=np.float32)
-        background_predictions = np.array(
-            [[0.0, 0.0, 10.0, 10.0, 0, 0.9]], dtype=np.float32
-        )
-
-        # Act
-        result = MeanAveragePrecision.from_tensors(
-            predictions=[background_predictions],
-            targets=[background_target],
-        )
-
-        # Assert — must be finite 0.0, not NaN (regression for all-background datasets)
-        assert result.map50 == pytest.approx(0.0)
-        assert result.map75 == pytest.approx(0.0)
-        assert result.map50_95 == pytest.approx(0.0)
-
 
 class TestSplitDetectionsByOutcome:
     """Tests for _split_detections_by_outcome matching and filtering logic."""
 
-    def test_confidence_none_all_survive(self):
+    def test_confidence_none_all_survive(self) -> None:
         """Predictions with no confidence score pass threshold regardless."""
         predictions = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
@@ -1780,7 +1647,7 @@ class TestSplitDetectionsByOutcome:
         assert len(fp) == 0
         assert len(fn) == 0
 
-    def test_all_below_threshold_returns_zero_tp(self):
+    def test_all_below_threshold_returns_zero_tp(self) -> None:
         """Predictions below conf_threshold are excluded, leaving only FN."""
         predictions = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
@@ -1798,7 +1665,7 @@ class TestSplitDetectionsByOutcome:
         assert len(fp) == 0
         assert len(fn) == 1
 
-    def test_cross_class_spatial_match(self):
+    def test_cross_class_spatial_match(self) -> None:
         """Spatially overlapping but class-mismatched pair → FP + FN."""
         predictions = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
@@ -1816,7 +1683,7 @@ class TestSplitDetectionsByOutcome:
         assert len(fp) == 1
         assert len(fn) == 1
 
-    def test_empty_predictions_all_fn(self):
+    def test_empty_predictions_all_fn(self) -> None:
         """Zero predictions → every target becomes a false negative."""
         predictions = Detections.empty()
         predictions.class_id = np.array([], dtype=np.int64)
@@ -1831,7 +1698,7 @@ class TestSplitDetectionsByOutcome:
         assert len(fp) == 0
         assert len(fn) == 2
 
-    def test_empty_targets_all_fp(self):
+    def test_empty_targets_all_fp(self) -> None:
         """Zero targets → every prediction becomes a false positive."""
         predictions = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
@@ -1874,7 +1741,9 @@ class TestSplitDetectionsByOutcome:
             ),
         ],
     )
-    def test_class_id_none_raises_value_error(self, predictions, targets):
+    def test_class_id_none_raises_value_error(
+        self, predictions: Detections, targets: Detections
+    ) -> None:
         """Missing class_id on either input raises ValueError."""
         with pytest.raises(ValueError, match="class_id"):
             _split_detections_by_outcome(predictions, targets, 0.5, 0.5)
@@ -1891,7 +1760,7 @@ class TestConfusionMatrixPlot:
         ],
     )
     def test_plot_returns_figure(self, normalize: bool) -> None:
-        """plot() must not crash on the integer matrix produced by from_tensors."""
+        """Plot() must not crash on the integer matrix produced by from_tensors."""
         targets = [
             np.array(
                 [
@@ -1919,3 +1788,419 @@ class TestConfusionMatrixPlot:
 
         assert fig is not None
         plt.close(fig)
+
+
+class TestConfusionMatrixMasks:
+    """ConfusionMatrix scored on ``MetricTarget.MASKS``."""
+
+    # Two instances that share one bounding box each. The first predicted mask
+    # is the target mask; the second is a 10x3 strip of its 10x10 target, so its
+    # mask IoU is 0.3 while its box IoU is 1.0.
+    TARGET_BOXES: ClassVar[list[list[int]]] = [[2, 2, 12, 12], [18, 18, 28, 28]]
+    PREDICTED_BOXES: ClassVar[list[list[int]]] = [[2, 2, 12, 12], [18, 18, 28, 28]]
+
+    @staticmethod
+    def _shared_box_pair() -> tuple[Detections, Detections]:
+        """Predictions and targets with identical boxes; only the first mask overlaps
+        its target."""
+        targets = _mask_detections(
+            TestConfusionMatrixMasks.TARGET_BOXES, class_id=[0, 0]
+        )
+        predictions = _mask_detections(
+            TestConfusionMatrixMasks.PREDICTED_BOXES,
+            class_id=[0, 0],
+            confidence=[0.9, 0.8],
+        )
+        # Keep the box, shrink the second mask to a 10x3 strip of its target.
+        assert isinstance(predictions.mask, np.ndarray)
+        predictions.mask[1] = False
+        predictions.mask[1, 18:28, 18:21] = True
+        return predictions, targets
+
+    def test_masks_decide_matches_where_boxes_agree(self) -> None:
+        """Same boxes, different shapes: boxes see two TPs, masks see one."""
+        predictions, targets = self._shared_box_pair()
+
+        cm_boxes = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cell"],
+            metric_target=MetricTarget.BOXES,
+        )
+        cm_masks = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cell"],
+            metric_target=MetricTarget.MASKS,
+        )
+
+        np.testing.assert_array_equal(cm_boxes.matrix, [[2, 0], [0, 0]])
+        np.testing.assert_array_equal(cm_masks.matrix, [[1, 1], [1, 0]])
+        assert cm_masks.metric_target == MetricTarget.MASKS
+
+    def test_disjoint_shapes_in_one_box_do_not_match(self) -> None:
+        """A lower-left and an upper-right triangle share a box (IoU 1.0) but no pixels,
+        so the mask target scores FN + FP where boxes score TP."""
+        triangle = np.tril(np.ones((16, 16), dtype=bool))
+        target_masks = np.zeros((1, 32, 32), dtype=bool)
+        target_masks[0, 4:20, 4:20] = triangle
+        predicted_masks = np.zeros((1, 32, 32), dtype=bool)
+        predicted_masks[0, 4:20, 4:20] = ~triangle
+        box = np.array([[4, 4, 19, 19]], dtype=np.float32)
+        targets = Detections(xyxy=box, mask=target_masks, class_id=np.array([0]))
+        predictions = Detections(
+            xyxy=box,
+            mask=predicted_masks,
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+
+        cm_masks = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["box"],
+            metric_target=MetricTarget.MASKS,
+        )
+        cm_boxes = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["box"],
+            metric_target=MetricTarget.BOXES,
+        )
+
+        np.testing.assert_array_equal(cm_masks.matrix, [[0, 1], [1, 0]])
+        np.testing.assert_array_equal(cm_boxes.matrix, [[1, 0], [0, 0]])
+
+    def test_multiclass_misclassification_and_stray_prediction(self) -> None:
+        """Overlapping masks with different classes count as a misclassification, a
+        matching mask as TP and a mask far from every target as FP."""
+        targets = _mask_detections([[2, 2, 12, 12], [18, 18, 28, 28]], class_id=[0, 1])
+        predictions = _mask_detections(
+            [[2, 2, 12, 12], [18, 18, 28, 28], [2, 20, 8, 30]],
+            class_id=[1, 1, 0],
+            confidence=[0.9, 0.8, 0.7],
+        )
+
+        cm = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cat", "dog"],
+            metric_target=MetricTarget.MASKS,
+        )
+
+        np.testing.assert_array_equal(
+            cm.matrix,
+            [
+                [0, 1, 0],  # cat target predicted as dog
+                [0, 1, 0],  # dog target matched
+                [1, 0, 0],  # stray cat prediction
+            ],
+        )
+
+    def test_iou_threshold_applies_to_mask_iou(self) -> None:
+        """A 10x3 strip of a 10x10 target has mask IoU 0.3: matched below that
+        threshold, unmatched above it."""
+        predictions, targets = self._shared_box_pair()
+
+        lenient = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cell"],
+            iou_threshold=0.25,
+            metric_target=MetricTarget.MASKS,
+        )
+        strict = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cell"],
+            iou_threshold=0.35,
+            metric_target=MetricTarget.MASKS,
+        )
+
+        np.testing.assert_array_equal(lenient.matrix, [[2, 0], [0, 0]])
+        np.testing.assert_array_equal(strict.matrix, [[1, 1], [1, 0]])
+
+    def test_confidence_threshold_filters_predictions(self) -> None:
+        """A prediction below ``conf_threshold`` is dropped, leaving its target as
+        FN."""
+        targets = _mask_detections([[2, 2, 12, 12]], class_id=[0])
+        predictions = _mask_detections([[2, 2, 12, 12]], class_id=[0], confidence=[0.2])
+
+        cm = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cell"],
+            conf_threshold=0.3,
+            metric_target=MetricTarget.MASKS,
+        )
+
+        np.testing.assert_array_equal(cm.matrix, [[0, 1], [0, 0]])
+
+    @pytest.mark.parametrize(
+        ("predictions", "targets", "expected"),
+        [
+            pytest.param(
+                Detections.empty(),
+                _mask_detections([[2, 2, 12, 12], [18, 18, 28, 28]], class_id=[0, 1]),
+                [[0, 0, 1], [0, 0, 1], [0, 0, 0]],
+                id="no-predictions",
+            ),
+            pytest.param(
+                _mask_detections([[2, 2, 12, 12]], class_id=[1], confidence=[0.9]),
+                Detections.empty(),
+                [[0, 0, 0], [0, 0, 0], [0, 1, 0]],
+                id="no-targets",
+            ),
+            pytest.param(
+                Detections.empty(),
+                Detections.empty(),
+                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                id="empty-image",
+            ),
+        ],
+    )
+    def test_empty_detections_need_no_masks(
+        self, predictions: Detections, targets: Detections, expected: list[list[int]]
+    ) -> None:
+        """``Detections.empty()`` has no masks and is still a valid empty image."""
+        cm = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cat", "dog"],
+            metric_target=MetricTarget.MASKS,
+        )
+
+        np.testing.assert_array_equal(cm.matrix, expected)
+
+    @pytest.mark.parametrize(
+        ("predictions", "targets", "message"),
+        [
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                    class_id=np.array([0]),
+                    confidence=np.array([0.9]),
+                ),
+                _mask_detections([[2, 2, 12, 12]], class_id=[0]),
+                "requires predictions to include masks",
+                id="predictions-without-masks",
+            ),
+            pytest.param(
+                _mask_detections([[2, 2, 12, 12]], class_id=[0], confidence=[0.9]),
+                Detections(
+                    xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                "requires targets to include masks",
+                id="targets-without-masks",
+            ),
+            pytest.param(
+                _mask_detections(
+                    [[2, 2, 12, 12]],
+                    class_id=[0],
+                    confidence=[0.9],
+                    resolution=(64, 64),
+                ),
+                _mask_detections([[2, 2, 12, 12]], class_id=[0]),
+                r"share one mask resolution.*\(64, 64\).*\(32, 32\)",
+                id="resolution-mismatch",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                    class_id=np.array([0]),
+                    confidence=np.array([0.1]),
+                ),
+                _mask_detections([[2, 2, 12, 12]], class_id=[0]),
+                "requires predictions to include masks",
+                id="predictions-without-masks-below-threshold",
+            ),
+            pytest.param(
+                _mask_detections(
+                    [[2, 2, 12, 12]],
+                    class_id=[0],
+                    confidence=[0.1],
+                    resolution=(64, 64),
+                ),
+                _mask_detections([[2, 2, 12, 12]], class_id=[0]),
+                r"share one mask resolution",
+                id="resolution-mismatch-below-threshold",
+            ),
+            pytest.param(
+                Detections.empty(),
+                Detections(
+                    xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                "requires targets to include masks",
+                id="targets-without-masks-no-predictions",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                    class_id=np.array([0]),
+                    confidence=np.array([0.9]),
+                ),
+                Detections.empty(),
+                "requires predictions to include masks",
+                id="predictions-without-masks-no-targets",
+            ),
+        ],
+    )
+    def test_invalid_masks_raise(
+        self, predictions: Detections, targets: Detections, message: str
+    ) -> None:
+        """A non-empty side without masks, or masks of two resolutions, is rejected by
+        both entry points even when the offending predictions fall below the confidence
+        threshold or the other side is empty."""
+        with pytest.raises(ValueError, match=message):
+            ConfusionMatrix.from_detections(
+                predictions=[predictions],
+                targets=[targets],
+                classes=["cell"],
+                metric_target=MetricTarget.MASKS,
+            )
+        with pytest.raises(ValueError, match=message):
+            _split_detections_by_outcome(
+                predictions, targets, 0.3, 0.5, metric_target=MetricTarget.MASKS
+            )
+
+    @pytest.mark.parametrize(
+        "metric_target",
+        [MetricTarget.BOXES, MetricTarget.MASKS],
+        ids=["boxes", "masks"],
+    )
+    def test_length_mismatch_raises(self, metric_target: MetricTarget) -> None:
+        """More predictions than targets is an error, not a truncated score."""
+        detections = _mask_detections([[2, 2, 12, 12]], class_id=[0], confidence=[0.9])
+
+        with pytest.raises(ValueError, match="must be equal"):
+            ConfusionMatrix.from_detections(
+                predictions=[detections, detections],
+                targets=[detections],
+                classes=["cell"],
+                metric_target=metric_target,
+            )
+
+    @pytest.mark.parametrize(
+        "compact",
+        [
+            pytest.param((True, True), id="both-compact"),
+            pytest.param((True, False), id="compact-predictions"),
+            pytest.param((False, True), id="compact-targets"),
+        ],
+    )
+    def test_compact_masks_match_dense(self, compact: tuple[bool, bool]) -> None:
+        """``CompactMask`` on either side scores exactly like dense masks."""
+        from supervision.detection.compact_mask import CompactMask
+
+        predictions, targets = self._shared_box_pair()
+        dense = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cell"],
+            metric_target=MetricTarget.MASKS,
+        )
+
+        compact_predictions, compact_targets = compact
+        assert isinstance(predictions.mask, np.ndarray)
+        assert isinstance(targets.mask, np.ndarray)
+        if compact_predictions:
+            predictions.mask = CompactMask.from_dense(
+                predictions.mask, predictions.xyxy, image_shape=(32, 32)
+            )
+        if compact_targets:
+            targets.mask = CompactMask.from_dense(
+                targets.mask, targets.xyxy, image_shape=(32, 32)
+            )
+        cm = ConfusionMatrix.from_detections(
+            predictions=[predictions],
+            targets=[targets],
+            classes=["cell"],
+            metric_target=MetricTarget.MASKS,
+        )
+
+        np.testing.assert_array_equal(cm.matrix, dense.matrix)
+        np.testing.assert_array_equal(cm.matrix, [[1, 1], [1, 0]])
+
+    def test_split_detections_by_outcome_uses_mask_iou(self) -> None:
+        """The benchmark grid split follows mask IoU: the strip prediction is an FP and
+        its target an FN, where boxes would call both TPs."""
+        predictions, targets = self._shared_box_pair()
+
+        tp, fp, fn = _split_detections_by_outcome(
+            predictions, targets, 0.5, 0.5, metric_target=MetricTarget.MASKS
+        )
+        tp_boxes, fp_boxes, fn_boxes = _split_detections_by_outcome(
+            predictions, targets, 0.5, 0.5, metric_target=MetricTarget.BOXES
+        )
+
+        assert (len(tp), len(fp), len(fn)) == (1, 1, 1)
+        np.testing.assert_array_equal(tp.xyxy, [[2, 2, 12, 12]])
+        np.testing.assert_array_equal(fp.xyxy, [[18, 18, 28, 28]])
+        np.testing.assert_array_equal(fn.xyxy, [[18, 18, 28, 28]])
+        assert (len(tp_boxes), len(fp_boxes), len(fn_boxes)) == (2, 0, 0)
+
+    def test_benchmark_masks_fills_validation_panels(self, tmp_path: Path) -> None:
+        """``benchmark`` scores masks and the saved grid fills each mask, so the
+        interior of a region is painted, not just its box outline."""
+        image = np.zeros((96, 96, 3), dtype=np.uint8)
+        # Boxes sit below the panel title. Box outlines are 4 px thick and labels
+        # are drawn above each box, so rows 50-69 of a box are outline-free.
+        targets = _mask_detections(
+            [[10, 40, 50, 80], [56, 40, 86, 80]], class_id=[0, 0], resolution=(96, 96)
+        )
+        predictions = _mask_detections(
+            [[10, 40, 50, 80], [56, 40, 86, 80]],
+            class_id=[0, 0],
+            confidence=[0.9, 0.8],
+            resolution=(96, 96),
+        )
+        # Second prediction keeps its box but its mask is the left 9 px of the
+        # 30 px wide target: mask IoU 0.3, box IoU 1.0.
+        assert isinstance(predictions.mask, np.ndarray)
+        predictions.mask[1] = False
+        predictions.mask[1, 40:80, 56:65] = True
+
+        class Dataset:
+            """One-image dataset shaped like ``DetectionDataset`` for ``benchmark``."""
+
+            classes: ClassVar[list[str]] = ["cell"]
+
+            def __iter__(self) -> Iterator[tuple[str, np.ndarray, Detections]]:
+                """Yield the single ``(name, image, annotation)`` entry."""
+                yield "sample.jpg", image, targets
+
+        def callback(_: np.ndarray) -> Detections:
+            """Stand in for a model: return the prepared predictions."""
+            return predictions
+
+        cm = ConfusionMatrix.benchmark(
+            dataset=cast(DetectionDataset, Dataset()),
+            callback=callback,
+            metric_target=MetricTarget.MASKS,
+            save_directory_path=tmp_path,
+        )
+
+        np.testing.assert_array_equal(cm.matrix, [[1, 1], [1, 0]])
+        assert cm.metric_target == MetricTarget.MASKS
+
+        saved_image = cv2.imread(str(tmp_path / "sample.jpg"))
+        assert saved_image is not None
+        assert saved_image.shape[:2] == (192, 192)
+        gt_panel = saved_image[:96, :96]
+        fp_panel = saved_image[96:, :96]
+
+        def painted(panel: np.ndarray) -> np.ndarray:
+            """Pixels the mask fill touched: fills read >= 120 on a black scene, JPEG
+            ringing stays below 10."""
+            filled: np.ndarray = panel.max(axis=-1) > 32
+            return filled
+
+        # The interior of the first target is filled in the Ground Truth panel.
+        assert np.all(painted(gt_panel[50:70, 20:40]))
+        # In the False Positives panel the strip is filled (columns 59-62 lie in
+        # the strip and clear of the box outline at x 54-58) and the rest of the
+        # box interior is left black.
+        assert np.all(painted(fp_panel[50:70, 59:63]))
+        assert not np.any(painted(fp_panel[50:70, 70:80]))

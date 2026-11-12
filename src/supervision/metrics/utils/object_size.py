@@ -18,8 +18,7 @@ SIZE_THRESHOLDS = (32**2, 96**2)
 
 
 class ObjectSizeCategory(Enum):
-    """
-    Enum for object size categories based on area in pixels.
+    """Enum for object size categories based on area in pixels.
 
     Small: area < 32^2
     Medium: 32^2 <= area < 96^2
@@ -48,8 +47,7 @@ def get_object_size_category(
     data: npt.NDArray[np.number] | npt.NDArray[np.bool_],
     metric_target: MetricTarget,
 ) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of an object. Distinguish based on the metric target.
+    """Get the size category of an object. Distinguish based on the metric target.
 
     Args:
         data: The object data, shaped (N, ...).
@@ -88,8 +86,7 @@ def get_object_size_category(
 
 
 def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of a bounding boxes array.
+    """Get the size category of a bounding boxes array.
 
     Args:
         xyxy: The bounding boxes array shaped (N, 4).
@@ -116,8 +113,17 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]
     if len(xyxy.shape) != 2 or xyxy.shape[1] != 4:
         raise ValueError("Bounding boxes must be shaped (N, 4)")
 
-    width = xyxy[:, 2] - xyxy[:, 0]
-    height = xyxy[:, 3] - xyxy[:, 1]
+    width: npt.NDArray[np.number]
+    height: npt.NDArray[np.number]
+    if np.issubdtype(xyxy.dtype, np.integer):
+        # Wider integers preserve exact deltas before float area multiplication.
+        dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+        coordinates = xyxy.astype(dtype)
+        width = np.asarray(coordinates[:, 2] - coordinates[:, 0], dtype=np.float64)
+        height = np.asarray(coordinates[:, 3] - coordinates[:, 1], dtype=np.float64)
+    else:
+        width = xyxy[:, 2] - xyxy[:, 0]
+        height = xyxy[:, 3] - xyxy[:, 1]
     areas = width * height
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
@@ -138,7 +144,7 @@ def get_area_size_category(
 
     Returns:
         The size category of each area, matching the enum values of
-        `ObjectSizeCategory`. Shaped (N,).
+        :class:`~supervision.metrics.utils.object_size.ObjectSizeCategory`. Shaped (N,).
 
     Raises:
         ValueError: If `areas` is not one-dimensional.
@@ -166,8 +172,7 @@ def get_area_size_category(
 def get_mask_size_category(
     mask: npt.NDArray[np.bool_] | CompactMask,
 ) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of detection masks.
+    """Get the size category of detection masks.
 
     Args:
         mask: The mask array shaped (N, H, W), or a
@@ -211,8 +216,7 @@ def get_mask_size_category(
 
 
 def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of a oriented bounding boxes array.
+    """Get the size category of a oriented bounding boxes array.
 
     Args:
         xyxyxyxy: The bounding boxes array shaped (N, 4, 2).
@@ -238,22 +242,132 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.in
     if len(xyxyxyxy.shape) != 3 or xyxyxyxy.shape[1] != 4 or xyxyxyxy.shape[2] != 2:
         raise ValueError("Oriented bounding boxes must be shaped (N, 4, 2)")
 
-    # Shoelace formula
-    x = xyxyxyxy[:, :, 0]
-    y = xyxyxyxy[:, :, 1]
+    coordinates: npt.NDArray[np.number] | npt.NDArray[np.object_]
+    if np.issubdtype(xyxyxyxy.dtype, np.integer):
+        # Object arithmetic keeps both the translated coordinates and shoelace
+        # products exact when large terms nearly cancel.
+        exact_coordinates = xyxyxyxy.astype(object)
+        coordinates = exact_coordinates - exact_coordinates[:, :1]
+    else:
+        calculation_dtype = np.result_type(xyxyxyxy.dtype, np.float64)
+        coordinates = xyxyxyxy.astype(calculation_dtype, copy=False)
+        coordinates = coordinates - coordinates[:, :1]
+    x = coordinates[:, :, 0]
+    y = coordinates[:, :, 1]
     x1, x2, x3, x4 = x.T
     y1, y2, y3, y4 = y.T
-    areas = 0.5 * np.abs(
+    twice_areas = np.abs(
         (x1 * y2 + x2 * y3 + x3 * y4 + x4 * y1)
         - (x2 * y1 + x3 * y2 + x4 * y3 + x1 * y4)
     )
 
-    result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
+    result = np.full(twice_areas.shape, ObjectSizeCategory.ANY.value)
     SM, LG = SIZE_THRESHOLDS
-    result[areas < SM] = ObjectSizeCategory.SMALL.value
-    result[(areas >= SM) & (areas < LG)] = ObjectSizeCategory.MEDIUM.value
-    result[areas >= LG] = ObjectSizeCategory.LARGE.value
+    result[twice_areas < 2 * SM] = ObjectSizeCategory.SMALL.value
+    result[(twice_areas >= 2 * SM) & (twice_areas < 2 * LG)] = (
+        ObjectSizeCategory.MEDIUM.value
+    )
+    result[twice_areas >= 2 * LG] = ObjectSizeCategory.LARGE.value
     return result
+
+
+def _bbox_areas(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
+    """Pixel areas of axis-aligned boxes shaped ``(N, 4)``."""
+    if len(xyxy.shape) != 2 or xyxy.shape[1] != 4:
+        raise ValueError("Bounding boxes must be shaped (N, 4)")
+    if np.issubdtype(xyxy.dtype, np.integer):
+        dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+        coordinates = xyxy.astype(dtype)
+        width = np.asarray(coordinates[:, 2] - coordinates[:, 0], dtype=np.float64)
+        height = np.asarray(coordinates[:, 3] - coordinates[:, 1], dtype=np.float64)
+    else:
+        # Promote before subtracting and multiplying: float16 areas overflow
+        # (256 * 256 is already past its maximum of 65504).
+        coordinates_f64 = np.asarray(xyxy, dtype=np.float64)
+        width = coordinates_f64[:, 2] - coordinates_f64[:, 0]
+        height = coordinates_f64[:, 3] - coordinates_f64[:, 1]
+    return np.asarray(width * height, dtype=np.float64)
+
+
+def _mask_areas(mask: npt.NDArray[np.bool_] | CompactMask) -> npt.NDArray[np.float64]:
+    """Pixel areas of detection masks."""
+    if isinstance(mask, CompactMask):
+        return np.asarray(mask.area, dtype=np.float64)
+    if len(mask.shape) != 3:
+        raise ValueError("Masks must be shaped (N, H, W)")
+    return np.asarray(count_mask_pixels(mask), dtype=np.float64)
+
+
+def _obb_areas(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
+    """Pixel areas of oriented boxes shaped ``(N, 4, 2)``."""
+    if len(xyxyxyxy.shape) != 3 or xyxyxyxy.shape[1] != 4 or xyxyxyxy.shape[2] != 2:
+        raise ValueError("Oriented bounding boxes must be shaped (N, 4, 2)")
+    if np.issubdtype(xyxyxyxy.dtype, np.integer):
+        exact_coordinates = xyxyxyxy.astype(object)
+        coordinates = exact_coordinates - exact_coordinates[:, :1]
+    else:
+        calculation_dtype = np.result_type(xyxyxyxy.dtype, np.float64)
+        coordinates = xyxyxyxy.astype(calculation_dtype, copy=False)
+        coordinates = coordinates - coordinates[:, :1]
+    x = coordinates[:, :, 0]
+    y = coordinates[:, :, 1]
+    x1, x2, x3, x4 = x.T
+    y1, y2, y3, y4 = y.T
+    twice_areas = np.abs(
+        (x1 * y2 + x2 * y3 + x3 * y4 + x4 * y1)
+        - (x2 * y1 + x3 * y2 + x4 * y3 + x1 * y4)
+    )
+    return np.asarray(twice_areas, dtype=np.float64) / 2.0
+
+
+def get_detection_areas(
+    detections: Detections, metric_target: MetricTarget = MetricTarget.BOXES
+) -> npt.NDArray[np.float64]:
+    """Return the per-detection area used for COCO size bucketing.
+
+    Explicit area metadata takes precedence for every metric target. Geometry,
+    mask, or oriented-box content remains the fallback when area metadata is
+    absent. The returned areas match those that
+    :func:`~supervision.metrics.utils.object_size.get_detection_size_category`
+    would classify.
+
+    Args:
+        detections: The detections object.
+        metric_target: Determines whether boxes, masks or oriented bounding
+            boxes are used.
+
+    Returns:
+        Per-detection pixel areas shaped ``(N,)``.
+
+    Raises:
+        ValueError: If area metadata is malformed, or the content required by
+            ``metric_target`` is missing.
+    """
+    area_data = detections.data.get(AREA_DATA_FIELD)
+    if area_data is not None:
+        areas = np.asarray(area_data, dtype=np.float64)
+        if len(areas.shape) != 1 or len(areas) != len(detections):
+            raise ValueError(
+                "Detection area metadata must be shaped (N,) and aligned "
+                "with detections"
+            )
+        return areas
+
+    if metric_target == MetricTarget.BOXES:
+        return _bbox_areas(detections.xyxy)
+    if metric_target == MetricTarget.MASKS:
+        mask = detections.mask
+        if mask is None:
+            raise ValueError("Detections mask is not available")
+        return _mask_areas(mask)
+    if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+        oriented_box_coordinates = detections.data.get(ORIENTED_BOX_COORDINATES)
+        if oriented_box_coordinates is None:
+            raise ValueError("Detections oriented bounding boxes are not available")
+        return _obb_areas(
+            cast(npt.NDArray[np.number], np.asarray(oriented_box_coordinates))
+        )
+    raise ValueError("Invalid metric type")
 
 
 def get_detection_size_category(
@@ -313,10 +427,8 @@ def get_detection_size_category(
         oriented_box_coordinates = detections.data.get(ORIENTED_BOX_COORDINATES)
         if oriented_box_coordinates is None:
             raise ValueError("Detections oriented bounding boxes are not available")
+        # Keep the stored dtype so integer coordinates take the exact path.
         return get_obb_size_category(
-            cast(
-                npt.NDArray[np.number],
-                np.asarray(oriented_box_coordinates, dtype=np.float32),
-            )
+            cast(npt.NDArray[np.number], np.asarray(oriented_box_coordinates))
         )
     raise ValueError("Invalid metric type")

@@ -55,9 +55,9 @@ def _dense_iou(
 class TestCompactMaskIouBatch:
     """Verify that compact_mask_iou_batch matches dense raster IoU exactly.
 
-    Every test builds a pair of CompactMask collections from known boolean
-    arrays, runs compact_mask_iou_batch, and compares the result to the dense
-    reference computed by mask_iou_batch on the raw numpy arrays.
+    Every test builds a pair of CompactMask collections from known boolean arrays, runs
+    compact_mask_iou_batch, and compares the result to the dense reference computed by
+    mask_iou_batch on the raw numpy arrays.
     """
 
     def test_no_overlap_gives_zero(self) -> None:
@@ -205,10 +205,10 @@ class TestCompactMaskIouBatch:
 class TestMaskIouBatchDispatch:
     """Verify mask_iou_batch dispatches correctly for CompactMask inputs.
 
-    When both arguments are CompactMask, the function must route to the
-    efficient RLE implementation and produce identical results to the dense
-    path.  When one argument is dense and the other is CompactMask, the
-    CompactMask must be materialised transparently before computation.
+    When both arguments are CompactMask, the function must route to the efficient RLE
+    implementation and produce identical results to the dense path.  When one argument
+    is dense and the other is CompactMask, the CompactMask must be materialised
+    transparently before computation.
     """
 
     def test_both_compact_dispatches_to_rle(self) -> None:
@@ -242,9 +242,9 @@ class TestMaskIouBatchDispatch:
 class TestNmsWithCompactMask:
     """Verify mask NMS produces identical keep-sets for CompactMask and dense inputs.
 
-    Both paths now use exact full-resolution IoU — no resize approximation.
-    Tests use images larger than 640 px to ensure the old resize-to-640 path
-    would have introduced lossy approximation (catching the regression).
+    Both paths now use exact full-resolution IoU — no resize approximation. Tests use
+    images larger than 640 px to ensure the old resize-to-640 path would have introduced
+    lossy approximation (catching the regression).
     """
 
     def test_nms_compact_matches_dense(self) -> None:
@@ -271,9 +271,9 @@ class TestNmsWithCompactMask:
     def test_nms_compact_matches_dense_borderline(self) -> None:
         """Borderline IoU pair (≈ threshold) must agree — catches the resize bug.
 
-        With resize-to-640, sub-pixel rounding on a pair whose true IoU is very
-        close to the threshold flips the keep/suppress decision.  Both paths now
-        compute exact pixel-level IoU so results are identical.
+        With resize-to-640, sub-pixel rounding on a pair whose true IoU is very close to
+        the threshold flips the keep/suppress decision.  Both paths now compute exact
+        pixel-level IoU so results are identical.
         """
         img_h, img_w = 1080, 1920
         masks = np.zeros((2, img_h, img_w), dtype=bool)
@@ -324,8 +324,8 @@ class TestNmsWithCompactMask:
 class TestNmmWithCompactMask:
     """Verify mask_non_max_merge produces the same groups for CompactMask and dense.
 
-    NMM materialises CompactMask to a downscaled dense array internally, so
-    results must be numerically identical to the dense path.
+    NMM materialises CompactMask to a downscaled dense array internally, so results must
+    be numerically identical to the dense path.
     """
 
     def test_nmm_compact_matches_dense(self) -> None:
@@ -423,8 +423,8 @@ def _random_masks(
 class TestCompactMaskIouRandom:
     """compact_mask_iou_batch matches dense mask_iou_batch across 10 random seeds.
 
-    Uses small mask counts (5-15) and image sizes (20x20 to 60x60) to keep
-    individual test runs under 1 second.
+    Uses small mask counts (5-15) and image sizes (20x20 to 60x60) to keep individual
+    test runs under 1 second.
     """
 
     @pytest.mark.parametrize("seed", list(range(10)))

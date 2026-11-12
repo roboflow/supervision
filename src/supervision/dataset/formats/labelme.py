@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import warnings
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
 
-from supervision.dataset.utils import check_no_basename_collisions
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+    check_no_basename_collisions,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import (
-    mask_to_polygons,
     polygon_to_mask,
     polygon_to_xyxy,
 )
@@ -64,12 +66,15 @@ def labelme_shapes_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
 ) -> Detections:
-    """Convert a single image's LabelMe shapes into ``Detections``.
+    """Convert a single image's LabelMe shapes into
+    :class:`~supervision.detection.core.Detections`.
 
     Only ``rectangle`` and ``polygon`` shapes are imported; other shape types
     (``circle``, ``line``, ``point``, ``linestrip``) are skipped with a warning.
     When ``with_masks`` is ``True``, both ``rectangle`` and ``polygon`` shapes
     produce masks: rectangles via a four-corner polygon fill.
+    Shapes sharing a label and non-null ``group_id`` become one detection with
+    an enclosing box and union mask. Missing or null group IDs remain independent.
 
     Args:
         shapes: List of LabelMe shape dicts for one image.
@@ -78,8 +83,8 @@ def labelme_shapes_to_detections(
         with_masks: If ``True``, produce a binary mask for every detection.
 
     Returns:
-        A :class:`Detections` instance with ``xyxy``, ``class_id``, and
-        optionally ``mask`` populated.
+        A :class:`~supervision.detection.core.Detections` instance with
+        ``xyxy``, ``class_id``, and optionally ``mask`` populated.
 
     Raises:
         ValueError: If a shape is missing its ``label`` or ``points`` field,
@@ -91,7 +96,8 @@ def labelme_shapes_to_detections(
     """
     xyxy_list: list[npt.NDArray[np.float32]] = []
     class_ids: list[int] = []
-    polygons: list[npt.NDArray[np.float32]] = []
+    masks: list[npt.NDArray[np.uint8]] = []
+    group_indices: dict[tuple[str, int], int] = {}
     skipped_types: set[str] = set()
 
     for shape in shapes:
@@ -130,10 +136,28 @@ def labelme_shapes_to_detections(
                 )
             xyxy = polygon_to_xyxy(polygon=points).astype(np.float32)
             polygon = points
-        xyxy_list.append(xyxy)
-        class_ids.append(class_to_index[label])
         if with_masks:
-            polygons.append(polygon)
+            mask = polygon_to_mask(
+                polygon=np.round(polygon).astype(np.int32),
+                resolution_wh=resolution_wh,
+            )
+        group_id = shape.get("group_id")
+        index = None
+        if group_id is not None:
+            group_key = (label, group_id)
+            index = group_indices.get(group_key)
+        if index is not None:
+            xyxy_list[index][:2] = np.minimum(xyxy_list[index][:2], xyxy[:2])
+            xyxy_list[index][2:] = np.maximum(xyxy_list[index][2:], xyxy[2:])
+            if with_masks:
+                masks[index] |= mask
+        else:
+            if group_id is not None:
+                group_indices[group_key] = len(xyxy_list)
+            xyxy_list.append(xyxy)
+            class_ids.append(class_to_index[label])
+            if with_masks:
+                masks.append(mask)
 
     if skipped_types:
         warnings.warn(
@@ -151,17 +175,7 @@ def labelme_shapes_to_detections(
     if not with_masks:
         return Detections(xyxy=xyxy, class_id=class_id)
 
-    mask = np.array(
-        [
-            polygon_to_mask(
-                polygon=np.round(polygon).astype(np.int32),
-                resolution_wh=resolution_wh,
-            )
-            for polygon in polygons
-        ],
-        dtype=bool,
-    )
-    return Detections(xyxy=xyxy, class_id=class_id, mask=mask)
+    return Detections(xyxy=xyxy, class_id=class_id, mask=np.array(masks, dtype=bool))
 
 
 def load_labelme_annotations(
@@ -169,7 +183,8 @@ def load_labelme_annotations(
     annotations_directory_path: str,
     force_masks: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """Load LabelMe annotations and convert them to ``Detections``.
+    """Load LabelMe annotations and convert them to
+    :class:`~supervision.detection.core.Detections`.
 
     LabelMe stores one JSON file per image, each containing a list of ``shapes``.
     ``rectangle`` shapes become bounding boxes; ``polygon`` shapes become masks
@@ -251,7 +266,10 @@ def load_labelme_annotations(
         # ponytail: basename-only, no symlink resolution — images_directory_path
         # is trusted; annotation-driven traversal is neutralised by .name.
         # See createml._resolve_image_path for the full .resolve()+parents pattern.
-        image_name = Path(raw_image_path).name
+        # LabelMe writes imagePath with the separator of the OS that saved the file,
+        # so files saved on Windows hold backslashes. PureWindowsPath splits on both
+        # separators on every OS, as LabelMe does when it reads its own files.
+        image_name = PureWindowsPath(raw_image_path).name
         if not image_name or image_name in ("..", "."):
             raise ValueError(
                 f"LabelMe annotation has an invalid 'imagePath' {raw_image_path!r}."
@@ -287,11 +305,17 @@ def load_labelme_annotations(
     return classes, image_paths, annotations
 
 
-def _build_shape(label: str, points: list[list[float]], shape_type: str) -> LabelMeDict:
+def _build_shape(
+    label: str,
+    points: list[list[float]],
+    shape_type: str,
+    group_id: int | None = None,
+) -> LabelMeDict:
+    """Build a LabelMe shape with optional instance grouping."""
     return {
         "label": label,
         "points": points,
-        "group_id": None,
+        "group_id": group_id,
         "description": "",
         "shape_type": shape_type,
         "flags": {},
@@ -301,12 +325,17 @@ def _build_shape(label: str, points: list[list[float]], shape_type: str) -> Labe
 def detections_to_labelme_shapes(
     detections: Detections, classes: list[str]
 ) -> list[LabelMeDict]:
-    """Convert ``Detections`` into a list of LabelMe shape dicts.
+    """Convert :class:`~supervision.detection.core.Detections` into a list of LabelMe
+    shape dicts.
 
     Masked detections are exported as ``polygon`` shapes (one per connected
-    component); box-only detections — and masked detections whose mask yields no
-    polygon contour (e.g. an empty or sub-pixel mask) — are exported as
-    ``rectangle`` shapes, so no detection is silently dropped.
+    component, with each hole spliced into its outer contour by a zero-width seam
+    rather than exported as a shape of its own); box-only detections — and masked
+    detections whose mask yields no polygon contour (e.g. an empty or sub-pixel
+    mask) — are exported as ``rectangle`` shapes, so no detection is silently
+    dropped.
+    Disconnected components of one mask share a ``group_id`` unique to that
+    detection within the image.
 
     Args:
         detections: The detections to export.
@@ -337,13 +366,14 @@ def detections_to_labelme_shapes(
         label = classes[class_index]
         if masks is not None:
             mask_arr = np.asarray(masks[index], dtype=np.bool_)
-            polygons = mask_to_polygons(mask_arr)
+            polygons = approximate_mask_with_polygons(mask=mask_arr, bridge_holes=True)
         else:
             polygons = []
         if polygons:
+            group_id = index if len(polygons) > 1 else None
             for polygon in polygons:
                 points = [[float(x), float(y)] for x, y in polygon]
-                shapes.append(_build_shape(label, points, "polygon"))
+                shapes.append(_build_shape(label, points, "polygon", group_id))
         else:
             x_min, y_min, x_max, y_max = (
                 float(value) for value in detections.xyxy[index]
@@ -357,10 +387,13 @@ def save_labelme_annotations(
     dataset: DetectionDataset,
     annotations_directory_path: str,
 ) -> None:
-    """Export a ``DetectionDataset`` to per-image LabelMe ``.json`` files.
+    """Export a :class:`~supervision.dataset.core.DetectionDataset` to per-image LabelMe
+    ``.json`` files.
+
+    Image dimensions are read from grayscale or color arrays without changing pixels.
 
     Args:
-        dataset: The ``DetectionDataset`` to write.
+        dataset: The :class:`~supervision.dataset.core.DetectionDataset` to write.
         annotations_directory_path: Directory where the LabelMe ``.json`` files
             are written (created if it does not exist).
 
@@ -387,7 +420,7 @@ def save_labelme_annotations(
     )
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, detections in dataset:
-        image_height, image_width, _ = image.shape
+        image_height, image_width = image.shape[:2]
         labelme_dict: LabelMeDict = {
             "version": _LABELME_EXPORT_VERSION,
             "flags": {},

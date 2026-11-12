@@ -4,6 +4,7 @@ from enum import Enum
 
 import numpy as np
 from rfdetr import RFDETRBase, RFDETRLarge, RFDETRMedium, RFDETRNano, RFDETRSmall
+from trackers import ByteTrackTracker
 from utils.general import find_in_list, get_stream_frames_generator, load_zones_config
 from utils.timers import ClockBasedTimer
 
@@ -98,8 +99,7 @@ def main(
     iou_threshold: float = 0.7,
     classes: list[int] = [],
 ) -> None:
-    """
-    Calculating detections dwell time in zones, using RTSP stream.
+    """Calculating detections dwell time in zones, using RTSP stream.
 
     Args:
         rtsp_url: Complete RTSP URL for the video stream
@@ -113,7 +113,9 @@ def main(
     """
     resolution = adjust_resolution(checkpoint=model_size, resolution=resolution)
     model = load_model(checkpoint=model_size, device=device, resolution=resolution)
-    tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
+    tracker = ByteTrackTracker(
+        minimum_iou_threshold=0.5, track_activation_threshold=confidence_threshold
+    )
     frames_generator = get_stream_frames_generator(rtsp_url=rtsp_url)
     fps_monitor = sv.FPSMonitor()
 
@@ -135,7 +137,8 @@ def main(
         detections = model.predict(frame, threshold=confidence_threshold)
         detections = detections[find_in_list(detections.class_id, classes)]
         detections = detections.with_nms(threshold=iou_threshold)
-        detections = tracker.update_with_detections(detections)
+        detections = tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         annotated_frame = frame.copy()
         annotated_frame = sv.draw_text(

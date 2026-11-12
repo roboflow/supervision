@@ -1,14 +1,14 @@
-"""
-Helper functions and utilities for testing the `supervision` library.
+"""Helper functions and utilities for testing the `supervision` library.
 
-This module provides convenient factory functions for creating `Detections`
-and `KeyPoints` objects from simple list-based inputs, as well as utilities
-for generating synthetic test data and performing custom assertions.
+This module provides convenient factory functions for creating `Detections` and
+`KeyPoints` objects from simple list-based inputs, as well as utilities for generating
+synthetic test data and performing custom assertions.
 """
 
 from __future__ import annotations
 
 import io
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -21,8 +21,8 @@ from supervision.key_points.core import KeyPoints
 def make_panoptic_png(segment_map: np.ndarray) -> bytes:
     """Encode a segment-ID array as a 24-bit RGBA PNG byte string.
 
-    Segment IDs are stored in RGB little-endian order so tests can cover
-    panoptic labels above 255 without collisions.
+    Segment IDs are stored in RGB little-endian order so tests can cover panoptic labels
+    above 255 without collisions.
     """
     segment_map_u32 = np.asarray(segment_map, dtype=np.uint32)
     arr = np.zeros((*segment_map_u32.shape, 4), dtype=np.uint8)
@@ -36,15 +36,14 @@ def make_panoptic_png(segment_map: np.ndarray) -> bytes:
 
 
 def _create_detections(
-    xyxy: list[list[float]],
-    mask: list[np.ndarray] | None = None,
-    confidence: list[float] | None = None,
-    class_id: list[int] | None = None,
-    tracker_id: list[int] | None = None,
-    data: dict[str, list[Any]] | None = None,
+    xyxy: Sequence[Sequence[float]] | np.ndarray,
+    mask: Sequence[np.ndarray] | np.ndarray | None = None,
+    confidence: Sequence[float] | np.ndarray | None = None,
+    class_id: Sequence[int] | np.ndarray | None = None,
+    tracker_id: Sequence[int] | np.ndarray | None = None,
+    data: Mapping[str, Any] | None = None,
 ) -> Detections:
-    """
-    Create a Detections object from list-based inputs.
+    """Create a Detections object from list-based inputs.
 
     This is a helper function primarily used for testing purposes to quickly
     instantiate a Detections object without manually converting lists to numpy arrays.
@@ -78,7 +77,10 @@ def _create_detections(
         array([0, 1])
     """
 
-    def convert_data(data: dict[str, list[Any]]):
+    def convert_data(
+        data: Mapping[str, Any],
+    ) -> dict[str, np.ndarray | list[Any]]:
+        """Convert each metadata value to a NumPy array."""
         return {k: np.array(v) for k, v in data.items()}
 
     return Detections(
@@ -95,6 +97,130 @@ def _create_detections(
     )
 
 
+class _ShiftTransform:
+    """A camera motion that shifts the reference frame by `(dx, dy)` pixels."""
+
+    def __init__(self, dx: float, dy: float) -> None:
+        """Store the shift from reference-frame to current-frame coordinates."""
+        self.offset = np.array([dx, dy], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        return points + self.offset
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        return points - self.offset
+
+
+class _ConstantTransform:
+    """A degenerate transform that maps every point to the same `(x, y)`.
+
+    Used to feed non-finite or far-away mapped anchors into the zones.
+    """
+
+    def __init__(self, x: float, y: float) -> None:
+        """Store the point that every input point is mapped to."""
+        self.point = np.array([x, y], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map every point to the stored point."""
+        return np.tile(self.point, (len(points), 1))
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map every point to the stored point."""
+        return np.tile(self.point, (len(points), 1))
+
+
+class _WrongShapeTransform:
+    """A transform that drops points, violating the protocol."""
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return only the first point."""
+        return points[:1]
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Return only the first point."""
+        return points[:1]
+
+
+class _NanBeyondX:
+    """An identity transform that maps points with `x > x_max` to NaN."""
+
+    def __init__(self, x_max: float) -> None:
+        """Store the largest x coordinate that maps to a finite point."""
+        self.x_max = x_max
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with NaN rows where `x > x_max`."""
+        return np.where(points[:, :1] > self.x_max, np.nan, points)
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with NaN rows where `x > x_max`."""
+        return np.where(points[:, :1] > self.x_max, np.nan, points)
+
+
+class _MoveBeyondX:
+    """An identity transform that moves points with `x > x_max` to x = `new_x`.
+
+    Like `_NanBeyondX`, both directions apply the same move rather than inverses:
+    the drawing tests that use it only call `abs_to_rel`.
+    """
+
+    def __init__(self, x_max: float, new_x: float) -> None:
+        """Store the largest x left in place and the x the others move to."""
+        self.x_max = x_max
+        self.new_x = new_x
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with x set to `new_x` where `x > x_max`."""
+        moved: np.ndarray = np.array(points, dtype=np.float64)
+        moved[moved[:, 0] > self.x_max, 0] = self.new_x
+        return moved
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Apply the same move as `abs_to_rel`."""
+        return self.abs_to_rel(points)
+
+
+class _ShearXTransform:
+    """A camera motion that shifts each point's x by `factor` times its y."""
+
+    def __init__(self, factor: float) -> None:
+        """Store how much x shifts per unit of y."""
+        self.factor = factor
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        sheared = np.array(points, dtype=np.float64)
+        sheared[:, 0] += self.factor * sheared[:, 1]
+        return sheared
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        sheared = np.array(points, dtype=np.float64)
+        sheared[:, 0] -= self.factor * sheared[:, 1]
+        return sheared
+
+
+class _InPlaceShiftTransform:
+    """A shift that adds `(dx, dy)` to the points array it is given, in place."""
+
+    def __init__(self, dx: float, dy: float) -> None:
+        """Store the shift from reference-frame to current-frame coordinates."""
+        self.offset = np.array([dx, dy], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Shift the given points in place and return them."""
+        points += self.offset
+        return points
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Shift the given points back in place and return them."""
+        points -= self.offset
+        return points
+
+
 def _create_key_points(
     xy: list[list[list[float]]],
     confidence: list[list[float]] | None = None,
@@ -103,8 +229,7 @@ def _create_key_points(
     visible: list[list[bool]] | None = None,
     data: dict[str, list[Any]] | None = None,
 ) -> KeyPoints:
-    """
-    Create a KeyPoints object from list-based inputs.
+    """Create a KeyPoints object from list-based inputs.
 
     This is a helper function primarily used for testing purposes to quickly
     instantiate a KeyPoints object without manually converting lists to numpy arrays.
@@ -141,7 +266,7 @@ def _create_key_points(
         array([0, 1])
     """
 
-    def convert_data(data: dict[str, list[Any]]):
+    def convert_data(data: dict[str, list[Any]]) -> dict[str, np.ndarray | list[Any]]:
         return {k: np.array(v) for k, v in data.items()}
 
     return KeyPoints(
@@ -167,8 +292,8 @@ def _generate_random_boxes(
     max_box_size: int = 200,
     seed: int | None = None,
 ) -> np.ndarray:
-    """
-    Generate random bounding boxes within given image dimensions and size constraints.
+    """Generate random bounding boxes within given image dimensions and size
+    constraints.
 
     Creates `count` bounding boxes randomly positioned and sized, ensuring each
     stays within image bounds and has width and height in the specified range.
@@ -213,9 +338,10 @@ def _generate_random_boxes(
     return out
 
 
-def assert_almost_equal(actual, expected, tolerance=1e-5) -> None:
-    """
-    Assert that two values are equal within a specified tolerance.
+def assert_almost_equal(
+    actual: float, expected: float, tolerance: float = 1e-5
+) -> None:
+    """Assert that two values are equal within a specified tolerance.
 
     Args:
         actual: The value to check.
@@ -237,8 +363,7 @@ def assert_almost_equal(actual, expected, tolerance=1e-5) -> None:
 def assert_image_mostly_same(
     original: np.ndarray, annotated: np.ndarray, similarity_threshold: float = 0.9
 ) -> None:
-    """
-    Assert that the annotated image is mostly the same as the original.
+    """Assert that the annotated image is mostly the same as the original.
 
     Args:
         original: Original image
@@ -306,7 +431,12 @@ class _FakeUltralyticsBoxes:
 class _FakeUltralyticsResults:
     """Ultralytics-like results container used by from_ultralytics."""
 
-    def __init__(self, boxes, names: dict[int, str], length: int = 0) -> None:
+    def __init__(
+        self,
+        boxes: _FakeUltralyticsBoxes | None,
+        names: dict[int, str],
+        length: int = 0,
+    ) -> None:
         self.boxes = boxes
         self.names = names
         self.obb = None
@@ -320,7 +450,9 @@ class _FakeUltralyticsResults:
 class _FakeYoloNasPrediction:
     """YOLO-NAS-like prediction struct."""
 
-    def __init__(self, bboxes_xyxy, confidence, labels) -> None:
+    def __init__(
+        self, bboxes_xyxy: np.ndarray, confidence: np.ndarray, labels: np.ndarray
+    ) -> None:
         self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
@@ -336,8 +468,10 @@ class _FakeYoloNasResults:
 class _FakeYoloNasKeyPoint:
     """YOLO-NAS-like key point struct."""
 
-    def __init__(self, poses, labels=None) -> None:
+    def __init__(self, poses: Any, scores: Any, labels: Any = None) -> None:
+        """Store `(N, K, 3)` poses with one score and optional label per pose."""
         self.poses = np.array(poses, dtype=np.float32)
+        self.scores = np.array(scores, dtype=np.float32)
         if labels is not None:
             self.labels = np.array(labels, dtype=int)
 
@@ -345,21 +479,70 @@ class _FakeYoloNasKeyPoint:
 class _FakeYoloNasKeyPointResults:
     """YOLO-NAS-like results exposing key points."""
 
-    def __init__(self, prediction: _FakeYoloNasKeyPoint, class_names=None) -> None:
+    def __init__(
+        self, prediction: _FakeYoloNasKeyPoint, class_names: list[str] | None = None
+    ) -> None:
         self.prediction = prediction
         self.class_names = class_names
 
 
 class _FakeMediapipeLandmark:
-    def __init__(self, x, y, visibility=1.0) -> None:
+    def __init__(self, x: float, y: float, visibility: float = 1.0) -> None:
         self.x = x
         self.y = y
         self.visibility = visibility
 
 
+class _FakeMediapipeLandmarkWithoutVisibility:
+    def __init__(self, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+
+
+class _FakeMediapipeLandmarkWithNoneVisibility:
+    """Tasks API landmark: `visibility` is declared but left unset, so it is None."""
+
+    def __init__(self, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+        self.visibility = None
+
+
+class _FakeMediapipeLandmarkWithZeroVisibility:
+    """Legacy proto2 landmark: unset `visibility` reads back as the 0.0 default."""
+
+    def __init__(self, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+        self.visibility = 0.0
+
+
 class _FakeMediapipePose:
     def __init__(self, landmarks: list[_FakeMediapipeLandmark]) -> None:
         self.landmark = landmarks
+
+
+class _FakeMediapipeHandednessCategory:
+    """Tasks API handedness category: the `Left`/`Right` label and its score."""
+
+    def __init__(self, category_name: str, score: float) -> None:
+        self.category_name = category_name
+        self.score = score
+
+
+class _FakeMediapipeClassification:
+    """Legacy proto2 handedness entry: same decision, but the field is named `label`."""
+
+    def __init__(self, label: str, score: float) -> None:
+        self.label = label
+        self.score = score
+
+
+class _FakeMediapipeHandedness:
+    """Legacy proto2 `multi_handedness` item wrapping its classification list."""
+
+    def __init__(self, classifications: list[_FakeMediapipeClassification]) -> None:
+        self.classification = classifications
 
 
 class _FakeMediapipeResults:
@@ -369,11 +552,19 @@ class _FakeMediapipeResults:
         | _FakeMediapipePose
         | None = None,
         face_landmarks: _FakeMediapipeLandmark | None = None,
-        multi_face_landmarks: list[_FakeMediapipeLandmark] | None = None,
+        hand_landmarks: list[list[_FakeMediapipeLandmark]] | None = None,
+        multi_face_landmarks: list[_FakeMediapipePose] | None = None,
+        multi_hand_landmarks: list[_FakeMediapipePose] | None = None,
+        handedness: list[list[_FakeMediapipeHandednessCategory]] | None = None,
+        multi_handedness: list[_FakeMediapipeHandedness] | None = None,
     ) -> None:
         self.pose_landmarks = pose_landmarks
         self.face_landmarks = face_landmarks
+        self.hand_landmarks = hand_landmarks
         self.multi_face_landmarks = multi_face_landmarks
+        self.multi_hand_landmarks = multi_hand_landmarks
+        self.handedness = handedness
+        self.multi_handedness = multi_handedness
 
 
 def create_yolo_dataset(
@@ -384,8 +575,7 @@ def create_yolo_dataset(
     objects_per_image_range: tuple[int, int] = (2, 4),
     seed: int = 42,
 ) -> dict[str, Any]:
-    """
-    Create a synthetic YOLO-format dataset on disk.
+    """Create a synthetic YOLO-format dataset on disk.
 
     Generates dummy images with YOLO-format annotations, `data.yaml` file,
     and directory structure suitable for testing dataset loading.
@@ -597,8 +787,7 @@ class _FakeNCNNObject:
 def create_predictions_with_class_iou_tests(
     gt_detections: Detections, num_classes: int
 ) -> Detections:
-    """
-    Create predictions that test IoU+class matching behavior.
+    """Create predictions that test IoU+class matching behavior.
 
     For each ground truth detection, creates predictions with different patterns:
     - Pattern 0 (i%3==0): Correct match (same bbox, correct class)
@@ -625,6 +814,7 @@ def create_predictions_with_class_iou_tests(
     pred_classes = []
     pred_confs = []
 
+    assert gt_detections.class_id is not None
     for i, (box, cls) in enumerate(zip(gt_detections.xyxy, gt_detections.class_id)):
         if i % 3 == 0:
             # Pattern 1: Correct match

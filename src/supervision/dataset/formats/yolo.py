@@ -1,24 +1,32 @@
 from __future__ import annotations
 
+import math
 import os
 import warnings
 from collections.abc import Sequence
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
 from tqdm.auto import tqdm
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import (
+    _image_file_resolution_wh,
     approximate_mask_with_polygons,
     check_no_basename_collisions,
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import _DetectionDataType
-from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.boxes import _sort_box_corners
+from supervision.detection.utils.converters import (
+    mask_to_polygons,
+    polygon_to_mask,
+    polygon_to_xyxy,
+)
+from supervision.detection.utils.polygons import merge_multi_segment
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -31,16 +39,67 @@ if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 
+#: Image file extensions the YOLO detection and pose loaders list from the images
+#: directory; matched case-insensitively by
+#: :func:`~supervision.utils.file.list_files_with_extensions`.
+_YOLO_IMAGE_EXTENSIONS: tuple[str, ...] = (
+    "bmp",
+    "dng",
+    "jpg",
+    "jpeg",
+    "mpo",
+    "png",
+    "tif",
+    "tiff",
+    "webp",
+)
+
+
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
+    """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
+
+    Returns the corners of
+    :func:`~supervision.dataset.formats.yolo._parse_relative_xyxy` as a
+    ``float32`` array, the precision of the detection loader.
+    """
+    return np.array(_parse_relative_xyxy(values=values), dtype=np.float32)
+
+
+def _parse_relative_xyxy(values: list[str]) -> tuple[float, float, float, float]:
+    """Validate a YOLO ``x_center y_center width height`` box, return its corners.
+
+    The corners are relative ``(x_min, y_min, x_max, y_max)`` Python floats, so
+    a caller picks the array precision it stores them in.
+
+    Every value must be finite: ``nan`` or an infinity cannot place a box, and
+    ``nan`` would pass the extent check below unnoticed. A negative width or
+    height would place ``x_min`` past ``x_max``, breaking the ordering every
+    consumer of ``xyxy`` assumes:
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch` reports no
+    overlap between identical regions,
+    :meth:`~supervision.detection.core.Detections.with_nms` stops suppressing,
+    and the :class:`~supervision.detection.core.Detections` ``area`` property
+    turns negative when only one of the two extents is negative. Reject both
+    here rather than let a corrupt label travel on.
+    """
     x_center, y_center, width, height = values
-    return np.array(
-        [
-            float(x_center) - float(width) / 2,
-            float(y_center) - float(height) / 2,
-            float(x_center) + float(width) / 2,
-            float(y_center) + float(height) / 2,
-        ],
-        dtype=np.float32,
+    numbers = [float(value) for value in values]
+    if not all(math.isfinite(number) for number in numbers):
+        raise ValueError(
+            f"Invalid box ({x_center!r}, {y_center!r}, {width!r}, {height!r}) in YOLO "
+            "annotation; expected a finite center, width and height."
+        )
+    box_x_center, box_y_center, box_width, box_height = numbers
+    if box_width < 0 or box_height < 0:
+        raise ValueError(
+            f"Invalid box extent ({width!r}, {height!r}) in YOLO annotation; "
+            "expected a non-negative width and height."
+        )
+    return (
+        box_x_center - box_width / 2,
+        box_y_center - box_height / 2,
+        box_x_center + box_width / 2,
+        box_y_center + box_height / 2,
     )
 
 
@@ -70,12 +129,94 @@ def _polygons_to_masks(
     )
 
 
+def _check_line_is_parsable(values: list[str], line: str, is_obb: bool) -> None:
+    """Raise unless a YOLO line carries enough tokens for a box, polygon or OBB.
+
+    Five tokens are a box, six add a trailing confidence or tracker id, and seven or
+    more are a polygon. ``is_obb=True`` reads nine-token four-corner lines only, where
+    an odd coordinate count cannot be paired into vertices. Anything else cannot be read
+    as any of them.
+    """
+    if is_obb:
+        if len(values) == 9:
+            return
+        raise ValueError(
+            f"Invalid YOLO OBB annotation line {line!r}; expected 9 tokens "
+            f"(class id and four corner pairs), got {len(values)}."
+        )
+    if len(values) >= 5:
+        return
+    raise ValueError(
+        f"Invalid YOLO annotation line {line!r}; expected at least 5 tokens "
+        f"(class id and four box values), got {len(values)}."
+    )
+
+
+def _is_axis_aligned_box_line(values: list[str], is_obb: bool) -> bool:
+    """Return True when a YOLO line is an axis-aligned box, possibly with extras.
+
+    Five tokens are ``class x y w h``. Six tokens add a trailing confidence or
+    tracker id from Ultralytics ``save_txt``. Those six values cannot be a
+    polygon: three xy pairs need seven tokens. OBB four-corner lines stay on
+    the polygon path.
+    """
+    if len(values) == 5:
+        return True
+    return len(values) == 6 and not is_obb
+
+
 def _with_seg_mask(lines: list[str]) -> bool:
-    return any([len(line.split()) > 5 for line in lines])
+    """Return True when any annotation line encodes a polygon rather than a box.
+
+    A YOLO polygon has a class id plus at least three xy pairs, so seven or more tokens.
+    Six tokens are a box with a trailing confidence or tracker id, which Ultralytics
+    writes from ``save_txt``.
+    """
+    return any(len(line.split()) > 6 for line in lines)
+
+
+def _read_data_yaml(file_path: str) -> dict[str, Any]:
+    """Read a YOLO data.yaml file and check that its root is a mapping.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        The parsed data.yaml content.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping.
+    """
+    data: dict[str, Any] = read_yaml_file(file_path=file_path)
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"Expected mapping in data.yaml at '{file_path}',"
+            f" got {type(data).__name__}."
+        )
+    return data
 
 
 def _extract_class_names(file_path: str) -> list[str]:
-    """Return class names from a YOLO data.yaml file ordered by class index.
+    """Read a YOLO data.yaml file and return its class names by class index.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        Class names in class-index order.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping, or if ``names`` is
+            invalid as described in
+            :func:`~supervision.dataset.formats.yolo._extract_class_names_from_data`.
+    """
+    return _extract_class_names_from_data(
+        data=_read_data_yaml(file_path=file_path), file_path=file_path
+    )
+
+
+def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list[str]:
+    """Return class names from parsed YOLO data.yaml content ordered by class index.
 
     Supports list and dict forms of the ``names`` field. Dict keys that are
     all int-like (plain ints or digit strings) are sorted numerically so
@@ -85,21 +226,16 @@ def _extract_class_names(file_path: str) -> list[str]:
     because ``bool`` is a subclass of ``int`` in Python.
 
     Args:
-        file_path: Path to the data.yaml file.
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
 
     Returns:
         Class names in class-index order.
 
     Raises:
-        ValueError: If the YAML root is not a mapping, if ``names`` is
-            neither a list nor a dict, or if the dict has mixed key types.
+        ValueError: If ``names`` is neither a list nor a dict, or if the dict
+            has mixed key types.
     """
-    data: dict[str, Any] = read_yaml_file(file_path=file_path)
-    if not isinstance(data, dict):
-        raise ValueError(
-            f"Expected mapping in data.yaml at '{file_path}',"
-            f" got {type(data).__name__}."
-        )
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
@@ -137,9 +273,115 @@ def _extract_class_names(file_path: str) -> list[str]:
     )
 
 
+def _is_positive_whole_number(value: Any) -> bool:
+    """Return whether a YAML value is a positive whole number.
+
+    Whole-number floats such as ``17.0`` count; booleans do not, although ``bool``
+    subclasses ``int`` in Python.
+    """
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return value > 0
+    return isinstance(value, float) and value.is_integer() and value > 0
+
+
+def _extract_pose_value_count(file_path: str) -> int:
+    """Read a YOLO data.yaml file and return the keypoint values per pose label.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping, or if ``kpt_shape`` is
+            invalid as described in
+            :func:`~supervision.dataset.formats.yolo._extract_pose_value_count_from_data`.
+    """
+    return _extract_pose_value_count_from_data(
+        data=_read_data_yaml(file_path=file_path), file_path=file_path
+    )
+
+
+def _extract_pose_value_count_from_data(data: dict[str, Any], file_path: str) -> int:
+    """Return the number of keypoint values that follow the box in a pose label.
+
+    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
+    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+
+    Args:
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
+
+    Returns:
+        ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
+
+    Raises:
+        ValueError: If ``kpt_shape`` is not ``[K, 2]`` or ``[K, 3]`` with a
+            positive whole number ``K``.
+    """
+    if "kpt_shape" not in data:
+        return 0
+    kpt_shape = data["kpt_shape"]
+    if not (
+        isinstance(kpt_shape, list)
+        and len(kpt_shape) == 2
+        and all(_is_positive_whole_number(value) for value in kpt_shape)
+        and kpt_shape[1] in (2, 3)
+    ):
+        raise ValueError(
+            f"Expected 'kpt_shape' in data.yaml at '{file_path}' to be"
+            f" [number of keypoints, 2 or 3], got {kpt_shape!r}. Fix it, or"
+            " remove 'kpt_shape' if the dataset has no keypoints."
+        )
+    return int(kpt_shape[0]) * int(kpt_shape[1])
+
+
+def _drop_keypoints(lines: list[str], pose_value_count: int) -> list[str]:
+    """Keep the box of each pose label line and drop its keypoint values.
+
+    Only lines of exactly ``5 + pose_value_count`` tokens are pose labels; other lines
+    are returned unchanged. Ultralytics reads pose labels the same way for box tasks.
+    """
+    kept: list[str] = []
+    for line in lines:
+        values = line.split()
+        if len(values) == 5 + pose_value_count:
+            kept.append(" ".join(values[:5]))
+        else:
+            kept.append(line)
+    return kept
+
+
 def _image_name_to_annotation_name(image_name: str) -> str:
     base_name, _ = os.path.splitext(image_name)
     return base_name + ".txt"
+
+
+def _parse_class_id(value: str) -> int:
+    """Parse a YOLO class id written as an integer or as a whole decimal number.
+
+    Label files saved with ``np.savetxt`` write every column as a float, such as
+    ``1.000000000000000000e+00``, and Ultralytics reads the class column as a float, so
+    such datasets train there. Values that are not finite whole numbers still raise.
+    """
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        class_id = Decimal(value)
+    except InvalidOperation:
+        raise ValueError(
+            f"Invalid class id {value!r} in YOLO annotation; expected a whole number."
+        ) from None
+    if not class_id.is_finite() or class_id != class_id.to_integral_value():
+        raise ValueError(
+            f"Invalid class id {value!r} in YOLO annotation; expected a whole number."
+        )
+    return int(class_id)
 
 
 def yolo_annotations_to_detections(
@@ -148,6 +390,26 @@ def yolo_annotations_to_detections(
     with_masks: bool,
     is_obb: bool = False,
 ) -> Detections:
+    """Convert YOLO annotation lines into
+    :class:`~supervision.detection.core.Detections`.
+
+    When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token
+    lines add a trailing confidence or tracker id, which is ignored. Lines with
+    seven or more tokens are polygons; an even token count means a polygon
+    followed by one confidence or tracker id, which is also ignored. A polygon
+    line that is malformed rather than annotated, with an odd coordinate count
+    and no extra field, is indistinguishable from the latter and is read the
+    same way. When ``is_obb=True``, annotations must use the nine-token
+    four-corner OBB format. Pose keypoints are not stripped here;
+    :func:`~supervision.dataset.formats.yolo.load_yolo_annotations` drops them
+    before calling this function.
+
+    Raises:
+        ValueError: If a line has fewer than five tokens, or is not nine tokens
+            with ``is_obb=True``; or if a class id is not a whole number, a box
+            value is not finite, a box has a negative width or height, or a
+            coordinate token is not numeric.
+    """
     if len(lines) == 0:
         return Detections.empty()
 
@@ -158,14 +420,22 @@ def yolo_annotations_to_detections(
     w, h = resolution_wh
     for line in lines:
         values = line.split()
-        class_id_list.append(int(values[0]))
-        if len(values) == 5:
-            box = _parse_box(values=values[1:])
+        # Every line passing this check appends exactly one box below, which keeps
+        # class_id_list aligned with relative_xyxy_list.
+        _check_line_is_parsable(values=values, line=line, is_obb=is_obb)
+        class_id_list.append(_parse_class_id(values[0]))
+        if _is_axis_aligned_box_line(values, is_obb):
+            if len(values) == 6:
+                _ = float(values[5])
+            box = _parse_box(values=values[1:5])
             relative_xyxy_list.append(box)
             if with_masks:
                 relative_polygon_list.append(_box_to_polygon(box=box))
-        elif len(values) > 5:
-            polygon = _parse_polygon(values=values[1:])
+        else:
+            polygon_values = values[1:]
+            if not is_obb and len(polygon_values) % 2:
+                _ = float(polygon_values.pop())
+            polygon = _parse_polygon(values=polygon_values)
             relative_xyxy_list.append(polygon_to_xyxy(polygon=polygon))
             if is_obb:
                 relative_xyxyxyxy_list.append(np.array(values[1:], dtype=np.float32))
@@ -202,16 +472,18 @@ def load_yolo_annotations(
     is_obb: bool = False,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """
-    Loads YOLO annotations and returns class names, images,
-        and their corresponding detections.
+    """Loads YOLO annotations and returns class names, images, and their corresponding
+    detections.
 
     Args:
         images_directory_path: The path to the directory containing the images.
         annotations_directory_path: The path to the directory
             containing the YOLO annotation files.
         data_yaml_path: The path to the data
-            YAML file containing class information.
+            YAML file containing class information and, for pose datasets,
+            `kpt_shape`. With a `kpt_shape` of `[K, D]`, every row of exactly
+            `5 + K * D` values, a polygon row of that length included, is read
+            as a box, as Ultralytics does.
         force_masks: If True, forces masks to be loaded
             for all annotations, regardless of whether they are present.
             This parameter has no effect when `is_obb=True`; mask generation
@@ -225,6 +497,13 @@ def load_yolo_annotations(
         A tuple containing a list of class names, a dictionary with
             image names as keys and images as values, and a dictionary
             with image names as keys and corresponding Detections instances as values.
+
+    Raises:
+        ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
+            not a list or dict, or a dict mixing numeric and non-numeric keys;
+            or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
+            `kpt_shape: null` included. Also if an annotation file contains an
+            invalid line; the message names the offending file.
     """
     if is_obb and force_masks:
         warnings.warn(
@@ -237,21 +516,17 @@ def load_yolo_annotations(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path,
-            extensions=[
-                "bmp",
-                "dng",
-                "jpg",
-                "jpeg",
-                "mpo",
-                "png",
-                "tif",
-                "tiff",
-                "webp",
-            ],
+            extensions=_YOLO_IMAGE_EXTENSIONS,
         )
     ]
 
     classes = _extract_class_names(file_path=data_yaml_path)
+    pose_value_count = _extract_pose_value_count(file_path=data_yaml_path)
+    if is_obb:
+        # OBB rows are never pose labels, yet a nine-token OBB row would match
+        # the pose length when 5 + K * D == 9 and lose its corners; kpt_shape
+        # is still validated by the call above.
+        pose_value_count = 0
     annotations = {}
 
     for image_path in tqdm(
@@ -266,19 +541,25 @@ def load_yolo_annotations(
             annotations[image_path] = Detections.empty()
             continue
 
-        # PIL is much faster than cv2 for checking image shape: https://github.com/roboflow/supervision/issues/1554
-        with Image.open(image_path) as image:
-            w, h = image.size
+        w, h = _image_file_resolution_wh(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
+        if pose_value_count:
+            lines = _drop_keypoints(lines=lines, pose_value_count=pose_value_count)
         resolution_wh = (w, h)
 
         with_masks = not is_obb and (force_masks or _with_seg_mask(lines=lines))
-        annotation = yolo_annotations_to_detections(
-            lines=lines,
-            resolution_wh=resolution_wh,
-            with_masks=with_masks,
-            is_obb=is_obb,
-        )
+        try:
+            annotation = yolo_annotations_to_detections(
+                lines=lines,
+                resolution_wh=resolution_wh,
+                with_masks=with_masks,
+                is_obb=is_obb,
+            )
+        except ValueError as error:
+            # One bad label among thousands of files must be traceable to its file.
+            raise ValueError(
+                f"Invalid YOLO annotation file '{annotation_path}': {error}"
+            ) from error
         annotations[image_path] = annotation
     return classes, image_paths, annotations
 
@@ -286,13 +567,39 @@ def load_yolo_annotations(
 def object_to_yolo(
     xyxy: npt.NDArray[np.number],
     class_id: int,
-    image_shape: tuple[int, int, int],
+    image_shape: tuple[int, int] | tuple[int, int, int],
     polygon: npt.NDArray[np.number] | None = None,
 ) -> str:
-    h, w, _ = image_shape
+    """Serialize one box or polygon using the source image's width and height.
+
+    Args:
+        xyxy: Bounding box in pixel coordinates ``[x1, y1, x2, y2]``.
+        class_id: Class ID written before the normalized coordinates.
+        image_shape: Image shape as ``(height, width)`` or
+            ``(height, width, channels)``.
+        polygon: Optional polygon vertices in pixel coordinates, shape ``(N, 2)``.
+
+    Returns:
+        A YOLO annotation line with coordinates normalized by the image dimensions.
+        A reversed box, with ``x1 > x2`` or ``y1 > y2``, is written as the same
+        rectangle with its corners ordered, so the line never carries a negative
+        width or height.
+
+    Examples:
+        ```pycon
+        >>> object_to_yolo(np.array([3, 2, 15, 10]), 0, (16, 24))
+        '0 0.37500 0.37500 0.50000 0.50000'
+        >>> object_to_yolo(np.array([15, 10, 3, 2]), 0, (16, 24))
+        '0 0.37500 0.37500 0.50000 0.50000'
+
+        ```
+    """
+    h, w = image_shape[:2]
     if polygon is None:
         xyxy_relative = xyxy / np.array([w, h, w, h], dtype=np.float32)
-        x_min, y_min, x_max, y_max = xyxy_relative
+        # Detections does not enforce x_min <= x_max; a reversed box would be written
+        # with a negative extent that the loader rejects.
+        x_min, y_min, x_max, y_max = _sort_box_corners(xyxy_relative[np.newaxis])[0]
         x_center = (x_min + x_max) / 2
         y_center = (y_min + y_max) / 2
         width = x_max - x_min
@@ -307,21 +614,28 @@ def object_to_yolo(
 
 def detections_to_yolo_annotations(
     detections: Detections,
-    image_shape: tuple[int, int, int],
+    image_shape: tuple[int, int] | tuple[int, int, int],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
+    ignore_crowd: bool = True,
+    merge_segments: bool = True,
 ) -> list[str]:
     """Convert detections to YOLO annotation lines.
+
+    By default, disconnected mask contours are joined with zero-width seams and
+    written as one polygon line per detection. With ``merge_segments=False``, each
+    disconnected contour is written on a separate line. Holes are joined to their
+    outer contour by a zero-width seam.
 
     Args:
         detections: The detections to serialize. Each detection must have a
             valid integer ``class_id``. When ``is_obb=True``, each non-empty
             detection must also carry ``detections.data['xyxyxyxy']`` with
             shape ``(N, 4, 2)``.
-        image_shape: The ``(height, width, channels)`` shape of the source
-            image, used to normalize coordinates to ``[0, 1]``.
+        image_shape: The ``(height, width)`` or ``(height, width, channels)``
+            shape of the source image, used to normalize coordinates to ``[0, 1]``.
         min_image_area_percentage: Minimum detection area as a fraction of the
             image area; smaller detections are omitted. Ignored when
             ``is_obb=True``.
@@ -334,10 +648,22 @@ def detections_to_yolo_annotations(
         is_obb: If ``True``, serializes oriented bounding-box corners from
             ``detections.data['xyxyxyxy']`` as a 9-token YOLO OBB line
             ``class_id x1 y1 x2 y2 x3 y3 x4 y4``. Mask data is ignored.
+        ignore_crowd: When ``True`` (default), detections carrying a non-zero
+            ``iscrowd`` flag in ``detections.data`` are omitted from the export,
+            matching standard COCO-to-YOLO practice where crowd regions are ignore
+            regions rather than real detection instances. When ``False``, those
+            detections are included.
+        merge_segments: When ``True`` (default), multiple disconnected polygon
+            contours belonging to a single detection mask are joined using zero-width
+            seams via :func:`~supervision.detection.utils.polygons.merge_multi_segment`,
+            emitting exactly one YOLO polygon line per detection. When ``False``, each
+            disconnected contour is exported on its own separate line.
 
     Returns:
         A list of YOLO annotation strings, one per detection (or one per
-        polygon for instance-segmentation annotations).
+        polygon for instance-segmentation annotations). A detection whose mask
+        is empty or has no valid contour is written as its bounding box.
+        Contours excluded by the area filters remain omitted.
 
     Raises:
         ValueError: If any detection has ``class_id=None`` or a non-integer
@@ -383,6 +709,11 @@ def detections_to_yolo_annotations(
 
     annotation: list[str] = []
     for xyxy, mask, _, class_id, _, data in detections:
+        if ignore_crowd and data is not None:
+            iscrowd = data.get(ISCROWD_DATA_FIELD)
+            if iscrowd is not None and bool(np.asarray(iscrowd)):
+                continue
+
         if class_id is None:
             raise ValueError("Class ID is required for YOLO annotations.")
         if not isinstance(class_id, (int, np.integer)):
@@ -410,13 +741,26 @@ def detections_to_yolo_annotations(
             annotation.append(next_object)
             continue
 
-        if mask is not None:
+        # An empty mask (e.g. a box-only COCO annotation) has no polygon to
+        # write, so fall back to the bounding box instead of dropping it.
+        if mask is not None and mask.any():
             polygons = approximate_mask_with_polygons(
                 mask=mask,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
+                bridge_holes=True,
             )
+            if not polygons and not mask_to_polygons(mask=mask):
+                # Preserve area-filtered omissions; only invalid contours fall back.
+                annotation.append(
+                    object_to_yolo(
+                        xyxy=xyxy, class_id=class_id_int, image_shape=image_shape
+                    )
+                )
+                continue
+            if merge_segments and len(polygons) > 1:
+                polygons = [merge_multi_segment(polygons)]
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_yolo(
@@ -442,6 +786,8 @@ def save_yolo_annotations(
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
     show_progress: bool = False,
+    ignore_crowd: bool = True,
+    merge_segments: bool = True,
 ) -> None:
     """Save dataset annotations in YOLO format.
 
@@ -464,6 +810,13 @@ def save_yolo_annotations(
             with shape ``(N, 4, 2)``.
         show_progress: If ``True``, display a tqdm progress bar while
             saving annotations.
+        ignore_crowd: When ``True`` (default), detections carrying a non-zero
+            ``iscrowd`` flag in ``detections.data`` are omitted from the export.
+            When ``False``, those detections are included.
+        merge_segments: When ``True`` (default), multiple disconnected polygon
+            contours belonging to a single detection mask are joined using zero-width
+            seams, emitting exactly one YOLO polygon line per detection.
+            When ``False``, each disconnected contour is exported on a separate line.
 
     Examples:
         ```pycon
@@ -498,6 +851,8 @@ def save_yolo_annotations(
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
             is_obb=is_obb,
+            ignore_crowd=ignore_crowd,
+            merge_segments=merge_segments,
         )
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 

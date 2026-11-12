@@ -1,10 +1,12 @@
+from collections import UserDict
+from typing import Any
+
 import numpy as np
 import pytest
 
 import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
-from supervision.detection.core import LMM, Detections
-from supervision.detection.vlm import VLM
+from supervision.detection.core import Detections
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import (
     _FakeDeepSparseResults,
@@ -37,6 +39,7 @@ def test_from_yolov5_maps_columns_correctly() -> None:
 
     assert isinstance(det, Detections)
     np.testing.assert_allclose(det.xyxy, pred[:, :4])
+    assert det.confidence is not None
     np.testing.assert_allclose(det.confidence, pred[:, 4])
     np.testing.assert_array_equal(det.class_id, pred[:, 5].astype(int))
 
@@ -53,6 +56,7 @@ def test_from_ultralytics_boxes_branch_maps_fields_and_class_names() -> None:
     det = Detections.from_ultralytics(results)
 
     np.testing.assert_allclose(det.xyxy, xyxy)
+    assert det.confidence is not None
     np.testing.assert_allclose(det.confidence, conf)
     np.testing.assert_array_equal(det.class_id, cls.astype(int))
     assert det.tracker_id is None
@@ -62,10 +66,11 @@ def test_from_ultralytics_boxes_branch_maps_fields_and_class_names() -> None:
     np.testing.assert_array_equal(det.data[CLASS_NAME_DATA_FIELD], expected_names)
 
 
-def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
+def test_from_ultralytics_segmentation_only_keeps_class_zero_for_every_mask(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    results = _FakeUltralyticsResults(boxes=None, names={}, length=3)
+    """One image with three masks yields three class-zero detections."""
+    results = _FakeUltralyticsResults(boxes=None, names={}, length=1)
 
     fake_masks = np.zeros((3, 10, 10), dtype=bool)
     fake_xyxy = np.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]], dtype=np.float32)
@@ -79,7 +84,7 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
 
     np.testing.assert_allclose(det.xyxy, fake_xyxy)
     np.testing.assert_array_equal(det.mask, fake_masks)
-    np.testing.assert_array_equal(det.class_id, np.arange(len(results)))
+    np.testing.assert_array_equal(det.class_id, np.zeros(len(fake_masks), dtype=int))
 
 
 def test_from_ultralytics_segmentation_only_without_masks_returns_empty() -> None:
@@ -131,6 +136,7 @@ def test_from_yolo_nas_handles_empty_and_non_empty(
     assert len(det) == expected_len
     if expected_len > 0:
         np.testing.assert_allclose(det.xyxy, bboxes)
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, conf)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
 
@@ -149,6 +155,7 @@ def test_from_tensorflow_scales_axes_on_non_square_image() -> None:
 
     # xmin=0.2*1000, ymin=0.1*500, xmax=0.6*1000, ymax=0.5*500
     np.testing.assert_allclose(det.xyxy, [[200.0, 50.0, 600.0, 250.0]])
+    assert det.confidence is not None
     np.testing.assert_allclose(det.confidence, [0.9])
     np.testing.assert_array_equal(det.class_id, [1])
 
@@ -167,35 +174,6 @@ def test_from_tensorflow_does_not_mutate_source_boxes() -> None:
 
     np.testing.assert_array_equal(source_boxes, original)
     np.testing.assert_allclose(det.xyxy, [[200.0, 50.0, 600.0, 250.0]])
-
-
-class TestFromLMMMapping:
-    """`from_lmm` must map every LMM member to a VLM without raising KeyError."""
-
-    @pytest.mark.parametrize(
-        "lmm_member",
-        [pytest.param(member, id=member.name.lower()) for member in LMM],
-    )
-    def test_from_lmm_maps_every_member_to_vlm(
-        self, lmm_member: LMM, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Each LMM member dispatches to the VLM sharing its value with args intact."""
-        captured: dict[str, object] = {}
-
-        def fake_from_vlm(vlm: VLM, result: str, **kwargs: object) -> Detections:
-            captured["vlm"] = vlm
-            captured["result"] = result
-            captured["kwargs"] = kwargs
-            return Detections.empty()
-
-        monkeypatch.setattr(Detections, "from_vlm", staticmethod(fake_from_vlm))
-
-        Detections.from_lmm(lmm_member, result="sentinel", resolution_wh=(10, 10))
-
-        assert isinstance(captured["vlm"], VLM)
-        assert captured["vlm"].value == lmm_member.value  # type: ignore[union-attr]
-        assert captured["result"] == "sentinel"
-        assert captured["kwargs"]["resolution_wh"] == (10, 10)  # type: ignore[index]
 
 
 # ---------------------------------------------------------------------------
@@ -221,6 +199,7 @@ class TestFromTransformers:
 
         np.testing.assert_allclose(det.xyxy, xyxy)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, scores)
 
     def test_detection_path_empty_returns_zero_detections(self) -> None:
@@ -236,7 +215,7 @@ class TestFromTransformers:
         assert len(det) == 0
 
     def test_detection_path_with_id2label_populates_class_names(self) -> None:
-        """id2label mapping adds class name strings to data dict."""
+        """Id2label mapping adds class name strings to data dict."""
         labels = np.array([0, 1], dtype=np.int64)
         result = {
             "boxes": _FakeDetachTensor(np.zeros((2, 4), dtype=np.float32)),
@@ -302,7 +281,33 @@ class TestFromTransformers:
 
         assert len(det) == 2
         np.testing.assert_array_equal(det.class_id, [0, 1])
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, [0.9, 0.8])
+
+    def test_v5_semantic_output_with_scores_uses_class_map(self) -> None:
+        """Score-bearing semantic output has no segments_info but still yields masks."""
+        segmentation = np.array([[0, 1, 1], [0, 2, 2]], dtype=np.int64)
+        result = UserDict(
+            {
+                "segmentation": _FakeDetachTensor(segmentation),
+                "segmentation_scores": _FakeDetachTensor(
+                    np.zeros((3, 2, 3), dtype=np.float32)
+                ),
+            }
+        )
+
+        det = Detections.from_transformers(
+            result,  # type: ignore[arg-type]
+            id2label={0: "background", 1: "cat", 2: "dog"},
+        )
+
+        assert isinstance(det.mask, np.ndarray)
+        np.testing.assert_array_equal(det.class_id, [0, 1, 2])
+        np.testing.assert_array_equal(det.mask[1], segmentation == 1)
+        np.testing.assert_array_equal(
+            det.data[CLASS_NAME_DATA_FIELD], ["background", "cat", "dog"]
+        )
+        assert det.confidence is None
 
     def test_unrecognised_keys_raise_value_error(self) -> None:
         """Dict with no valid keys (no boxes/masks/segmentation) raises ValueError."""
@@ -329,6 +334,7 @@ class TestFromDetectron2:
         det = Detections.from_detectron2(result)
 
         np.testing.assert_allclose(det.xyxy, xyxy)
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, scores)
         np.testing.assert_array_equal(det.class_id, class_ids.astype(int))
         assert det.mask is None
@@ -389,6 +395,7 @@ class TestFromMMDetection:
         det = Detections.from_mmdetection(result)
 
         np.testing.assert_allclose(det.xyxy, xyxy)
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, scores)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
         assert det.mask is None
@@ -473,6 +480,7 @@ class TestFromPaddleDet:
 
         assert len(det) == expected_len
         np.testing.assert_allclose(det.xyxy, bbox_array[:, 2:6])
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, bbox_array[:, 1])
         np.testing.assert_array_equal(det.class_id, bbox_array[:, 0].astype(int))
 
@@ -523,13 +531,14 @@ class TestFromDeepSparse:
         labels: np.ndarray,
         expected_len: int,
     ) -> None:
-        """boxes[0], scores[0], labels[0] are extracted into Detections fields."""
+        """Boxes[0], scores[0], labels[0] are extracted into Detections fields."""
         result = _FakeDeepSparseResults(boxes=[boxes], scores=[scores], labels=[labels])
 
         det = Detections.from_deepsparse(result)
 
         assert len(det) == expected_len
         np.testing.assert_allclose(det.xyxy, boxes)
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, scores)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
 
@@ -581,6 +590,7 @@ class TestFromEasyOCR:
         det = Detections.from_easyocr(results)
 
         assert len(det) == 1
+        assert det.confidence is not None
         assert float(det.confidence[0]) == pytest.approx(0.0)
 
     def test_preserves_oriented_corners_in_data(self) -> None:
@@ -591,10 +601,12 @@ class TestFromEasyOCR:
         det = Detections.from_easyocr(results)
 
         assert ORIENTED_BOX_COORDINATES in det.data
-        np.testing.assert_allclose(det.data[ORIENTED_BOX_COORDINATES], np.array([bbox]))
+        np.testing.assert_allclose(
+            np.asarray(det.data[ORIENTED_BOX_COORDINATES]), np.array([bbox])
+        )
 
     def test_detail_zero_results_raise_clear_error(self) -> None:
-        """detail=0 EasyOCR results must fail with a descriptive ValueError."""
+        """Detail=0 EasyOCR results must fail with a descriptive ValueError."""
         with pytest.raises(ValueError, match="detail=1"):
             Detections.from_easyocr(["text"])
 
@@ -605,13 +617,15 @@ class TestFromEasyOCR:
 
 
 def _make_azure_result(
-    detections: list[dict],
-) -> dict:
+    detections: list[dict[str, Any]],
+) -> dict[str, Any]:
     """Build a minimal Azure Image Analysis response dict."""
     return {"objectsResult": {"values": detections}}
 
 
-def _make_azure_detection(x: int, y: int, w: int, h: int, tags: list[dict]) -> dict:
+def _make_azure_detection(
+    x: int, y: int, w: int, h: int, tags: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Build one Azure detection entry."""
     return {
         "boundingBox": {"x": x, "y": y, "w": w, "h": h},
@@ -640,6 +654,7 @@ class TestFromAzureAnalyzeImage:
         assert len(det) == 2
         # cat gets id=0 (first seen), dog gets id=1
         np.testing.assert_array_equal(det.class_id, [0, 1])
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, [0.9, 0.7])
         np.testing.assert_allclose(det.xyxy[0], [0, 0, 10, 10])
 
@@ -664,6 +679,8 @@ class TestFromAzureAnalyzeImage:
         det = Detections.from_azure_analyze_image(result, class_map=class_map)
 
         assert len(det) == 1
+        assert det.class_id is not None
+        assert det.confidence is not None
         assert int(det.class_id[0]) == 5
         np.testing.assert_allclose(det.confidence, [0.9])
 
@@ -738,8 +755,10 @@ class TestFromNCNN:
             ),
         ],
     )
-    def test_maps_xywh_rect_to_xyxy(self, objects: list, expected_len: int) -> None:
-        """rect xywh converts to xyxy; prob and label map to confidence/class_id."""
+    def test_maps_xywh_rect_to_xyxy(
+        self, objects: list[_FakeNCNNObject], expected_len: int
+    ) -> None:
+        """Rect xywh converts to xyxy; prob and label map to confidence/class_id."""
         det = Detections.from_ncnn(objects)
 
         assert len(det) == expected_len
@@ -748,46 +767,7 @@ class TestFromNCNN:
         expected_y2 = first.rect.y + first.rect.h
         np.testing.assert_allclose(det.xyxy[0, 2], expected_x2)
         np.testing.assert_allclose(det.xyxy[0, 3], expected_y2)
+        assert det.confidence is not None
+        assert det.class_id is not None
         assert float(det.confidence[0]) == pytest.approx(first.prob)
         assert int(det.class_id[0]) == first.label
-
-
-# ---------------------------------------------------------------------------
-# from_lmm end-to-end
-# ---------------------------------------------------------------------------
-
-
-class TestFromLMMEndToEnd:
-    """from_lmm end-to-end: deprecated dispatcher produces correct Detections."""
-
-    def test_paligemma_result_produces_correct_xyxy(self) -> None:
-        """PaliGemma loc-token string is correctly parsed through the legacy API."""
-        result = "<loc0256><loc0256><loc0768><loc0768> cat"
-
-        with pytest.warns(SupervisionWarnings):
-            det = Detections.from_lmm(
-                LMM.PALIGEMMA,
-                result,
-                resolution_wh=(1000, 1000),
-                classes=["cat"],
-            )
-
-        assert len(det) == 1
-        np.testing.assert_allclose(det.xyxy, [[250.0, 250.0, 750.0, 750.0]])
-        assert int(det.class_id[0]) == 0
-
-    def test_string_lmm_name_is_accepted_and_dispatches(self) -> None:
-        """Passing LMM name as lowercase string works identically to the enum."""
-        with pytest.warns(SupervisionWarnings):
-            det = Detections.from_lmm(
-                "paligemma",
-                "",
-                resolution_wh=(1000, 1000),
-            )
-
-        assert len(det) == 0
-
-
-def test_lmm_values_are_subset_of_vlm_values() -> None:
-    """Every LMM value exists in VLM — required for VLM(lmm.value) to succeed."""
-    assert {m.value for m in LMM} <= {m.value for m in VLM}

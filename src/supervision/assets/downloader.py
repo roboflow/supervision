@@ -10,8 +10,7 @@ logger = _get_logger(__name__)
 
 
 def is_md5_hash_matching(filename: str | Path, original_md5_hash: str) -> bool:
-    """
-    Check if the MD5 hash of a file matches the original hash.
+    """Check if the MD5 hash of a file matches the original hash.
 
     Note: MD5 is used here for file integrity checking (detecting corruption),
     not for cryptographic security purposes.
@@ -34,9 +33,7 @@ def is_md5_hash_matching(filename: str | Path, original_md5_hash: str) -> bool:
 
 
 def _download_asset(filename: str, destination: Path) -> None:
-    """
-    Download asset bytes to the target destination via a temporary file.
-    """
+    """Download asset bytes to the target destination via a temporary file."""
     _download_to_file(MEDIA_ASSETS[filename][0], destination, timeout=30.0, stream=True)
 
 
@@ -47,9 +44,7 @@ def _download_verified_asset(
     check_target: str | Path,
     retry_on_mismatch: bool = True,
 ) -> None:
-    """
-    Download an asset and reject payloads whose MD5 does not match the catalog.
-    """
+    """Download an asset and reject payloads whose MD5 does not match the catalog."""
     _download_asset(filename, destination)
 
     if is_md5_hash_matching(check_target, original_md5_hash):
@@ -75,8 +70,7 @@ def download_assets(
     asset_name: Assets | str,
     directory: str | Path | None = None,
 ) -> str:
-    """
-    Download a specified asset if it doesn't already exist or is corrupted.
+    """Download a specified asset if it doesn't already exist or is corrupted.
 
     Args:
         asset_name: The name or type of the asset to be downloaded.
@@ -98,7 +92,6 @@ def download_assets(
 
         ```
     """
-
     filename = asset_name.filename if isinstance(asset_name, Assets) else asset_name
     if directory is None:
         destination = Path.cwd() / filename

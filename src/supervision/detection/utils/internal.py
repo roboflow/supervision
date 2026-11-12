@@ -11,6 +11,7 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
+from supervision.utils.internal import _to_numpy
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +42,9 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
     """Extract boolean masks from Ultralytics results, cropping letterbox padding.
 
     Handles the case where the inference resolution differs from the original image
-    shape by computing the letterbox padding offsets, cropping them out, and resizing
-    each proto mask back to `orig_shape`. Thresholds at 0.5 to match Ultralytics'
-    semantics and avoid dilating masks through float interpolation.
+    shape by recovering the rounded letterbox content size, cropping its padding,
+    and resizing each proto mask back to `orig_shape`. Thresholds at 0.5 to match
+    Ultralytics' semantics and avoid dilating masks through float interpolation.
 
     Args:
         yolov8_results: Ultralytics results object with `.masks` and `.orig_shape`.
@@ -58,23 +59,25 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    pad = (0, 0)
+    top, left = 0, 0
+    bottom, right = inference_shape
 
     if inference_shape != orig_shape:
         gain = min(
             inference_shape[0] / orig_shape[0],
             inference_shape[1] / orig_shape[1],
         )
-        pad = (
-            (inference_shape[1] - orig_shape[1] * gain) / 2,
-            (inference_shape[0] - orig_shape[0] * gain) / 2,
-        )
-
-    top, left = int(pad[1]), int(pad[0])
-    bottom, right = int(inference_shape[0] - pad[1]), int(inference_shape[1] - pad[0])
+        # LetterBox rounds the resized content before splitting padding. An odd
+        # padding pixel belongs to the bottom/right, not to the content crop.
+        content_height = max(round(orig_shape[0] * gain), 1)
+        content_width = max(round(orig_shape[1] * gain), 1)
+        top = (inference_shape[0] - content_height) // 2
+        left = (inference_shape[1] - content_width) // 2
+        bottom = top + content_height
+        right = left + content_width
 
     mask_maps = []
-    masks = yolov8_results.masks.data.cpu().numpy()
+    masks = _to_numpy(yolov8_results.masks.data)
     for i in range(masks.shape[0]):
         mask = masks[i]
         mask = mask[top:bottom, left:right]
@@ -191,9 +194,9 @@ def _decode_compact_masks(
             mixed-modality alignment guard.
 
     Returns:
-        A merged ``CompactMask`` when all predictions that carry masks decoded
-        successfully, or ``None`` when no masks are present or the
-        mixed-modality guard triggers.
+        A merged :class:`~supervision.detection.compact_mask.CompactMask` when
+        all predictions that carry masks decoded successfully, or ``None``
+        when no masks are present or the mixed-modality guard triggers.
 
     Examples:
         ```pycon
@@ -285,6 +288,21 @@ def process_roboflow_result(
 ]: ...
 
 
+@overload
+def process_roboflow_result(
+    roboflow_result: dict[str, Any],
+    *,
+    compact_masks: bool,
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | CompactMask | None,
+    npt.NDArray[np.integer] | None,
+    _DetectionDataType,
+]: ...
+
+
 def process_roboflow_result(
     roboflow_result: dict[str, Any],
     *,
@@ -321,10 +339,15 @@ def process_roboflow_result(
         masks to be dropped from the result; the detection itself is kept as a
         box-only entry with a ``logger.warning``. When ``compact_masks=True``
         and masks are
-        present, ``masks`` is a :class:`CompactMask`; otherwise it is a dense
-        boolean array. ``tracker_ids`` is ``None`` when no predictions carry a
-        tracker ID, or when only a subset do (mixed batch) — in that case all
+        present, ``masks`` is a
+        :class:`~supervision.detection.compact_mask.CompactMask`; otherwise it
+        is a dense boolean array. ``tracker_ids`` is ``None`` when no predictions
+        carry a tracker ID, or when only a subset do (mixed batch) — in that case all
         tracker IDs are dropped to preserve alignment with ``xyxy``.
+
+    Raises:
+        ValueError: If a polygon prediction has a vertex that is not a finite
+            number.
 
     Examples:
         ```pycon
@@ -424,9 +447,18 @@ def process_roboflow_result(
             masks.append(None)
             tracker_ids.append(prediction.get("tracker_id"))
         elif len(prediction["points"]) >= 3:
-            polygon = np.array(
-                [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
+            vertices = np.array(
+                [[point["x"], point["y"]] for point in prediction["points"]],
+                dtype=np.float64,
             )
+            if not np.isfinite(vertices).all():
+                raise ValueError(
+                    f"Polygon prediction of class {prediction['class']!r} has a "
+                    "vertex that is not a finite number."
+                )
+            # Vertices are sub-pixel floats; round them like the dataset loaders do,
+            # since truncating shifts the mask up and to the left by up to a pixel.
+            polygon = np.round(vertices).astype(np.int32)
             mask = polygon_to_mask(
                 polygon, resolution_wh=(image_width, image_height)
             ).astype(bool)
@@ -436,9 +468,15 @@ def process_roboflow_result(
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             if compact_masks:
+                # Every filled pixel lies within the polygon's vertex extent, so
+                # cropping to it is lossless and encodes the object, not the frame.
+                # from_dense clips the box to the image.
+                polygon_xyxy = np.concatenate(
+                    [polygon.min(axis=0), polygon.max(axis=0)]
+                ).astype(np.float64)
                 _polygon_compact_map[xyxy_idx] = CompactMask.from_dense(
                     masks=mask[np.newaxis, ...],
-                    xyxy=_full_image_xyxy(1, image_height, image_width),
+                    xyxy=polygon_xyxy[np.newaxis, :],
                     image_shape=(image_height, image_width),
                 )
             else:
@@ -500,8 +538,7 @@ def is_data_equal(
     data_a: _DetectionDataType,
     data_b: _DetectionDataType,
 ) -> bool:
-    """
-    Compares the data payloads of two Detections instances.
+    """Compares the data payloads of two Detections instances.
 
     Args:
         data_a, data_b: The data payloads of the instances.
@@ -515,8 +552,7 @@ def is_data_equal(
 
 
 def is_metadata_equal(metadata_a: _MetadataType, metadata_b: _MetadataType) -> bool:
-    """
-    Compares the metadata payloads of two Detections instances.
+    """Compares the metadata payloads of two Detections instances.
 
     Args:
         metadata_a, metadata_b: The metadata payloads of the instances.
@@ -525,21 +561,14 @@ def is_metadata_equal(metadata_a: _MetadataType, metadata_b: _MetadataType) -> b
         True if the metadata payloads are equal, False otherwise.
     """
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
-        np.array_equal(metadata_a[key], metadata_b[key])
-        if (
-            isinstance(metadata_a[key], np.ndarray)
-            and isinstance(metadata_b[key], np.ndarray)
-        )
-        else metadata_a[key] == metadata_b[key]
-        for key in metadata_a
+        metadata_values_equal(metadata_a[key], metadata_b[key]) for key in metadata_a
     )
 
 
 def merge_data(
     data_list: list[_DetectionDataType],
 ) -> _DetectionDataType:
-    """
-    Merges the data payloads of a list of Detections instances.
+    """Merges the data payloads of a list of Detections instances.
 
     Warning: Assumes that empty detections were filtered-out before passing data to
     this function.
@@ -596,9 +625,40 @@ def merge_data(
     return cast(_DetectionDataType, merged_data)
 
 
-def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
+def metadata_values_equal(value_a: Any, value_b: Any) -> bool:
+    """Check whether two metadata values can merge into one.
+
+    The predicate is total: any value type may be passed, and comparisons that a
+    type does not support resolve to `False` rather than propagating an exception.
+
+    Args:
+        value_a, value_b: The metadata values to compare.
+
+    Returns:
+        True if both values are considered equal, False otherwise.
     """
-    Merge metadata from a list of metadata dictionaries.
+    if isinstance(value_a, np.ndarray) and isinstance(value_b, np.ndarray):
+        # `equal_nan` makes an array holding NaN equal to itself, but NumPy rejects
+        # the argument for non-floating dtypes, so it is only passed when both
+        # operands are float arrays.
+        both_floating = np.issubdtype(value_a.dtype, np.floating) and np.issubdtype(
+            value_b.dtype, np.floating
+        )
+        if both_floating:
+            return bool(np.array_equal(value_a, value_b, equal_nan=True))
+        return bool(np.array_equal(value_a, value_b))
+    if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
+        return False
+    try:
+        return bool(value_a == value_b)
+    except (ValueError, RuntimeError, TypeError):
+        # Containers of arrays (list/dict/tuple of ndarray) and tensor types return
+        # an elementwise result whose truth value is ambiguous; treat as unequal.
+        return False
+
+
+def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
+    """Merge metadata from a list of metadata dictionaries.
 
     This function combines the metadata dictionaries. If a key appears in more than one
     dictionary, the values must be identical for the merge to succeed.
@@ -614,7 +674,7 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
 
     Raises:
         ValueError: If there are conflicting values for the same key or if
-        dictionaries have different keys.
+            dictionaries have different keys.
     """
     if not metadata_list:
         return {}
@@ -631,31 +691,81 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
                 continue
 
             other_value = merged_metadata[key]
-            if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
-                if not np.array_equal(merged_metadata[key], value):
+            if not metadata_values_equal(value, other_value):
+                if isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
                         f"{type(value)}, {type(other_value)}."
                     )
-            elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
-                # Since [] == np.array([]).
-                raise ValueError(
-                    f"Conflicting metadata for key: '{key}': "
-                    f"{type(value)}, {type(other_value)}."
-                )
-            else:
-                if merged_metadata[key] != value:
-                    raise ValueError(f"Conflicting metadata for key: '{key}'.")
+                raise ValueError(f"Conflicting metadata for key: '{key}'.")
 
     return merged_metadata
+
+
+def merge_metadata_lenient(
+    metadata_list: list[_MetadataType],
+) -> tuple[_MetadataType, set[str]]:
+    """Merge metadata dictionaries, dropping keys that cannot be reconciled.
+
+    Unlike :func:`~supervision.detection.utils.internal.merge_metadata`, which
+    raises on any disagreement, this variant applies a lenient policy: a key
+    survives only when every dictionary carries it
+    and all of its values compare equal under
+    :func:`~supervision.detection.utils.internal.metadata_values_equal`. Every
+    other key is dropped and reported back so the caller can react to the loss.
+
+    A single traversal both detects conflicts and builds the merged dictionary;
+    the surviving value is the one from the first dictionary that carried the key.
+
+    Warning: Assumes that empty detections were filtered-out before passing metadata
+    to this function.
+
+    Args:
+        metadata_list: A list of metadata dictionaries to merge.
+
+    Returns:
+        A 2-tuple of the merged metadata dictionary and the set of dropped keys.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.internal import merge_metadata_lenient
+        >>> merge_metadata_lenient([{"a": 1, "b": 2}, {"a": 1, "b": 3}])
+        ({'a': 1}, {'b'})
+
+        ```
+    """
+    merged_metadata: _MetadataType = {}
+    occurrences: dict[str, int] = {}
+    conflicting: set[str] = set()
+
+    for metadata in metadata_list:
+        for key, value in metadata.items():
+            occurrences[key] = occurrences.get(key, 0) + 1
+            if key in conflicting:
+                continue
+            if key not in merged_metadata:
+                merged_metadata[key] = value
+            elif not metadata_values_equal(merged_metadata[key], value):
+                conflicting.add(key)
+
+    dropped_keys = {
+        key
+        for key, count in occurrences.items()
+        if key in conflicting or count != len(metadata_list)
+    }
+    return {
+        key: value for key, value in merged_metadata.items() if key not in dropped_keys
+    }, dropped_keys
 
 
 def get_data_item(
     data: _DetectionDataType,
     index: int | slice | list[int] | npt.NDArray[np.integer | np.bool_],
 ) -> _DetectionDataType:
-    """
-    Retrieve a subset of the data dictionary based on the given index.
+    """Retrieve a subset of the data dictionary based on the given index.
+
+    Boolean lists act as masks. Integer-list selection allocates positions only
+    for the requested rows, independent of the total number of data rows.
 
     Args:
         data: The data dictionary of the Detections object.
@@ -667,12 +777,17 @@ def get_data_item(
     subset_data: _DetectionDataType = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
-            subset_data[key] = value[index]
+            subset_data[key] = value if value.ndim == 0 else value[index]
         elif isinstance(value, list):
             if isinstance(index, slice):
                 subset_data[key] = value[index]
             elif isinstance(index, list):
-                subset_data[key] = [value[i] for i in index]
+                positions = np.asarray(index)
+                if positions.dtype == bool:
+                    # Only masks need full-row positions; integer selections
+                    # must not allocate for rows that were not requested.
+                    positions = np.arange(len(value))[positions]
+                subset_data[key] = [value[i] for i in positions]
             elif isinstance(index, np.ndarray):
                 if index.dtype == bool:
                     subset_data[key] = [

@@ -20,8 +20,8 @@ def _make_compact_detections(
 ) -> tuple[Detections, np.ndarray]:
     """Detections with a CompactMask backed by full-image bounding boxes.
 
-    Using full-image xyxy means all True pixels are within the crop region,
-    so from_dense -> to_dense is lossless.
+    Using full-image xyxy means all True pixels are within the crop region, so
+    from_dense -> to_dense is lossless.
     """
     rng = np.random.default_rng(42)
     masks = rng.integers(0, 2, size=(n, h, w)).astype(bool)
@@ -39,9 +39,9 @@ def _make_compact_detections(
 class TestConstruction:
     """Tests for building Detections with a CompactMask.
 
-    Verifies that a CompactMask is accepted as a valid mask argument and that
-    the validator raises ValueError when the mask length does not match the
-    number of bounding boxes.
+    Verifies that a CompactMask is accepted as a valid mask argument and that the
+    validator raises ValueError when the mask length does not match the number of
+    bounding boxes.
     """
 
     def test_detections_construction_with_compact_mask(self) -> None:
@@ -70,12 +70,14 @@ class TestFiltering:
         det, _ = _make_compact_detections(3)
         # Detections converts int to [int] internally -> subset has 1 element
         subset = det[1]
+        assert isinstance(subset, Detections)
         assert isinstance(subset.mask, CompactMask)
         assert len(subset) == 1
 
     def test_slice_preserves_compact_mask(self) -> None:
         det, masks = _make_compact_detections(4)
         subset = det[1:3]
+        assert isinstance(subset, Detections)
         assert isinstance(subset.mask, CompactMask)
         assert len(subset) == 2
         np.testing.assert_array_equal(subset.mask.to_dense(), masks[1:3])
@@ -84,6 +86,7 @@ class TestFiltering:
         det, masks = _make_compact_detections(4)
         selector = np.array([True, False, True, False])
         subset = det[selector]
+        assert isinstance(subset, Detections)
         assert isinstance(subset.mask, CompactMask)
         assert len(subset) == 2
         np.testing.assert_array_equal(subset.mask.to_dense(), masks[[0, 2]])
@@ -92,9 +95,9 @@ class TestFiltering:
 class TestIteration:
     """Tests for iterating over Detections with a CompactMask.
 
-    Verifies that each iteration step yields a 2-D boolean (H, W) array
-    identical to the corresponding dense mask, so downstream code that
-    iterates over detections needs no changes.
+    Verifies that each iteration step yields a 2-D boolean (H, W) array identical to the
+    corresponding dense mask, so downstream code that iterates over detections needs no
+    changes.
     """
 
     def test_iter_yields_2d_dense(self) -> None:
@@ -111,8 +114,8 @@ class TestIteration:
 class TestEquality:
     """Tests for Detections.__eq__ mixing CompactMask and dense arrays.
 
-    Verifies that a Detections object backed by a CompactMask compares equal
-    to an otherwise identical Detections object backed by a dense ndarray.
+    Verifies that a Detections object backed by a CompactMask compares equal to an
+    otherwise identical Detections object backed by a dense ndarray.
     """
 
     def test_compact_vs_dense(self) -> None:
@@ -131,8 +134,8 @@ class TestEquality:
 class TestArea:
     """Tests for the Detections.area property with a CompactMask.
 
-    Verifies that the fast CompactMask path in Detections.area returns the
-    same per-detection pixel counts as summing the equivalent dense array.
+    Verifies that the fast CompactMask path in Detections.area returns the same per-
+    detection pixel counts as summing the equivalent dense array.
     """
 
     def test_compact_matches_dense(self) -> None:
@@ -227,15 +230,16 @@ class TestMerge:
 class TestAnnotators:
     """Tests for annotators that consume CompactMask via Detections.
 
-    Verifies that MaskAnnotator and PolygonAnnotator produce pixel-identical
-    output when given Detections backed by a CompactMask versus the equivalent
-    dense ndarray, confirming that the annotators are transparent to the mask
-    representation.
+    Verifies that MaskAnnotator and PolygonAnnotator produce pixel-identical output when
+    given Detections backed by a CompactMask versus the equivalent dense ndarray,
+    confirming that the annotators are transparent to the mask representation.
     """
 
     def test_mask_annotator(self) -> None:
         h, w = 40, 40
         det_compact, masks = _make_compact_detections(2, h, w)
+        assert det_compact.confidence is not None
+        assert det_compact.class_id is not None
         det_dense = Detections(
             xyxy=det_compact.xyxy.copy(),
             mask=masks,

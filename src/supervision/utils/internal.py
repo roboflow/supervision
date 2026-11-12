@@ -5,13 +5,22 @@ import warnings
 from collections.abc import Callable
 from typing import Any, Generic, TypeVar
 
+import numpy as np
+import numpy.typing as npt
+
+
+def _to_numpy(value: Any) -> npt.NDArray[Any]:
+    """Return a NumPy property directly or convert a tensor through the CPU."""
+    return value if isinstance(value, np.ndarray) else value.cpu().numpy()
+
 
 class SupervisionWarnings(Warning):
     """Supervision warning category.
-    Set the deprecation warnings visibility for Supervision library.
-    You can set the environment variable SUPERVISION_DEPRECATION_WARNING to '0'
-    to disable the deprecation warnings. The legacy misspelled
-    SUPERVISON_DEPRECATION_WARNING variable is still accepted.
+
+    Set the deprecation warnings visibility for Supervision library. You can set the
+    environment variable SUPERVISION_DEPRECATION_WARNING to '0' to disable the
+    deprecation warnings. The legacy misspelled SUPERVISON_DEPRECATION_WARNING variable
+    is still accepted.
     """
 
     pass
@@ -24,10 +33,8 @@ def format_warning(
     lineno: int,
     line: str | None = None,
 ) -> str:
-    """
-    Format a warning the same way as the default formatter, but also include the
-    category name in the output.
-    """
+    """Format a warning the same way as the default formatter, but also include the
+    category name in the output."""
     return f"{category.__name__}: {message}\n"
 
 
@@ -42,8 +49,7 @@ else:
 
 
 def warn_deprecated(message: str) -> None:
-    """
-    Issue a warning that a function is deprecated.
+    """Issue a warning that a function is deprecated.
 
     Args:
         message: The message to display when the function is called.
@@ -59,8 +65,7 @@ def deprecated_parameter(
     "deprecated: use '{new_parameter}' instead.",
     **message_kwargs: Any,
 ) -> Callable[[Any], Any]:
-    """
-    A decorator to mark a function's parameter as deprecated and issue a warning when
+    """A decorator to mark a function's parameter as deprecated and issue a warning when
     used.
 
     Args:
@@ -132,10 +137,10 @@ T = TypeVar("T")
 
 
 class classproperty(Generic[T]):
-    """
-    A decorator that combines @classmethod and @property.
-    It allows a method to be accessed as a property of the class,
-    rather than an instance, similar to a classmethod.
+    """A decorator that combines @classmethod and @property.
+
+    It allows a method to be accessed as a property of the class, rather than an
+    instance, similar to a classmethod.
 
     Usage:
         @classproperty
@@ -151,8 +156,7 @@ class classproperty(Generic[T]):
         self.fget = fget
 
     def __get__(self, owner_self: Any, owner_cls: type | None = None) -> T:
-        """
-        Override the __get__ method to return the result of the function call.
+        """Override the __get__ method to return the result of the function call.
 
         Args:
             owner_self: The instance through which the attribute was accessed, or None.
@@ -168,8 +172,7 @@ class classproperty(Generic[T]):
 
 
 def get_instance_variables(instance: Any, include_properties: bool = False) -> set[str]:
-    """
-    Get the public variables of a class instance.
+    """Get the public variables of a class instance.
 
     Args:
         instance: The instance of a class

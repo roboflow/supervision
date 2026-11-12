@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
+from trackers import ByteTrackTracker
 
 import supervision as sv
 
@@ -37,14 +38,21 @@ class ViewTransformer:
         return transformed_points.reshape(-1, 2)
 
 
+def calculate_speed(distance: float, elapsed_frames: int, fps: float) -> float:
+    """Convert displacement over source-frame intervals to kilometres per hour."""
+    if elapsed_frames < 1:
+        raise ValueError("At least one elapsed frame is required to calculate speed.")
+    elapsed_time = elapsed_frames / fps
+    return distance / elapsed_time * 3.6
+
+
 def main(
     source_video_path: str,
     target_video_path: str,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Vehicle Speed Estimation using YOLO-NAS and Supervision.
+    """Vehicle Speed Estimation using YOLO-NAS and Supervision.
 
     Args:
         source_video_path: Path to the source video file
@@ -55,7 +63,7 @@ def main(
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
 
-    byte_track = sv.ByteTrack(
+    byte_track = ByteTrackTracker(
         frame_rate=video_info.fps, track_activation_threshold=confidence_threshold
     )
 
@@ -84,33 +92,37 @@ def main(
 
     with sv.VideoSink(target_video_path, video_info) as sink:
         window = sv.ImageWindow("frame")
-        for frame in frame_generator:
+        for frame_index, frame in enumerate(frame_generator):
             result = model.predict(frame, conf=confidence_threshold, iou=iou_threshold)[
                 0
             ]
             detections = sv.Detections.from_yolo_nas(result)
             detections = detections[polygon_zone.trigger(detections)]
-            detections = byte_track.update_with_detections(detections=detections)
+            detections = byte_track.update(detections)
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             points = detections.get_anchors_coordinates(
                 anchor=sv.Position.BOTTOM_CENTER
             )
             points = view_transformer.transform_points(points=points).astype(int)
 
-            for tracker_id, [_, y] in zip(detections.tracker_id, points):
-                coordinates[tracker_id].append(y)
+            for tracker_id, [_, y] in zip(detections.tracker_id, points, strict=True):
+                coordinates[tracker_id].append((frame_index, y))
 
             labels = []
             for tracker_id in detections.tracker_id:
-                if len(coordinates[tracker_id]) < video_info.fps / 2:
+                history = coordinates[tracker_id]
+                # The deque keeps detections, not frames: gaps make N positions span
+                # more than N - 1 frame intervals, so take time from stored indices.
+                elapsed_frames = (
+                    history[-1][0] - history[0][0] if len(history) > 1 else 0
+                )
+                if elapsed_frames < video_info.fps / 2:
                     labels.append(f"#{tracker_id}")
-                else:
-                    coordinate_start = coordinates[tracker_id][-1]
-                    coordinate_end = coordinates[tracker_id][0]
-                    distance = abs(coordinate_start - coordinate_end)
-                    time = len(coordinates[tracker_id]) / video_info.fps
-                    speed = distance / time * 3.6
-                    labels.append(f"#{tracker_id} {int(speed)} km/h")
+                    continue
+                distance = abs(history[-1][1] - history[0][1])
+                speed = calculate_speed(distance, elapsed_frames, video_info.fps)
+                labels.append(f"#{tracker_id} {int(speed)} km/h")
 
             annotated_frame = frame.copy()
             annotated_frame = trace_annotator.annotate(

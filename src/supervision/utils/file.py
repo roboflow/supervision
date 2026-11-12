@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import urllib.parse
+from collections.abc import Sequence
 from pathlib import Path
 from shutil import copyfileobj
 from typing import Any
@@ -14,8 +15,7 @@ SUPERVISION_CACHE_DIR = Path(tempfile.gettempdir()) / "supervision"
 
 
 def _normalize_http_url(url: str) -> str:
-    """
-    Validate and normalize an HTTP(S) URL.
+    """Validate and normalize an HTTP(S) URL.
 
     Args:
         url: URL to validate.
@@ -54,8 +54,7 @@ def _normalize_http_url(url: str) -> str:
 def _download_to_file(
     url: str, target: Path, *, timeout: float = 30.0, stream: bool = False
 ) -> None:
-    """
-    Download `url` to `target` atomically using a temporary file and `os.replace`.
+    """Download `url` to `target` atomically using a temporary file and `os.replace`.
 
     Args:
         url: HTTP(S) URL to download.
@@ -102,6 +101,9 @@ def _download_to_file(
 
 class NumpyJsonEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
+        """Convert supported NumPy values to JSON-compatible Python values."""
+        if isinstance(obj, np.bool_):
+            return bool(obj)
         if isinstance(obj, np.integer):
             return int(obj)
         if isinstance(obj, np.floating):
@@ -112,15 +114,14 @@ class NumpyJsonEncoder(json.JSONEncoder):
 
 
 def list_files_with_extensions(
-    directory: str | Path, extensions: list[str] | None = None
+    directory: str | Path, extensions: Sequence[str] | None = None
 ) -> list[Path]:
-    """
-    List files in a directory with specified extensions or
-        all files if no extensions are provided.
+    """List files in a directory with specified extensions or all files if no extensions
+    are provided.
 
     Args:
         directory: The directory path as a string or Path object.
-        extensions: A list of file extensions to filter. Extensions may be
+        extensions: A list or tuple of file extensions to filter. Extensions may be
             supplied with or without a leading dot (e.g. ``'jpg'`` and
             ``'.jpg'`` are equivalent). Matching is case-insensitive.
             Multi-part extensions are supported (e.g. ``'tar.gz'``). Pass
@@ -176,14 +177,13 @@ def list_files_with_extensions(
                     files_with_extensions.append(path)
                     seen_paths.add(path)
     else:
-        files_with_extensions.extend(directory.glob("*"))
+        files_with_extensions.extend(p for p in directory.glob("*") if p.is_file())
 
     return files_with_extensions
 
 
 def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
-    """
-    Read a text file and return a list of strings without newline characters.
+    """Read a text file and return a list of strings without newline characters.
     Optionally skip empty lines.
 
     Args:
@@ -219,8 +219,7 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
 
 
 def save_text_file(lines: list[str], file_path: str | Path) -> None:
-    """
-    Write a list of strings to a text file, each string on a new line.
+    """Write a list of strings to a text file, each string on a new line.
 
     Args:
         lines: The list of strings to be written to the file.
@@ -232,8 +231,10 @@ def save_text_file(lines: list[str], file_path: str | Path) -> None:
 
 
 def read_json_file(file_path: str | Path) -> dict[str, Any]:
-    """
-    Read a json file and return a dict.
+    """Read a json file and return a dict.
+
+    The file is decoded as UTF-8, the encoding JSON files are written in, whatever
+    the platform's default encoding is.
 
     Args:
         file_path: The file path as a string or Path object.
@@ -255,7 +256,7 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
 
         ```
     """
-    with open(str(file_path)) as file:
+    with open(str(file_path), encoding="utf-8") as file:
         data = json.load(file)
     return data  # type: ignore
 
@@ -263,8 +264,7 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
 def save_json_file(
     data: dict[str, Any], file_path: str | Path, indent: int = 3
 ) -> None:
-    """
-    Write a dict to a json file.
+    """Write a dict to a json file.
 
     Args:
         data: dict with unique keys and value as pair.
@@ -276,8 +276,9 @@ def save_json_file(
 
 
 def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
-    """
-    Read a yaml file and return a dict.
+    """Read a yaml file and return a dict.
+
+    The file is decoded as UTF-8, whatever the platform's default encoding is.
 
     Args:
         file_path: The file path as a string or Path object.
@@ -285,19 +286,17 @@ def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
     Returns:
         A dict of content information
     """
-    with open(str(file_path)) as file:
+    with open(str(file_path), encoding="utf-8") as file:
         data = yaml.safe_load(file)
     return data  # type: ignore
 
 
 def save_yaml_file(data: dict[str, Any], file_path: str | Path) -> None:
-    """
-    Save a dict to a yaml file.
+    """Save a dict to a yaml file.
 
     Args:
         data: dict with unique keys and value as pair.
         file_path: The file path as a string or Path object.
     """
-
     with open(str(file_path), "w") as outfile:
         yaml.dump(data, outfile, sort_keys=False, default_flow_style=None)

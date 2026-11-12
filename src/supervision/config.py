@@ -2,6 +2,61 @@ CLASS_NAME_DATA_FIELD: str = "class_name"
 COCO_RAW_SEGMENTATION: str = "coco_raw_segmentation"
 #: Key for per-detection area metadata in ``Detections.data``.
 AREA_DATA_FIELD: str = "area"
+#: Key for per-object axis-aligned boxes in ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N, 4)`` in
+#: ``(x_min, y_min, x_max, y_max)`` format, one box per skeleton. Read by
+#: ``KeyPointMeanAveragePrecision``.
+XYXY_DATA_FIELD: str = "xyxy"
+#: Key for raw per-keypoint visibility flags in ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N, K)``, dtype ``float32``, holding the
+#: third value of each YOLO pose keypoint as read, finite and non-negative. It is
+#: usually the YOLO / COCO ternary flag — ``0`` not labelled, ``1`` labelled but
+#: not visible, ``2`` labelled and visible — while labels written from model
+#: output, such as by Ultralytics ``Results.save_txt``, carry a keypoint
+#: confidence instead. ``KeyPoints.visible`` is the boolean reading of it
+#: (``value > 0``, every labelled keypoint, as COCO keypoint evaluation counts
+#: them) and cannot tell ``1`` from ``2``, so the raw value is kept here to let
+#: :func:`~supervision.dataset.formats.yolo_pose.key_points_to_yolo_pose_annotations`
+#: write a label file back unchanged. Only present for a ``kpt_shape`` of
+#: ``[K, 3]``.
+KEYPOINT_VISIBILITY_DATA_FIELD: str = "keypoint_visibility"
+#: ``KeyPoints.data`` keys whose values are aligned with the keypoint axis.
+#:
+#: Each such value has shape ``(N, K, ...)``, one entry per keypoint of each
+#: skeleton, so :meth:`~supervision.key_points.core.KeyPoints.select` indexes it
+#: along both axes and it stays aligned with ``xy`` when keypoints are
+#: reordered or subset. Every other ``data`` key is indexed by skeleton only; the
+#: width of a value never decides it, since a per-skeleton ``(N, 4)`` box has
+#: the width of a 4-keypoint skeleton.
+KEYPOINT_ALIGNED_DATA_FIELDS: frozenset[str] = frozenset(
+    {KEYPOINT_VISIBILITY_DATA_FIELD}
+)
+#: Key for per-target COCO crowd flags in ``Detections.data`` or ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N,)``; a non-zero value marks a
+#: crowd region, as COCO ``iscrowd=1``. Read by the mAP metrics.
+ISCROWD_DATA_FIELD: str = "iscrowd"
+#: Key for the MediaPipe hand-handedness score in ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N,)``, dtype ``float32``, holding the
+#: top-1 handedness classification score of each detected hand as reported by
+#: :meth:`~supervision.key_points.core.KeyPoints.from_mediapipe`. MediaPipe floors
+#: this score at ``0.5`` — it rates confidence in the ``Left``/``Right`` label, not
+#: the quality of the detection, so it is kept out of ``detection_confidence``.
+HANDEDNESS_SCORE_DATA_FIELD: str = "handedness_score"
+#: Key for the source image in ``Detections.metadata``.
+#:
+#: An RF-DETR / ``inference``-package convention rather than a field supervision
+#: itself populates: model connectors from those packages attach the image the
+#: predictions were produced from under this key.
+#: :class:`~supervision.detection.tools.inference_slicer.InferenceSlicer` drops it
+#: while merging slices (each slice carries a different tile) and restores the full
+#: input image afterwards.
+#: The stored value is a reference to the caller's image, not a copy — mutating
+#: ``metadata[SOURCE_IMAGE_METADATA_FIELD]`` mutates the original array.
+SOURCE_IMAGE_METADATA_FIELD: str = "source_image"
 #: Key for oriented bounding-box corner coordinates in ``Detections.data``.
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, dtype ``float32``, pixel
@@ -13,3 +68,21 @@ AREA_DATA_FIELD: str = "area"
 #: (``is_obb=True``).
 #: Also triggers sequential mode in ``InferenceSlicer`` when present.
 ORIENTED_BOX_COORDINATES: str = "xyxyxyxy"
+#: Key for per-detection metric depth in ``Detections.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N,)``, dtype ``float32``, the median depth
+#: in metres of the valid depth pixels inside each detection's mask (or box, when the
+#: detections carry no masks), ``NaN`` where the region holds no depth. Written by
+#: :meth:`~supervision.depth.core.DepthMap.measure_detections`.
+DEPTH_M_DATA_FIELD: str = "depth_m"
+#: Key for per-detection stereo disparity in ``Detections.data``.
+#:
+#: Same layout as ``DEPTH_M_DATA_FIELD``, in pixels of the depth map. Unlike metres,
+#: the values depend on the map's resolution: the same scene resized to half the
+#: width stores half the disparity.
+DISPARITY_PX_DATA_FIELD: str = "disparity_px"
+#: Key for per-detection relative inverse depth in ``Detections.data``.
+#:
+#: Same layout as ``DEPTH_M_DATA_FIELD``, unitless; larger is nearer. Monocular models
+#: such as Depth Anything produce it, and it has no metric scale.
+RELATIVE_INVERSE_DATA_FIELD: str = "relative_inverse"

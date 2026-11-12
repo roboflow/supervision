@@ -2,6 +2,7 @@ import os
 
 from inference.models.utils import get_roboflow_model
 from tqdm import tqdm
+from trackers import ByteTrackTracker
 
 import supervision as sv
 
@@ -10,12 +11,11 @@ def main(
     source_video_path: str,
     target_video_path: str,
     roboflow_api_key: str,
-    model_id: str = "yolov8x-1280",
+    model_id: str = "rfdetr-small",
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Video Processing with Inference and ByteTrack.
+    """Video Processing with Inference and ByteTrackTracker.
 
     Args:
         source_video_path: Path to the source video file
@@ -34,7 +34,7 @@ def main(
 
     model = get_roboflow_model(model_id=model_id, api_key=api_key)
 
-    tracker = sv.ByteTrack()
+    tracker = ByteTrackTracker(track_activation_threshold=confidence_threshold)
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
@@ -46,7 +46,8 @@ def main(
                 frame, confidence=confidence_threshold, iou_threshold=iou_threshold
             )[0]
             detections = sv.Detections.from_inference(results)
-            detections = tracker.update_with_detections(detections)
+            detections = tracker.update(detections)
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             annotated_frame = box_annotator.annotate(
                 scene=frame.copy(), detections=detections

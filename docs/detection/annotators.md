@@ -7,6 +7,10 @@ description: API reference for supervision's annotator classes — draw bounding
 
 Annotators accept detections and apply box or mask visualizations to the detections. Annotators have many available styles.
 
+!!! note "Pillow scenes"
+
+    Annotators also accept a `PIL.Image.Image` as `scene`. They update it in place and change only the pixels they draw, so transparency and 16-bit depth of untouched pixels stay intact. For annotators that draw through NumPy, palette images (modes `P` and `PA`) use opaque slots unused by untouched pixels to add drawn colors to RGB palettes; RGBA palettes and colors without a free slot use the nearest opaque entry. A palette that is full and has no opaque entry raises `ValueError` on this drawing path. `RichLabelAnnotator` draws directly through Pillow and uses Pillow's native palette handling instead.
+
 === "Outlines"
 
     === "Box"
@@ -196,7 +200,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         !!! note
 
-            `MaskAnnotator` expects `detections.mask` to contain instance segmentation masks aligned to the image passed to `annotate`. For dense masks, provide a boolean array of shape `(N, H, W)` where `(H, W)` matches the image height and width (it also accepts `sv.CompactMask`). If your model returns framework-specific results, convert them to `sv.Detections` first, for example with `sv.Detections.from_ultralytics(...)` or `sv.Detections.from_inference(...)`.
+            `MaskAnnotator` expects `detections.mask` to contain instance segmentation masks aligned to the image passed to `annotate`. For dense masks, provide a boolean array of shape `(N, H, W)` where `(H, W)` matches the image height and width (it also accepts `sv.CompactMask`). If your model returns framework-specific results, convert them to `sv.Detections` first. RF-DETR's `predict()` already returns `sv.Detections`; for other models use `sv.Detections.from_inference(...)` or `sv.Detections.from_ultralytics(...)`.
 
         <div class="result" markdown>
 
@@ -380,25 +384,32 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
 === "Tracking & Aggregation"
 
+    !!! warning "Removed tracker wrapper"
+
+        `sv.ByteTrack` was removed as of `supervision-0.31.0`. Use `ByteTrackTracker` from the external `trackers` package (`pip install trackers`) instead — its update method is `update()`, not `update_with_detections()`.
+
     === "Trace"
 
         ```python
         import supervision as sv
-        from ultralytics import YOLO
+        from rfdetr import RFDETRMedium
+        from trackers import ByteTrackTracker
 
-        model = YOLO("yolov8x.pt")
+        model = RFDETRMedium()
 
         trace_annotator = sv.TraceAnnotator()
 
         video_info = sv.VideoInfo.from_video_path(video_path="...")
         frames_generator = sv.get_video_frames_generator(source_path="...")
-        tracker = sv.ByteTrack()
+        tracker = ByteTrackTracker(
+            track_activation_threshold=0.25, minimum_consecutive_frames=1
+        )
 
         with sv.VideoSink(target_path="...", video_info=video_info) as sink:
             for frame in frames_generator:
-                result = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(result)
-                detections = tracker.update_with_detections(detections)
+                detections = model.predict(frame[:, :, ::-1])
+                detections = tracker.update(detections)
+                detections = detections[detections.tracker_id != -1]
                 annotated_frame = trace_annotator.annotate(
                     scene=frame.copy(),
                     detections=detections,
@@ -416,9 +427,9 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         ```python
         import supervision as sv
-        from ultralytics import YOLO
+        from rfdetr import RFDETRMedium
 
-        model = YOLO("yolov8x.pt")
+        model = RFDETRMedium()
 
         heat_map_annotator = sv.HeatMapAnnotator()
 
@@ -427,8 +438,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         with sv.VideoSink(target_path="...", video_info=video_info) as sink:
             for frame in frames_generator:
-                result = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(result)
+                detections = model.predict(frame[:, :, ::-1])
                 annotated_frame = heat_map_annotator.annotate(
                     scene=frame.copy(),
                     detections=detections,

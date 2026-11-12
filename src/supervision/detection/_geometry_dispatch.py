@@ -21,8 +21,7 @@ if TYPE_CHECKING:
 
 
 def detection_area(detections: Detections) -> npt.NDArray[np.generic]:
-    """
-    Calculate detection areas using the richest geometry present.
+    """Calculate detection areas using the richest geometry present.
 
     Selection order:
 
@@ -65,8 +64,7 @@ def detection_iou(
     detections_b: Detections,
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Calculate pairwise IoU using the richest geometry both operands share.
+    """Calculate pairwise IoU using the richest geometry both operands share.
 
     Selection order:
 
@@ -74,7 +72,8 @@ def detection_iou(
     2. Else, if both operands have oriented-box coordinates, use OBB IoU.
     3. Otherwise, use axis-aligned box IoU.
 
-    This is a **shared**-geometry dispatch, unlike `detection_area`'s
+    This is a **shared**-geometry dispatch, unlike
+    :func:`~supervision.detection._geometry_dispatch.detection_area`'s
     per-operand dispatch: if the two operands carry different kinds of
     richer geometry (e.g. one has only a mask, the other only oriented-box
     coordinates), neither is used and the axis-aligned box IoU is computed

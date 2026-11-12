@@ -1,5 +1,7 @@
 import warnings
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -22,6 +24,13 @@ from supervision.detection.utils.iou_and_nms import (
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
+
+
+def _required(values: np.ndarray | None) -> np.ndarray:
+    """Narrow a ``Detections`` field that the test data always sets."""
+    assert values is not None
+    return values
+
 
 PREDICTIONS = np.array(
     [
@@ -93,8 +102,8 @@ TEST_DET_ZERO_LENGTH = Detections(
     xyxy=np.empty((0, 4), dtype=np.float32),
     mask=np.empty((0, *TEST_MASK.shape), dtype=bool),
     confidence=np.empty((0,)),
-    class_id=np.empty((0,)),
-    tracker_id=np.empty((0,)),
+    class_id=np.empty((0,), dtype=int),
+    tracker_id=np.empty((0,), dtype=int),
     data={
         "some_key": [],
         "other_key": [],
@@ -144,7 +153,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
 
 
 @pytest.mark.parametrize("mask_dtype", [bool, np.bool_])
-def test_detections_bool_mask_types_do_not_warn(mask_dtype) -> None:
+def test_detections_bool_mask_types_do_not_warn(mask_dtype: type) -> None:
     with warnings.catch_warnings(record=True) as recorded_warnings:
         warnings.simplefilter("always")
         Detections(
@@ -184,7 +193,7 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
         # Expected: Only high-confidence detections are kept, filtering out noise.
         (
             DETECTIONS,
-            DETECTIONS.confidence > 0.5,
+            _required(DETECTIONS.confidence) > 0.5,
             _create_detections(
                 xyxy=[
                     [2254, 906, 2447, 1353],
@@ -304,7 +313,7 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
         # Expected: Returns an empty Detections object without crashing.
         (
             Detections.empty(),
-            np.isin(Detections.empty()["class_name"], ["cat", "dog"]),
+            np.isin(np.asarray(Detections.empty()["class_name"]), ["cat", "dog"]),
             Detections.empty(),
             DoesNotRaise(),
         ),
@@ -314,12 +323,13 @@ def test_getitem(
     detections: Detections,
     index: int | np.integer | slice | list[int] | np.ndarray,
     expected_result: Detections | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
-    """
-    Ensures that `Detections.__getitem__` (indexing/slicing) works correctly for various
-    input types. This is a core feature that allows users to filter and manipulate
-    detection results easily.
+    """Ensures that `Detections.__getitem__` (indexing/slicing) works correctly for
+    various input types.
+
+    This is a core feature that allows users to filter and manipulate detection results
+    easily.
     """
     with exception:
         result = detections[index]
@@ -338,6 +348,50 @@ def test_select_returns_detection_subset() -> None:
         tracker_id=np.array([1, 3]),
         data={"some_key": [1, 3], "other_key": [["1", "2"], ["5", "6"]]},
     )
+
+
+class TestDetectionsScalarData:
+    def test_select_preserves_scalar_data(self) -> None:
+        """Selecting detections preserves scalar data shared across rows."""
+        detections = Detections(
+            xyxy=np.array(
+                [[0, 0, 1, 1], [2, 2, 3, 3]],
+                dtype=np.float32,
+            ),
+            data={"class_name": np.array("person")},
+        )
+
+        selected = detections.select([1])
+
+        class_name = selected.data["class_name"]
+        assert isinstance(class_name, np.ndarray)
+        assert class_name.shape == ()
+        assert class_name.item() == "person"
+
+
+class TestDetectionsSelectBooleanList:
+    @pytest.mark.parametrize(
+        ("index", "expected_rows"),
+        [
+            pytest.param([True, False, True], [0, 2], id="mixed"),
+            pytest.param([True, True, True], [0, 1, 2], id="all-true"),
+            pytest.param([False, False, False], [], id="all-false"),
+            pytest.param(
+                [np.True_, np.False_, np.True_], [0, 2], id="numpy-bool-elements"
+            ),
+        ],
+    )
+    def test_list_data_follows_the_mask(
+        self, index: list[bool], expected_rows: list[int]
+    ) -> None:
+        """A list of booleans selects the same rows from list data as from arrays."""
+        # Detections.__getitem__ accepts boolean lists at runtime; its annotation
+        # only lists integer lists.
+        result = TEST_DET_1[index]  # type: ignore[index]
+
+        assert isinstance(result, Detections)
+        assert result == TEST_DET_1[np.array(index, dtype=bool)]
+        assert result.data["some_key"] == [[1, 2, 3][i] for i in expected_rows]
 
 
 def test_select_empty_returns_fresh_metadata_dict() -> None:
@@ -382,6 +436,11 @@ def test_select_non_empty_slice_returns_fresh_arrays() -> None:
     result.data["features"][0, 0] = 99
 
     assert detections.xyxy[0, 0] == 0
+    assert isinstance(detections.mask, np.ndarray)
+    assert detections.confidence is not None
+    assert detections.class_id is not None
+    assert detections.tracker_id is not None
+    assert isinstance(detections.data["features"], np.ndarray)
     assert detections.mask[0, 0, 0]
     assert detections.confidence[0] == pytest.approx(0.1)
     assert detections.class_id[0] == 1
@@ -691,7 +750,7 @@ def test_get_data_returns_detection_data_value() -> None:
 def test_merge(
     detections_list: list[Detections],
     expected_result: Detections | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = Detections.merge(detections_list=detections_list)
@@ -736,14 +795,14 @@ class TestMergeMixedMasks:
         return dense_det
 
     def test_mixed_result_is_compact_mask(self) -> None:
-        """merge([dense, compact]) returns a CompactMask, not ndarray."""
+        """Merge([dense, compact]) returns a CompactMask, not ndarray."""
         det_dense = self._make_dense_det([[5, 5, 15, 15]])
         det_compact = self._make_compact_det([[20, 20, 35, 35]])
         result = Detections.merge([det_dense, det_compact])
         assert isinstance(result.mask, CompactMask)
 
     def test_mixed_pixel_parity_with_all_dense(self) -> None:
-        """merge([dense, compact]) produces the same pixels as merge([dense, dense])."""
+        """Merge([dense, compact]) produces the same pixels as merge([dense, dense])."""
         xyxy_a = [[5, 5, 15, 15]]
         xyxy_b = [[20, 20, 35, 35]]
         det_dense_a = self._make_dense_det(xyxy_a)
@@ -758,7 +817,7 @@ class TestMergeMixedMasks:
         assert mixed.mask.image_shape == self.IMG_SHAPE
 
     def test_mixed_compact_first_pixel_parity(self) -> None:
-        """merge([compact, dense]) order: compact input first still gives parity."""
+        """Merge([compact, dense]) order: compact input first still gives parity."""
         xyxy_a = [[5, 5, 15, 15]]
         xyxy_b = [[20, 20, 35, 35]]
         det_compact_a = self._make_compact_det(xyxy_a)
@@ -774,7 +833,7 @@ class TestMergeMixedMasks:
         assert mixed.mask.image_shape == self.IMG_SHAPE
 
     def test_mixed_fields_remain_aligned(self) -> None:
-        """confidence, class_id, xyxy stay in order after mixed merge."""
+        """Confidence, class_id, xyxy stay in order after mixed merge."""
         det_dense = self._make_dense_det([[1, 1, 10, 10]])
         det_compact = self._make_compact_det([[30, 30, 40, 40]])
         det_dense.confidence = np.array([0.1])
@@ -805,7 +864,7 @@ class TestMergeMixedMasks:
         )
 
     def test_mixed_compact_image_shape_mismatch_raises(self) -> None:
-        """merge with CompactMasks of different image_shapes raises ValueError."""
+        """Merge with CompactMasks of different image_shapes raises ValueError."""
         h, w = self.IMG_SHAPE
         masks_a = np.zeros((1, h, w), dtype=bool)
         masks_b = np.zeros((1, h + 10, w + 10), dtype=bool)
@@ -849,9 +908,8 @@ class TestMergeMixedMasks:
     def test_mixed_dense_out_of_box_pixels_dropped(self) -> None:
         """Dense True pixels outside xyxy box are dropped after mixed merge.
 
-        from_dense crops each dense mask to its xyxy bounding box — a documented
-        lossy conversion. This test asserts the drop rather than treating it as a
-        regression.
+        from_dense crops each dense mask to its xyxy bounding box — a documented lossy
+        conversion. This test asserts the drop rather than treating it as a regression.
         """
         h, w = self.IMG_SHAPE
         xyxy = [[5, 5, 15, 15]]
@@ -875,7 +933,7 @@ class TestMergeMixedMasks:
         assert not result_dense[0, 0, 0], "out-of-box pixel dropped"
 
     def test_empty_compact_mask_detections_merge_returns_no_mask(self) -> None:
-        """merge on empty CompactMask-carrying Detections returns mask=None."""
+        """Merge on empty CompactMask-carrying Detections returns mask=None."""
         h, w = self.IMG_SHAPE
         cm_empty = CompactMask(
             [],
@@ -964,11 +1022,366 @@ def test_get_anchor_coordinates(
     detections: Detections,
     anchor: Position,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     result = detections.get_anchors_coordinates(anchor)
     with exception:
         assert np.array_equal(result, expected_result)
+
+
+class TestDetectionsIntegerAnchors:
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "anchor", "expected"),
+        [
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.CENTER,
+                [21000, 21000],
+                id="int16-center",
+            ),
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.CENTER_LEFT,
+                [20000, 21000],
+                id="int16-center-left",
+            ),
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.CENTER_RIGHT,
+                [22000, 21000],
+                id="int16-center-right",
+            ),
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.TOP_CENTER,
+                [21000, 20000],
+                id="int16-top-center",
+            ),
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.BOTTOM_CENTER,
+                [21000, 22000],
+                id="int16-bottom-center",
+            ),
+            pytest.param(
+                np.int32,
+                [1_500_000_000, 0, 1_700_000_000, 2],
+                Position.CENTER,
+                [1_600_000_000, 1],
+                id="int32-center",
+            ),
+            pytest.param(
+                np.uint16,
+                [60000, 0, 62000, 2],
+                Position.CENTER,
+                [61000, 1],
+                id="uint16-center",
+            ),
+            pytest.param(
+                np.int64,
+                [-(2**63) + 1, 0, 2**63 - 2, 2],
+                Position.CENTER,
+                [-0.5, 1],
+                id="int64-opposite-corners",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 0, 2**62 + 2**20, 2],
+                Position.CENTER,
+                [2**62 + 2**19, 1],
+                id="int64-overflow",
+            ),
+            # The exact midpoint 2**62 + 768 lies between float64 neighbours that are
+            # 1024 apart at 2**62, so it rounds to 2**62 + 1024 (float() does the same).
+            pytest.param(
+                np.int64,
+                [2**62 + 512, 0, 2**62 + 1024, 2],
+                Position.CENTER,
+                [float(2**62 + 768), 1],
+                id="int64-overflow-rounding",
+            ),
+            pytest.param(
+                np.uint64,
+                [2**63, 0, 2**63 + 2**20, 2],
+                Position.CENTER,
+                [2**63 + 2**19, 1],
+                id="uint64-overflow",
+            ),
+            pytest.param(
+                np.int64,
+                [-(2**62) - 2**20, 0, -(2**62), 2],
+                Position.CENTER,
+                [-(2**62) - 2**19, 1],
+                id="int64-negative-overflow",
+            ),
+            pytest.param(
+                np.int64,
+                [-(2**63), 0, -(2**63) + 2, 2],
+                Position.CENTER,
+                [float(-(2**63) + 1), 1],
+                id="int64-minimum-pair",
+            ),
+            pytest.param(
+                np.int64,
+                [2**63 - 1, 0, 2**63 - 1, 2],
+                Position.CENTER,
+                [float(2**63 - 1), 1],
+                id="int64-maximum-pair",
+            ),
+            pytest.param(
+                np.uint64,
+                [2**64 - 1, 0, 2**64 - 1, 2],
+                Position.CENTER,
+                [float(2**64 - 1), 1],
+                id="uint64-maximum-pair",
+            ),
+            pytest.param(
+                np.int16,
+                [-20000, 0, -22000, 2],
+                Position.CENTER,
+                [-21000, 1],
+                id="int16-negative-center",
+            ),
+            pytest.param(
+                np.int32,
+                [-1_500_000_000, 0, -1_700_000_000, 2],
+                Position.CENTER,
+                [-1_600_000_000, 1],
+                id="int32-negative-center",
+            ),
+            pytest.param(
+                np.int8,
+                [100, 0, 120, 2],
+                Position.CENTER,
+                [110, 1],
+                id="int8-center",
+            ),
+            pytest.param(
+                np.uint8,
+                [200, 0, 250, 2],
+                Position.CENTER,
+                [225, 1],
+                id="uint8-center",
+            ),
+            pytest.param(
+                np.uint32,
+                [4_000_000_000, 0, 4_200_000_000, 2],
+                Position.CENTER,
+                [4_100_000_000, 1],
+                id="uint32-center",
+            ),
+            pytest.param(
+                np.int16,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="int16-odd-sum",
+            ),
+            pytest.param(
+                np.int32,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="int32-odd-sum",
+            ),
+            pytest.param(
+                np.uint16,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="uint16-odd-sum",
+            ),
+            pytest.param(
+                np.int64,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="int64-odd-sum",
+            ),
+            pytest.param(
+                np.uint64,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="uint64-odd-sum",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 2**62, 2**62 + 2**20, 2**62 + 2**20],
+                Position.CENTER_LEFT,
+                [2**62, 2**62 + 2**19],
+                id="int64-overflow-center-left",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 2**62, 2**62 + 2**20, 2**62 + 2**20],
+                Position.CENTER_RIGHT,
+                [2**62 + 2**20, 2**62 + 2**19],
+                id="int64-overflow-center-right",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 2**62, 2**62 + 2**20, 2**62 + 2**20],
+                Position.TOP_CENTER,
+                [2**62 + 2**19, 2**62],
+                id="int64-overflow-top-center",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 2**62, 2**62 + 2**20, 2**62 + 2**20],
+                Position.BOTTOM_CENTER,
+                [2**62 + 2**19, 2**62 + 2**20],
+                id="int64-overflow-bottom-center",
+            ),
+        ],
+    )
+    def test_large_integer_boxes_keep_midpoints(
+        self,
+        dtype: type[np.integer],
+        xyxy: list[int],
+        anchor: Position,
+        expected: list[float],
+    ) -> None:
+        """Anchors of large integer boxes equal the exact midpoint of the corners."""
+        detections = Detections(xyxy=np.array([xyxy], dtype=dtype))
+
+        result = detections.get_anchors_coordinates(anchor)
+
+        np.testing.assert_array_equal(result, [expected])
+
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "expected"),
+        [
+            pytest.param(
+                np.int64,
+                [[2**62, 0, 2**62 + 2**20, 2], [0, 0, 10, 4], [1, 2, 3, 4]],
+                [[2**62 + 2**19, 1], [5, 2], [2, 3]],
+                id="int64-overflow-first-row",
+            ),
+            pytest.param(
+                np.int64,
+                [[0, 0, 10, 4], [1, 2, 3, 4], [-(2**62) - 2**20, 0, -(2**62), 2]],
+                [[5, 2], [2, 3], [-(2**62) - 2**19, 1]],
+                id="int64-negative-overflow-last-row",
+            ),
+            pytest.param(
+                np.int64,
+                [
+                    [0, 2**62, 2, 2**62 + 2**20],
+                    [0, 0, 10, 4],
+                    [2**62, 0, 2**62 + 2**20, 2],
+                ],
+                [[1, 2**62 + 2**19], [5, 2], [2**62 + 2**19, 1]],
+                id="int64-overflow-on-one-axis",
+            ),
+            pytest.param(
+                np.uint64,
+                [[2**63, 0, 2**63 + 2**20, 2], [0, 0, 10, 4], [1, 2, 3, 4]],
+                [[2**63 + 2**19, 1], [5, 2], [2, 3]],
+                id="uint64-overflow-first-row",
+            ),
+            pytest.param(
+                np.uint64,
+                [[1, 2, 3, 4], [0, 0, 10, 4], [2**63, 2**63, 2**63 + 2**20, 2**63]],
+                [[2, 3], [5, 2], [2**63 + 2**19, 2**63]],
+                id="uint64-overflow-last-row",
+            ),
+        ],
+    )
+    def test_mixed_overflow_rows_keep_midpoints(
+        self,
+        dtype: type[np.integer],
+        xyxy: list[list[int]],
+        expected: list[list[int]],
+    ) -> None:
+        """Only rows whose corner sum overflows get the exact midpoint."""
+        detections = Detections(xyxy=np.array(xyxy, dtype=dtype))
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.float64))
+
+    @pytest.mark.parametrize(
+        "dtype", [np.int16, np.int32, np.int64, np.uint16, np.uint64]
+    )
+    def test_integer_midpoint_anchor_returns_float64(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Midpoint anchors of integer boxes are `float64`, never truncated."""
+        detections = Detections(xyxy=np.array([[1, 2, 4, 7]], dtype=dtype))
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        assert result.dtype == np.float64
+
+    @pytest.mark.parametrize("dtype", [np.int16, np.int64])
+    @pytest.mark.parametrize(
+        ("anchor", "expected"),
+        [
+            pytest.param(Position.TOP_LEFT, [1, 2], id="top-left"),
+            pytest.param(Position.BOTTOM_RIGHT, [4, 7], id="bottom-right"),
+        ],
+    )
+    def test_corner_anchor_keeps_integer_dtype(
+        self, dtype: type[np.integer], anchor: Position, expected: list[int]
+    ) -> None:
+        """Corner anchors skip the midpoint path and keep the input dtype."""
+        detections = Detections(xyxy=np.array([[1, 2, 4, 7]], dtype=dtype))
+
+        result = detections.get_anchors_coordinates(anchor)
+
+        assert result.dtype == dtype
+        np.testing.assert_array_equal(result, [expected])
+
+    def test_float_midpoint_keeps_float_dtype(self) -> None:
+        """Floating-point boxes still average in their own dtype."""
+        detections = Detections(xyxy=np.array([[1, 2, 4, 7]], dtype=np.float32))
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        assert result.dtype == np.float32
+        np.testing.assert_array_equal(result, [[2.5, 4.5]])
+
+    def test_large_float16_box_keeps_finite_center_anchor(self) -> None:
+        """Large float16 boxes return their exact finite center anchor."""
+        detections = Detections(
+            xyxy=np.array([[32000, 0, 64000, 10]], dtype=np.float16)
+        )
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        expected = np.array([[48000, 5]], dtype=np.float16)
+        assert result.dtype == np.float16
+        assert np.isfinite(result).all()
+        np.testing.assert_array_equal(result, expected)
+
+    def test_oriented_anchor_with_integer_xyxy_uses_rotated_body(self) -> None:
+        """OBB data still wins over the integer midpoint path for `xyxy`."""
+        quad = _rotated_rect(100, 100, 120, 36, 35)
+        float_detections = _make_obb_detections([quad], [0.9], [0])
+        integer_detections = _make_obb_detections([quad], [0.9], [0])
+        integer_detections.xyxy = integer_detections.xyxy.astype(np.int64)
+
+        result = integer_detections.get_anchors_coordinates(Position.BOTTOM_CENTER)
+
+        expected = float_detections.get_anchors_coordinates(Position.BOTTOM_CENTER)
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [np.int16, np.int64, np.uint64])
+    def test_empty_integer_boxes_return_empty_anchors(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Zero detections of any integer dtype yield an empty `(0, 2)` array."""
+        detections = Detections(xyxy=np.empty((0, 4), dtype=dtype))
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        assert result.shape == (0, 2)
 
 
 @pytest.mark.parametrize(
@@ -1184,7 +1597,7 @@ def test_merge_inner_detection_object_pair(
     detection_1: Detections,
     detection_2: Detections,
     expected_result: Detections | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
@@ -1194,19 +1607,21 @@ def test_merge_inner_detection_object_pair(
 @pytest.mark.parametrize(
     ("detections", "expected"),
     [
-        (
+        pytest.param(
             Detections.empty(),
             True,
-        ),  # canonical empty
-        (
+            id="canonical-empty",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10]]),
                 class_id=np.array([1]),
                 confidence=np.array([0.9]),
             ),
             False,
-        ),  # non-empty, no tracker_id
-        (
+            id="non-empty-no-tracker",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 class_id=np.array([1, 2]),
@@ -1214,8 +1629,9 @@ def test_merge_inner_detection_object_pair(
                 tracker_id=np.array([1, 2]),
             )[np.array([False, False])],
             True,
-        ),  # filtered to empty with tracker_id — the regression case from #2195
-        (
+            id="filtered-empty-with-tracker-regression-2195",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 class_id=np.array([1, 2]),
@@ -1223,22 +1639,17 @@ def test_merge_inner_detection_object_pair(
                 tracker_id=np.array([1, 2]),
             )[np.array([True, False])],
             False,
-        ),  # one detection remaining after filter
-        (
+            id="one-detection-after-filter",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 mask=np.zeros((2, 4, 4), dtype=bool),
                 class_id=np.array([1, 2]),
             )[np.array([False, False])],
             True,
-        ),  # filtered to empty with mask — same bug could affect mask field
-    ],
-    ids=[
-        "canonical_empty",
-        "non_empty_no_tracker",
-        "filtered_empty_with_tracker",
-        "one_remaining_after_filter",
-        "filtered_empty_with_mask",
+            id="filtered-empty-with-mask",
+        ),
     ],
 )
 def test_is_empty(detections: Detections, expected: bool) -> None:
@@ -1347,19 +1758,24 @@ def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
     non_empty = Detections.from_inference(non_empty_result)
 
     # null-safety: class_name must be an array, not None
-    assert empty["class_name"] is not None
-    assert non_empty["class_name"] is not None
+    empty_names = empty["class_name"]
+    non_empty_names = non_empty["class_name"]
+    assert isinstance(empty_names, np.ndarray)
+    assert isinstance(non_empty_names, np.ndarray)
 
     # dtype kind must match between empty and non-empty paths
-    assert empty["class_name"].dtype.kind == non_empty["class_name"].dtype.kind == "U"
+    assert empty_names.dtype.kind == non_empty_names.dtype.kind == "U"
 
     # all data keys and dtypes must match between empty and non-empty paths
     assert set(empty.data.keys()) == set(non_empty.data.keys())
     for key in non_empty.data:
-        assert empty.data[key].dtype.kind == non_empty.data[key].dtype.kind, key
+        empty_values, non_empty_values = empty.data[key], non_empty.data[key]
+        assert isinstance(empty_values, np.ndarray), key
+        assert isinstance(non_empty_values, np.ndarray), key
+        assert empty_values.dtype.kind == non_empty_values.dtype.kind, key
 
     # concatenation across empty+non-empty must produce a string-kind array
-    concat = np.concatenate([empty["class_name"], non_empty["class_name"]])
+    concat = np.concatenate([empty_names, non_empty_names])
     assert concat.dtype.kind == "U"
 
 
@@ -1367,12 +1783,13 @@ def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None
     """SDK objects with .dict() and empty predictions produce string-kind class_name."""
 
     class _FakeSdkResult:
-        def dict(self, **kwargs: object) -> dict:
+        def dict(self, **kwargs: object) -> dict[str, Any]:
             return {"predictions": [], "image": {"width": 100, "height": 100}}
 
     detections = Detections.from_inference(_FakeSdkResult())
-    assert detections["class_name"] is not None
-    assert detections["class_name"].dtype.kind == "U"
+    class_name = detections["class_name"]
+    assert isinstance(class_name, np.ndarray)
+    assert class_name.dtype.kind == "U"
 
 
 def test_from_inference_compact_masks_default_keeps_dense_mask() -> None:
@@ -1434,9 +1851,9 @@ def test_from_inference_compact_masks_matches_dense_default() -> None:
 def test_from_inference_compact_masks_crops_to_detector_bbox() -> None:
     """compact_masks=True crops masks to the detector bbox; pixels outside are dropped.
 
-    This is the documented behaviour (see Warning in Detections.from_inference):
-    each mask is cropped to its detector bbox, so True pixels outside that box
-    are not stored.  Dense masks are unaffected and preserve the full mask.
+    This is the documented behaviour (see Warning in Detections.from_inference): each
+    mask is cropped to its detector bbox, so True pixels outside that box are not
+    stored.  Dense masks are unaffected and preserve the full mask.
     """
     # Mask has True at (row=0,col=0) [inside bbox] and (row=3,col=3) [outside bbox].
     # counts=[0,1,14,1,0]: 0 False, 1 True (pos 0), 14 False, 1 True (pos 15), 0 False.
@@ -1459,7 +1876,7 @@ def test_from_inference_compact_masks_crops_to_detector_bbox() -> None:
     dense = Detections.from_inference(result)
     compact = Detections.from_inference(result, compact_masks=True)
 
-    assert dense.mask is not None
+    assert isinstance(dense.mask, np.ndarray)
     assert isinstance(compact.mask, CompactMask)
     # Dense preserves both True pixels (full-image RLE decode, no cropping).
     assert dense.mask[0].sum() == 2
@@ -1515,8 +1932,9 @@ def test_from_inference_compact_masks_empty_preserves_data_contract() -> None:
     detections = Detections.from_inference(result, compact_masks=True)
 
     assert detections.mask is None
-    assert detections["class_name"] is not None
-    assert detections["class_name"].dtype.kind == "U"
+    class_name = detections["class_name"]
+    assert isinstance(class_name, np.ndarray)
+    assert class_name.dtype.kind == "U"
 
 
 class TestDetectionsToCompactMasks:
@@ -1577,7 +1995,8 @@ def _rotated_rect(
     corners = np.array(
         [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
     )
-    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+    rotated: np.ndarray = (corners @ rot.T + [cx, cy]).astype(np.float32)
+    return rotated
 
 
 def _make_obb_detections(
@@ -1624,8 +2043,8 @@ class TestDetectionsObbDispatch:
         detections_b = _make_obb_detections([quad_b], [0.8], [0])
 
         obb_iou = oriented_box_iou_batch(
-            detections_a.data[ORIENTED_BOX_COORDINATES],
-            detections_b.data[ORIENTED_BOX_COORDINATES],
+            np.asarray(detections_a.data[ORIENTED_BOX_COORDINATES]),
+            np.asarray(detections_b.data[ORIENTED_BOX_COORDINATES]),
         )[0, 0]
         aabb_iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)[0, 0]
 
@@ -1767,12 +2186,14 @@ class TestDetectionsWithSoftNms:
             confidence=np.array([0.8, 0.9], dtype=np.float32),
             class_id=np.array([0, 0], dtype=int),
         )
+        assert detections.confidence is not None
         original_confidence = detections.confidence.copy()
 
         result = detections.with_soft_nms(sigma=0.2)
 
         assert result is not detections
         np.testing.assert_array_equal(detections.confidence, original_confidence)
+        assert result.confidence is not None
         np.testing.assert_almost_equal(result.confidence, [0.07176137, 0.9], decimal=5)
 
     def test_box_path_class_agnostic(self) -> None:
@@ -1784,6 +2205,7 @@ class TestDetectionsWithSoftNms:
 
         result = detections.with_soft_nms(sigma=0.2, class_agnostic=True)
 
+        assert result.confidence is not None
         np.testing.assert_almost_equal(result.confidence, [0.07176137, 0.9], decimal=5)
 
     def test_mask_path_dispatch(self) -> None:
@@ -1799,6 +2221,7 @@ class TestDetectionsWithSoftNms:
 
         result = detections.with_soft_nms(sigma=0.5)
 
+        assert result.confidence is not None
         np.testing.assert_almost_equal(result.confidence, [0.9, 0.10826823], decimal=5)
         assert result.mask is not detections.mask
 
@@ -1814,6 +2237,7 @@ class TestDetectionsWithSoftNms:
 
         result = detections.with_soft_nms(sigma=0.5, class_agnostic=True)
 
+        assert result.confidence is not None
         np.testing.assert_almost_equal(result.confidence, [0.8], decimal=5)
 
     def test_score_threshold_filters_to_subset(self) -> None:
@@ -1827,6 +2251,7 @@ class TestDetectionsWithSoftNms:
         result = detections.with_soft_nms(sigma=0.2, score_threshold=0.5)
 
         assert len(result) == 1
+        assert result.confidence is not None
         np.testing.assert_almost_equal(result.confidence, [0.9], decimal=5)
 
     def test_none_score_threshold_keeps_all_detections(self) -> None:
@@ -1867,6 +2292,12 @@ class TestGetAnchorsObbDispatch:
         anchor_b = det_b.get_anchors_coordinates(Position.BOTTOM_CENTER)
         assert not np.allclose(anchor_a, anchor_b)
 
+    def test_center_of_mass_of_empty_detections_has_no_anchors(self) -> None:
+        """An empty batch without a mask returns no anchors instead of raising."""
+        anchors = Detections.empty().get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        assert anchors.shape == (0, 2)
+
     def test_center_of_mass_still_requires_mask(self) -> None:
         """OBB data must not divert `CENTER_OF_MASS` away from the mask path."""
         detections = _make_obb_detections(
@@ -1890,7 +2321,7 @@ class TestGetAnchorsObbDispatch:
 
 
 class TestMergeObbCorners:
-    """_merge_obb_corners"""
+    """_merge_obb_corners."""
 
     @pytest.mark.parametrize(
         ("corners_list", "expected"),
@@ -1962,9 +2393,75 @@ class TestMergeObbCorners:
         else:
             assert result.dtype == np.float32
 
+    @pytest.mark.parametrize(
+        ("dtype", "offset"),
+        [
+            pytest.param(np.uint16, 60_000, id="uint16-near-dtype-max"),
+            pytest.param(np.uint64, 2**40, id="uint64-large-origin"),
+        ],
+    )
+    def test_unsigned_corners_match_float_result(
+        self, dtype: type[np.unsignedinteger], offset: int
+    ) -> None:
+        """Unsigned-integer corners below the origin merge without wrapping."""
+        # Rotated 10x5 rectangles whose second and third corners sit left of
+        # the first, so translating by the origin yields negative deltas.
+        winner = np.array([[0, 0], [-6, 8], [-2, 11], [4, 3]]) + offset
+        other = np.array([[3, 2], [-3, 10], [1, 13], [7, 5]]) + offset
+        corners_unsigned = [winner.astype(dtype), other.astype(dtype)]
+        expected = _merge_obb_corners(
+            [winner.astype(np.float64), other.astype(np.float64)]
+        )
+
+        result = _merge_obb_corners(corners_unsigned)
+
+        assert result.dtype == np.float64
+        assert np.allclose(result - offset, expected - offset, atol=1e-6)
+
 
 class TestMergeDetectionGroup:
-    """_merge_detection_group"""
+    """_merge_detection_group."""
+
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+        reason="longdouble has no extra precision on this platform",
+    )
+    def test_preserves_area_weights_for_extended_precision_corners(self) -> None:
+        """Wider floating corners are subtracted before converting their extents."""
+        origin = np.longdouble("1e20")
+        boxes = np.array(
+            [[origin, 0, origin + 16, 10], [origin, 0, origin + 8, 10]],
+            dtype=np.longdouble,
+        )
+        detections = [
+            Detections(xyxy=boxes[:1], confidence=np.array([0.9])),
+            Detections(xyxy=boxes[1:], confidence=np.array([0.6])),
+        ]
+
+        result = _merge_detection_group(detections)
+
+        assert result.confidence is not None
+        np.testing.assert_allclose(result.confidence, [0.8])
+
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+    def test_preserves_area_weights_at_large_integer_origins(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Small extents above 2**53 retain their area when scores are merged."""
+        origin = 2**60
+        boxes = np.array(
+            [[origin, 0, origin + 20, 10], [origin, 0, origin + 10, 10]],
+            dtype=dtype,
+        )
+        detections = [
+            Detections(xyxy=boxes[:1], confidence=np.array([0.9])),
+            Detections(xyxy=boxes[1:], confidence=np.array([0.6])),
+        ]
+
+        result = _merge_detection_group(detections)
+
+        assert result.confidence is not None
+        np.testing.assert_allclose(result.confidence, [0.8])
 
     @pytest.mark.parametrize(
         ("detections", "expected_detections"),
@@ -2281,32 +2778,72 @@ class TestMergeDetectionGroup:
         assert len(result) == 1
         assert np.allclose(result.xyxy, expected_detections.xyxy, atol=0.5)
         if expected_detections.confidence is not None:
+            assert result.confidence is not None
             assert np.allclose(
                 result.confidence, expected_detections.confidence, atol=1e-3
             )
         else:
             assert result.confidence is None
         if expected_detections.class_id is not None:
+            assert result.class_id is not None
             assert np.array_equal(result.class_id, expected_detections.class_id)
         else:
             assert result.class_id is None
         if expected_detections.tracker_id is not None:
+            assert result.tracker_id is not None
             assert np.array_equal(result.tracker_id, expected_detections.tracker_id)
         else:
             assert result.tracker_id is None
         if expected_detections.mask is not None:
+            assert result.mask is not None
             assert np.array_equal(result.mask, expected_detections.mask)
         else:
             assert result.mask is None
         for key, val in expected_detections.data.items():
             assert np.array_equal(result.data[key], val)
         if ORIENTED_BOX_COORDINATES in result.data:
-            corners = result.data[ORIENTED_BOX_COORDINATES]
+            corners = np.asarray(result.data[ORIENTED_BOX_COORDINATES])
             assert np.allclose(result.xyxy, xyxyxyxy_to_xyxy(corners), atol=1e-5)
 
 
 class TestDetectionsWithNMM:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
+
+    @pytest.mark.parametrize(
+        ("dtype", "extent"),
+        [
+            pytest.param(np.int8, 100, id="int8"),
+            pytest.param(np.int16, 30000, id="int16"),
+            pytest.param(np.int32, 2000000000, id="int32"),
+            pytest.param(np.int64, 2**62, id="int64"),
+            pytest.param(np.float16, 60000, id="float16"),
+            pytest.param(np.float32, 3e38, id="float32"),
+            pytest.param(np.float64, 60000, id="float64"),
+        ],
+    )
+    @pytest.mark.parametrize("vertical", [False, True])
+    def test_confidence_uses_unwrapped_box_extents(
+        self, dtype: type[np.number], extent: float, vertical: bool
+    ) -> None:
+        """NMM weights scores by geometric areas even for narrow coordinate dtypes."""
+        boxes = np.array(
+            [[-extent, 0, extent, 1], [-extent / 2, 0, extent, 1]], dtype=dtype
+        )
+        if vertical:
+            boxes = boxes[:, [1, 0, 3, 2]]
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.6]),
+            class_id=np.array([0, 0]),
+        )
+
+        with np.errstate(over="raise", invalid="raise"):
+            result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 1
+        assert result.confidence is not None
+        np.testing.assert_allclose(result.confidence, [(2 * 0.9 + 1.5 * 0.6) / 3.5])
+        np.testing.assert_array_equal(detections.xyxy, boxes)
 
     @pytest.mark.parametrize(
         (
@@ -2526,6 +3063,7 @@ class TestDetectionsWithNMM:
             assert expected_confidence is not None
             assert expected_corners is not None
             assert len(result) == len(expected_confidence)
+            assert result.confidence is not None
             for i, exp_c in enumerate(expected_confidence):
                 assert result.confidence[i] == pytest.approx(exp_c, abs=1e-3)
             result_corners = result.data[ORIENTED_BOX_COORDINATES]
@@ -2638,6 +3176,68 @@ class TestDetectionsWithNMM:
 class TestDetectionsArea:
     """Selection order for the `area` property: mask → OBB → AABB."""
 
+    @pytest.mark.parametrize("area_property", ["box_area", "area"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.dtype("<f2"), id="little-endian"),
+            pytest.param(np.dtype(">f2"), id="big-endian"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "box",
+        [
+            pytest.param([0, 0, 256, 256], id="product-overflow"),
+            pytest.param([-65000, -65000, 65000, 65000], id="extent-overflow"),
+            pytest.param([0, 0, 0.0001, 0.0001], id="product-underflow"),
+            pytest.param([0, 0, 10, 10], id="small-box"),
+        ],
+    )
+    def test_half_precision_area_matches_float32(
+        self, box: list[float], area_property: str, dtype: np.dtype
+    ) -> None:
+        """Half-precision coordinates retain finite, nonzero box areas."""
+        xyxy = np.array([box], dtype=dtype)
+        detections = Detections(xyxy=xyxy.copy())
+        reference = Detections(xyxy=xyxy.astype(np.float32))
+
+        with np.errstate(over="raise", under="raise", invalid="raise"):
+            area = getattr(detections, area_property)
+
+        np.testing.assert_array_equal(area, getattr(reference, area_property))
+        np.testing.assert_array_equal(detections.xyxy, xyxy)
+        assert area.dtype == np.float32
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_wider_float_area_preserves_dtype(self, dtype: type) -> None:
+        """Area calculations preserve existing float32 and float64 results."""
+        detections = Detections(xyxy=np.array([[0, 0, 300, 300]], dtype=dtype))
+
+        area = detections.box_area
+
+        np.testing.assert_array_equal(area, [90000])
+        assert area.dtype == dtype
+
+    def test_half_precision_area_filter_keeps_large_boxes(self) -> None:
+        """Area filtering retains ordinary boxes whose area exceeds float16 range."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 300, 300], [0, 0, 10, 10]], dtype=np.float16)
+        )
+
+        filtered = detections[np.asarray(detections.area, dtype=np.float64) > 80000.0]
+
+        assert isinstance(filtered, Detections)
+        np.testing.assert_array_equal(filtered.xyxy, [[0, 0, 300, 300]])
+
+    def test_empty_half_precision_area_is_float32(self) -> None:
+        """Empty half-precision boxes produce an empty float32 area array."""
+        detections = Detections(xyxy=np.empty((0, 4), dtype=np.float16))
+
+        area = detections.box_area
+
+        assert area.shape == (0,)
+        assert area.dtype == np.float32
+
     @pytest.mark.parametrize(
         ("width", "height", "angle_deg", "expected_area"),
         [
@@ -2667,8 +3267,8 @@ class TestDetectionsArea:
         assert np.allclose(detections.area, detections.box_area)
 
     def test_mask_takes_precedence_over_oriented_box(self) -> None:
-        """When both `mask` and `ORIENTED_BOX_COORDINATES` are present, area is
-        computed from the mask."""
+        """When both `mask` and `ORIENTED_BOX_COORDINATES` are present, area is computed
+        from the mask."""
         mask = np.zeros((40, 40), dtype=bool)
         mask[10:30, 10:25] = True  # 20 rows x 15 cols = 300 pixels
         quad = _rotated_rect(20, 20, 20, 10, 0)  # OBB area = 200
@@ -2682,8 +3282,8 @@ class TestDetectionsArea:
         assert np.allclose(detections.area, [300.0])
 
     def test_empty_detections_with_obb_data_returns_empty_array(self) -> None:
-        """Boundary case: empty Detections carrying an OBB data field must
-        return an empty area array (matches the mask / box_area branches)."""
+        """Boundary case: empty Detections carrying an OBB data field must return an
+        empty area array (matches the mask / box_area branches)."""
         detections = Detections(
             xyxy=np.empty((0, 4), dtype=np.float32),
             class_id=np.array([], dtype=int),
@@ -2693,8 +3293,8 @@ class TestDetectionsArea:
         assert detections.area.shape == (0,)
 
     def test_degenerate_oriented_box_has_zero_area(self) -> None:
-        """An OBB whose four corners coincide has zero area — the shoelace
-        formula must not produce NaN or a negative value."""
+        """An OBB whose four corners coincide has zero area — the shoelace formula must
+        not produce NaN or a negative value."""
         quad = np.full((4, 2), 5.0, dtype=np.float32)
         detections = _make_obb_detections([quad], [0.9], [0])
 
@@ -2702,8 +3302,10 @@ class TestDetectionsArea:
 
     def test_handles_batched_oriented_boxes(self) -> None:
         """Multiple OBBs in one `Detections` each get their own correct area.
-        Guards against the shoelace reduction collapsing across boxes instead
-        of along the per-box corner axis."""
+
+        Guards against the shoelace reduction collapsing across boxes instead of along
+        the per-box corner axis.
+        """
         quads = [
             _rotated_rect(50, 50, 20, 10, 0),  # 200
             _rotated_rect(100, 100, 20, 10, 45),  # 200 (rotation must not change it)
@@ -2720,7 +3322,9 @@ class TestDetectionsArea:
             pytest.param((1, 3, 2), id="triangle"),
         ],
     )
-    def test_raises_on_malformed_obb_coordinates_shape(self, bad_shape: tuple) -> None:
+    def test_raises_on_malformed_obb_coordinates_shape(
+        self, bad_shape: tuple[int, ...]
+    ) -> None:
         """ValueError when OBB data shape is wrong for area computation."""
         bad_corners = np.zeros(bad_shape, dtype=np.float32)
         detections = Detections(
@@ -2807,3 +3411,191 @@ class TestDetectionsArea:
 
         np.testing.assert_array_equal(detections.area, [expected_area])
         assert detections.area.dtype == np.int64
+
+    @pytest.mark.parametrize(
+        ("dtype", "x_max", "y_max", "expected_area"),
+        [
+            pytest.param(np.int32, 50000, 50000, 2.5e9, id="int32"),
+            pytest.param(np.int16, 300, 300, 90000.0, id="int16"),
+            pytest.param(np.uint16, 300, 300, 90000.0, id="uint16"),
+            pytest.param(np.uint32, 70000, 70000, 4.9e9, id="uint32"),
+        ],
+    )
+    def test_box_area_does_not_overflow_integer_dtypes(
+        self, dtype: type, x_max: int, y_max: int, expected_area: float
+    ) -> None:
+        """Integer box area is computed in float64 so it cannot wrap negative."""
+        detections = Detections(xyxy=np.array([[0, 0, x_max, y_max]], dtype=dtype))
+
+        assert detections.box_area.dtype == np.float64
+        assert detections.box_area[0] == pytest.approx(expected_area)
+
+    @pytest.mark.parametrize(
+        ("dtype", "area_property"),
+        [
+            pytest.param(np.int64, "box_area", id="int64-box-area"),
+            pytest.param(np.int64, "area", id="int64-area"),
+            pytest.param(np.uint64, "box_area", id="uint64-box-area"),
+            pytest.param(np.uint64, "area", id="uint64-area"),
+        ],
+    )
+    def test_integer_area_preserves_large_coordinate_differences(
+        self, dtype: type, area_property: str
+    ) -> None:
+        """Integer AABB areas retain one-unit widths above float64 precision."""
+        origin = 2**53
+        detections = Detections(
+            xyxy=np.array([[origin, 0, origin + 1, 1]], dtype=dtype)
+        )
+
+        area = getattr(detections, area_property)
+
+        assert area.dtype == np.float64
+        np.testing.assert_array_equal(area, [1.0])
+
+    @pytest.mark.parametrize(
+        ("dtype", "x_min", "x_max"),
+        [
+            pytest.param(
+                np.int64,
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).max,
+                id="int64-full-range",
+            ),
+            pytest.param(
+                np.uint64,
+                0,
+                np.iinfo(np.uint64).max,
+                id="uint64-full-range",
+            ),
+        ],
+    )
+    def test_integer_box_area_handles_full_coordinate_range(
+        self, dtype: type, x_min: int, x_max: int
+    ) -> None:
+        """Integer area handles coordinate differences spanning a dtype range."""
+        detections = Detections(xyxy=np.array([[x_min, 0, x_max, 1]], dtype=dtype))
+
+        expected = float(int(x_max) - int(x_min))
+
+        np.testing.assert_array_equal(detections.box_area, [expected])
+        np.testing.assert_array_equal(detections.area, [expected])
+
+
+class TestDetectionsBoxAspectRatio:
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.int8, id="int8"),
+            pytest.param(np.int16, id="int16"),
+            pytest.param(np.int32, id="int32"),
+            pytest.param(np.int64, id="int64"),
+            pytest.param(np.uint8, id="uint8"),
+            pytest.param(np.uint16, id="uint16"),
+            pytest.param(np.uint32, id="uint32"),
+            pytest.param(np.uint64, id="uint64"),
+        ],
+    )
+    def test_coordinate_differences_do_not_overflow(self, dtype: type) -> None:
+        """Ordered integer boxes retain widths spanning the coordinate dtype."""
+        limits = np.iinfo(dtype)
+        xyxy: np.ndarray = np.array(
+            [[limits.min, 0, limits.max, 20], [0, limits.min, 20, limits.max]],
+            dtype=dtype,
+        )
+        original_xyxy = xyxy.copy()
+        detections = Detections(xyxy=xyxy)
+        span = int(limits.max) - int(limits.min)
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        np.testing.assert_array_equal(aspect_ratios, [span / 20, 20 / span])
+        assert aspect_ratios.dtype == np.float64
+        np.testing.assert_array_equal(detections.xyxy, original_xyxy)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.int64, id="int64"),
+            pytest.param(np.uint64, id="uint64"),
+        ],
+    )
+    def test_preserves_narrow_boxes_at_large_origins(self, dtype: type) -> None:
+        """One-unit widths above float64 coordinate precision remain nonzero."""
+        origin = 2**53
+        detections = Detections(
+            xyxy=np.array([[origin, origin, origin + 1, origin + 2]], dtype=dtype)
+        )
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        np.testing.assert_array_equal(aspect_ratios, [0.5])
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.int32, id="int32"),
+            pytest.param(np.uint32, id="uint32"),
+            pytest.param(np.float16, id="float16"),
+            pytest.param(np.float32, id="float32"),
+            pytest.param(np.float64, id="float64"),
+        ],
+    )
+    def test_zero_height_is_nan(self, dtype: type) -> None:
+        """Regular and zero-height boxes keep float64 ratios and NaN sentinels."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 6, 2], [0, 0, 6, 0]], dtype=dtype)
+        )
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        np.testing.assert_array_equal(aspect_ratios, [3.0, np.nan])
+        assert aspect_ratios.dtype == np.float64
+
+    def test_preserves_float32_subtraction_rounding(self) -> None:
+        """Floating corners retain their coordinate dtype's subtraction rounding."""
+        detections = Detections(xyxy=np.array([[-(2**24), 0, 1, 1]], dtype=np.float32))
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        np.testing.assert_array_equal(aspect_ratios, [16777216.0])
+        assert aspect_ratios.dtype == np.float64
+
+    def test_empty_boxes_return_empty_ratios(self) -> None:
+        """Empty detections return a one-dimensional float64 array."""
+        detections = Detections.empty()
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        assert aspect_ratios.shape == (0,)
+        assert aspect_ratios.dtype == np.float64
+
+
+class TestDetectionsXyxyValidation:
+    @pytest.mark.parametrize(
+        "invalid_coordinate",
+        [
+            pytest.param(np.nan, id="nan"),
+            pytest.param(np.inf, id="positive-infinity"),
+            pytest.param(-np.inf, id="negative-infinity"),
+        ],
+    )
+    def test_non_finite_xyxy_raises(self, invalid_coordinate: float) -> None:
+        """Detections rejects every non-finite xyxy coordinate."""
+        with pytest.raises(ValueError, match="must contain only finite numeric values"):
+            Detections(xyxy=np.array([[0.0, 0.0, 1.0, invalid_coordinate]]))
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param(np.array([["0", "0", "1", "1"]]), id="string-coordinates"),
+            pytest.param(
+                np.array([[0, 0, 1, "1"]], dtype=object),
+                id="object-coordinates",
+            ),
+        ],
+    )
+    def test_unsupported_xyxy_dtype_raises_value_error(self, xyxy: np.ndarray) -> None:
+        """Detections reports unsupported coordinate dtypes as validation errors."""
+        with pytest.raises(ValueError, match="must contain only finite numeric values"):
+            Detections(xyxy=xyxy)

@@ -11,7 +11,7 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+.rc[0-9]+"
   workflow_dispatch:
   pull_request:
-    branches: [main, develop]
+    branches: ["main", "develop", "release/*"]
     paths:
       - ".github/workflows/build-package.yml"
       - ".github/workflows/publish-pre-release.yml"
@@ -46,6 +46,6 @@ jobs:
 
       - name: 🚀 Publish to PyPi
         if: github.event_name != 'pull_request'
-        uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           attestations: true

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from typing import Any, cast
 
@@ -12,23 +13,28 @@ from supervision._cv2._common import _cast_array_like_opencv
 from supervision._cv2.constants import (
     _BORDER_CONSTANT,
     _IMREAD_COLOR,
+    _IMREAD_GRAYSCALE,
     _IMREAD_UNCHANGED,
     _INTER_LINEAR,
     _INTER_NEAREST,
 )
 
 
-def _flip(image: npt.NDArray[Any], flip_code: int) -> npt.NDArray[Any]:
-    """Flip an image vertically, horizontally, or along both axes."""
-    if flip_code == 0:
+def _flip(src: npt.NDArray[Any], flipCode: int) -> npt.NDArray[Any]:
+    """Flip an image vertically, horizontally, or along both axes.
+
+    Flip direction follows the sign of `flipCode`, as in `cv2.flip`: `0` flips
+    vertically, any positive code flips horizontally, and any negative code flips along
+    both axes. The camelCase `flipCode` mirrors `cv2.flip(src, flipCode)` so keyword
+    calls bind on both backends; keep it when editing.
+    """
+    if flipCode == 0:
         axes: tuple[int, ...] = (0,)
-    elif flip_code == 1:
+    elif flipCode > 0:
         axes = (1,)
-    elif flip_code == -1:
-        axes = (0, 1)
     else:
-        raise ValueError(f"Unsupported flip code: {flip_code}")
-    return np.ascontiguousarray(np.flip(image, axis=axes))
+        axes = (0, 1)
+    return np.ascontiguousarray(np.flip(src, axis=axes))
 
 
 def _copy_make_border(
@@ -53,12 +59,18 @@ def _copy_make_border(
     # multichannel images — a bare scalar is treated the same as a
     # length-1 sequence, not broadcast to every channel.
     sequence_value = value if isinstance(value, Sequence) else (value,)
-    values = np.asarray(sequence_value, dtype=image.dtype).reshape(-1)
+    values = np.asarray(sequence_value).reshape(-1)
     if image.ndim == 2:
-        fill_value: Any = values[0] if values.size else 0
+        fill_value: Any = (
+            _cast_array_like_opencv(values[:1], image.dtype)[0] if values.size else 0
+        )
     else:
         fill = np.zeros(image.shape[2], dtype=image.dtype)
-        fill[: min(values.size, image.shape[2])] = values[: image.shape[2]]
+        fill_count = min(values.size, image.shape[2])
+        if fill_count > 0:
+            fill[:fill_count] = _cast_array_like_opencv(
+                values[:fill_count], image.dtype
+            )
         fill_value = fill.reshape((1, 1, -1))
 
     result = np.full(shape, fill_value, dtype=image.dtype)
@@ -66,10 +78,81 @@ def _copy_make_border(
     return result
 
 
-def _add_weighted(
-    source1: npt.NDArray[Any],
+# OpenCV's `addWeighted` blends these depths in float32 rather than float64.
+_FLOAT32_BLEND_DTYPES = tuple(
+    np.dtype(dtype) for dtype in (np.uint8, np.int8, np.uint16, np.int16, np.float32)
+)
+
+
+def _fused_multiply_add_float32(
+    values: npt.NDArray[Any], weight: np.float64, addend: npt.NDArray[Any] | np.float64
+) -> npt.NDArray[np.float32]:
+    """Compute `values * weight + addend` with a single rounding to float32.
+
+    `values` holds 8-bit, 16-bit or float32 numbers and `weight` and `addend` are
+    float32 numbers held as float64. The product is then exact in float64, but adding
+    the addend can still round once to float64 and again to float32. That double
+    rounding is wrong when the float64 sum lands on a float32 midpoint: the part the
+    float64 sum dropped decides the direction. The dropped part is recovered exactly
+    (Knuth's two-sum) and breaks the tie.
+
+    Examples:
+        The product `97 * weight` is `0.5 + 2**-25`, exactly between two float32
+        numbers; the tiny addend tips the sum to the upper one:
+
+        ```pycon
+        >>> values = np.array([97.0])
+        >>> weight = np.float64(172961 / 2**25)
+        >>> fused = _fused_multiply_add_float32(values, weight, np.array([2.0**-60]))
+        >>> bool(fused[0] == 0.5 + 2**-24)
+        True
+
+        ```
+    """
+    product = values.astype(np.float64) * weight
+    total = product + addend
+    # Two-sum: `error` is exactly what rounding `product + addend` to float64 lost.
+    virtual = total - product
+    error = (product - (total - virtual)) + (addend - virtual)
+    rounded = total.astype(np.float32)
+    above = total > rounded
+    # The float32 neighbour on the side of the float64 sum, and the midpoint between.
+    neighbour = np.nextafter(
+        rounded, np.where(above, np.inf, -np.inf).astype(np.float32)
+    )
+    midpoint = (rounded.astype(np.float64) + neighbour.astype(np.float64)) / 2
+    # On a tie the nearest-even choice stands unless the lost part pushes away from it.
+    away = (total == midpoint) & ((error > 0) == above) & (error != 0)
+    fused: npt.NDArray[np.float32] = np.where(away, neighbour, rounded)
+    return fused
+
+
+def _blend_like_opencv_float32(
+    src1: npt.NDArray[Any],
     alpha: float,
-    source2: npt.NDArray[Any],
+    src2: npt.NDArray[Any],
+    beta: float,
+    gamma: float,
+) -> npt.NDArray[np.float32]:
+    """Compute `src1 * alpha + src2 * beta + gamma` the way OpenCV's SIMD loop does.
+
+    The weights are cast to float32 and the sum is taken with two fused multiply-adds,
+    `fma(src1, alpha, fma(src2, beta, gamma))`, each rounded once to float32 by
+    :func:`~supervision._cv2._image._fused_multiply_add_float32`. Float32 images take
+    the same path.
+    """
+    alpha32, beta32, gamma32 = (
+        np.float64(np.float32(value)) for value in (alpha, beta, gamma)
+    )
+    with np.errstate(invalid="ignore", over="ignore"):
+        inner = _fused_multiply_add_float32(src2, beta32, gamma32)
+        return _fused_multiply_add_float32(src1, alpha32, inner.astype(np.float64))
+
+
+def _add_weighted(
+    src1: npt.NDArray[Any],
+    alpha: float,
+    src2: npt.NDArray[Any],
     beta: float,
     gamma: float,
     dst: npt.NDArray[Any] | None = None,
@@ -81,12 +164,17 @@ def _add_weighted(
             "addWeighted fallback only supports the default output depth; "
             f"unsupported dtype: {dtype}"
         )
-    if source1.shape != source2.shape:
+    if src1.shape != src2.shape:
         raise ValueError("addWeighted inputs must have equal shapes")
-    result = _cast_array_like_opencv(
-        source1.astype(np.float64) * alpha + source2.astype(np.float64) * beta + gamma,
-        source1.dtype,
-    )
+    if src1.dtype in _FLOAT32_BLEND_DTYPES:
+        result = _cast_array_like_opencv(
+            _blend_like_opencv_float32(src1, alpha, src2, beta, gamma), src1.dtype
+        )
+    else:
+        result = _cast_array_like_opencv(
+            src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
+            src1.dtype,
+        )
     if dst is not None:
         dst[...] = result
         return dst
@@ -96,15 +184,31 @@ def _add_weighted(
 def _convert_scale_abs(
     image: npt.NDArray[Any], alpha: float = 1, beta: float = 0
 ) -> npt.NDArray[np.uint8]:
-    """Scale, offset, take the absolute value, and saturate to uint8."""
-    values = np.abs(image.astype(np.float64) * alpha + beta)
+    """Scale, offset, take the absolute value, and saturate to uint8.
+
+    OpenCV does this arithmetic in float32 for every source depth, with `alpha` and
+    `beta` cast to float32 first, so the value is rounded to float32 before the final
+    round-half-to-even. Doing it in float64 lands on the other side of a `.5` tie for
+    inputs like `95 * 1.3`, which is `123.5` in float64 but just under it in float32.
+    OpenCV's SIMD path computes `src * alpha + beta` as one fused multiply-add, so
+    the product is not rounded on its own: `38 * 1.3 + 0.1` gives `50`, while
+    rounding the product to float32 first gives `49`. The fused helper also preserves
+    small offsets that a float64 addition could lose at a float32 midpoint.
+    """
+    with np.errstate(invalid="ignore", over="ignore"):
+        fused = _fused_multiply_add_float32(
+            image.astype(np.float32),
+            np.float64(np.float32(alpha)),
+            np.float64(np.float32(beta)),
+        )
+        values = np.abs(fused)
     return _cast_array_like_opencv(values, np.dtype(np.uint8))
 
 
 def _mean(
     image: npt.NDArray[Any], mask: npt.NDArray[Any] | None = None
 ) -> tuple[float, float, float, float]:
-    """Return per-channel means using OpenCV's four-value result contract."""
+    """Return OpenCV's four-value mean with float64 accumulation."""
     if mask is None:
         selected = (
             image.reshape(-1, 1)
@@ -121,7 +225,7 @@ def _mean(
         means = np.zeros(4, dtype=np.float64)
     else:
         means = np.zeros(4, dtype=np.float64)
-        means[: selected.shape[1]] = np.mean(selected, axis=0)
+        means[: selected.shape[1]] = np.mean(selected, axis=0, dtype=np.float64)
     return cast(
         tuple[float, float, float, float],
         tuple(float(value) for value in means),
@@ -135,49 +239,50 @@ def _resize(
     fy: float = 0,
     interpolation: int = _INTER_LINEAR,
 ) -> npt.NDArray[Any]:
-    """Resize with exact nearest or OpenCV-compatible linear sampling."""
+    """Resize with OpenCV-compatible nearest or linear sampling."""
     source_height, source_width = src.shape[:2]
     width, height = dsize if dsize is not None else (0, 0)
-    if width == 0 or height == 0:
+    # Like OpenCV, when the size comes from `fx`/`fy`, pixels are mapped with
+    # those factors rather than with the ratio of the rounded sizes.
+    scale_from_factors = width == 0 or height == 0
+    if scale_from_factors:
         width = round(source_width * fx)
         height = round(source_height * fy)
+        # OpenCV copies the image unchanged when the size stays the same.
+        scale_from_factors = (width, height) != (source_width, source_height)
     if min(width, height, source_width, source_height) <= 0:
         raise ValueError("Resize dimensions must be positive")
+    if scale_from_factors:
+        scale_x, scale_y = 1 / fx, 1 / fy
+    else:
+        # OpenCV steps through the source with the reciprocal of the size ratio
+        # (`ifx = 1. / (dsize.width / ssize.width)`), whose rounding can put a
+        # whole-number position such as 17 * 6 / 34 just below 3.0, so the
+        # exact integer ratio would pick a different pixel there.
+        scale_x = 1 / (width / source_width)
+        scale_y = 1 / (height / source_height)
 
     if interpolation == _INTER_NEAREST:
-        y_indices = np.minimum(
-            (np.arange(height) * source_height // height), source_height - 1
-        )
-        x_indices = np.minimum(
-            (np.arange(width) * source_width // width), source_width - 1
-        )
+        y_indices = np.floor(np.arange(height) * scale_y).astype(np.int64)
+        x_indices = np.floor(np.arange(width) * scale_x).astype(np.int64)
+        y_indices = np.minimum(y_indices, source_height - 1)
+        x_indices = np.minimum(x_indices, source_width - 1)
         return np.ascontiguousarray(src[y_indices[:, np.newaxis], x_indices])
 
     if interpolation != _INTER_LINEAR:
         raise ValueError(f"Unsupported interpolation mode: {interpolation}")
 
-    if src.dtype == np.uint8 and (
-        src.ndim == 2 or (src.ndim == 3 and src.shape[2] == 3)
-    ):
-        from PIL import Image
+    if src.dtype == np.uint8:
+        if (width, height) == (source_width, source_height):
+            # `cv2.resize` copies the image when the size does not change.
+            return np.array(src, order="C", copy=True)
+        if scale_from_factors and (fx, fy) == (0.5, 0.5):
+            # OpenCV resizes an exact 2x reduction with its fast area path.
+            return _resize_half_uint8(src, width, height)
+        return _resize_linear_uint8(src, width, height, scale_x, scale_y)
 
-        size = (width, height)
-        image = Image.fromarray(src)
-        if width >= source_width and height >= source_height:
-            resized = image.resize(size, resample=Image.Resampling.BILINEAR)
-        else:
-            # Affine sampling keeps Pillow from widening its bilinear kernel
-            # during reduction and maps pixel centers like INTER_LINEAR.
-            resized = image.transform(
-                size,
-                Image.Transform.AFFINE,
-                (source_width / width, 0, 0, 0, source_height / height, 0),
-                resample=Image.Resampling.BILINEAR,
-            )
-        return np.ascontiguousarray(np.asarray(resized))
-
-    y = (np.arange(height) + 0.5) * source_height / height - 0.5
-    x = (np.arange(width) + 0.5) * source_width / width - 0.5
+    y = (np.arange(height) + 0.5) * scale_y - 0.5
+    x = (np.arange(width) + 0.5) * scale_x - 0.5
     y_floor = np.floor(y).astype(np.int64)
     x_floor = np.floor(x).astype(np.int64)
     y0 = np.clip(y_floor, 0, source_height - 1)
@@ -207,28 +312,299 @@ def _resize(
     return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
 
 
+# OpenCV's uint8 `INTER_LINEAR` resize uses 11-bit fixed-point weights.
+_INTER_RESIZE_COEF_BITS = 11
+_INTER_RESIZE_COEF_SCALE = 1 << _INTER_RESIZE_COEF_BITS
+
+
+def _linear_resize_taps(
+    size: int, source_size: int, scale: float, clamp_weights: bool
+) -> tuple[
+    npt.NDArray[np.intp],
+    npt.NDArray[np.intp],
+    npt.NDArray[np.int32],
+    npt.NDArray[np.int32],
+]:
+    """Return OpenCV's two source taps and fixed-point weights for one axis.
+
+    Positions are computed in `float32` like `resizeGeneric_`. Along columns OpenCV
+    snaps samples left of the first or right of the last pixel to that pixel with a
+    zero fraction; along rows it only clamps the row index and keeps the fraction, so
+    the weights of an edge row come from the unclamped position.
+
+    For a two-pixel source axis, horizontal taps snap at both edges:
+
+    ```pycon
+    >>> left, right, weight_left, weight_right = _linear_resize_taps(
+    ...     3, 2, 2 / 3, clamp_weights=True
+    ... )
+    >>> left.tolist(), right.tolist()
+    ([0, 0, 1], [1, 1, 1])
+    >>> weight_left.tolist(), weight_right.tolist()
+    ([2048, 1024, 2048], [0, 1024, 0])
+
+    ```
+
+    Vertical taps keep the fractional weights at the clamped edge rows:
+
+    ```pycon
+    >>> _, _, weight_top, weight_bottom = _linear_resize_taps(
+    ...     3, 2, 2 / 3, clamp_weights=False
+    ... )
+    >>> weight_top.tolist(), weight_bottom.tolist()
+    ([341, 1024, 1707], [1707, 1024, 341])
+
+    ```
+    """
+    position = ((np.arange(size) + 0.5) * scale - 0.5).astype(np.float32)
+    first = np.floor(position).astype(np.intp)
+    fraction = (position - first).astype(np.float32)
+    if clamp_weights:
+        before = first < 0
+        fraction[before] = 0
+        first[before] = 0
+        after = first >= source_size - 1
+        fraction[after] = 0
+        first[after] = source_size - 1
+    second = np.clip(first + 1, 0, source_size - 1)
+    first = np.clip(first, 0, source_size - 1)
+    weight_second = np.rint(fraction * _INTER_RESIZE_COEF_SCALE).astype(np.int32)
+    weight_first = np.rint(
+        (np.float32(1) - fraction) * _INTER_RESIZE_COEF_SCALE
+    ).astype(np.int32)
+    return first, second, weight_first, weight_second
+
+
+# Output rows per block in the uint8 passes, sized so the `int32` work buffers of a
+# block stay near 4 MiB whatever the image size.
+_RESIZE_BLOCK_ELEMENTS = 1 << 20
+
+
+def _resize_linear_uint8(
+    src: npt.NDArray[np.uint8],
+    width: int,
+    height: int,
+    scale_x: float,
+    scale_y: float,
+) -> npt.NDArray[np.uint8]:
+    """Resize uint8 images bit-exactly like OpenCV's fixed-point `INTER_LINEAR`.
+
+    Each row is first interpolated horizontally into `int32` sums scaled by
+    `2**11`. The vertical pass then mirrors OpenCV's SIMD `VResizeLinearVec_32s8u`:
+    each sum is shifted right by 4, multiplied by its 11-bit row weight keeping the
+    high 16 bits, and the two products are added and rounded with `(sum + 2) >> 2`.
+    Output rows are produced in blocks so the intermediate buffers stay bounded.
+
+    A 4-by-4 image with constant 2-by-2 regions resizes to those four values:
+
+    ```pycon
+    >>> source = np.array(
+    ...     [[0, 0, 100, 100], [0, 0, 100, 100],
+    ...      [200, 200, 255, 255], [200, 200, 255, 255]],
+    ...     dtype=np.uint8,
+    ... )
+    >>> _resize_linear_uint8(source, 2, 2, 2.0, 2.0).tolist()
+    [[0, 100], [200, 255]]
+
+    ```
+    """
+    source_height, source_width = src.shape[:2]
+    x0, x1, wx0, wx1 = _linear_resize_taps(
+        width, source_width, scale_x, clamp_weights=True
+    )
+    y0, y1, wy0, wy1 = _linear_resize_taps(
+        height, source_height, scale_y, clamp_weights=False
+    )
+    # Work on `(rows, width * channels)` so every weight broadcasts along the
+    # contiguous axis; each channel of a column shares that column's taps.
+    channels = 1 if src.ndim == 2 else src.shape[2]
+    row_length = width * channels
+    channel_offsets = np.arange(channels)
+    columns0 = (x0[:, np.newaxis] * channels + channel_offsets).ravel()
+    columns1 = (x1[:, np.newaxis] * channels + channel_offsets).ravel()
+    weights0 = np.repeat(wx0, channels)
+    weights1 = np.repeat(wx1, channels)
+    flat = src.reshape(source_height, source_width * channels)
+    resized = np.empty((height, row_length), dtype=np.uint8)
+    block = max(1, _RESIZE_BLOCK_ELEMENTS // row_length)
+
+    for start in range(0, height, block):
+        stop = min(start + block, height)
+        block_y0, block_y1 = y0[start:stop], y1[start:stop]
+        # Interpolate only the source rows this block of output rows reads.
+        used_rows, row_index = np.unique(
+            np.concatenate((block_y0, block_y1)), return_inverse=True
+        )
+        rows = flat[used_rows]
+        horizontal = np.take(rows, columns0, axis=1).astype(np.int32)
+        horizontal *= weights0
+        right = np.take(rows, columns1, axis=1).astype(np.int32)
+        right *= weights1
+        horizontal += right
+        del right
+        horizontal >>= 4
+
+        top = np.take(horizontal, row_index[: stop - start], axis=0)
+        top *= wy0[start:stop, np.newaxis]
+        top >>= 16
+        bottom = np.take(horizontal, row_index[stop - start :], axis=0)
+        del horizontal
+        bottom *= wy1[start:stop, np.newaxis]
+        bottom >>= 16
+        top += bottom
+        del bottom
+        top += 2
+        top >>= 2
+        np.clip(top, 0, 255, out=top)
+        resized[start:stop] = top
+    return resized.reshape((height, width, *src.shape[2:]))
+
+
+def _resize_half_uint8(
+    src: npt.NDArray[np.uint8], width: int, height: int
+) -> npt.NDArray[np.uint8]:
+    """Halve a uint8 image like OpenCV's `resizeAreaFast_` for `fx = fy = 0.5`.
+
+    A full 2x2 block is rounded with `(sum + 2) >> 2` when the image has 1, 3 or 4
+    channels and with `cvRound(sum * 0.25f)` (half to even) otherwise. A block cut
+    by an odd last row or column averages its in-bounds pixels with `cvRound`.
+
+    Odd edges average only their available pixels, rounding half to even:
+
+    ```pycon
+    >>> source = np.arange(1, 10, dtype=np.uint8).reshape(3, 3)
+    >>> _resize_half_uint8(source, 2, 2).tolist()
+    [[3, 4], [8, 9]]
+
+    ```
+    """
+    source_height, source_width = src.shape[:2]
+    image = src if src.ndim == 3 else src[:, :, np.newaxis]
+    channels = image.shape[2]
+    # The halved size is rounded half to even, so an odd side either drops its
+    # last pixel or ends in a cut block; zero-pad the cut blocks and count how many
+    # of their pixels are real.
+    image = image[: 2 * height, : 2 * width]
+    padded = np.pad(
+        image,
+        ((0, 2 * height - image.shape[0]), (0, 2 * width - image.shape[1]), (0, 0)),
+    ).astype(np.int32)
+    sums = (
+        padded[0::2, 0::2]
+        + padded[0::2, 1::2]
+        + padded[1::2, 0::2]
+        + padded[1::2, 1::2]
+    )
+    count_y = np.clip(source_height - 2 * np.arange(height), 0, 2)
+    count_x = np.clip(source_width - 2 * np.arange(width), 0, 2)
+    counts = count_y[:, np.newaxis] * count_x[np.newaxis, :]
+
+    full = counts == 4
+    if channels in (1, 3, 4):
+        rounded = (sums + 2) >> 2
+    else:
+        rounded = np.rint(sums.astype(np.float32) * np.float32(0.25))
+    averaged = np.rint(
+        sums.astype(np.float32) / counts[:, :, np.newaxis].astype(np.float32)
+    )
+    resized = np.where(full[:, :, np.newaxis], rounded, averaged)
+    return np.ascontiguousarray(
+        resized.astype(np.uint8).reshape((height, width, *src.shape[2:]))
+    )
+
+
+_EXIF_ORIENTATION_TAG = 0x0112
+
+
+def _exif_oriented(image: Any) -> Any:
+    """Rotate and flip a Pillow image by its EXIF orientation tag, as OpenCV does.
+
+    `cv2.imread` and `cv2.imdecode` apply the tag on every read except
+    `IMREAD_UNCHANGED`. An image without the tag, or with the identity orientation `1`,
+    is returned as it is rather than copied.
+    """
+    from PIL import ImageOps
+
+    if image.getexif().get(_EXIF_ORIENTATION_TAG, 1) == 1:
+        return image
+    return ImageOps.exif_transpose(image)
+
+
+def _opencv_unchanged_mode(image: Any) -> str | None:
+    """Return the Pillow mode whose pixels match `cv2.imread(IMREAD_UNCHANGED)`.
+
+    OpenCV keeps an image's bit depth and alpha, but never returns a two-channel or
+    boolean array the way Pillow's own modes do: it expands palettes to BGR, whether
+    or not they carry an alpha channel of their own, adds an alpha channel for
+    grayscale with alpha and for a palette or RGB image with a transparent color, and
+    reads 1-bit images as 8-bit `0` and `255`. It also never returns CMYK ink values,
+    whose black channel would pass for alpha: a CMYK JPEG is converted to BGR, and a
+    CMYK TIFF to BGRA with an opaque alpha channel. `None` means the image's own mode
+    already matches.
+    """
+    has_transparency = "transparency" in image.info
+    if image.mode in {"P", "PA"}:
+        return "RGBA" if has_transparency else "RGB"
+    if image.mode == "LA" or (image.mode == "RGB" and has_transparency):
+        return "RGBA"
+    if image.mode == "1":
+        return "L"
+    if image.mode == "CMYK":
+        return "RGBA" if image.format == "TIFF" else "RGB"
+    return None
+
+
+def _read_grayscale_pil_image(image: Any) -> npt.NDArray[np.uint8]:
+    """Decode one luminance channel, retaining PNG and JPEG decoder semantics.
+
+    For 8-bit PNG colors, libpng truncates both its 15-bit RGB coefficients and the
+    weighted sum; Pillow's regular ``convert("L")`` rounds instead. JPEG's native
+    grayscale decode uses the encoded luminance, so request it before EXIF transposition
+    can load RGB pixels. Other codecs and color modes can retain Pillow/OpenCV
+    differences, including color PNGs whose 16-bit channels Pillow has already reduced
+    to 8 bits.
+    """
+    image_format = image.format
+    if image_format == "JPEG":
+        image.draft("L", image.size)
+    image = _exif_oriented(image)
+    if image.mode in {"I", "I;16", "I;16B", "I;16L"}:
+        values = np.clip(np.asarray(image), 0, 65535).astype(np.uint16)
+        return cast(npt.NDArray[np.uint8], (values >> 8).astype(np.uint8))
+    if image_format == "PNG" and image.mode not in {"1", "L", "LA"}:
+        values = np.asarray(image.convert("RGB"), dtype=np.uint32)
+        grayscale = (
+            values[..., 0] * 9797 + values[..., 1] * 19234 + values[..., 2] * 3737
+        ) >> 15
+        return cast(npt.NDArray[np.uint8], grayscale.astype(np.uint8))
+    return np.array(image.convert("L"), dtype=np.uint8)
+
+
 def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
-    """Decode any source Pillow can open into BGR or BGRA arrays."""
+    """Decode any Pillow source into grayscale, BGR or BGRA arrays."""
     from PIL import Image
 
     try:
         with Image.open(source) as image:
-            if flags == _IMREAD_UNCHANGED:
-                if image.mode == "P":
-                    converted = image.convert(
-                        "RGBA" if "transparency" in image.info else "RGB"
-                    )
+            if flags == _IMREAD_GRAYSCALE:
+                values = _read_grayscale_pil_image(image)
+            elif flags == _IMREAD_UNCHANGED:
+                unchanged_mode = _opencv_unchanged_mode(image)
+                if unchanged_mode is not None:
+                    converted = image.convert(unchanged_mode)
                     values = np.asarray(converted)
                     converted.close()
                 else:
                     values = np.asarray(image)
             elif image.mode in {"I", "I;16", "I;16B", "I;16L"}:
-                values = np.asarray(image).astype(np.float64)
-                values = np.clip(np.rint(values / 256), 0, 255).astype(np.uint8)
+                values = np.asarray(_exif_oriented(image)).astype(np.float64)
+                # OpenCV discards the low byte of 16-bit samples. Rounding would
+                # brighten values such as 129 to 1 instead of keeping their high byte.
+                values = np.clip(np.floor(values / 256), 0, 255).astype(np.uint8)
                 if values.ndim == 2:
                     values = np.repeat(values[..., np.newaxis], 3, axis=2)
             else:
-                values = np.asarray(image.convert("RGB"))
+                values = np.asarray(_exif_oriented(image).convert("RGB"))
     except (FileNotFoundError, OSError, ValueError):
         return None
 
@@ -240,40 +616,196 @@ def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
 
 
 def _imread(filename: str, flags: int = _IMREAD_COLOR) -> npt.NDArray[Any] | None:
-    """Read an image with Pillow while returning BGR or BGRA arrays."""
+    """Read an image with Pillow as grayscale, BGR or BGRA arrays."""
     return _read_pil_source(filename, flags)
 
 
 def _imdecode(
     buf: npt.NDArray[Any], flags: int = _IMREAD_COLOR
 ) -> npt.NDArray[Any] | None:
-    """Decode in-memory encoded image bytes, returning BGR or BGRA arrays."""
+    """Decode encoded image bytes as grayscale, BGR or BGRA arrays."""
     import io
 
     data = np.asarray(buf, dtype=np.uint8).tobytes()
     return _read_pil_source(io.BytesIO(data), flags)
 
 
-def _bgr_to_pil_values(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
-    """Reorder BGR or BGRA channels into the RGB order Pillow expects."""
+def _bgr_to_pil_values(
+    image: npt.NDArray[Any], image_format: str | None = None
+) -> npt.NDArray[Any]:
+    """Normalize channel layouts and order for a Pillow image encoder.
+
+    Pillow expects grayscale as a 2D array. JPEG has no alpha channel, so discard alpha
+    without compositing, as OpenCV does; other formats retain it.
+    """
     values = np.asarray(image)
+    if values.ndim == 3 and values.shape[2] == 1:
+        values = values[..., 0]
     if values.ndim == 3 and values.shape[2] == 3:
         values = values[..., ::-1]
     elif values.ndim == 3 and values.shape[2] == 4:
-        values = values[..., [2, 1, 0, 3]]
+        channels = [2, 1, 0] if image_format == "JPEG" else [2, 1, 0, 3]
+        values = values[..., channels]
     return np.ascontiguousarray(values)
+
+
+# Sample types OpenCV's encoders write as they are. `cv2.imwrite` and `cv2.imencode`
+# convert any other type to 8 bits before encoding; formats not listed keep theirs.
+_OPENCV_ENCODER_DTYPES: dict[str, frozenset[np.dtype[Any]]] = {
+    "BMP": frozenset({np.dtype(np.uint8)}),
+    "JPEG": frozenset({np.dtype(np.uint8)}),
+    "WEBP": frozenset({np.dtype(np.uint8)}),
+    "PNG": frozenset({np.dtype(np.uint8), np.dtype(np.uint16)}),
+    "TIFF": frozenset(
+        np.dtype(dtype)
+        for dtype in (
+            np.uint8,
+            np.int8,
+            np.uint16,
+            np.int16,
+            np.int32,
+            np.float32,
+            np.float64,
+        )
+    ),
+}
+
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_COLOR_TYPES = {3: 2, 4: 6}
+
+
+def _opencv_encoder_values(
+    image: npt.NDArray[Any], image_format: str | None
+) -> npt.NDArray[Any]:
+    """Convert samples to a type OpenCV's encoder for `image_format` writes.
+
+    OpenCV writes JPEG, BMP and WebP as 8-bit, PNG as 8- or 16-bit and TIFF in most
+    types. It saturates any other type to `uint8`, rounding half to even with NaN
+    becoming 0, and logs an "Unsupported depth" warning instead of failing. Boolean
+    images are written as 0 and 1 in every format.
+
+    Example:
+        ```pycon
+        >>> values = np.array([[0.5, 1.5, -3.0, 300.0, np.nan]], dtype=np.float32)
+        >>> _opencv_encoder_values(values, "PNG").tolist()
+        [[0, 2, 0, 255, 0]]
+
+        ```
+    """
+    values = np.asarray(image)
+    if values.dtype == np.bool_:
+        return values.astype(np.uint8)
+    supported = _OPENCV_ENCODER_DTYPES.get(image_format or "")
+    if supported is None or values.dtype in supported:
+        return values
+    if values.dtype.kind == "f":
+        values = np.where(np.isnan(values), 0, values)
+    return _cast_array_like_opencv(values, np.dtype(np.uint8))
+
+
+def _encode_png_16bit_color(values: npt.NDArray[np.uint16]) -> bytes:
+    """Encode a 16-bit RGB or RGBA array as PNG, which Pillow cannot write.
+
+    Pillow has no 16-bit color modes, so the PNG is assembled here: a header, one zlib
+    stream of unfiltered big-endian scanlines, and the end marker.
+    """
+    import struct
+    import zlib
+
+    height, width, channels = values.shape
+    if height == 0 or width == 0:
+        raise ValueError("PNG dimensions must be nonzero")
+    rows = np.ascontiguousarray(values, dtype=">u2").view(np.uint8)
+    # Every scanline starts with filter type 0, which stores bytes as they are.
+    scanlines = np.hstack(
+        (np.zeros((height, 1), dtype=np.uint8), rows.reshape(height, -1))
+    )
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        """Frame one PNG chunk with its length and CRC."""
+        crc = zlib.crc32(tag + data)
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
+
+    header = struct.pack(
+        ">IIBBBBB", width, height, 16, _PNG_COLOR_TYPES[channels], 0, 0, 0
+    )
+    return (
+        _PNG_SIGNATURE
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(scanlines.tobytes()))
+        + chunk(b"IEND", b"")
+    )
+
+
+def _save_like_opencv(
+    image: npt.NDArray[Any], image_format: str | None, target: Any
+) -> None:
+    """Encode a BGR or BGRA array to a path or binary buffer as OpenCV would.
+
+    Samples are first converted as
+    :func:`~supervision._cv2._image._opencv_encoder_values` describes. Pillow
+    encodes the result, except 16-bit color PNGs, which it cannot write.
+    """
+    from PIL import Image
+
+    values = _bgr_to_pil_values(
+        _opencv_encoder_values(image, image_format), image_format
+    )
+    if (
+        image_format == "PNG"
+        and values.dtype == np.uint16
+        and values.ndim == 3
+        and values.shape[2] in _PNG_COLOR_TYPES
+    ):
+        data = _encode_png_16bit_color(values)
+        if isinstance(target, (str, os.PathLike)):
+            with open(target, "wb") as file:
+                file.write(data)
+        else:
+            target.write(data)
+        return
+    Image.fromarray(values).save(
+        target, format=image_format, **_opencv_default_save_options(image_format)
+    )
+
+
+def _opencv_default_save_options(image_format: str | None) -> dict[str, Any]:
+    """Return the Pillow save options that encode like OpenCV's default writers.
+
+    Given no parameters, `cv2.imwrite` and `cv2.imencode` write JPEG at quality 95 and
+    WebP losslessly, while Pillow's defaults are JPEG at quality 75 and lossy WebP at
+    quality 80. Formats such as PNG, BMP and TIFF are lossless in both libraries.
+    """
+    if image_format == "JPEG":
+        return {"quality": 95}
+    if image_format == "WEBP":
+        return {"lossless": True}
+    return {}
 
 
 def _imwrite(
     filename: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
 ) -> bool:
-    """Write a BGR or BGRA array with Pillow and return OpenCV's boolean status."""
+    """Write a BGR or BGRA array with Pillow and return OpenCV's boolean status.
+
+    Sample types the format cannot hold are converted to 8 bits, as OpenCV does; see
+    :func:`~supervision._cv2._image._opencv_encoder_values`. `False` is returned
+    when Pillow cannot write the result, such as multi-channel TIFFs of types other
+    than `uint8`, which OpenCV writes.
+
+    `params` is accepted for compatibility with `cv2.imwrite`'s signature and is
+    ignored: the file is encoded with the OpenCV defaults that
+    :func:`~supervision._cv2._image._opencv_default_save_options` returns, not
+    with the quality or compression the caller asked for.
+    """
     from PIL import Image
 
     del params
+    extension = os.path.splitext(filename)[1].lower()
+    image_format = Image.registered_extensions().get(extension)
     try:
-        Image.fromarray(_bgr_to_pil_values(image)).save(filename)
-    except (OSError, ValueError):
+        _save_like_opencv(image, image_format, filename)
+    except (KeyError, OSError, TypeError, ValueError):
         return False
     return True
 
@@ -281,19 +813,29 @@ def _imwrite(
 def _imencode(
     ext: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
 ) -> tuple[bool, npt.NDArray[np.uint8] | None]:
-    """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return."""
+    """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return.
+
+    Samples are converted and unsupported results reported exactly as in
+    :func:`~supervision._cv2._image._imwrite`.
+
+    `params` is accepted for compatibility with `cv2.imencode`'s signature and is
+    ignored: the image is encoded with the OpenCV defaults that
+    :func:`~supervision._cv2._image._opencv_default_save_options` returns, not
+    with the quality or compression the caller asked for.
+    """
     import io
 
     from PIL import Image
 
     del params
-    # Pillow registers the JPEG codec as "JPEG", not the "jpg" file extension.
-    image_format = ext.lstrip(".").upper()
-    if image_format == "JPG":
-        image_format = "JPEG"
+    # A suffix is not its codec's name, so resolve it through the same registry
+    # `_imwrite` and `Image.save` consult for a file path. An unregistered suffix
+    # resolves to None, which `Image.save` rejects for a buffer with no file name.
+    extension = f".{ext.lstrip('.').lower()}"
+    image_format = Image.registered_extensions().get(extension)
     buffer = io.BytesIO()
     try:
-        Image.fromarray(_bgr_to_pil_values(image)).save(buffer, format=image_format)
-    except (KeyError, OSError, ValueError):
+        _save_like_opencv(image, image_format, buffer)
+    except (KeyError, OSError, TypeError, ValueError):
         return False, None
     return True, np.frombuffer(buffer.getvalue(), dtype=np.uint8)

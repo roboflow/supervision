@@ -8,7 +8,10 @@ from supervision.utils.internal import warn_deprecated
 
 
 def _validate_xyxy(xyxy: Any) -> None:
-    """Validate that xyxy is a 2D np.ndarray with shape (N, 4).
+    """Validate the shape and finite numeric values of xyxy coordinates.
+
+    Raises ``ValueError`` when ``xyxy`` is not a two-dimensional array shaped
+    ``(N, 4)`` or contains a non-finite or unsupported coordinate value.
 
     ```pycon
     >>> _validate_xyxy(np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
@@ -22,6 +25,18 @@ def _validate_xyxy(xyxy: Any) -> None:
         raise ValueError(
             f"xyxy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
             f"{actual_shape}"
+        )
+
+    try:
+        contains_only_finite_values = np.isfinite(xyxy).all()
+    except TypeError as error:
+        raise ValueError(
+            "xyxy must contain only finite numeric values (no NaN or inf)."
+        ) from error
+
+    if not contains_only_finite_values:
+        raise ValueError(
+            "xyxy must contain only finite numeric values (no NaN or inf)."
         )
 
 
@@ -154,15 +169,6 @@ def _validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
     remove_in="0.32.0",
 )
 def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
-    void(confidence, n, m)
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_keypoint_confidence,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
     void(confidence, n, m)
 
 
@@ -320,33 +326,20 @@ def validate_key_points_fields(
     void(xy, class_id, confidence, data)
 
 
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_keypoints_fields,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def validate_keypoints_fields(
-    xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]
-) -> None:
-    void(xy, class_id, confidence, data)
-
-
 def _validate_resolution(resolution: Any) -> tuple[int, int]:
     if not (isinstance(resolution, tuple) and len(resolution) == 2):
-        raise ValueError(
-            f"""
+        message = f"""
             resolution must be a tuple of two integers, got
             {type(resolution)} with value {resolution}
             """
-        )
+        raise ValueError(message)
     w, h = resolution
     if not (isinstance(w, int) and isinstance(h, int)):
-        raise ValueError(
-            f"""
+        message = f"""
             Both elements in resolution must be integers.
             Got types ({type(w)}, {type(h)})
             """
-        )
+        raise ValueError(message)
     if w <= 0 or h <= 0:
         raise ValueError(
             f"Both dimensions in resolution must be positive. Got ({w}, {h})."

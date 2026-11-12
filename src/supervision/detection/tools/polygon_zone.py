@@ -6,30 +6,44 @@ import numpy.typing as npt
 
 from supervision import Detections
 from supervision import _cv2 as cv2
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import (
+    MIN_POLYGON_POINT_COUNT,
+    polygon_to_mask,
+)
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
-from supervision.geometry.core import Position
+from supervision.draw.utils import (
+    _map_to_drawing_coordinates,
+    draw_filled_polygon,
+    draw_polygon,
+    draw_text,
+)
+from supervision.geometry.core import (
+    CoordinatesTransformation,
+    Point,
+    Position,
+    _transform_points,
+)
 from supervision.geometry.utils import get_polygon_center
 
 
 class PolygonZone:
-    """
-    A class for defining a polygon-shaped zone within a frame for detecting objects.
+    """A class for defining a polygon-shaped zone within a frame for detecting objects.
 
     !!! warning
 
-        PolygonZone uses the `tracker_id`. Read
-        [here](/latest/trackers/) to learn how to plug
+        :class:`~supervision.detection.tools.polygon_zone.PolygonZone` uses the
+        `tracker_id`. Read
+        [here](https://trackers.roboflow.com/latest/) to learn how to plug
         tracking into your inference pipeline.
 
     Attributes:
         polygon: A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
-        triggering_anchors: A list of positions specifying
+        triggering_anchors: Any iterable of positions specifying
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
-            (default: (sv.Position.BOTTOM_CENTER,)).
+            (default: :class:`~supervision.geometry.core.Position` member
+            ``BOTTOM_CENTER``).
         require_all_anchors: If `True` (default), a detection is considered inside
             the zone only when *every* anchor in `triggering_anchors` is inside.
             If `False`, the detection triggers as soon as *any* anchor is inside.
@@ -78,6 +92,34 @@ class PolygonZone:
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
         require_all_anchors: bool = True,
     ) -> None:
+        """Build a zone from a polygon.
+
+        Args:
+            polygon: Zone boundary of shape `(N, 2)` holding the `x`, `y`
+                coordinates of its vertices.
+            triggering_anchors: Which anchors of a detection's bounding box
+                decide whether it falls inside the zone.
+            require_all_anchors: Whether every triggering anchor must be inside
+                for the detection to count, rather than any one of them.
+
+        Raises:
+            ValueError: If `polygon` is not of shape `(N, 2)`, has fewer than
+                `MIN_POLYGON_POINT_COUNT` vertices, or `triggering_anchors` is
+                empty.
+        """
+        polygon = np.asarray(polygon)
+        if polygon.ndim != 2 or polygon.shape[-1] != 2:
+            raise ValueError(f"Polygon must have shape (N, 2); got {polygon.shape}.")
+        # Fewer than three vertices enclose no area, so the mask below comes out
+        # empty or a bare line and the zone silently never triggers. Reject it
+        # here rather than let a zone that can never count look like a zone that
+        # simply saw nothing. Zero vertices additionally breaks `np.max`.
+        if len(polygon) < MIN_POLYGON_POINT_COUNT:
+            raise ValueError(
+                f"Polygon must have at least {MIN_POLYGON_POINT_COUNT} vertices "
+                f"to enclose an area; got {len(polygon)}."
+            )
+
         self.polygon = polygon.astype(int)
         # Materialize once so we can safely accept generators without exhausting them.
         self.triggering_anchors = list(triggering_anchors)
@@ -88,44 +130,80 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
+        if np.issubdtype(polygon.dtype, np.integer):
+            x_max, y_max = int(x_max), int(y_max)
         self.mask = polygon_to_mask(
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
 
-    def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
-        """
-        Determines if the detections are within the polygon zone.
+    def trigger(
+        self,
+        detections: Detections,
+        coord_transform: CoordinatesTransformation | None = None,
+    ) -> npt.NDArray[np.bool_]:
+        """Determines if the detections are within the polygon zone.
 
         Anchor points are calculated from original (unclipped) detection boxes to
         avoid per-zone clipping shifting anchor positions. This prevents a single
         detection from being counted in multiple non-overlapping zones due to
         clipping artifacts, although overlapping zones may still legitimately
-        contain the same detection.
+        contain the same detection. Negative and non-finite anchors are outside.
 
         Args:
             detections: The detections to be checked against the polygon zone
+            coord_transform: Optional per-frame camera motion. Anchors are mapped
+                into the zone's reference frame with
+                :meth:`~supervision.geometry.core.CoordinatesTransformation.rel_to_abs`
+                before the inside test; anchors mapped outside the zone's bounds
+                or to non-finite values are outside.
 
         Returns:
             A boolean numpy array indicating
                 if each detection is within the polygon zone
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> class CameraShift:
+            ...     def abs_to_rel(self, points): return points + [50, 0]
+            ...     def rel_to_abs(self, points): return points - [50, 0]
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+            ... )
+            >>> detections = sv.Detections(xyxy=np.array([[120.0, 40.0, 140.0, 60.0]]))
+            >>> zone.trigger(detections)
+            array([False])
+            >>> zone.trigger(detections, coord_transform=CameraShift())
+            array([ True])
+
+            ```
         """
         if len(detections) == 0:
             self.current_count = 0
             return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
 
-        all_anchors = np.array(
+        anchor_coordinates = np.array(
             [
-                np.rint(detections.get_anchors_coordinates(anchors)).astype(int)
+                detections.get_anchors_coordinates(anchors)
                 for anchors in self.triggering_anchors
             ]
         )
+        if coord_transform is not None:
+            mapped = _transform_points(anchor_coordinates, coord_transform.rel_to_abs)
+            anchor_coordinates = np.nan_to_num(
+                mapped, nan=-1.0, posinf=-1.0, neginf=-1.0
+            )
 
         mask_h, mask_w = self.mask.shape
-        x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
-        in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
-        x_safe = np.clip(x, 0, mask_w - 1)
-        y_safe = np.clip(y, 0, mask_h - 1)
-        anchor_hits = in_bounds & self.mask[y_safe, x_safe]
+        rounded = np.rint(anchor_coordinates)
+        mask_size = np.array([mask_w, mask_h], dtype=np.intp)
+        # Test the lower bounds before rounding so a negative subpixel cannot
+        # become zero. The rounded coordinates must fit the mask before casting.
+        valid_coordinates = (anchor_coordinates >= 0) & (rounded < mask_size)
+        in_bounds = valid_coordinates[..., 0] & valid_coordinates[..., 1]
+        safe_anchors = np.where(in_bounds[..., None], rounded, 0).astype(np.intp)
+        anchor_hits = in_bounds & self.mask[safe_anchors[..., 1], safe_anchors[..., 0]]
         reduce = np.all if self.require_all_anchors else np.any
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
@@ -133,8 +211,7 @@ class PolygonZone:
 
 
 class PolygonZoneAnnotator:
-    """
-    A class for annotating a polygon-shaped zone within a frame with a count of
+    """A class for annotating a polygon-shaped zone within a frame with a count of
     detected objects.
 
     Attributes:
@@ -191,36 +268,91 @@ class PolygonZoneAnnotator:
         self.opacity = opacity
 
     def annotate(
-        self, scene: npt.NDArray[Any], label: str | None = None
+        self,
+        scene: npt.NDArray[Any],
+        label: str | None = None,
+        coord_transform: CoordinatesTransformation | None = None,
     ) -> npt.NDArray[Any]:
-        """
-        Annotates the polygon zone within a frame with a count of detected objects.
+        """Annotates the polygon zone within a frame with a count of detected objects.
 
         Args:
             scene: The image on which the polygon zone will be annotated
             label: A label for the count of detected objects
                 within the polygon zone (default: None)
+            coord_transform: Optional per-frame camera motion, the same one
+                passed to
+                :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`.
+                The zone's vertices, and its count label when shown, are mapped
+                into the current frame with
+                :meth:`~supervision.geometry.core.CoordinatesTransformation.abs_to_rel`
+                and rounded to the nearest pixel, where drawing without a transform
+                truncates. If any of them maps to a non-finite coordinate or one
+                beyond `2**20` pixels, the zone is not drawn on this frame.
 
         Returns:
             The image with the polygon zone and count of detected objects
+
+        Raises:
+            ValueError: If `coord_transform` does not return one point per input
+                point.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> class CameraShift:
+            ...     def abs_to_rel(self, points): return points + [50, 0]
+            ...     def rel_to_abs(self, points): return points - [50, 0]
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+            ... )
+            >>> zone_annotator = sv.PolygonZoneAnnotator(
+            ...     zone=zone, display_in_zone_count=False
+            ... )
+            >>> scene = np.zeros((120, 200, 3), dtype=np.uint8)
+            >>> annotated_scene = zone_annotator.annotate(
+            ...     scene=scene, coord_transform=CameraShift()
+            ... )
+            >>> annotated_scene[50, 150].tolist()
+            [255, 255, 255]
+            >>> annotated_scene[50, 100].tolist()
+            [0, 0, 0]
+
+            ```
         """
+        polygon = self.zone.polygon
+        center = self.center
+        if coord_transform is not None:
+            reference_points = polygon
+            if self.display_in_zone_count:
+                reference_points = np.vstack([polygon, [[center.x, center.y]]])
+            mapped = _map_to_drawing_coordinates(reference_points, coord_transform)
+            if mapped is None:
+                # Alias the result like the drawn path: a copy when filling.
+                return scene if self.opacity == 0 else scene.copy()
+            mapped_pixels = np.rint(mapped).astype(np.int64)
+            polygon = mapped_pixels[: len(self.zone.polygon)]
+            if self.display_in_zone_count:
+                center_x, center_y = mapped_pixels[-1].tolist()
+                center = Point(x=center_x, y=center_y)
+
         if self.opacity == 0:
             annotated_frame = draw_polygon(
                 scene=scene,
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 thickness=self.thickness,
             )
         else:
             annotated_frame = draw_filled_polygon(
                 scene=scene.copy(),
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 opacity=self.opacity,
             )
             annotated_frame = draw_polygon(
                 scene=annotated_frame,
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 thickness=self.thickness,
             )
@@ -229,7 +361,7 @@ class PolygonZoneAnnotator:
             annotated_frame = draw_text(
                 scene=annotated_frame,
                 text=str(self.zone.current_count) if label is None else label,
-                text_anchor=self.center,
+                text_anchor=center,
                 background_color=self.color,
                 text_color=self.text_color,
                 text_scale=self.text_scale,

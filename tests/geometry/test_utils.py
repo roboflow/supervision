@@ -1,3 +1,5 @@
+from typing import NoReturn
+
 import numpy as np
 import pytest
 
@@ -6,8 +8,7 @@ from supervision.geometry.utils import get_polygon_center
 
 
 def generate_test_polygon(n: int) -> np.ndarray:
-    """
-     Generate a semicircle with a given number of points.
+    """Generate a semicircle with a given number of points.
 
      Parameters:
          n (int): amount of points in polygon
@@ -29,7 +30,7 @@ def generate_test_polygon(n: int) -> np.ndarray:
     r: int = n // 2
     x_axis = np.linspace(0, 2 * r, n)
     y_axis = (r**2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
-    polygon = np.array([x_axis, y_axis]).T
+    polygon: np.ndarray = np.array([x_axis, y_axis]).T
 
     return polygon
 
@@ -48,8 +49,7 @@ def generate_test_polygon(n: int) -> np.ndarray:
     ],
 )
 def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None:
-    """
-    Verify that get_polygon_center correctly calculates the centroid of a polygon.
+    """Verify that get_polygon_center correctly calculates the centroid of a polygon.
 
     Scenario: Calculating the center point (centroid) of various polygons.
     Expected: The returned `Point` correctly represents the average position of all
@@ -57,6 +57,58 @@ def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None
     of detected objects.
     """
     result = get_polygon_center(polygon)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("polygon", "expected_result"),
+    [
+        pytest.param(
+            np.array(
+                [
+                    [1_000_000, 1_000_000],
+                    [1_050_000, 1_000_000],
+                    [1_050_000, 1_050_000],
+                    [1_000_000, 1_050_000],
+                ],
+                dtype=np.int32,
+            ),
+            Point(x=1_025_000, y=1_025_000),
+            id="int32-overflow",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [1_000_000_000_000, 1_000_000_000_000],
+                    [1_000_000_050_000, 1_000_000_000_000],
+                    [1_000_000_050_000, 1_000_000_050_000],
+                    [1_000_000_000_000, 1_000_000_050_000],
+                ],
+                dtype=np.int64,
+            ),
+            Point(x=1_000_000_025_000, y=1_000_000_025_000),
+            id="large-offset-cancellation",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [1_000_000_000_000, 1_000_000_000_000],
+                    [1_000_000_000_003, 1_000_000_000_005],
+                    [1_000_000_000_012, 1_000_000_000_020],
+                ],
+                dtype=np.int64,
+            ),
+            Point(x=1_000_000_000_005, y=1_000_000_000_008),
+            id="int64-collinear-zero-area",
+        ),
+    ],
+)
+def test_get_polygon_center_with_large_coordinates(
+    polygon: np.ndarray, expected_result: Point
+) -> None:
+    """Calculate centroids without integer overflow or precision loss."""
+    result = get_polygon_center(polygon)
+
     assert result == expected_result
 
 
@@ -75,7 +127,7 @@ def test_get_polygon_center_does_not_call_np_cross(
 ) -> None:
     """Guard against reintroducing np.cross, deprecated for 2-D input in NumPy 2.0."""
 
-    def _raise(*args, **kwargs):
+    def _raise(*args: object, **kwargs: object) -> NoReturn:
         raise AssertionError("np.cross must not be called on 2-D vectors")
 
     monkeypatch.setattr(np, "cross", _raise)

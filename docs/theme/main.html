@@ -11,6 +11,30 @@
 {{ super() }}
 {% endblock content %}
 
+{# Banner warning readers that they are on an archived version tree. Material renders
+   the aside server-side and unhides it client-side, so the text stays in the HTML for
+   crawlers and AI answer engines that never run JavaScript. Emitting it only when
+   mike is deploying something other than latest keeps that warning off /latest/ —
+   an empty block makes Material skip the aside entirely. is_latest_release further
+   exempts the numbered version tree that happens to be the newest release: mike
+   deploy sets doc_version to that release's own tag, never to "latest", so without
+   this exemption the current release would warn its own readers away from itself. #}
+{% block outdated %}
+{% set doc_version = config.extra.doc_version | d("", true) %}
+{# mkdocs's !ENV tag re-parses "true"/"false" as YAML booleans, unlike doc_version's
+   free-form string, so this is used for truthiness directly rather than compared
+   against a literal string. #}
+{% set is_latest_release = config.extra.is_latest_release %}
+{% set latest_url = config.site_url | d('https://supervision.roboflow.com/latest/', true) %}
+{% if doc_version == "develop" %}
+You are reading the unreleased development version of the documentation, built from the <code>develop</code> branch.<br>
+APIs described here may change or may never ship in a release, so use the <a href="{{ latest_url }}"><strong>latest stable release</strong></a> instead.
+{% elif doc_version and doc_version != "latest" and not is_latest_release %}
+You are reading the documentation for an older version of Supervision, kept online for reference.<br>
+APIs described here may have changed or been removed, so use the <a href="{{ latest_url }}"><strong>latest stable release</strong></a> instead.
+{% endif %}
+{% endblock %}
+
 {% block extrahead %}
 {{ super() }}
 {% if page.meta is defined and page.meta is not none and page.meta is not undefined %}
@@ -19,6 +43,7 @@
 {% set _meta = {} %}
 {% endif %}
 {% set page_description = _meta.description | d(config.site_description) %}
+{% set docs_base_url = config.site_url | trim("/") %}
 {# ── GEO: JSON-LD + OG tags (page context required — skip for theme templates like 404) #}
 
 {# ── GEO: JSON-LD structured data ──────────────────────────── #}
@@ -58,7 +83,12 @@
   "codeRepository": "https://github.com/roboflow/supervision",
   "license": "https://github.com/roboflow/supervision/blob/develop/LICENSE.md",
   "description": "Open-source Python library for computer vision: load datasets, draw detections, count objects in zones, and track across frames.",
-  "offers": {
+  {% if config.extra.github_stars %}"interactionStatistic": {
+    "@type": "InteractionCounter",
+    "interactionType": "https://schema.org/LikeAction",
+    "userInteractionCount": {{ config.extra.github_stars | tojson }}
+  },
+  {% endif %}"offers": {
     "@type": "Offer",
     "price": "0",
     "priceCurrency": "USD"
@@ -79,7 +109,7 @@
   },
   "potentialAction": {
     "@type": "SearchAction",
-    "target": "{{ config.site_url }}search/?q={search_term_string}",
+    "target": "{{ docs_base_url }}/search/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
 }
@@ -160,7 +190,7 @@
       "name": "How do I track objects across video frames?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Use a tracker to assign persistent IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections with update_with_detections(), but it is deprecated in favor of ByteTrackTracker from the external trackers package, whose update method is named update(). Combine tracked Detections with sv.TraceAnnotator to visualize trajectories."
+        "text": "Use ByteTrackTracker from the external trackers package, which accepts Detections through update(); the built-in sv.ByteTrack wrapper, which used update_with_detections(), was removed as of supervision-0.31.0. Combine tracked Detections with sv.TraceAnnotator to visualize trajectories."
       }
     },
     {
@@ -251,7 +281,7 @@
       "name": "How do I track objects across video frames?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Assign persistent tracker IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections through update_with_detections(). After tracking, combine the output with annotators such as sv.TraceAnnotator, sv.BoxAnnotator, and sv.LabelAnnotator."
+        "text": "Assign persistent tracker IDs before visualization using ByteTrackTracker from the external trackers package; the built-in sv.ByteTrack wrapper was removed as of supervision-0.31.0. After tracking, combine the output with annotators such as sv.TraceAnnotator, sv.BoxAnnotator, and sv.LabelAnnotator."
       }
     },
     {
@@ -473,7 +503,7 @@
       "name": "How do I track objects in video with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Assign persistent tracker IDs before visualizing trajectories. The built-in sv.ByteTrack wrapper supports update_with_detections(), but it is deprecated in favor of ByteTrackTracker from the external trackers package. Combine tracked Detections with sv.TraceAnnotator. See the Object Tracking cookbook."
+        "text": "Assign persistent tracker IDs before visualizing trajectories using ByteTrackTracker from the external trackers package; the built-in sv.ByteTrack wrapper was removed as of supervision-0.31.0. Combine tracked Detections with sv.TraceAnnotator. See the Object Tracking cookbook."
       }
     }
   ]
