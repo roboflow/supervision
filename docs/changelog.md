@@ -7,7 +7,9 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.from_yolo`, `from_coco` and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with `Invalid YOLO annotation file`, and a JSON file failed with `Unexpected UTF-8 BOM`. `read_txt_file` and `save_text_file` now use UTF-8 on every platform, like the JSON and YAML helpers.
+- `sv.DetectionDataset.from_yolo`, `from_coco` and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with `Invalid YOLO annotation file`, and a JSON file failed with `Unexpected UTF-8 BOM`. `read_txt_file` and `save_text_file` now use UTF-8 on every platform, like the JSON and YAML helpers. ([#2959](https://github.com/roboflow/supervision/pull/2959))
+
+- Added `sv.KeyPointsDataset`, the keypoint counterpart of `sv.DetectionDataset`: lazy image loading, indexing, iteration, `split`, `merge`, `from_yolo` and `as_yolo` for the YOLO pose format. A pose dataset was previously unreachable — `DetectionDataset.from_yolo` keeps the box of each label and discards the keypoint values. Each image is annotated with `sv.KeyPoints` carrying the object box under `data['xyxy']`. For a `kpt_shape` of `[K, 3]`, `KeyPoints.visible` marks flag `1` (occluded) and flag `2` (visible) keypoints alike, so `sv.metrics.KeyPointMeanAveragePrecision` scores occluded joints as COCO evaluation does, while the raw flags, including the fractional confidences that labels written from model output carry, are kept under the new `data['keypoint_visibility']`; selecting keypoints, as in `key_points[:, [2, 1, 0]]`, keeps keypoint-aligned data fields such as `keypoint_visibility` aligned. A dataset survives `from_yolo` then `as_yolo` with each annotation line rewritten unchanged, to the six significant digits the writer emits. ([#2745](https://github.com/roboflow/supervision/pull/2745))
 
 - Performance: `sv.CompactMask.area` now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 3–9× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. Accumulation now uses int64, avoiding overflow for areas above the int32 limit with NumPy 1.x on Windows. ([#2744](https://github.com/roboflow/supervision/pull/2744))
 
@@ -20,6 +22,8 @@ date_modified: 2026-10-31
 - `sv.xyxy_to_xywh` now computes integer box widths and heights without wraparound. Integer inputs return `int64`, or `float64` when an output value exceeds the `int64` range, instead of negative extents caused by overflow. ([#2951](https://github.com/roboflow/supervision/pull/2951))
 
 - `sv.JSONSink` now rejects additional data whose names collide with built-in detection fields, preventing custom metadata from silently overwriting coordinates, class IDs, confidence scores or tracker IDs. Rename such metadata fields, for example to `calibrated_confidence`. ([#2949](https://github.com/roboflow/supervision/pull/2949))
+
+- `sv.PolygonZoneAnnotator.annotate` and `sv.LineZoneAnnotator.annotate` accept the same optional `coord_transform` as `trigger`, so zones, lines and their counts are drawn where they appear while the camera moves. A zone or line with a point mapped to a non-finite coordinate or beyond `2**20` pixels is skipped for that frame. ([#2760](https://github.com/roboflow/supervision/pull/2760))
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 
