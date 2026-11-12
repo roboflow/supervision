@@ -634,9 +634,7 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
-        frame_resolution_wh = None
-        if coord_transform is not None:
-            frame_resolution_wh = (frame.shape[1], frame.shape[0])
+        is_mapped = coord_transform is not None
 
         in_text = f"{self.in_text}: {line_counter.in_count}"
         out_text = f"{self.out_text}: {line_counter.out_count}"
@@ -662,7 +660,7 @@ class LineZoneAnnotator:
                     line_angle_degrees=line_angle_degrees,
                     text=text,
                     is_in_count=is_in_count,
-                    frame_resolution_wh=frame_resolution_wh,
+                    is_mapped=is_mapped,
                 )
 
         return frame
@@ -699,7 +697,7 @@ class LineZoneAnnotator:
         text_height: int,
         is_in_count: bool,
         label_dimension: int,
-        frame_resolution_wh: tuple[int, int] | None = None,
+        is_mapped: bool = False,
     ) -> tuple[int, int]:
         """Calculate insertion anchor in frame to position the center of the count
         image.
@@ -712,11 +710,12 @@ class LineZoneAnnotator:
             is_in_count: Whether the count should be placed over or below line.
             label_dimension: Size of the label image. Assumes the
                 label is rectangular.
-            frame_resolution_wh: If given, a label beyond the left or top edge
-                is pulled back onto the frame only while the line point it is
-                anchored on lies inside a frame of this size, so labels of a line
-                mapped off-frame leave with it. If `None`, it is always pulled
-                back.
+            is_mapped: Whether the line was mapped into the current frame by a
+                `coord_transform`, so it may lie off-frame. A label beyond the left
+                or top edge is then pulled back only as far as the line point it is
+                anchored on, so labels of a line that leaves the frame leave with
+                it and move continuously across the edge. If `False`, it is always
+                pulled back onto the frame.
 
         Returns:
             xy, point in an image where the label will be placed.
@@ -760,13 +759,15 @@ class LineZoneAnnotator:
 
         x1 = anchor[0] - label_dimension // 2
         y1 = anchor[1] - label_dimension // 2
-        # Tested on the float point, so a midpoint at x = -0.5 counts as outside
-        # even though truncating it gives 0.
-        x, y = line_point.as_xy_float_tuple()
-        clamp = frame_resolution_wh is None or (
-            0 <= x < frame_resolution_wh[0] and 0 <= y < frame_resolution_wh[1]
-        )
-        if clamp:
+        if is_mapped:
+            # The bound falls with an off-frame line point instead of switching off,
+            # so a sub-pixel camera move across the edge shifts the label by about
+            # one pixel, never by a label width. It is taken on the float point,
+            # so a midpoint at x = -0.5 is already outside.
+            x, y = line_point.as_xy_float_tuple()
+            x1 = max(x1, min(0, math.floor(x)))
+            y1 = max(y1, min(0, math.floor(y)))
+        else:
             x1, y1 = max(x1, 0), max(y1, 0)
 
         return x1, y1
@@ -821,7 +822,7 @@ class LineZoneAnnotator:
         line_angle_degrees: float,
         text: str,
         is_in_count: bool,
-        frame_resolution_wh: tuple[int, int] | None = None,
+        is_mapped: bool = False,
     ) -> npt.NDArray[np.uint8]:
         """Draw the count label on the frame.
 
@@ -834,10 +835,10 @@ class LineZoneAnnotator:
             text: The text that will be drawn.
             is_in_count: Whether to display the in count (above line)
                 or out count (below line).
-            frame_resolution_wh: If given, a label beyond the left or top edge
-                is pulled back onto the frame only while the line point it is
-                anchored on lies inside a frame of this size. If `None`, it is
-                always pulled back.
+            is_mapped: Whether the line was mapped into the current frame by a
+                `coord_transform`. A label beyond the left or top edge is then
+                pulled back only as far as the line point it is anchored on. If
+                `False`, it is always pulled back onto the frame.
 
         Returns:
             The scene with the label drawn on it.
@@ -865,7 +866,7 @@ class LineZoneAnnotator:
             text_height=text_height,
             is_in_count=is_in_count,
             label_dimension=label_image.shape[0],
-            frame_resolution_wh=frame_resolution_wh,
+            is_mapped=is_mapped,
         )
 
         frame = _overlay_image(frame, label_image, label_anchor)

@@ -31,6 +31,37 @@ WHITE = [255, 255, 255]
 BLACK = [0, 0, 0]
 
 
+def _oriented_label_pixels(
+    line_zone: LineZone,
+    coord_transform: _ShiftTransform | _ConstantTransform | None,
+    text_centered: bool = True,
+) -> np.ndarray:
+    """Return a mask of the pixels the oriented "in" count label changes.
+
+    The same line is drawn with and without its label on a black frame, so the mask
+    holds the label box alone, whatever text backend sizes it.
+    """
+    frame = np.zeros((100, 200, 3), dtype=np.uint8)
+    with_label = LineZoneAnnotator(
+        text_orient_to_line=True, text_centered=text_centered, display_out_count=False
+    )
+    without_label = LineZoneAnnotator(
+        text_orient_to_line=True,
+        text_centered=text_centered,
+        display_in_count=False,
+        display_out_count=False,
+    )
+
+    labeled = with_label.annotate(
+        frame.copy(), line_zone, coord_transform=coord_transform
+    )
+    bare = without_label.annotate(
+        frame.copy(), line_zone, coord_transform=coord_transform
+    )
+
+    return np.asarray((labeled != bare).any(axis=2))
+
+
 @pytest.mark.parametrize(
     ("vector", "expected_result", "exception"),
     [
@@ -1800,31 +1831,103 @@ class TestLineZoneAnnotatorWithCoordTransform:
         assert not annotated.any()
 
     @pytest.mark.parametrize(
-        ("end", "shift", "visible_rows"),
+        ("start", "end", "text_centered", "shift", "offset"),
         [
-            pytest.param(Point(180, 50), (-120, 0), slice(50, 60), id="center-x-20"),
             pytest.param(
-                Point(181, 50), (-101, 0), slice(48, 55), id="center-x-half-pixel"
+                Point(20, 30),
+                Point(180, 50),
+                True,
+                (-120, 0),
+                (20, 0),
+                id="center-x-20",
+            ),
+            pytest.param(
+                Point(20, 30),
+                Point(181, 50),
+                True,
+                (-101, 0),
+                (1, 0),
+                id="center-x-half-pixel",
+            ),
+            pytest.param(
+                Point(20, 30),
+                Point(180, 50),
+                True,
+                (0, -50),
+                (0, 10),
+                id="center-y-10",
+            ),
+            pytest.param(
+                Point(180, 50),
+                Point(5, 40),
+                False,
+                (-10, 0),
+                (5, 0),
+                id="uncentered-end-x-5",
             ),
         ],
     )
-    def test_labels_anchored_off_left_edge_are_not_pushed_into_frame(
-        self, end: Point, shift: tuple[int, int], visible_rows: slice
+    def test_labels_anchored_off_frame_are_cut_not_pushed_into_frame(
+        self,
+        start: Point,
+        end: Point,
+        text_centered: bool,
+        shift: tuple[int, int],
+        offset: tuple[int, int],
     ) -> None:
-        """Labels of a visible line whose center is off-frame are cut at the edge."""
-        line_zone = LineZone(Point(20, 30), end)
-        annotator = LineZoneAnnotator(text_orient_to_line=True)
-        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+        """A label whose line point is off-frame is cut by the edge, not pulled in.
 
-        annotated = annotator.annotate(
-            frame, line_zone, coord_transform=_ShiftTransform(*shift)
+        Drawn without a transform at its mapped endpoints, the same line has its label
+        pulled to the frame edge. With the transform the label sits `offset` pixels
+        further out, where its line point is, so it is that label moved back by `offset`
+        and cut by the edge.
+        """
+        mapped_start = Point(start.x + shift[0], start.y + shift[1])
+        mapped_end = Point(end.x + shift[0], end.y + shift[1])
+        offset_x, offset_y = offset
+
+        mapped = _oriented_label_pixels(
+            LineZone(start, end), _ShiftTransform(*shift), text_centered
+        )
+        pulled_in = _oriented_label_pixels(
+            LineZone(mapped_start, mapped_end), None, text_centered
         )
 
-        # The mapped center is (-20, 40) or (-0.5, 40), which truncates to x = 0
-        # but is still outside. The "out" label's padding shows at the left edge,
-        # and no label is pushed in to where x1 = 0 would put it, around x = 50.
-        assert np.all(annotated[visible_rows, 0:10] == WHITE)
-        assert not annotated[27:32, 48:53].any()
+        mapped_right = np.flatnonzero(mapped.any(axis=0))[-1]
+        mapped_bottom = np.flatnonzero(mapped.any(axis=1))[-1]
+        pulled_in_right = np.flatnonzero(pulled_in.any(axis=0))[-1]
+        pulled_in_bottom = np.flatnonzero(pulled_in.any(axis=1))[-1]
+        assert (mapped_right, mapped_bottom) == (
+            pulled_in_right - offset_x,
+            pulled_in_bottom - offset_y,
+        )
+
+    @pytest.mark.parametrize(
+        ("shift_before", "shift_after"),
+        [
+            pytest.param(-100.1, -100.3, id="inside-to-inside"),
+            pytest.param(-100.3, -100.7, id="inside-to-outside"),
+            pytest.param(-100.7, -100.9, id="outside-to-outside"),
+            pytest.param(-100.1, -100.9, id="inside-to-outside-sub-pixel"),
+        ],
+    )
+    def test_label_moves_continuously_as_line_point_crosses_left_edge(
+        self, shift_before: float, shift_after: float
+    ) -> None:
+        """Sub-pixel camera motion across the left edge shifts a label by a pixel.
+
+        The line's midpoint crosses x = 0 between the two shifts. A label that is
+        pulled into view only while its anchor is on-screen would jump by about a
+        label width there, which is what a nearly static camera must not cause.
+        """
+        line_zone = LineZone(Point(20, 30), Point(181, 50))
+
+        before = _oriented_label_pixels(line_zone, _ShiftTransform(shift_before, 0))
+        after = _oriented_label_pixels(line_zone, _ShiftTransform(shift_after, 0))
+
+        right_edge_before = np.flatnonzero(before.any(axis=0))[-1]
+        right_edge_after = np.flatnonzero(after.any(axis=0))[-1]
+        assert abs(right_edge_before - right_edge_after) <= 1
 
     @pytest.mark.parametrize(
         ("start", "end", "label_window"),
@@ -1869,23 +1972,6 @@ class TestLineZoneAnnotatorWithCoordTransform:
 
         # Where the label's padding would be had it not been pulled in.
         assert not annotated[9:14, 22:27].any()
-
-    def test_uncentered_label_anchored_off_frame_is_not_pushed_into_view(
-        self,
-    ) -> None:
-        """A label near an end mapped off the left edge is cut there, not pulled in."""
-        line_zone = LineZone(Point(180, 50), Point(5, 40))
-        annotator = LineZoneAnnotator(text_orient_to_line=True, text_centered=False)
-        frame = np.zeros((100, 200, 3), dtype=np.uint8)
-
-        annotated = annotator.annotate(
-            frame, line_zone, coord_transform=_ShiftTransform(-10, 0)
-        )
-
-        # The end maps to (-5, 40): label padding stays where the anchor puts it,
-        # and nothing reaches where a pulled-in label would.
-        assert np.all(annotated[7:12, 32:37] == WHITE)
-        assert not annotated[62:67, 55:60].any()
 
     @pytest.mark.parametrize("shear", [1e-6, -1e-6])
     def test_sub_pixel_jitter_does_not_flip_vertical_line_label(
