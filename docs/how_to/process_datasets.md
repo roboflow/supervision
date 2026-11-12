@@ -210,6 +210,30 @@ The Supervision library provides convenient functions to load datasets in variou
     # 800, 100, 100
     ```
 
+### COCO polygon masks
+
+COCO polygon vertices are points on a continuous boundary. A square from `(1.65, 1.65)` to `(5.65, 5.65)` encloses a 4 × 4 area, so the COCO reference tools, which evaluation metrics are built on, produce a 16-pixel mask for it: a pixel is on when its centre lies inside the boundary. The default `mask_rasterizer="supervision"` rounds each vertex and fills inclusively, treating the rounded vertices as pixel indices, so the same polygon becomes 25 pixels: one extra row and one extra column. The same holds for integer vertices, where `(1, 1)` to `(5, 5)` gives 25 pixels instead of 16. On large objects the difference is small. On small objects it changes mask area and IoU noticeably.
+
+![Animation of one square polygon: "supervision" rounds the vertices and fills 25 pixels, "pycocotools" keeps them continuous and fills the 16 pixels whose centres are inside the boundary, leaving 9 extra pixels and an IoU of 0.64](../assets/coco-polygon-rasterizer.svg){ align=center width="760" }
+
+Pass `mask_rasterizer="pycocotools"` to load polygons the way COCO does. This mode needs the optional extra: `pip install "supervision[coco]"`.
+
+```python
+import supervision as sv
+
+ds_train = sv.DetectionDataset.from_coco(
+    images_directory_path=f"{dataset.location}/train",
+    annotations_path=f"{dataset.location}/train/_annotations.coco.json",
+    mask_rasterizer="pycocotools",
+)
+```
+
+!!! warning
+
+    Omitting `mask_rasterizer` still gives the current `"supervision"` masks, but loading a file that contains polygon segmentation now emits a `SupervisionWarnings` warning. The default changes to `"pycocotools"` no earlier than `0.35.0`. Pass `mask_rasterizer="supervision"` to keep today's masks, or `"pycocotools"` to adopt the COCO ones now.
+
+RLE masks decode identically in both modes, and `as_coco` export is unchanged. Use RLE when you need exact masks to survive a round trip through other COCO tools.
+
 ## Split Dataset
 
 If your dataset is not already split into train, test, and valid subsets, you can easily do so using the [`sv.DetectionDataset.split`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split) method. We can split it as follows, ensuring a random shuffle of the data.
