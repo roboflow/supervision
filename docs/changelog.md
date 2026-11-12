@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- Performance: `sv.CompactMask.area` now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 3–9× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. Accumulation now uses int64, avoiding overflow for areas above the int32 limit with NumPy 1.x on Windows. ([#2744](https://github.com/roboflow/supervision/pull/2744))
+
 - `sv.DetectionDataset.from_coco` accepts `mask_rasterizer="pycocotools"` to load COCO polygons with the COCO reference rasterization, which matches the masks COCO evaluation builds for well-formed polygons. Continuous vertices are retained and disjoint parts are merged per object. Install `supervision[coco]` for this optional mode; without it, the mode raises `ImportError` with the install command as soon as loading starts. Omitting `mask_rasterizer` keeps the current inclusive integer fill (`"supervision"`), but relying on that default for a file with polygon segmentation is deprecated in `0.32.0` and emits a `SupervisionWarnings` warning, because the default changes to `"pycocotools"` no earlier than `0.35.0`; pass `mask_rasterizer="supervision"` to keep the current masks. RLE decoding is unchanged. ([#2714](https://github.com/roboflow/supervision/pull/2714))
 
 - `sv.metrics.MeanAverageRecall` selects targets by size before copying their rows. The size filter no longer copies every target mask for each range or fails on unused image metadata that cannot be deep-copied. ([#2953](https://github.com/roboflow/supervision/pull/2953))
