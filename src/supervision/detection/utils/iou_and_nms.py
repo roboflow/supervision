@@ -1893,6 +1893,30 @@ def _validate_num_models(num_models: int | None) -> None:
         )
 
 
+def _validate_fusion_predictions_shape(predictions: npt.NDArray[np.number]) -> None:
+    """Reject Weighted Box Fusion predictions not shaped `(n, 5)` or `(n, 6)`.
+
+    Without this check a `(n, 4)` array or a single 1-D row fails later with an
+    opaque ``IndexError``, and a `(n, 7)` array is silently cut down to six
+    columns. Empty input must carry five or six columns as well, so the empty
+    result keeps the same column count as a fused one.
+
+    Args:
+        predictions: The predictions passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`.
+
+    Raises:
+        ValueError: If `predictions` is not a 2-D array with 5 or 6 columns.
+    """
+    if predictions.ndim != 2 or predictions.shape[1] not in (5, 6):
+        raise ValueError(
+            "Predictions passed to box_weighted_box_fusion must have shape (n, 5) "
+            "or (n, 6), one [x1, y1, x2, y2, confidence] row per box with an "
+            f"optional class id column, got shape {predictions.shape}. Stack the "
+            "boxes, confidences and class ids into one 2-D array before fusing."
+        )
+
+
 def _validate_fusion_confidences(confidences: npt.NDArray[np.number]) -> None:
     """Reject Weighted Box Fusion confidences that are negative or not finite.
 
@@ -2107,8 +2131,9 @@ def box_weighted_box_fusion(
         ValueError: If `iou_threshold` is not within the closed range
             from `0` to `1`, if `num_models` is not `None` and not a
             positive integer, if `overlap_metric` is not a valid overlap
-            metric (checked even when no overlap needs computing), or if any
-            confidence is negative, NaN, or infinite.
+            metric (checked even when no overlap needs computing), if
+            `predictions` is not a 2-D array with 5 or 6 columns (empty input
+            included), or if any confidence is negative, NaN, or infinite.
 
     Examples:
         ```pycon
@@ -2147,6 +2172,7 @@ def box_weighted_box_fusion(
     # Resolve the metric before any early return: with empty input or one box
     # per class no overlap is ever computed, so a bad value would pass silently.
     overlap_metric = OverlapMetric.from_value(overlap_metric)
+    _validate_fusion_predictions_shape(predictions)
     # One output dtype for the empty and the fused path: float inputs keep their
     # precision, while integer inputs become floating point because fused
     # coordinates and scores are averages.

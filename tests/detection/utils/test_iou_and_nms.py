@@ -3149,6 +3149,41 @@ class TestBoxWeightedBoxFusion:
             )
 
     @pytest.mark.parametrize(
+        "predictions",
+        [
+            pytest.param(np.zeros((2, 4)), id="four-columns"),
+            pytest.param(np.zeros((2, 7)), id="seven-columns"),
+            pytest.param(
+                np.array([0.0, 0.0, 10.0, 10.0, 0.9, 0.0]), id="one-dimensional-row"
+            ),
+            pytest.param(np.zeros((1, 2, 6)), id="three-dimensional"),
+            pytest.param(np.empty((0,)), id="empty-one-dimensional"),
+            pytest.param(np.empty((0, 4)), id="empty-four-columns"),
+        ],
+    )
+    def test_rejects_predictions_without_five_or_six_columns(
+        self, predictions: np.ndarray
+    ) -> None:
+        """Predictions not shaped (n, 5) or (n, 6) raise a clear ValueError."""
+        with pytest.raises(ValueError, match=r"must have shape \(n, 5\) or \(n, 6\)"):
+            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+    @pytest.mark.parametrize("box_count", [0, 2])
+    @pytest.mark.parametrize("column_count", [5, 6])
+    def test_keeps_column_count_of_valid_predictions(
+        self, box_count: int, column_count: int
+    ) -> None:
+        """Empty and non-empty (n, 5) and (n, 6) predictions keep their column count."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+            ]
+        )[:box_count, :column_count]
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert result.shape[1] == column_count
+
+    @pytest.mark.parametrize(
         ("dtype", "expected_dtype"),
         [
             pytest.param(np.float32, np.float32, id="float32-stays-float32"),
