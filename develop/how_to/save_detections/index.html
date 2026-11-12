@@ -3901,11 +3901,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </div>
 <h2 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h2>
 <h3 id="how-do-i-save-detections-to-csv-with-supervision">How do I save detections to CSV with supervision?<a class="headerlink" href="#how-do-i-save-detections-to-csv-with-supervision" title="Permanent link">&para;</a></h3>
-<p>Open <code>sv.CSVSink("output.csv")</code> as a context manager and call <code>sink.append(detections)</code> for each frame. The CSV includes box coordinates, confidence, class ID, tracker ID, and any fields stored in <code>detections.data</code>.</p>
+<p>Open <code>sv.CSVSink("output.csv")</code> as a context manager and call <code>sink.append(detections)</code> for each frame. The CSV includes box coordinates, confidence, class ID, tracker ID, and any fields stored in <code>detections.data</code>. A field in <code>detections.data</code> named like a built-in column, such as <code>confidence</code> or <code>x_min</code>, raises <code>ValueError</code>; rename it first.</p>
 <h3 id="can-i-save-detections-to-json-instead">Can I save detections to JSON instead?<a class="headerlink" href="#can-i-save-detections-to-json-instead" title="Permanent link">&para;</a></h3>
 <p>Yes. Open <code>sv.JSONSink("output.json")</code> as a context manager and call <code>sink.append(detections)</code> for each frame. The file is written as a JSON array when the context exits.</p>
 <h3 id="can-i-add-custom-fields-to-the-saved-output">Can I add custom fields to the saved output?<a class="headerlink" href="#can-i-add-custom-fields-to-the-saved-output" title="Permanent link">&para;</a></h3>
-<p>Yes. Pass a dict as the second argument: <code>sink.append(detections, {"frame_index": 5})</code> — the keys become extra columns in the CSV or extra fields in the JSON.</p>
+<p>Yes. Pass a dict as the second argument: <code>sink.append(detections, {"frame_index": 5})</code> — the keys become extra columns in the CSV or extra fields in the JSON. For CSV, a key named like a built-in column, such as <code>confidence</code> or <code>x_min</code>, raises <code>ValueError</code>.</p>
 <h3 id="can-i-save-only-specific-classes-or-confidence-levels">Can I save only specific classes or confidence levels?<a class="headerlink" href="#can-i-save-only-specific-classes-or-confidence-levels" title="Permanent link">&para;</a></h3>
 <p>Filter the <code>Detections</code> object before saving: <code>sink.append(detections[detections.confidence &gt; 0.7])</code>.</p>
 <h2 id="author">Author<a class="headerlink" href="#author" title="Permanent link">&para;</a></h2>
@@ -3934,7 +3934,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 12:33:50 UTC">August 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 11, 2026 20:22:25 UTC">November 11, 2026</span>
   </span>
 
     
@@ -3986,7 +3986,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/how_to/save_detections.md" class="md-author md-author--more">
-            +7
+            +8
           </a>
         
       
