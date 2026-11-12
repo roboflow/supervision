@@ -2833,6 +2833,26 @@ class TestBoxWeightedBoxFusion:
 
         assert result.shape == (1, 6)
 
+    def test_keeps_identical_boxes_with_large_coordinates_in_one_cluster(self) -> None:
+        """Fuse identical boxes at a huge coordinate origin into a single cluster.
+
+        Averaging absolute coordinates of 1e16 loses low bits, which would shift the
+        fused box away from its identical members and split the cluster.
+        """
+        predictions = np.array(
+            [
+                [1e16, 0, 1e16 + 2, 2, 0.9, 0],
+                [1e16, 0, 1e16 + 2, 2, 0.8, 0],
+                [1e16, 0, 1e16 + 2, 2, 0.7, 0],
+            ],
+            dtype=np.float64,
+        )
+
+        result = box_weighted_box_fusion(predictions)
+
+        assert result.shape == (1, 6)
+        assert np.allclose(result[0, 4], 0.8)
+
     @pytest.mark.parametrize(
         ("overlap_metric", "expected_result"),
         [

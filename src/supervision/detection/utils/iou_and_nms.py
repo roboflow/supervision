@@ -2021,8 +2021,9 @@ def _fuse_single_class_boxes(
     scores_float = scores.astype(np.float64)
     box_count = len(boxes_float)
     fused_boxes = np.empty((box_count, 4), dtype=np.float64)
-    weighted_box_sums = np.zeros((box_count, 4), dtype=np.float64)
-    box_sums = np.zeros((box_count, 4), dtype=np.float64)
+    cluster_origins = np.empty((box_count, 4), dtype=np.float64)
+    weighted_offset_sums = np.zeros((box_count, 4), dtype=np.float64)
+    offset_sums = np.zeros((box_count, 4), dtype=np.float64)
     score_sums = np.zeros(box_count, dtype=np.float64)
     cluster_sizes = np.zeros(box_count, dtype=np.int64)
     cluster_count = 0
@@ -2043,9 +2044,14 @@ def _fuse_single_class_boxes(
             # whose overlap equals the threshold is not tipped over it by
             # rounding in the weighted average.
             fused_boxes[cluster] = box
+            cluster_origins[cluster] = box
 
-        weighted_box_sums[cluster] += score * box
-        box_sums[cluster] += box
+        # Sum offsets from the cluster's first box instead of absolute
+        # coordinates: with large coordinates the absolute sums lose low bits,
+        # which would shift a cluster of identical boxes and split it.
+        offset = box - cluster_origins[cluster]
+        weighted_offset_sums[cluster] += score * offset
+        offset_sums[cluster] += offset
         score_sums[cluster] += score
         cluster_sizes[cluster] += 1
         if cluster_sizes[cluster] == 1:
@@ -2054,9 +2060,10 @@ def _fuse_single_class_boxes(
         # Fall back to a plain average when the scores sum to zero (all-zero
         # scores), so the weighted mean stays defined instead of dividing by 0.
         if score_sums[cluster] > 0:
-            fused_boxes[cluster] = weighted_box_sums[cluster] / score_sums[cluster]
+            mean_offset = weighted_offset_sums[cluster] / score_sums[cluster]
         else:
-            fused_boxes[cluster] = box_sums[cluster] / cluster_sizes[cluster]
+            mean_offset = offset_sums[cluster] / cluster_sizes[cluster]
+        fused_boxes[cluster] = cluster_origins[cluster] + mean_offset
 
     sizes = cluster_sizes[:cluster_count]
     mean_scores = score_sums[:cluster_count] / sizes
