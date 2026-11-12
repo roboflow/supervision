@@ -9,7 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -19,7 +19,7 @@ from supervision import _cv2 as cv2
 from supervision.classification.core import Classifications
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (
-    load_coco_annotations,
+    _load_coco_annotations,
     save_coco_annotations,
 )
 from supervision.dataset.formats.createml import (
@@ -972,6 +972,7 @@ class DetectionDataset(BaseDataset):
         show_progress: bool = False,
         *,
         use_iscrowd: bool = True,
+        mask_rasterizer: Literal["supervision", "pycocotools"] | None = None,
     ) -> DetectionDataset:
         """Creates a Dataset instance from COCO formatted data.
 
@@ -985,9 +986,49 @@ class DetectionDataset(BaseDataset):
             show_progress: If True, display a progress bar during loading.
             use_iscrowd: If True, includes COCO ``iscrowd`` and ``area``
                 annotation fields in ``Detections.data``.
+            mask_rasterizer: ``"supervision"`` uses rounded vertices with
+                inclusive integer fill. ``"pycocotools"`` uses COCO's reference
+                polygon rasterization with continuous vertices. Install the
+                optional ``supervision[coco]`` extra for this mode; it is
+                required even when the file has no polygon segmentation.
+                ``None`` (default) behaves like ``"supervision"`` and warns
+                when the file contains polygon segmentation. RLE masks are
+                decoded identically in all modes.
+
         Returns:
             A DetectionDataset instance containing
                 the loaded images and annotations.
+
+        Raises:
+            ValueError: If ``mask_rasterizer`` is not a supported value.
+            ValueError: If a polygon vertex is not a finite number.
+            ImportError: If ``mask_rasterizer="pycocotools"`` and the
+                ``supervision[coco]`` extra is not installed. This is checked
+                before any image is processed, even when the file has no
+                polygon segmentation.
+
+        Warns:
+            SupervisionWarnings: When ``mask_rasterizer`` is omitted and the
+                annotation file contains polygon segmentation. Relying on the
+                default is deprecated in ``0.32.0``.
+
+        Note:
+            COCO polygon vertices describe continuous boundaries, while the
+            ``"supervision"`` rasterizer treats rounded vertices as inclusive
+            pixel indices. ``"pycocotools"`` is the COCO convention: for
+            well-formed polygons (nested lists of even-length parts with at
+            least three vertices each) it matches the masks COCO evaluation
+            builds. For example, a square from ``(1, 1)`` to ``(5, 5)``
+            covers 16 reference pixels instead of 25 inclusive pixels. For
+            other input the loader follows its own rules: a part with fewer
+            than three vertices is skipped, a flat coordinate list is treated
+            as one part, and an odd coordinate count raises ``ValueError``.
+            The default changes from
+            ``"supervision"`` to ``"pycocotools"`` no earlier than
+            ``0.35.0``; pass ``mask_rasterizer`` explicitly to keep the
+            current masks or to adopt the reference ones now. This option
+            does not change polygon export: use RLE when exact mask
+            preservation across COCO tools is required.
 
         Examples:
             ```python
@@ -1011,12 +1052,15 @@ class DetectionDataset(BaseDataset):
             # ['dog', 'person']
             ```
         """
-        classes, images, annotations = load_coco_annotations(
+        # Call the shared implementation directly, as load_coco_annotations does,
+        # so the default-rasterizer warning points at this method's caller.
+        classes, images, annotations = _load_coco_annotations(
             images_directory_path=images_directory_path,
             annotations_path=annotations_path,
             force_masks=force_masks,
             use_iscrowd=use_iscrowd,
             show_progress=show_progress,
+            mask_rasterizer=mask_rasterizer,
         )
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
