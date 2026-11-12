@@ -9,6 +9,7 @@ import pytest
 
 import supervision.dataset.utils as dataset_utils
 from supervision import DetectionDataset, Detections, _cv2
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.utils import (
     _bridge_holes,
     _is_hole_contour,
@@ -17,10 +18,12 @@ from supervision.dataset.utils import (
     build_class_index_mapping,
     check_no_basename_collisions,
     map_detections_class_id,
+    map_key_points_class_id,
     merge_class_lists,
     train_test_split,
 )
 from supervision.detection.utils.converters import mask_to_polygons, polygon_to_mask
+from supervision.key_points.core import KeyPoints
 from tests.helpers import _create_detections
 
 T = TypeVar("T")
@@ -742,3 +745,52 @@ class TestSaveDatasetImages:
 
         saved = _cv2.imread(str(tmp_path / "image.png"))
         np.testing.assert_array_equal(saved, image)
+
+
+class TestMapKeyPointsClassId:
+    """Tests for remapping key point class ids onto a merged class list."""
+
+    def test_remaps_class_id_and_drops_stale_class_name(self) -> None:
+        """Remapping renumbers ``class_id`` and clears the cached class name."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={CLASS_NAME_DATA_FIELD: np.array(["cat"])},
+        )
+
+        result = map_key_points_class_id(
+            source_to_target_mapping={0: 3}, key_points=key_points
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([3]))
+        assert CLASS_NAME_DATA_FIELD not in result.data
+
+    def test_does_not_mutate_the_input(self) -> None:
+        """The source key points keep their original class ids."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([0])
+        )
+
+        map_key_points_class_id(source_to_target_mapping={0: 3}, key_points=key_points)
+
+        np.testing.assert_array_equal(key_points.class_id, np.array([0]))
+
+    def test_rejects_key_points_without_class_id(self) -> None:
+        """Key points with no ``class_id`` have nothing to remap, so they raise."""
+        key_points = KeyPoints(xy=np.array([[[1.0, 2.0]]], dtype=np.float32))
+
+        with pytest.raises(ValueError, match="class_id"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )
+
+    def test_rejects_a_class_id_missing_from_the_mapping(self) -> None:
+        """A class id with no target is an error rather than a silent pass."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([5])
+        )
+
+        with pytest.raises(ValueError, match="subset"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )

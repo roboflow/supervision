@@ -50,7 +50,7 @@ jobs:
           activate-environment: true
 
       - name: 🚀 Install Packages
-        run: uv sync --frozen --group dev --extra metrics
+        run: uv sync --frozen --group dev --extra metrics --extra coco
 
       - name: 📷 Install selected OpenCV package
         if: matrix.cv2 != 'none'
@@ -116,7 +116,7 @@ jobs:
           activate-environment: true
 
       - name: 🚀 Install test dependencies
-        run: uv sync --frozen --group dev --extra metrics
+        run: uv sync --frozen --group dev --extra metrics --extra coco
 
       - name: 📦 Install CPU PyTorch for tensor tests
         run: uv pip install --group torch
