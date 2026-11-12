@@ -2047,7 +2047,9 @@ def box_weighted_box_fusion(
             column to allow boxes of different classes to be fused together.
         iou_threshold: The overlap threshold used to decide whether a box joins
             an existing cluster, measured against that cluster's current fused
-            box. Defaults to 0.5.
+            box. The comparison is exclusive, as in the WBF paper: the overlap
+            must be strictly greater than this value, so an overlap exactly
+            equal to it keeps the box out of the cluster. Defaults to 0.5.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of boxes (e.g., IoU, IoS).
         num_models: Number of models (or test-time augmentations) whose

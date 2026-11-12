@@ -2932,6 +2932,23 @@ class TestBoxNonMaxMerge:
             id="box-joins-best-overlapping-cluster-not-first",
         ),
         pytest.param(
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                    [0.0, 0.0, 10.0, 5.0, 0.8, 0.0],
+                ]
+            ),
+            0.5,
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                    [0.0, 0.0, 10.0, 5.0, 0.8, 0.0],
+                ]
+            ),
+            DoesNotRaise(),
+            id="overlap-equal-to-threshold-keeps-boxes-apart",
+        ),
+        pytest.param(
             np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0.0]]),
             1.5,
             None,
