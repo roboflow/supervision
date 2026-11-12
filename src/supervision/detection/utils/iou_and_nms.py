@@ -1893,6 +1893,33 @@ def _validate_num_models(num_models: int | None) -> None:
         )
 
 
+def _validate_fusion_confidences(confidences: npt.NDArray[np.number]) -> None:
+    """Reject Weighted Box Fusion confidences that are negative or not finite.
+
+    Confidences weight the fused coordinates, so a negative score turns the
+    weighted mean into an extrapolation outside every member box, and a NaN or
+    infinite score makes the fused box or score NaN. Zero is allowed: a cluster
+    whose scores are all zero is fused with a plain average instead.
+
+    Args:
+        confidences: The confidence column of the predictions passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`,
+            shape `(n,)`.
+
+    Raises:
+        ValueError: If any confidence is negative, NaN, or infinite.
+    """
+    invalid = ~np.isfinite(confidences) | (confidences < 0)
+    if invalid.any():
+        invalid_rows = np.flatnonzero(invalid)
+        raise ValueError(
+            "Confidences passed to box_weighted_box_fusion must be finite and "
+            f"non-negative, got {confidences[invalid_rows[:5]].tolist()} at rows "
+            f"{invalid_rows[:5].tolist()}. Drop or clip those predictions before "
+            "fusing them."
+        )
+
+
 def _best_matching_cluster(
     fused_boxes: npt.NDArray[np.float64],
     box: npt.NDArray[np.float64],
@@ -2045,6 +2072,8 @@ def box_weighted_box_fusion(
             bounding boxes coordinates in format `[x1, y1, x2, y2]`, the
             confidence scores, and optionally the class ids. Omit the class_id
             column to allow boxes of different classes to be fused together.
+            Confidences must be finite and non-negative; a cluster whose
+            confidences are all zero is fused with a plain, unweighted average.
         iou_threshold: The overlap threshold used to decide whether a box joins
             an existing cluster, measured against that cluster's current fused
             box. The comparison is exclusive, as in the WBF paper: the overlap
@@ -2071,8 +2100,9 @@ def box_weighted_box_fusion(
 
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
-            from `0` to `1`, or if `num_models` is not `None` and not a
-            positive integer.
+            from `0` to `1`, if `num_models` is not `None` and not a
+            positive integer, or if any confidence is negative, NaN, or
+            infinite.
 
     Examples:
         ```pycon
@@ -2111,6 +2141,7 @@ def box_weighted_box_fusion(
     if len(predictions) == 0:
         empty_result: npt.NDArray[np.floating] = predictions.copy()
         return empty_result
+    _validate_fusion_confidences(predictions[:, 4])
 
     has_class_column = predictions.shape[1] > 5
     if has_class_column:

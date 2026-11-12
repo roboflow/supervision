@@ -3091,3 +3091,26 @@ class TestBoxWeightedBoxFusion:
         )
         result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.array_equal(result, predictions)
+
+    @pytest.mark.parametrize("confidence", [-0.5, np.nan, np.inf, -np.inf])
+    def test_rejects_negative_or_non_finite_confidence(self, confidence: float) -> None:
+        """A negative, NaN or infinite confidence raises instead of fusing a bad box."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, confidence, 0.0],
+            ]
+        )
+        with pytest.raises(ValueError, match="must be finite and non-negative"):
+            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+    def test_zero_confidence_box_adds_no_weight_to_cluster(self) -> None:
+        """A zero-confidence box is accepted and joins without moving the cluster."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.8, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.0, 0.0],
+            ]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.allclose(result, [[0.0, 0.0, 10.0, 10.0, 0.4, 0.0]])
