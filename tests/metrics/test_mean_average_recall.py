@@ -783,7 +783,7 @@ def test_empty_inputs_keep_max_detection_axis() -> None:
     ],
 )
 def test_results_without_targets_match_coco_sentinel(targets: Detections) -> None:
-    """mAR without targets is `-1`, like COCO AR and `MeanAveragePrecision`."""
+    """MAR without targets is `-1`, like COCO AR and `MeanAveragePrecision`."""
     predictions = Detections(
         xyxy=np.array([[0, 0, 200, 200]], dtype=np.float32),
         confidence=np.array([0.9], dtype=np.float32),
