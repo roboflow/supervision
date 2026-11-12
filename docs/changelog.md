@@ -9,6 +9,10 @@ date_modified: 2026-10-31
 
 - `sv.metrics.MeanAverageRecall` selects targets by size before copying their rows. The size filter no longer copies every target mask for each range or fails on unused image metadata that cannot be deep-copied. ([#2953](https://github.com/roboflow/supervision/pull/2953))
 
+- `sv.xyxy_to_xywh` now computes integer box widths and heights without wraparound. Integer inputs return `int64`, or `float64` when an output value exceeds the `int64` range, instead of negative extents caused by overflow. ([#2951](https://github.com/roboflow/supervision/pull/2951))
+
+- `sv.JSONSink` now rejects additional data whose names collide with built-in detection fields, preventing custom metadata from silently overwriting coordinates, class IDs, confidence scores or tracker IDs. Rename such metadata fields, for example to `calibrated_confidence`. ([#2949](https://github.com/roboflow/supervision/pull/2949))
+
 ### 0.31.7 <small>Nov 11, 2026</small>
 
 - **Metrics**: `sv.metrics.MeanAveragePrecision` agrees with `pycocotools` on size buckets and crowd targets.
