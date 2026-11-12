@@ -77,6 +77,12 @@ comments: true
 :::supervision.detection.utils.iou_and_nms.box_non_max_merge
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.iou_and_nms.box_weighted_box_fusion">box_weighted_box_fusion</a></h2>
+</div>
+
+:::supervision.detection.utils.iou_and_nms.box_weighted_box_fusion
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.iou_and_nms.mask_non_max_merge">mask_non_max_merge</a></h2>
 </div>
 
