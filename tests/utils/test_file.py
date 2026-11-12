@@ -283,7 +283,7 @@ class TestByteOrderMark:
     def test_text_file_round_trips_non_ascii_lines(self, tmp_path: Path) -> None:
         """Lines written by save_text_file read back unchanged on every platform."""
         file_path = tmp_path / "names.txt"
-        lines = ["caf\u00e9", "\u732b"]
+        lines = ["café", "猫"]
 
         save_text_file(lines, file_path)
 
