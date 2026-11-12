@@ -4456,6 +4456,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Performance: <code>sv.CompactMask.area</code> now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 3–9× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. Accumulation now uses int64, avoiding overflow for areas above the int32 limit with NumPy 1.x on Windows. (<a href="https://github.com/roboflow/supervision/pull/2744">#2744</a>)</p>
+</li>
+<li>
 <p><code>sv.DetectionDataset.from_coco</code> accepts <code>mask_rasterizer="pycocotools"</code> to load COCO polygons with the COCO reference rasterization, which matches the masks COCO evaluation builds for well-formed polygons. Continuous vertices are retained and disjoint parts are merged per object. Install <code>supervision[coco]</code> for this optional mode; without it, the mode raises <code>ImportError</code> with the install command as soon as loading starts. Omitting <code>mask_rasterizer</code> keeps the current inclusive integer fill (<code>"supervision"</code>), but relying on that default for a file with polygon segmentation is deprecated in <code>0.32.0</code> and emits a <code>SupervisionWarnings</code> warning, because the default changes to <code>"pycocotools"</code> no earlier than <code>0.35.0</code>; pass <code>mask_rasterizer="supervision"</code> to keep the current masks. RLE decoding is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2714">#2714</a>)</p>
 </li>
 <li>
@@ -6853,7 +6856,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 12, 2026 09:38:40 UTC">November 12, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 12, 2026 09:46:55 UTC">November 12, 2026</span>
   </span>
 
     
@@ -6881,9 +6884,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/cdeil" class="md-author" title="@cdeil">
+        <a href="https://github.com/jorge-asenjo" class="md-author" title="@jorge-asenjo">
           
-          <img src="https://avatars.githubusercontent.com/u/852409?v=4&size=72" alt="cdeil">
+          <img src="https://avatars.githubusercontent.com/u/216621143?v=4&size=72" alt="jorge-asenjo">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6891,14 +6894,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/cdeil" class="md-author" title="@cdeil">
+          
+          <img src="https://avatars.githubusercontent.com/u/852409?v=4&size=72" alt="cdeil">
+        </a>
+      
         <a href="https://github.com/voropaevv" class="md-author" title="@voropaevv">
           
           <img src="https://avatars.githubusercontent.com/u/43608848?v=4&size=72" alt="voropaevv">
-        </a>
-      
-        <a href="https://github.com/pmxlr8" class="md-author" title="@pmxlr8">
-          
-          <img src="https://avatars.githubusercontent.com/u/89994182?v=4&size=72" alt="pmxlr8">
         </a>
       
       
