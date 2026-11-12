@@ -210,6 +210,30 @@ The Supervision library provides convenient functions to load datasets in variou
     # 800, 100, 100
     ```
 
+### COCO polygon masks
+
+COCO polygon vertices are points on a continuous boundary. A polygon from `(1, 1)` to `(5, 5)` encloses a 4 × 4 area, so the COCO reference tools, which evaluation metrics are built on, produce a 16-pixel mask for it. The default `mask_rasterizer="supervision"` rounds each vertex and fills inclusively, treating vertices as pixel indices, so the same polygon becomes 25 pixels: one extra row and one extra column. On large objects the difference is small. On small objects it changes mask area and IoU noticeably.
+
+![The same square polygon filled by the two rasterizers: 25 pixels with "supervision", 16 pixels with "pycocotools"](../assets/coco-polygon-rasterizer.svg){ align=center width="680" }
+
+Pass `mask_rasterizer="pycocotools"` to load polygons the way COCO does. This mode needs the optional extra: `pip install "supervision[coco]"`.
+
+```python
+import supervision as sv
+
+ds_train = sv.DetectionDataset.from_coco(
+    images_directory_path=f"{dataset.location}/train",
+    annotations_path=f"{dataset.location}/train/_annotations.coco.json",
+    mask_rasterizer="pycocotools",
+)
+```
+
+!!! warning
+
+    Omitting `mask_rasterizer` still gives the current `"supervision"` masks, but loading a file that contains polygon segmentation now emits a `SupervisionWarnings` warning. The default changes to `"pycocotools"` no earlier than `0.35.0`. Pass `mask_rasterizer="supervision"` to keep today's masks, or `"pycocotools"` to adopt the COCO ones now.
+
+RLE masks decode identically in both modes, and `as_coco` export is unchanged. Use RLE when you need exact masks to survive a round trip through other COCO tools.
+
 ## Split Dataset
 
 If your dataset is not already split into train, test, and valid subsets, you can easily do so using the [`sv.DetectionDataset.split`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split) method. We can split it as follows, ensuring a random shuffle of the data.

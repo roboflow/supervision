@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" width="680" height="440" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+<title id="t">COCO polygon rasterization: inclusive fill versus reference fill</title>
+<desc id="d">The same square polygon with vertices (1,1) to (5,5) on a 7 by 7 pixel grid. The supervision rasterizer fills 25 pixels, 9 of them outside the polygon boundary. The pycocotools rasterizer fills the 16 pixels inside the boundary.</desc>
+<rect width="680" height="440" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+<text x="340" y="34" text-anchor="middle" font-size="17" font-weight="600" fill="#111827">One COCO polygon, two masks</text>
+<text x="340" y="56" text-anchor="middle" font-size="13" fill="#4b5563">segmentation = [[1, 1, 5, 1, 5, 5, 1, 5]] on a 7 × 7 image</text>
+<g transform="translate(40,92)">
+<rect x="36" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="72" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="108" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="144" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="180" y="36" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<rect x="36" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="72" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="108" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="144" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="180" y="72" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<rect x="36" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="72" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="108" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="144" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="180" y="108" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<rect x="36" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="72" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="108" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="144" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="180" y="144" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<rect x="36" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<rect x="72" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<rect x="108" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<rect x="144" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<rect x="180" y="180" width="36" height="36" fill="#ea580c" fill-opacity="0.55"/>
+<line x1="0" y1="0" x2="0" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="0" x2="252" y2="0" stroke="#9ca3af" stroke-width="1"/>
+<line x1="36" y1="0" x2="36" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="36" x2="252" y2="36" stroke="#9ca3af" stroke-width="1"/>
+<line x1="72" y1="0" x2="72" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="72" x2="252" y2="72" stroke="#9ca3af" stroke-width="1"/>
+<line x1="108" y1="0" x2="108" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="108" x2="252" y2="108" stroke="#9ca3af" stroke-width="1"/>
+<line x1="144" y1="0" x2="144" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="144" x2="252" y2="144" stroke="#9ca3af" stroke-width="1"/>
+<line x1="180" y1="0" x2="180" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="180" x2="252" y2="180" stroke="#9ca3af" stroke-width="1"/>
+<line x1="216" y1="0" x2="216" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="216" x2="252" y2="216" stroke="#9ca3af" stroke-width="1"/>
+<line x1="252" y1="0" x2="252" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="252" x2="252" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<rect x="36" y="36" width="144" height="144" fill="none" stroke="#111827" stroke-width="2.5"/>
+<circle cx="36" cy="36" r="4.5" fill="#111827"/>
+<circle cx="180" cy="36" r="4.5" fill="#111827"/>
+<circle cx="180" cy="180" r="4.5" fill="#111827"/>
+<circle cx="36" cy="180" r="4.5" fill="#111827"/>
+<text x="30" y="28" text-anchor="end" font-size="12" fill="#111827">(1, 1)</text>
+<text x="188" y="198" font-size="12" fill="#111827">(5, 5)</text>
+<text x="18.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">0</text>
+<text x="-10" y="22.0" text-anchor="end" font-size="11" fill="#6b7280">0</text>
+<text x="54.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">1</text>
+<text x="-10" y="58.0" text-anchor="end" font-size="11" fill="#6b7280">1</text>
+<text x="90.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">2</text>
+<text x="-10" y="94.0" text-anchor="end" font-size="11" fill="#6b7280">2</text>
+<text x="126.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">3</text>
+<text x="-10" y="130.0" text-anchor="end" font-size="11" fill="#6b7280">3</text>
+<text x="162.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">4</text>
+<text x="-10" y="166.0" text-anchor="end" font-size="11" fill="#6b7280">4</text>
+<text x="198.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">5</text>
+<text x="-10" y="202.0" text-anchor="end" font-size="11" fill="#6b7280">5</text>
+<text x="234.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">6</text>
+<text x="-10" y="238.0" text-anchor="end" font-size="11" fill="#6b7280">6</text>
+<text x="126.0" y="-14" text-anchor="middle" font-size="13" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#111827">mask_rasterizer="supervision"</text>
+<text x="126.0" y="292" text-anchor="middle" font-size="15" font-weight="600" fill="#111827">25 pixels</text>
+</g>
+<g transform="translate(380,92)">
+<rect x="36" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="72" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="108" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="144" y="36" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="36" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="72" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="108" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="144" y="72" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="36" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="72" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="108" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="144" y="108" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="36" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="72" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="108" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<rect x="144" y="144" width="36" height="36" fill="#2563eb" fill-opacity="0.55"/>
+<line x1="0" y1="0" x2="0" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="0" x2="252" y2="0" stroke="#9ca3af" stroke-width="1"/>
+<line x1="36" y1="0" x2="36" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="36" x2="252" y2="36" stroke="#9ca3af" stroke-width="1"/>
+<line x1="72" y1="0" x2="72" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="72" x2="252" y2="72" stroke="#9ca3af" stroke-width="1"/>
+<line x1="108" y1="0" x2="108" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="108" x2="252" y2="108" stroke="#9ca3af" stroke-width="1"/>
+<line x1="144" y1="0" x2="144" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="144" x2="252" y2="144" stroke="#9ca3af" stroke-width="1"/>
+<line x1="180" y1="0" x2="180" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="180" x2="252" y2="180" stroke="#9ca3af" stroke-width="1"/>
+<line x1="216" y1="0" x2="216" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="216" x2="252" y2="216" stroke="#9ca3af" stroke-width="1"/>
+<line x1="252" y1="0" x2="252" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<line x1="0" y1="252" x2="252" y2="252" stroke="#9ca3af" stroke-width="1"/>
+<rect x="36" y="36" width="144" height="144" fill="none" stroke="#111827" stroke-width="2.5"/>
+<circle cx="36" cy="36" r="4.5" fill="#111827"/>
+<circle cx="180" cy="36" r="4.5" fill="#111827"/>
+<circle cx="180" cy="180" r="4.5" fill="#111827"/>
+<circle cx="36" cy="180" r="4.5" fill="#111827"/>
+<text x="30" y="28" text-anchor="end" font-size="12" fill="#111827">(1, 1)</text>
+<text x="188" y="198" font-size="12" fill="#111827">(5, 5)</text>
+<text x="18.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">0</text>
+<text x="-10" y="22.0" text-anchor="end" font-size="11" fill="#6b7280">0</text>
+<text x="54.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">1</text>
+<text x="-10" y="58.0" text-anchor="end" font-size="11" fill="#6b7280">1</text>
+<text x="90.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">2</text>
+<text x="-10" y="94.0" text-anchor="end" font-size="11" fill="#6b7280">2</text>
+<text x="126.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">3</text>
+<text x="-10" y="130.0" text-anchor="end" font-size="11" fill="#6b7280">3</text>
+<text x="162.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">4</text>
+<text x="-10" y="166.0" text-anchor="end" font-size="11" fill="#6b7280">4</text>
+<text x="198.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">5</text>
+<text x="-10" y="202.0" text-anchor="end" font-size="11" fill="#6b7280">5</text>
+<text x="234.0" y="268" text-anchor="middle" font-size="11" fill="#6b7280">6</text>
+<text x="-10" y="238.0" text-anchor="end" font-size="11" fill="#6b7280">6</text>
+<text x="126.0" y="-14" text-anchor="middle" font-size="13" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="#111827">mask_rasterizer="pycocotools"</text>
+<text x="126.0" y="292" text-anchor="middle" font-size="15" font-weight="600" fill="#111827">16 pixels</text>
+</g>
+<rect x="170" y="407" width="14" height="14" fill="#2563eb" fill-opacity="0.55"/>
+<text x="190" y="418" font-size="12" fill="#374151">inside the polygon</text>
+<rect x="340" y="407" width="14" height="14" fill="#ea580c" fill-opacity="0.55"/>
+<text x="360" y="418" font-size="12" fill="#374151">outside the polygon (extra row and column)</text>
+</svg>
