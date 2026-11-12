@@ -2888,6 +2888,50 @@ class TestBoxNonMaxMerge:
             id="no-class-column-fuses-and-keeps-five-columns",
         ),
         pytest.param(
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                    [3.0, 0.0, 13.0, 10.0, 0.8, 0.0],
+                    [4.0, 0.0, 14.0, 10.0, 0.7, 0.0],
+                ]
+            ),
+            0.5,
+            np.array([[5.2 / 2.4, 0.0, 29.2 / 2.4, 10.0, 0.8, 0.0]]),
+            DoesNotRaise(),
+            id="three-box-chain-joins-drifted-fused-box",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0, 0.95, 0.0],
+                    [3.0, 0.0, 13.0, 10.0, 0.9, 0.0],
+                    [4.5, 0.0, 14.5, 10.0, 0.8, 0.0],
+                ]
+            ),
+            0.5,
+            np.array([[6.3 / 2.65, 0.0, 32.8 / 2.65, 10.0, 2.65 / 3, 0.0]]),
+            DoesNotRaise(),
+            id="three-box-chain-missing-seed-joins-fused-box",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                    [6.0, 0.0, 16.0, 10.0, 0.8, 0.0],
+                    [4.0, 0.0, 14.0, 10.0, 0.7, 0.0],
+                ]
+            ),
+            0.3,
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                    [7.6 / 1.5, 0.0, 22.6 / 1.5, 10.0, 0.75, 0.0],
+                ]
+            ),
+            DoesNotRaise(),
+            id="box-joins-best-overlapping-cluster-not-first",
+        ),
+        pytest.param(
             np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0.0]]),
             1.5,
             None,
@@ -2900,13 +2944,14 @@ def test_box_weighted_box_fusion(
     predictions: np.ndarray,
     iou_threshold: float,
     expected_result: np.ndarray | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     """WBF fuses overlapping same-class boxes by confidence-weighted averaging."""
     with exception:
         result = box_weighted_box_fusion(
             predictions=predictions, iou_threshold=iou_threshold
         )
+        assert expected_result is not None
         assert result.shape == expected_result.shape
         assert np.allclose(result, expected_result)
 

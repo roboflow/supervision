@@ -1866,34 +1866,111 @@ def box_non_max_merge(
     return _non_max_merge_per_category(predictions, group_within)
 
 
-def _fuse_box_group(group: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+def _best_matching_cluster(
+    fused_boxes: npt.NDArray[np.float64],
+    box: npt.NDArray[np.float64],
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+) -> int:
+    """Pick the cluster a box should join during Weighted Box Fusion.
+
+    The box is compared with every cluster's current fused box in one batched
+    overlap call, and the cluster with the highest overlap wins (the first one
+    on ties). The box joins it only when that overlap is strictly greater than
+    ``iou_threshold``, as in the WBF paper and its reference implementation.
+
+    Args:
+        fused_boxes: Current fused boxes of the existing clusters, shape `(k, 4)`
+            in `[x1, y1, x2, y2]` format; `k` may be `0`.
+        box: The candidate box, shape `(4,)` in `[x1, y1, x2, y2]` format.
+        iou_threshold: Overlap that the best match must strictly exceed.
+        overlap_metric: Metric used to compute the overlap.
+
+    Returns:
+        Index of the cluster to join, or `-1` when there is no cluster yet or
+            no overlap exceeds `iou_threshold`.
     """
-    Fuse one group of overlapping boxes into a single confidence-weighted box.
+    if len(fused_boxes) == 0:
+        return -1
+    overlaps = box_iou_batch(fused_boxes, box[np.newaxis, :], overlap_metric)[:, 0]
+    best_cluster = int(overlaps.argmax())
+    if overlaps[best_cluster] > iou_threshold:
+        return best_cluster
+    return -1
 
-    The fused coordinates are the average of the group's coordinates weighted by
-    each box's confidence, so higher-scoring boxes pull the result toward
-    themselves; the fused score is the group's mean confidence, and the class id
-    (when present) is taken from the highest-scoring member.
+
+def _fuse_single_class_boxes(
+    boxes: npt.NDArray[np.number],
+    scores: npt.NDArray[np.number],
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64]]:
+    """Cluster and fuse the boxes of one class with Weighted Box Fusion.
+
+    Boxes are visited in descending score order; a stable sort keeps equal
+    scores in input order. Each box joins the cluster chosen by
+    :func:`~supervision.detection.utils.iou_and_nms._best_matching_cluster` or
+    starts a new one. After every join, the cluster's fused box is recomputed
+    from running sums, so later boxes are matched against its updated position
+    rather than against the cluster's first box. The fused box is the
+    confidence-weighted average of the cluster's boxes, or their plain average
+    when the cluster's scores sum to zero.
+
+    Args:
+        boxes: Boxes of a single class, shape `(n, 4)` in `[x1, y1, x2, y2]`
+            format, with `n >= 1`.
+        scores: Confidence scores aligned with `boxes`, shape `(n,)`.
+        iou_threshold: Overlap that a box must strictly exceed to join a cluster.
+        overlap_metric: Metric used to compute the overlap.
+
+    Returns:
+        A tuple `(fused_boxes, mean_scores, cluster_sizes)` with shapes
+            `(k, 4)`, `(k,)` and `(k,)`, one entry per cluster in creation order.
     """
-    boxes = group[:, :4]
-    scores = group[:, 4]
+    boxes_float = boxes.astype(np.float64)
+    scores_float = scores.astype(np.float64)
+    box_count = len(boxes_float)
+    fused_boxes = np.empty((box_count, 4), dtype=np.float64)
+    weighted_box_sums = np.zeros((box_count, 4), dtype=np.float64)
+    box_sums = np.zeros((box_count, 4), dtype=np.float64)
+    score_sums = np.zeros(box_count, dtype=np.float64)
+    cluster_sizes = np.zeros(box_count, dtype=np.int64)
+    cluster_count = 0
 
-    # Fall back to a uniform average when every score is zero, so the weighted
-    # mean stays well defined instead of dividing by a zero weight sum.
-    score_sum = scores.sum()
-    if score_sum > 0:
-        weights = scores / score_sum
-    else:
-        weights = np.full(len(scores), 1.0 / len(scores))
+    # WBF is order dependent: every box is matched against fused boxes that the
+    # higher-scoring boxes before it have already moved, so the visit itself is
+    # sequential; only the overlap against all current clusters is vectorized.
+    for box_index in np.argsort(-scores_float, kind="stable"):
+        box = boxes_float[box_index]
+        score = scores_float[box_index]
+        cluster = _best_matching_cluster(
+            fused_boxes[:cluster_count], box, iou_threshold, overlap_metric
+        )
+        if cluster < 0:
+            cluster = cluster_count
+            cluster_count += 1
+            # A new cluster starts exactly at its first box, so a later box
+            # whose overlap equals the threshold is not tipped over it by
+            # rounding in the weighted average.
+            fused_boxes[cluster] = box
 
-    fused_box = (boxes * weights[:, np.newaxis]).sum(axis=0)
-    fused_score = float(scores.mean())
-    fused: npt.NDArray[np.floating] = np.concatenate([fused_box, [fused_score]])
+        weighted_box_sums[cluster] += score * box
+        box_sums[cluster] += box
+        score_sums[cluster] += score
+        cluster_sizes[cluster] += 1
+        if cluster_sizes[cluster] == 1:
+            continue
 
-    if group.shape[1] > 5:
-        best_class = group[int(scores.argmax()), 5]
-        fused = np.concatenate([fused, [best_class]])
-    return fused
+        # Fall back to a plain average when the scores sum to zero (all-zero
+        # scores), so the weighted mean stays defined instead of dividing by 0.
+        if score_sums[cluster] > 0:
+            fused_boxes[cluster] = weighted_box_sums[cluster] / score_sums[cluster]
+        else:
+            fused_boxes[cluster] = box_sums[cluster] / cluster_sizes[cluster]
+
+    sizes = cluster_sizes[:cluster_count]
+    mean_scores = score_sums[:cluster_count] / sizes
+    return fused_boxes[:cluster_count], mean_scores, sizes
 
 
 def box_weighted_box_fusion(
@@ -1919,8 +1996,9 @@ def box_weighted_box_fusion(
             bounding boxes coordinates in format `[x1, y1, x2, y2]`, the
             confidence scores, and optionally the class ids. Omit the class_id
             column to allow boxes of different classes to be fused together.
-        iou_threshold: The intersection-over-union threshold used to decide
-            whether two boxes belong to the same group. Defaults to 0.5.
+        iou_threshold: The overlap threshold used to decide whether a box joins
+            an existing cluster, measured against that cluster's current fused
+            box. Defaults to 0.5.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of boxes (e.g., IoU, IoS).
 
@@ -1952,8 +2030,27 @@ def box_weighted_box_fusion(
         empty_result: npt.NDArray[np.floating] = predictions.copy()
         return empty_result
 
-    merge_groups = box_non_max_merge(predictions, iou_threshold, overlap_metric)
-    fused = np.stack([_fuse_box_group(predictions[group]) for group in merge_groups])
+    has_class_column = predictions.shape[1] > 5
+    if has_class_column:
+        class_ids = predictions[:, 5]
+    else:
+        class_ids = np.zeros(len(predictions))
+    unique_class_ids, class_positions = np.unique(class_ids, return_inverse=True)
+
+    fused_per_class: list[npt.NDArray[np.float64]] = []
+    for class_position, class_id in enumerate(unique_class_ids):
+        in_class = class_positions == class_position
+        fused_boxes, fused_scores, _ = _fuse_single_class_boxes(
+            predictions[in_class, :4],
+            predictions[in_class, 4],
+            iou_threshold,
+            overlap_metric,
+        )
+        columns = [fused_boxes, fused_scores[:, np.newaxis]]
+        if has_class_column:
+            columns.append(np.full((len(fused_scores), 1), class_id, dtype=np.float64))
+        fused_per_class.append(np.hstack(columns))
+    fused = np.concatenate(fused_per_class)
 
     descending_score = np.flip(fused[:, 4].argsort())
     result: npt.NDArray[np.floating] = fused[descending_score]
