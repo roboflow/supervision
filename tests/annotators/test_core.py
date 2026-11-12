@@ -1001,9 +1001,9 @@ class TestBgraMaskAnnotators:
         scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
         detections = self._detections()
         annotator = ComparisonAnnotator()
-        expected = annotator.annotate(bgr.copy(), detections, detections[:0])
+        expected = annotator.annotate(bgr.copy(), detections, Detections.empty())
 
-        result = annotator.annotate(scene, detections, detections[:0])
+        result = annotator.annotate(scene, detections, Detections.empty())
 
         np.testing.assert_array_equal(result[..., :3], expected)
         assert not np.array_equal(result[..., :3], bgr)
