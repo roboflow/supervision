@@ -191,3 +191,40 @@ class TestFallbackDatasetImageExport:
         assert saved is not None
         assert saved.shape == (8, 10, 3)
         np.testing.assert_array_equal(saved, np.full((8, 10, 3), 120, dtype=np.uint8))
+
+
+class TestNonAsciiImagePaths:
+    """Read and write images whose path has characters outside ASCII."""
+
+    @pytest.mark.parametrize(
+        "folder_name", ["caf\u00e9", "\u732b", "\u0444\u043e\u0442\u043e"]
+    )
+    def test_imwrite_then_imread_round_trips(
+        self, tmp_path: Path, folder_name: str
+    ) -> None:
+        """Write an image into a non-ASCII folder and read the same pixels back."""
+        image = np.random.default_rng(0).integers(0, 256, (4, 6, 3), dtype=np.uint8)
+        image_path = tmp_path / folder_name / "image.png"
+        image_path.parent.mkdir()
+
+        written = _cv2.imwrite(str(image_path), image)
+
+        assert written
+        actual = _cv2.imread(str(image_path))
+        assert actual is not None
+        np.testing.assert_array_equal(actual, image)
+
+    def test_imwrite_keeps_non_ascii_file_name(self, tmp_path: Path) -> None:
+        """Name the written file as given instead of in another encoding."""
+        image = np.zeros((4, 6, 3), dtype=np.uint8)
+
+        written = _cv2.imwrite(str(tmp_path / "caf\u00e9.png"), image)
+
+        assert written
+        assert [path.name for path in tmp_path.iterdir()] == ["caf\u00e9.png"]
+
+    def test_imread_returns_none_for_missing_non_ascii_path(
+        self, tmp_path: Path
+    ) -> None:
+        """Report a missing file the way `cv2.imread` does."""
+        assert _cv2.imread(str(tmp_path / "caf\u00e9.png")) is None

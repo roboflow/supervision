@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import warnings
 from typing import Any
 
+import numpy as np
 import numpy.typing as npt
 
 from supervision._cv2._color import _cvt_color, _merge, _split
@@ -144,8 +146,6 @@ if _IS_CV2_AVAILABLE:
         getTextSize,
         imdecode,
         imencode,
-        imread,
-        imwrite,
         intersectConvexConvex,
         line,
         mean,
@@ -162,6 +162,44 @@ if _IS_CV2_AVAILABLE:
     )
 
     BACKEND_NAME = "opencv"
+
+    def _is_non_ascii_windows_path(filename: str) -> bool:
+        """Return whether OpenCV would read the path in the ANSI code page."""
+        return os.name == "nt" and not str(filename).isascii()
+
+    def imread(filename: str, flags: int = IMREAD_COLOR) -> npt.NDArray[Any] | None:
+        """Read an image like `cv2.imread`, also from non-ASCII paths on Windows."""
+        if not _is_non_ascii_windows_path(filename):
+            return cv2.imread(filename, flags)
+        # OpenCV opens Windows paths with the ANSI code page, so let NumPy read the
+        # file and decode the bytes, which gives the same pixels as `cv2.imread`.
+        try:
+            buffer = np.fromfile(filename, dtype=np.uint8)
+        except OSError:
+            return None
+        if buffer.size == 0:
+            return None
+        return cv2.imdecode(buffer, flags)
+
+    def imwrite(
+        filename: str, img: npt.NDArray[Any], params: Any | None = None
+    ) -> bool:
+        """Write an image like `cv2.imwrite`, also to non-ASCII paths on Windows."""
+        encoder_params = [] if params is None else params
+        if not _is_non_ascii_windows_path(filename):
+            return bool(cv2.imwrite(filename, img, encoder_params))
+        # `cv2.imwrite` would fail here or write a file with a garbled name, so
+        # encode in memory and let NumPy write the bytes to the real path.
+        success, buffer = cv2.imencode(
+            os.path.splitext(filename)[1], img, encoder_params
+        )
+        if not success:
+            return False
+        try:
+            buffer.tofile(filename)
+        except OSError:
+            return False
+        return True
 else:
     BACKEND_NAME = "fallback"
 
