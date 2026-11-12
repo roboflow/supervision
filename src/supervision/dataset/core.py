@@ -948,10 +948,7 @@ class DetectionDataset(BaseDataset):
 
         Raises:
             ValueError: If ``mask_rasterizer`` is not a supported value.
-            ValueError: If a polygon vertex is not a finite number or, with
-                ``mask_rasterizer="pycocotools"``, lies beyond the vertex limit
-                of
-                :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`.
+            ValueError: If a polygon vertex is not a finite number.
             ImportError: If ``mask_rasterizer="pycocotools"`` and the
                 ``supervision[coco]`` extra is not installed. This is checked
                 before any image is processed, even when the file has no

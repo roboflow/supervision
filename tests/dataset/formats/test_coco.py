@@ -53,7 +53,6 @@ class TestCocoMissingMaskArea:
             [annotation],
             resolution_wh=(100, 100),
             with_masks=True,
-            mask_rasterizer="supervision",
         )
 
         np.testing.assert_array_equal(detections.data["area"], [2500.0])
@@ -73,7 +72,6 @@ class TestCocoMissingMaskArea:
             [annotation],
             resolution_wh=(100, 100),
             with_masks=True,
-            mask_rasterizer="supervision",
         )
 
         np.testing.assert_array_equal(detections.data["area"], [stored_area])
@@ -93,7 +91,6 @@ class TestCocoMissingMaskArea:
             annotations,
             resolution_wh=(100, 100),
             with_masks=True,
-            mask_rasterizer="supervision",
         )
 
         np.testing.assert_array_equal(detections.data["area"], [6400.0, 2500.0])
@@ -1063,7 +1060,6 @@ def test_coco_annotations_to_detections(
             resolution_wh=resolution_wh,
             with_masks=with_masks,
             use_iscrowd=use_iscrowd,
-            mask_rasterizer="supervision",
         )
         assert result == expected_result
 
@@ -1358,9 +1354,7 @@ def test_detections_to_coco_annotations_round_trip_disjoint_mask() -> None:
         image_id=0,
         annotation_id=0,
     )
-    reloaded = coco_annotations_to_masks(
-        [annotations[0]], resolution_wh=(W, H), mask_rasterizer="supervision"
-    )
+    reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(W, H))
 
     assert np.array_equal(reloaded[0], _DISJOINT_2X2_MASK[0])
 
@@ -1414,9 +1408,7 @@ class TestDetectionsToCocoAnnotationsMaskHoles:
             approximation_percentage=0.0,
         )
 
-        reloaded = coco_annotations_to_masks(
-            [annotations[0]], resolution_wh=(40, 40), mask_rasterizer="supervision"
-        )
+        reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(40, 40))
 
         np.testing.assert_array_equal(reloaded[0], mask)
 
@@ -1601,7 +1593,6 @@ def test_missing_coco_area_with_mask_exports_mask_pixel_area() -> None:
         resolution_wh=(10, 10),
         with_masks=True,
         use_iscrowd=True,
-        mask_rasterizer="supervision",
     )
     assert detections.mask is not None
     expected_area = float(np.count_nonzero(detections.mask[0]))
@@ -1726,7 +1717,6 @@ def test_coco_annotations_to_masks_handles_rle_polygon_and_invalid_dict() -> Non
         masks = coco_annotations_to_masks(
             image_annotations=image_annotations,
             resolution_wh=(5, 5),
-            mask_rasterizer="supervision",
         )
 
     assert masks.shape == (3, 5, 5)
@@ -1744,7 +1734,6 @@ def test_coco_annotations_to_masks_rounds_decimal_polygon_vertices() -> None:
     masks = coco_annotations_to_masks(
         image_annotations=image_annotations,
         resolution_wh=(12, 12),
-        mask_rasterizer="supervision",
     )
 
     expected_mask = np.zeros((12, 12), dtype=bool)
@@ -1763,7 +1752,6 @@ def test_coco_annotations_to_masks_rejects_non_finite_polygon_vertex(
         coco_annotations_to_masks(
             image_annotations=image_annotations,
             resolution_wh=(5, 5),
-            mask_rasterizer="supervision",
         )
 
 

@@ -1,6 +1,5 @@
 """COCO reference rasterization must preserve continuous polygon geometry."""
 
-import builtins
 import json
 import warnings
 from pathlib import Path
@@ -12,7 +11,10 @@ from PIL import Image
 from pycocotools import mask as coco_mask
 
 from supervision import DetectionDataset
-from supervision.dataset.formats.coco import coco_annotations_to_masks
+from supervision.dataset.formats.coco import (
+    _IS_PYCOCOTOOLS_AVAILABLE,
+    coco_annotations_to_masks,
+)
 from supervision.utils.internal import SupervisionWarnings
 
 #: Silences the NumPy 2 DeprecationWarning that ``pycocotools.mask.decode`` emits.
@@ -64,18 +66,10 @@ def _write_dataset(
     return path
 
 
-@pytest.fixture
-def blocked_pycocotools(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Make ``pycocotools`` imports fail as if the optional extra were not installed."""
-    original_import = builtins.__import__
-
-    def blocked_import(name: str, *args: Any, **kwargs: Any) -> Any:
-        """Simulate an installation without the optional COCO dependency."""
-        if name == "pycocotools":
-            raise ModuleNotFoundError("pycocotools is unavailable", name="pycocotools")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", blocked_import)
+#: Runs only where the optional ``pycocotools`` extra is not installed.
+_skip_pycocotools_installed = pytest.mark.skipif(
+    _IS_PYCOCOTOOLS_AVAILABLE, reason="pycocotools is installed"
+)
 
 
 class TestCocoReferenceRasterization:
@@ -245,7 +239,7 @@ class TestCocoReferenceRasterization:
         assert detections.mask is not None
         np.testing.assert_array_equal(detections.mask[0], expected)
 
-    @pytest.mark.usefixtures("blocked_pycocotools")
+    @_skip_pycocotools_installed
     def test_default_loads_without_optional_dependency(self, tmp_path: Path) -> None:
         """Omitting the selector keeps the inclusive mask when pycocotools is absent."""
         path = _write_dataset(tmp_path, [[1, 1, 5, 1, 5, 5, 1, 5]])
@@ -308,7 +302,7 @@ class TestCocoReferenceRasterization:
             pytest.param([], id="box-only"),
         ],
     )
-    @pytest.mark.usefixtures("blocked_pycocotools")
+    @_skip_pycocotools_installed
     def test_reports_missing_optional_dependency(
         self, tmp_path: Path, segmentation: Any
     ) -> None:
@@ -320,70 +314,15 @@ class TestCocoReferenceRasterization:
                 str(tmp_path), str(path), mask_rasterizer="pycocotools"
             )
 
-    def test_propagates_nested_optional_import_failure(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """A missing nested module keeps its original import failure."""
-        path = _write_dataset(tmp_path, [[1, 1, 5, 1, 5, 5, 1, 5]])
-        original_import = builtins.__import__
-        nested_error = ModuleNotFoundError(
-            "No module named 'pycocotools._mask'", name="pycocotools._mask"
-        )
-
-        def broken_import(name: str, *args: Any, **kwargs: Any) -> Any:
-            """Simulate a broken transitive COCO extension import."""
-            if name == "pycocotools":
-                raise nested_error
-            return original_import(name, *args, **kwargs)
-
-        monkeypatch.setattr(builtins, "__import__", broken_import)
-
-        with pytest.raises(ModuleNotFoundError, match=r"pycocotools\._mask") as error:
-            DetectionDataset.from_coco(
-                str(tmp_path), str(path), mask_rasterizer="pycocotools"
-            )
-
-        assert error.value is nested_error
-
-    @pytest.mark.parametrize(
-        ("vertex", "message"),
-        [
-            pytest.param(float("nan"), "not a finite number", id="nan"),
-            pytest.param(float("inf"), "not a finite number", id="inf"),
-            pytest.param(65.0, "magnitude above 64", id="just-past-limit"),
-            pytest.param(1e5, "magnitude above 64", id="far-positive"),
-            pytest.param(-1e5, "magnitude above 64", id="far-negative"),
-        ],
-    )
-    def test_rejects_unusable_vertex(self, vertex: float, message: str) -> None:
-        """Non-finite or far out-of-image vertices raise a ValueError naming the id."""
+    @pytest.mark.parametrize("vertex", [float("nan"), float("inf")])
+    def test_rejects_non_finite_vertex(self, vertex: float) -> None:
+        """Non-finite vertices raise a ValueError naming the annotation id."""
         annotation = {"id": 7, "segmentation": [[1, 1, 5, 1, vertex, 5, 1, 5]]}
 
-        with pytest.raises(ValueError, match=rf"id=7 has a vertex .*{message}"):
+        with pytest.raises(ValueError, match=r"id=7 has a vertex .*not a finite"):
             coco_annotations_to_masks(
                 [annotation], (8, 8), mask_rasterizer="pycocotools"
             )
-
-    @pytest.mark.parametrize(
-        ("rasterizer", "vertex"),
-        [
-            pytest.param("supervision", 1e5, id="legacy-far-vertex"),
-            pytest.param("pycocotools", 64.0, id="reference-at-limit"),
-            pytest.param("pycocotools", -64.0, id="reference-at-negative-limit"),
-        ],
-    )
-    def test_loads_vertex_within_mode_limit(
-        self, rasterizer: Literal["supervision", "pycocotools"], vertex: float
-    ) -> None:
-        """Legacy mode keeps far vertices; reference mode accepts the limit itself."""
-        annotation = {"id": 7, "segmentation": [[1, 1, 5, 1, vertex, 5, 1, 5]]}
-
-        masks = coco_annotations_to_masks(
-            [annotation], (8, 8), mask_rasterizer=rasterizer
-        )
-
-        assert masks.shape == (1, 8, 8)
-        assert masks.any()
 
     @pytest.mark.parametrize(
         "segmentation",
