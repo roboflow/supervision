@@ -3114,3 +3114,36 @@ class TestBoxWeightedBoxFusion:
         )
         result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.allclose(result, [[0.0, 0.0, 10.0, 10.0, 0.4, 0.0]])
+
+    @pytest.mark.parametrize(
+        "predictions",
+        [
+            pytest.param(np.empty((0, 6)), id="empty-input"),
+            pytest.param(np.array([[0.0, 0.0, 10.0, 10.0, 0.9, 0.0]]), id="single-box"),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [0.0, 0.0, 10.0, 10.0, 0.8, 1.0],
+                    ]
+                ),
+                id="one-box-per-class",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+                    ]
+                ),
+                id="overlapping-boxes",
+            ),
+        ],
+    )
+    def test_rejects_invalid_overlap_metric(self, predictions: np.ndarray) -> None:
+        """An unknown overlap metric raises even when no overlap is ever computed."""
+        with pytest.raises(ValueError, match="Invalid value"):
+            box_weighted_box_fusion(
+                predictions,
+                overlap_metric="bogus",  # type: ignore[arg-type]
+            )

@@ -2101,8 +2101,9 @@ def box_weighted_box_fusion(
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
             from `0` to `1`, if `num_models` is not `None` and not a
-            positive integer, or if any confidence is negative, NaN, or
-            infinite.
+            positive integer, if `overlap_metric` is not a valid overlap
+            metric (checked even when no overlap needs computing), or if any
+            confidence is negative, NaN, or infinite.
 
     Examples:
         ```pycon
@@ -2138,6 +2139,9 @@ def box_weighted_box_fusion(
     """
     _validate_iou_threshold(iou_threshold)
     _validate_num_models(num_models)
+    # Resolve the metric before any early return: with empty input or one box
+    # per class no overlap is ever computed, so a bad value would pass silently.
+    overlap_metric = OverlapMetric.from_value(overlap_metric)
     if len(predictions) == 0:
         empty_result: npt.NDArray[np.floating] = predictions.copy()
         return empty_result
