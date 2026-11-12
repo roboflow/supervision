@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha.
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 

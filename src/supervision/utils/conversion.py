@@ -238,7 +238,12 @@ def ensure_pil_image_for_class_method(
             )
             scene_pil = cv2_to_pillow(canvas)
             annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
-            np.copyto(canvas, pillow_to_cv2(annotated_pil))
+            if canvas.ndim == 3 and canvas.shape[2] == 4:
+                # `pillow_to_cv2` returns BGR, which a BGRA scene cannot take back.
+                annotated_rgba = np.asarray(annotated_pil.convert("RGBA"))
+                np.copyto(canvas, annotated_rgba[..., [2, 1, 0, 3]])
+            else:
+                np.copyto(canvas, pillow_to_cv2(annotated_pil))
             return scene
 
         if isinstance(scene, Image.Image):
