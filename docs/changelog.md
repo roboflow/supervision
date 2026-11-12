@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. The colors match the ones drawn on the BGR copy of the scene, and the pixels they cover become opaque in proportion to the annotator's opacity.
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 

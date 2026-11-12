@@ -960,6 +960,67 @@ class TestSingleChannelMaskAnnotators:
         assert result.getpixel((2, 2)) == 50
 
 
+class TestBgraMaskAnnotators:
+    """Verify mask-painting annotators on BGRA scenes."""
+
+    @staticmethod
+    def _detections() -> Detections:
+        """Return one square mask detection inside a 30x40 scene."""
+        mask = np.zeros((1, 30, 40), dtype=bool)
+        mask[0, 8:20, 10:26] = True
+        xyxy = np.array([[10, 8, 25, 19]], dtype=np.float32)
+        return Detections(xyxy=xyxy, mask=mask, class_id=np.array([0]))
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(MaskAnnotator(opacity=0.6), id="mask"),
+            pytest.param(HaloAnnotator(kernel_size=5), id="halo"),
+            pytest.param(BackgroundOverlayAnnotator(), id="background-overlay"),
+        ],
+    )
+    def test_opaque_bgra_matches_bgr_scene(
+        self, annotator: MaskAnnotator | HaloAnnotator | BackgroundOverlayAnnotator
+    ) -> None:
+        """An opaque BGRA scene gets the colors of its BGR copy and stays opaque."""
+        bgr = (np.arange(30 * 40 * 3) % 251).astype(np.uint8).reshape(30, 40, 3)
+        scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
+        detections = self._detections()
+        expected = annotator.annotate(scene=bgr.copy(), detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_comparison_opaque_bgra_matches_bgr_scene(self) -> None:
+        """Compared masks get the colors of the BGR copy on an opaque BGRA scene."""
+        bgr = np.full((30, 40, 3), 50, dtype=np.uint8)
+        scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
+        detections = self._detections()
+        annotator = ComparisonAnnotator()
+        expected = annotator.annotate(bgr.copy(), detections, detections[:0])
+
+        result = annotator.annotate(scene, detections, detections[:0])
+
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_mask_makes_transparent_bgra_scene_more_opaque(self) -> None:
+        """A mask blended over a transparent BGRA scene raises the alpha it covers."""
+        scene = np.zeros((30, 40, 4), dtype=np.uint8)
+
+        result = MaskAnnotator(opacity=0.5).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        assert result[12, 18, 3] == 128
+        assert result[2, 2, 3] == 0
+
+
 class TestPaintMasksByArea:
     """Tests for the _paint_masks_by_area helper function."""
 
