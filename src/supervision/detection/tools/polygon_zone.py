@@ -130,6 +130,8 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
+        if np.issubdtype(polygon.dtype, np.integer):
+            x_max, y_max = int(x_max), int(y_max)
         self.mask = polygon_to_mask(
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
@@ -145,7 +147,7 @@ class PolygonZone:
         avoid per-zone clipping shifting anchor positions. This prevents a single
         detection from being counted in multiple non-overlapping zones due to
         clipping artifacts, although overlapping zones may still legitimately
-        contain the same detection.
+        contain the same detection. Negative and non-finite anchors are outside.
 
         Args:
             detections: The detections to be checked against the polygon zone
@@ -187,32 +189,21 @@ class PolygonZone:
                 for anchors in self.triggering_anchors
             ]
         )
-        mapped_in_bounds = None
         if coord_transform is not None:
             mapped = _transform_points(anchor_coordinates, coord_transform.rel_to_abs)
-            # -1 is just outside the mask, so non-finite anchors fail the bounds
-            # check below; clipping far finite ones to the same range keeps them
-            # outside without overflowing the integer cast.
-            mapped = np.nan_to_num(mapped, nan=-1.0, posinf=-1.0, neginf=-1.0)
-            mask_h, mask_w = self.mask.shape
-            mapped_in_bounds = (
-                (mapped[:, :, 0] >= 0)
-                & (mapped[:, :, 1] >= 0)
-                & (mapped[:, :, 0] < mask_w)
-                & (mapped[:, :, 1] < mask_h)
+            anchor_coordinates = np.nan_to_num(
+                mapped, nan=-1.0, posinf=-1.0, neginf=-1.0
             )
-            anchor_coordinates = np.clip(mapped, -1.0, float(max(self.mask.shape)))
-        all_anchors = np.rint(anchor_coordinates).astype(int)
 
         mask_h, mask_w = self.mask.shape
-        x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
-        in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
-        if mapped_in_bounds is not None:
-            # Rounding must not pull a truly out-of-bounds point onto the mask edge.
-            in_bounds &= mapped_in_bounds
-        x_safe = np.clip(x, 0, mask_w - 1)
-        y_safe = np.clip(y, 0, mask_h - 1)
-        anchor_hits = in_bounds & self.mask[y_safe, x_safe]
+        rounded = np.rint(anchor_coordinates)
+        mask_size = np.array([mask_w, mask_h], dtype=np.intp)
+        # Test the lower bounds before rounding so a negative subpixel cannot
+        # become zero. The rounded coordinates must fit the mask before casting.
+        valid_coordinates = (anchor_coordinates >= 0) & (rounded < mask_size)
+        in_bounds = valid_coordinates[..., 0] & valid_coordinates[..., 1]
+        safe_anchors = np.where(in_bounds[..., None], rounded, 0).astype(np.intp)
+        anchor_hits = in_bounds & self.mask[safe_anchors[..., 1], safe_anchors[..., 0]]
         reduce = np.all if self.require_all_anchors else np.any
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))

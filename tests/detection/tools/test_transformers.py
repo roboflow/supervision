@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+import types
+import warnings
+
 import numpy as np
 import pytest
 
+import supervision as sv
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.tools.transformers import (
     append_class_names_to_data,
@@ -143,6 +148,109 @@ class TestProcessTransformersDetectionResult:
         assert len(out["class_id"]) == n_boxes
         if with_id2label and n_boxes > 0:
             assert CLASS_NAME_DATA_FIELD in out["data"]
+
+    @pytest.mark.parametrize(
+        "phrases",
+        [
+            pytest.param(["a cat", "a dog"], id="two-phrases"),
+            pytest.param([], id="no-detections"),
+        ],
+    )
+    def test_grounding_dino_phrases_become_class_names_without_warning(
+        self, phrases: list[str]
+    ) -> None:
+        """Grounding DINO phrases name detections, leave class IDs unset, no warning."""
+        result = _grounding_dino_result(phrases)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            out = process_transformers_detection_result(result, None)
+
+        assert out["class_id"] is None
+        np.testing.assert_array_equal(out["data"][CLASS_NAME_DATA_FIELD], phrases)
+
+    def test_phrase_labels_without_text_labels_become_class_names(self) -> None:
+        """Phrase `labels` from releases without `text_labels` still name detections."""
+        result = {
+            "boxes": _FakeDetachTensor(np.zeros((1, 4), dtype=np.float32)),
+            "scores": _FakeDetachTensor(np.array([0.9], dtype=np.float32)),
+            "labels": ["a cat"],
+        }
+
+        out = process_transformers_detection_result(result, None)
+
+        assert out["class_id"] is None
+        np.testing.assert_array_equal(out["data"][CLASS_NAME_DATA_FIELD], ["a cat"])
+
+    @pytest.mark.parametrize(
+        "id2label",
+        [
+            pytest.param(None, id="no-id2label"),
+            pytest.param({0: "LABEL_0", 1: "LABEL_1"}, id="model-config-id2label"),
+        ],
+    )
+    def test_text_labels_name_query_indices(
+        self, id2label: dict[int, str] | None
+    ) -> None:
+        """OWL-style `text_labels` name detections; `labels` keeps the query index."""
+        result = {
+            "boxes": _FakeDetachTensor(np.zeros((2, 4), dtype=np.float32)),
+            "scores": _FakeDetachTensor(np.array([0.9, 0.8], dtype=np.float32)),
+            "labels": _FakeDetachTensor(np.array([1, 0], dtype=np.int64)),
+            "text_labels": ["a dog", "a cat"],
+        }
+
+        out = process_transformers_detection_result(result, id2label)
+
+        np.testing.assert_array_equal(out["class_id"], [1, 0])
+        np.testing.assert_array_equal(
+            out["data"][CLASS_NAME_DATA_FIELD], ["a dog", "a cat"]
+        )
+
+    def test_grounding_dino_result_builds_detections(self) -> None:
+        """Detections.from_transformers accepts a Grounding DINO result."""
+        from supervision.detection.core import Detections
+
+        result = _grounding_dino_result(["a cat", "a dog"])
+
+        detections = Detections.from_transformers(result)
+
+        assert len(detections) == 2
+        assert detections.class_id is None
+        np.testing.assert_array_equal(
+            detections.data[CLASS_NAME_DATA_FIELD], ["a cat", "a dog"]
+        )
+
+
+class _GroundingDinoResultDict(dict[str, object]):
+    """Dict that warns when `labels` is read, as Grounding DINO results do."""
+
+    def __getitem__(self, key: str) -> object:
+        """Warn for `labels`, then read the entry."""
+        if key == "labels":
+            warnings.warn("`labels` holds text; use `text_labels`", FutureWarning)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default: object = None) -> object:
+        """Warn for `labels`, then read the entry or the default."""
+        if key == "labels":
+            warnings.warn("`labels` holds text; use `text_labels`", FutureWarning)
+        return super().get(key, default)
+
+
+def _grounding_dino_result(phrases: list[str]) -> _GroundingDinoResultDict:
+    """Build a `post_process_grounded_object_detection` result of Grounding DINO.
+
+    Grounding DINO reports the matched phrases in `text_labels` and repeats them in the
+    deprecated `labels` key instead of class indices.
+    """
+    count = len(phrases)
+    return _GroundingDinoResultDict(
+        boxes=_FakeDetachTensor(np.arange(count * 4, dtype=np.float32).reshape(-1, 4)),
+        scores=_FakeDetachTensor(np.full(count, 0.5, dtype=np.float32)),
+        text_labels=list(phrases),
+        labels=list(phrases),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -381,9 +489,18 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         assert out["mask"].shape == (0, 2, 2)
         assert out["confidence"].shape == (0,)
 
-    def test_binary_maps_produce_one_mask_per_segment(self) -> None:
+    @pytest.mark.parametrize(
+        "first_segment_id",
+        [
+            pytest.param(0, id="mask2former-ids-from-0"),
+            pytest.param(1, id="rf-detr-ids-from-1"),
+        ],
+    )
+    def test_binary_maps_produce_one_mask_per_segment(
+        self, first_segment_id: int
+    ) -> None:
         """Stacked binary maps keep one mask per segment, overlaps included."""
-        binary_maps, seg_result = _instance_binary_maps_result()
+        binary_maps, seg_result = _instance_binary_maps_result(first_segment_id)
 
         out = process_transformers_v5_semantic_or_instance_segmentation_result(
             seg_result, None
@@ -391,6 +508,21 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
 
         np.testing.assert_array_equal(out["mask"], binary_maps.astype(bool))
         np.testing.assert_array_equal(out["xyxy"], [[0, 0, 1, 1], [1, 1, 3, 3]])
+        np.testing.assert_array_equal(out["class_id"], [3, 5])
+
+    def test_empty_binary_maps_stack_returns_zero_detections(self) -> None:
+        """A `(0, H, W)` binary-map stack yields `(0, H, W)` masks."""
+        seg_result = {
+            "segmentation": _FakeDetachTensor(np.zeros((0, 2, 3), dtype=bool)),
+            "segments_info": [],
+        }
+
+        out = process_transformers_v5_semantic_or_instance_segmentation_result(
+            seg_result, None
+        )
+
+        assert out["mask"].shape == (0, 2, 3)
+        assert out["xyxy"].shape == (0, 4)
 
     def test_binary_maps_build_detections(self) -> None:
         """Detections.from_transformers accepts a `return_binary_maps=True` result."""
@@ -408,12 +540,15 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         )
 
 
-def _instance_binary_maps_result() -> tuple[np.ndarray, dict[str, object]]:
+def _instance_binary_maps_result(
+    first_segment_id: int = 0,
+) -> tuple[np.ndarray, dict[str, object]]:
     """Build a v5 instance result as `return_binary_maps=True` returns it.
 
-    Mask2Former and MaskFormer then stack one 0/1 map per kept instance instead of a
-    segment-id map, in the order the instances were assigned their ids. The two maps
-    overlap at pixel (1, 1), which a segment-id map cannot represent.
+    Mask2Former, MaskFormer and RF-DETR then stack one 0/1 map per kept instance instead
+    of a segment-id map, in `segments_info` order. Mask2Former and MaskFormer number
+    segments from 0 and RF-DETR from 1, set by `first_segment_id`. The two maps overlap
+    at pixel (1, 1), which a segment-id map cannot represent.
     """
     binary_maps = np.zeros((2, 4, 4), dtype=np.float32)
     binary_maps[0, 0:2, 0:2] = 1
@@ -421,8 +556,8 @@ def _instance_binary_maps_result() -> tuple[np.ndarray, dict[str, object]]:
     seg_result = {
         "segmentation": _FakeDetachTensor(binary_maps),
         "segments_info": [
-            {"id": 0, "label_id": 3, "was_fused": False, "score": 0.9},
-            {"id": 1, "label_id": 5, "was_fused": False, "score": 0.8},
+            {"id": first_segment_id, "label_id": 3, "score": 0.9},
+            {"id": first_segment_id + 1, "label_id": 5, "score": 0.8},
         ],
     }
     return binary_maps, seg_result
@@ -480,3 +615,33 @@ class TestProcessTransformersV5SegmentationResult:
         out = process_transformers_v5_segmentation_result(tensor_result, None)
 
         np.testing.assert_array_equal(out["class_id"], [0, 1])
+
+
+class TestFromTransformersRecommendations:
+    """Verify recommendations do not depend on imported model modules."""
+
+    def test_invalid_result_suggests_rfdetr_conditionally(self) -> None:
+        """An unsupported result suggests the official package to RF-DETR users."""
+        with pytest.raises(ValueError, match=r"If you are using RF-DETR.*rfdetr"):
+            sv.Detections.from_transformers({})
+
+    def test_other_model_result_does_not_warn_when_rf_detr_is_loaded(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A loaded RF-DETR module does not warn for a generic detection result."""
+        monkeypatch.setitem(
+            sys.modules,
+            "transformers.models.rf_detr",
+            types.ModuleType("transformers.models.rf_detr"),
+        )
+        result = {
+            "boxes": _FakeDetachTensor(np.array([[1, 2, 3, 4]], dtype=np.float32)),
+            "scores": _FakeDetachTensor(np.array([0.9], dtype=np.float32)),
+            "labels": _FakeDetachTensor(np.array([7], dtype=np.int64)),
+        }
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            detections = sv.Detections.from_transformers(result)
+
+        np.testing.assert_array_equal(detections.xyxy, [[1, 2, 3, 4]])

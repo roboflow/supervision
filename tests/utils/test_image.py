@@ -314,6 +314,36 @@ def test_resize_image_keeps_at_least_one_pixel_per_axis(
     assert result.shape == (*expected_hw, 3)
 
 
+class TestResizeImageKeepAspectRatio:
+    @pytest.mark.parametrize(
+        ("image_hw", "resolution_wh", "expected_hw"),
+        [
+            pytest.param((427, 640), (640, 427), (427, 640), id="same-resolution"),
+            pytest.param((427, 640), (640, 640), (427, 640), id="width-already-fits"),
+            pytest.param((427, 640), (1280, 854), (854, 1280), id="double-resolution"),
+            pytest.param((480, 245), (480, 480), (480, 245), id="height-already-fits"),
+            pytest.param((93, 1), (1, 93), (93, 1), id="thin-strip"),
+        ],
+    )
+    def test_keeps_whole_pixel_size_of_fitted_axis(
+        self,
+        image_hw: tuple[int, int],
+        resolution_wh: tuple[int, int],
+        expected_hw: tuple[int, int],
+    ) -> None:
+        """A target that fits the aspect ratio exactly loses no pixel on either axis."""
+        # given
+        image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+        # when
+        result = resize_image(
+            image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
+        )
+
+        # then
+        assert result.shape == (*expected_hw, 3)
+
+
 @pytest.mark.parametrize(
     ("image_hw", "scale_factor", "expected_hw"),
     [
@@ -441,6 +471,25 @@ def test_letterbox_image_for_pillow_image() -> None:
     assert difference.getbbox() is None, (
         "Expected padding to be added top and bottom with padding added top and bottom"
     )
+
+
+class TestLetterboxImage:
+    def test_keeps_source_pixels_when_width_already_fits(self) -> None:
+        """A 640x427 image letterboxed to 640x640 is padded, not resampled."""
+        # given
+        image = np.random.default_rng(0).integers(
+            0, 256, size=(427, 640, 3), dtype=np.uint8
+        )
+
+        # when
+        result = letterbox_image(
+            image=image, resolution_wh=(640, 640), color=(255, 255, 255)
+        )
+
+        # then
+        assert np.array_equal(result[106:533], image)
+        assert np.all(result[:106] == 255)
+        assert np.all(result[533:] == 255)
 
 
 def test_tint_image_leaves_numpy_input_unchanged() -> None:
@@ -775,3 +824,64 @@ def test_image_utils_wrong_type_raises(
     """Wrong image type raises TypeError via decorator."""
     with pytest.raises(TypeError, match="Unsupported image type"):
         func(image="not_an_image", **kwargs)
+
+
+class TestSingleChannelArrays:
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(
+                lambda image: resize_image(image, resolution_wh=(5, 3)), id="resize"
+            ),
+            pytest.param(
+                lambda image: resize_image(
+                    image, resolution_wh=(9, 9), keep_aspect_ratio=True
+                ),
+                id="resize-keep-aspect-ratio",
+            ),
+            pytest.param(
+                lambda image: scale_image(image, scale_factor=0.5), id="scale"
+            ),
+            pytest.param(
+                lambda image: letterbox_image(
+                    image, resolution_wh=(10, 10), color=(255, 255, 255)
+                ),
+                id="letterbox",
+            ),
+        ],
+    )
+    def test_geometry_keeps_channel_axis(
+        self, transform: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Return ``(H, W, 1)`` for ``(H, W, 1)`` input on every backend."""
+        # given
+        image = np.arange(48, dtype=np.uint8).reshape(6, 8) * 5
+
+        # when
+        result = transform(image[..., np.newaxis])
+
+        # then
+        np.testing.assert_array_equal(result, transform(image)[..., np.newaxis])
+
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(
+                lambda image: tint_image(image, color=Color.WHITE, opacity=0.5),
+                id="tint",
+            ),
+            pytest.param(grayscale_image, id="grayscale"),
+        ],
+    )
+    def test_color_output_matches_two_dimensional_gray(
+        self, transform: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Convert ``(H, W, 1)`` input like ``(H, W)`` input instead of raising."""
+        # given
+        image = np.arange(12, dtype=np.uint8).reshape(3, 4) * 20
+
+        # when
+        result = transform(image[..., np.newaxis])
+
+        # then
+        np.testing.assert_array_equal(result, transform(image))

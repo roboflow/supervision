@@ -8,7 +8,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision import _cv2 as cv2
+from supervision._cv2._geometry import _intersect_convex_convex
 from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.utils.internal import warn_deprecated
 
@@ -470,6 +470,92 @@ def _overlapping_envelope_pairs(
     return cast(tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]], np.nonzero(overlap))
 
 
+def _oriented_box_pair_intersections(
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    is_self_comparison: bool = False,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], npt.NDArray[np.float64]]:
+    """Compute exact intersection areas of the oriented box pairs that may overlap.
+
+    Only pairs whose axis-aligned envelopes overlap are returned; every other
+    pair has no intersection. For a self comparison only pairs with
+    `row <= col` are returned, since the result is symmetric.
+
+    Args:
+        boxes_true: Convex quads shaped `(N, 4, 2)`.
+        boxes_detection: Convex quads shaped `(M, 4, 2)`.
+        is_self_comparison: Whether both arguments are the same boxes.
+
+    Returns:
+        Row indices into `boxes_true`, column indices into `boxes_detection`,
+        and the intersection area of each such pair.
+    """
+    envelopes_true = _aabb_envelopes(boxes_true)
+    envelopes_detection = (
+        envelopes_true if is_self_comparison else _aabb_envelopes(boxes_detection)
+    )
+    rows, cols = _overlapping_envelope_pairs(envelopes_true, envelopes_detection)
+    if is_self_comparison:
+        upper = rows <= cols
+        rows, cols = rows[upper], cols[upper]
+
+    local_origins_true = envelopes_true[:, :2]
+    local_origins_detection = envelopes_detection[:, :2]
+    if np.issubdtype(boxes_true.dtype, np.integer):
+        local_polygons_true = np.asarray(
+            boxes_true.astype(object) - local_origins_true[:, None, :].astype(object),
+            dtype=np.float32,
+        )
+    else:
+        local_polygons_true = (boxes_true - local_origins_true[:, None, :]).astype(
+            np.float32
+        )
+    if np.issubdtype(boxes_detection.dtype, np.integer):
+        local_polygons_detection = np.asarray(
+            boxes_detection.astype(object)
+            - local_origins_detection[:, None, :].astype(object),
+            dtype=np.float32,
+        )
+    else:
+        local_polygons_detection = (
+            boxes_detection - local_origins_detection[:, None, :]
+        ).astype(np.float32)
+    # Float32 inputs already have quantized origins, so their envelope minima
+    # can be reused without loss. Float64 inputs may retain unit differences at
+    # large origins; keep their pair offsets in float64 until each pair's local
+    # cast instead of rounding absolute minima to float32 up front.
+    origins_true_float32 = (
+        local_origins_true if boxes_true.dtype == np.float32 else None
+    )
+    origins_detection_float32 = (
+        local_origins_detection if boxes_detection.dtype == np.float32 else None
+    )
+    polygon_i_buffer = np.empty((4, 2), dtype=np.float32)
+    polygon_j_buffer = np.empty((4, 2), dtype=np.float32)
+    intersections = np.zeros(len(rows), dtype=np.float64)
+    for index, (i, j) in enumerate(zip(rows, cols)):
+        # Rebase precomputed local polygons to the shared overlap origin. This
+        # preserves translation-invariant float32 geometry without repeating
+        # corner reductions and casts for every candidate pair.
+        if origins_true_float32 is not None and origins_detection_float32 is not None:
+            origin_i = origins_true_float32[i]
+            origin_j = origins_detection_float32[j]
+        else:
+            origin_i = local_origins_true[i]
+            origin_j = local_origins_detection[j]
+        pair_origin = np.minimum(origin_i, origin_j)
+        offset_i = (origin_i - pair_origin).astype(np.float32, copy=False)
+        offset_j = (origin_j - pair_origin).astype(np.float32, copy=False)
+        np.add(local_polygons_true[i], offset_i, out=polygon_i_buffer)
+        np.add(local_polygons_detection[j], offset_j, out=polygon_j_buffer)
+        # Not cv2.intersectConvexConvex: it returns wrong areas for nearly collinear
+        # overlapping edges and zero for polygons far below one coordinate unit.
+        intersections[index], _ = _intersect_convex_convex(
+            polygon_i_buffer, polygon_j_buffer
+        )
+    return rows, cols, intersections
+
+
 def oriented_box_iou_batch(
     boxes_true: npt.NDArray[np.number],
     boxes_detection: npt.NDArray[np.number],
@@ -488,9 +574,8 @@ def oriented_box_iou_batch(
 
     Note:
         Inputs must be **convex** quads with finite coordinates. Self-intersecting
-        or non-convex polygons produce undefined results via
-        ``cv2.intersectConvexConvex``. NaN or Inf coordinates propagate silently
-        as ``0.0`` — validate inputs before calling if needed.
+        or non-convex polygons produce undefined results. NaN or Inf coordinates
+        propagate silently as ``0.0`` — validate inputs before calling if needed.
 
         When ``boxes_true is boxes_detection`` (the same Python object, not just
         equal values), the function computes only the upper triangle of the
@@ -576,83 +661,26 @@ def oriented_box_iou_batch(
 
     areas_true = _polygon_areas(boxes_true)
     areas_detection = _polygon_areas(boxes_detection)
-
-    envelopes_true = _aabb_envelopes(boxes_true)
-    envelopes_detection = (
-        envelopes_true if is_self_comparison else _aabb_envelopes(boxes_detection)
+    rows, cols, intersections = _oriented_box_pair_intersections(
+        boxes_true, boxes_detection, is_self_comparison
     )
-    rows, cols = _overlapping_envelope_pairs(envelopes_true, envelopes_detection)
-    if is_self_comparison:
-        upper = rows <= cols
-        rows, cols = rows[upper], cols[upper]
+    if normalize_by_union:
+        denominators = areas_true[rows] + areas_detection[cols] - intersections
+    else:
+        denominators = np.minimum(areas_true[rows], areas_detection[cols])
+    valid = (intersections > 0) & (denominators > 0)
+    rows, cols = rows[valid], cols[valid]
+    scores = intersections[valid] / denominators[valid]
 
     ious: npt.NDArray[np.float64] = np.zeros((n, m), dtype=np.float64)
-    local_origins_true = envelopes_true[:, :2]
-    local_origins_detection = envelopes_detection[:, :2]
-    if np.issubdtype(boxes_true.dtype, np.integer):
-        local_polygons_true = np.asarray(
-            boxes_true.astype(object) - local_origins_true[:, None, :].astype(object),
-            dtype=np.float32,
-        )
-    else:
-        local_polygons_true = (boxes_true - local_origins_true[:, None, :]).astype(
-            np.float32
-        )
-    if np.issubdtype(boxes_detection.dtype, np.integer):
-        local_polygons_detection = np.asarray(
-            boxes_detection.astype(object)
-            - local_origins_detection[:, None, :].astype(object),
-            dtype=np.float32,
-        )
-    else:
-        local_polygons_detection = (
-            boxes_detection - local_origins_detection[:, None, :]
-        ).astype(np.float32)
-    # Float32 inputs already have quantized origins, so their envelope minima
-    # can be reused without loss. Float64 inputs may retain unit differences at
-    # large origins; keep their pair offsets in float64 until each pair's local
-    # cast instead of rounding absolute minima to float32 up front.
-    origins_true_float32 = (
-        local_origins_true if boxes_true.dtype == np.float32 else None
-    )
-    origins_detection_float32 = (
-        local_origins_detection if boxes_detection.dtype == np.float32 else None
-    )
-    polygon_i_buffer = np.empty((4, 2), dtype=np.float32)
-    polygon_j_buffer = np.empty((4, 2), dtype=np.float32)
-    for i, j in zip(rows, cols):
-        # Rebase precomputed local polygons to the shared overlap origin. This
-        # preserves translation-invariant float32 geometry without repeating
-        # corner reductions and casts for every candidate pair.
-        if origins_true_float32 is not None and origins_detection_float32 is not None:
-            origin_i = origins_true_float32[i]
-            origin_j = origins_detection_float32[j]
-        else:
-            origin_i = local_origins_true[i]
-            origin_j = local_origins_detection[j]
-        pair_origin = np.minimum(origin_i, origin_j)
-        offset_i = (origin_i - pair_origin).astype(np.float32, copy=False)
-        offset_j = (origin_j - pair_origin).astype(np.float32, copy=False)
-        np.add(local_polygons_true[i], offset_i, out=polygon_i_buffer)
-        np.add(local_polygons_detection[j], offset_j, out=polygon_j_buffer)
-        intersection, _ = cv2.intersectConvexConvex(polygon_i_buffer, polygon_j_buffer)
-        if intersection <= 0:
-            continue
-        denominator = (
-            areas_true[i] + areas_detection[j] - intersection
-            if normalize_by_union
-            else min(areas_true[i], areas_detection[j])
-        )
-        if denominator > 0:
-            score = intersection / denominator
-            ious[i, j] = score
-            if is_self_comparison:
-                ious[j, i] = score
+    ious[rows, cols] = scores
+    if is_self_comparison:
+        ious[cols, rows] = scores
 
-    # DO NOT remove this clip. cv2.intersectConvexConvex computes in float32
-    # internally while polygon areas are computed in float64; the intersection
-    # area can exceed the float64 area by ~25 ULP (~1e-7), producing raw IoU
-    # or IoS values microscopically above 1.0 for identical boxes. The clip is
+    # DO NOT remove this clip. Intersections are computed on float32-rounded
+    # polygons while polygon areas use the original coordinates; the intersection
+    # area can exceed the polygon area by ~1e-7 relative, producing raw IoU or
+    # IoS values microscopically above 1.0 for identical boxes. The clip is
     # load-bearing, not defensive duplication.
     return cast(npt.NDArray[np.floating], np.clip(ious, 0.0, 1.0))
 

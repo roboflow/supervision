@@ -2,22 +2,28 @@ import random
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import numpy as np
 import pytest
 
 import supervision.dataset.utils as dataset_utils
 from supervision import DetectionDataset, Detections, _cv2
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.utils import (
+    _bridge_holes,
+    _is_hole_contour,
+    _splice_holes_in_order,
     approximate_mask_with_polygons,
     build_class_index_mapping,
     check_no_basename_collisions,
     map_detections_class_id,
+    map_key_points_class_id,
     merge_class_lists,
     train_test_split,
 )
 from supervision.detection.utils.converters import mask_to_polygons, polygon_to_mask
+from supervision.key_points.core import KeyPoints
 from tests.helpers import _create_detections
 
 T = TypeVar("T")
@@ -190,6 +196,48 @@ class TestApproximateMaskWithPolygons:
         assert len(polygons) == 1
         np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
 
+    @pytest.mark.parametrize("small_hole_first", [False, True])
+    def test_bridges_nested_holes_in_either_contour_order(
+        self, small_hole_first: bool
+    ) -> None:
+        """A hole enclosed by a C-shaped hole bridges in either contour order."""
+        mask = np.zeros((40, 40), dtype=bool)
+        mask[2:38, 2:38] = True
+        mask[8:32, 8:32] = False
+        mask[12:28, 12:28] = True
+        mask[18:22, 28:32] = True
+        mask[18:22, 18:22] = False
+        polygons: list[Any] = mask_to_polygons(mask)
+        outer = next(p for p in polygons if not _is_hole_contour(p))
+        holes = sorted(
+            (p for p in polygons if _is_hole_contour(p)),
+            key=lambda hole: np.ptp(hole[:, 0]),
+            reverse=not small_hole_first,
+        )
+
+        bridged = _bridge_holes(mask=mask, outer=outer, holes=holes)
+
+        np.testing.assert_array_equal(_fill_polygons([bridged], (40, 40)), mask)
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_keeps_the_given_hole_order_when_it_works(self, reverse: bool) -> None:
+        """A mask the given order can bridge keeps the polygon that order produces."""
+        mask = _ring_mask()
+        mask[48:55, 20:50] = False
+        polygons: list[Any] = mask_to_polygons(mask)
+        outer = next(p for p in polygons if not _is_hole_contour(p))
+        holes = [p for p in polygons if _is_hole_contour(p)]
+        assert len(holes) == 2
+        other_order = _splice_holes_in_order(mask=mask, outer=outer, holes=holes[::-1])
+        expected = _splice_holes_in_order(mask=mask, outer=outer, holes=holes)
+        assert not np.array_equal(expected, other_order)
+        if reverse:
+            holes, expected = holes[::-1], other_order
+
+        bridged = _bridge_holes(mask=mask, outer=outer, holes=holes)
+
+        np.testing.assert_array_equal(bridged, expected)
+
     def test_keeps_seam_on_foreground_when_nearest_vertex_is_across_background(
         self,
     ) -> None:
@@ -330,6 +378,22 @@ class TestApproximateMaskWithPolygons:
 
         assert len(simplified) == len(exact) == 1
         assert len(simplified[0]) < len(exact[0])
+
+    @pytest.mark.parametrize("approximation_percentage", [0.5, 0.75])
+    def test_bridges_traced_contours_when_simplified_ones_have_no_seam(
+        self, approximation_percentage: float, ragged_mask_with_hole: np.ndarray
+    ) -> None:
+        """A hole the simplified outline cannot reach is bridged, not raised."""
+        mask = ragged_mask_with_hole
+
+        polygons = approximate_mask_with_polygons(
+            mask,
+            approximation_percentage=approximation_percentage,
+            bridge_holes=True,
+        )
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (7, 10)), mask)
 
 
 class TestIsSegmentInsideMask:
@@ -681,3 +745,52 @@ class TestSaveDatasetImages:
 
         saved = _cv2.imread(str(tmp_path / "image.png"))
         np.testing.assert_array_equal(saved, image)
+
+
+class TestMapKeyPointsClassId:
+    """Tests for remapping key point class ids onto a merged class list."""
+
+    def test_remaps_class_id_and_drops_stale_class_name(self) -> None:
+        """Remapping renumbers ``class_id`` and clears the cached class name."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={CLASS_NAME_DATA_FIELD: np.array(["cat"])},
+        )
+
+        result = map_key_points_class_id(
+            source_to_target_mapping={0: 3}, key_points=key_points
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([3]))
+        assert CLASS_NAME_DATA_FIELD not in result.data
+
+    def test_does_not_mutate_the_input(self) -> None:
+        """The source key points keep their original class ids."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([0])
+        )
+
+        map_key_points_class_id(source_to_target_mapping={0: 3}, key_points=key_points)
+
+        np.testing.assert_array_equal(key_points.class_id, np.array([0]))
+
+    def test_rejects_key_points_without_class_id(self) -> None:
+        """Key points with no ``class_id`` have nothing to remap, so they raise."""
+        key_points = KeyPoints(xy=np.array([[[1.0, 2.0]]], dtype=np.float32))
+
+        with pytest.raises(ValueError, match="class_id"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )
+
+    def test_rejects_a_class_id_missing_from_the_mapping(self) -> None:
+        """A class id with no target is an error rather than a silent pass."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([5])
+        )
+
+        with pytest.raises(ValueError, match="subset"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )

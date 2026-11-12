@@ -374,3 +374,79 @@ class TestMapToDrawingCoordinates:
 
         with pytest.raises(ValueError, match="coord_transform must return"):
             _map_to_drawing_coordinates(points, _WrongShapeTransform())
+
+
+class TestDrawImageSceneLayouts:
+    @pytest.mark.parametrize(
+        "scene_shape", [pytest.param((6, 8), id="2d"), pytest.param((6, 8, 1), id="3d")]
+    )
+    def test_grayscale_scene_receives_image_luminance(
+        self, scene_shape: tuple[int, ...]
+    ) -> None:
+        """Draw an opaque BGR image on a grayscale scene as its gray luminance."""
+        scene = np.full(scene_shape, 7, dtype=np.uint8)
+        image = np.full((4, 4, 3), (255, 0, 0), dtype=np.uint8)
+        expected = np.asarray(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))[0, 0]
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(1, 1, 4, 4))
+
+        assert result.shape == scene_shape
+        np.testing.assert_array_equal(
+            result[1:5, 1:5], np.full_like(result[1:5, 1:5], expected)
+        )
+        assert result[0, 0].item() == 7
+
+    def test_grayscale_scene_blends_with_opacity(self) -> None:
+        """Blend the image luminance into a grayscale scene at the given opacity."""
+        scene = np.zeros((4, 4), dtype=np.uint8)
+        image = np.full((4, 4, 3), 200, dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=0.5, rect=Rect(0, 0, 4, 4))
+
+        np.testing.assert_array_equal(result, np.full((4, 4), 100, dtype=np.uint8))
+
+    @pytest.mark.parametrize(
+        ("scene_pixel", "expected"),
+        [
+            pytest.param((0, 0, 0, 0), (255, 0, 0, 128), id="transparent-scene"),
+            pytest.param((0, 0, 255, 128), (170, 0, 85, 192), id="translucent-scene"),
+            pytest.param((0, 0, 255, 255), (128, 0, 127, 255), id="opaque-scene"),
+        ],
+    )
+    def test_translucent_image_on_bgra_scene_composites_straight_alpha(
+        self, scene_pixel: tuple[int, ...], expected: tuple[int, ...]
+    ) -> None:
+        """A translucent draw weights colors by alpha rather than darkening them."""
+        scene = np.full((4, 4, 4), scene_pixel, dtype=np.uint8)
+        image = np.full((4, 4, 4), (255, 0, 0, 128), dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(0, 0, 4, 4))
+
+        assert tuple(result[0, 0].tolist()) == expected
+
+    def test_invisible_image_keeps_transparent_bgra_scene(self) -> None:
+        """A fully transparent draw leaves even a transparent scene's color alone."""
+        scene = np.full((4, 4, 4), (9, 8, 7, 0), dtype=np.uint8)
+        image = np.full((4, 4, 4), (255, 0, 0, 0), dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(0, 0, 4, 4))
+
+        assert tuple(result[0, 0].tolist()) == (9, 8, 7, 0)
+
+    @pytest.mark.parametrize(
+        ("opacity", "expected_alpha"),
+        [pytest.param(1.0, 255, id="opaque"), pytest.param(0.0, 40, id="invisible")],
+    )
+    def test_bgra_scene_keeps_alpha_channel(
+        self, opacity: float, expected_alpha: int
+    ) -> None:
+        """Draw on a BGRA scene and make drawn pixels opaque with the image."""
+        scene = np.full((4, 4, 4), (1, 2, 3, 40), dtype=np.uint8)
+        image = np.full((4, 4, 3), (10, 20, 30), dtype=np.uint8)
+        expected_bgr = (10, 20, 30) if opacity else (1, 2, 3)
+
+        result = draw_image(scene, image, opacity=opacity, rect=Rect(0, 0, 4, 4))
+
+        assert result.shape == (4, 4, 4)
+        np.testing.assert_array_equal(result[..., :3], np.full((4, 4, 3), expected_bgr))
+        np.testing.assert_array_equal(result[..., 3], np.full((4, 4), expected_alpha))

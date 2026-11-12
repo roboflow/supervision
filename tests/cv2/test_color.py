@@ -89,7 +89,7 @@ except (ImportError, OSError):
             ),
             _COLOR_HSV2BGR,
             cv2.COLOR_HSV2BGR,
-            1,
+            0,
             id="hsv-to-bgr",
         ),
     ],
@@ -146,6 +146,95 @@ def test_fallback_bgr_to_gray_matches_opencv_for_integer_images(
 
     assert actual.dtype == expected.dtype
     np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_hsv_to_bgr_matches_opencv_for_float32_images() -> None:
+    """Read float32 hue in degrees and saturation and value in [0, 1]."""
+    rng = np.random.default_rng(0)
+    source = np.stack(
+        (
+            rng.uniform(0, 360, (32, 32)),
+            rng.uniform(0, 1, (32, 32)),
+            rng.uniform(0, 1, (32, 32)),
+        ),
+        axis=-1,
+    ).astype(np.float32)
+    source[0, 0] = (120, 0.5, 0.8)
+    source[0, 1] = (0, 1, 1)
+    source[0, 2] = (300, 0, 0.25)
+
+    actual = _cvt_color(source, _COLOR_HSV2BGR)
+    expected = cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
+
+    assert actual.dtype == expected.dtype
+    _assert_matches_opencv_hsv(actual, expected, min_exact_fraction=0.9)
+
+
+def _assert_matches_opencv_hsv(
+    actual: np.ndarray, expected: np.ndarray, min_exact_fraction: float
+) -> None:
+    """Check an HSV2BGR result against OpenCV, allowing its fused multiply-adds.
+
+    OpenCV's Linux wheels fuse ``1 - s * f`` into one multiply-add, which the
+    Windows and macOS wheels and this fallback do not, so a few results there
+    differ by one 8-bit level or about 6e-8 in float32. Everything else must be exact.
+    """
+    assert actual.shape == expected.shape
+    if actual.dtype == np.uint8:
+        difference = np.abs(actual.astype(np.int16) - expected.astype(np.int16))
+        assert difference.max() <= 1
+    else:
+        assert np.abs(actual.astype(np.float64) - expected).max() <= 2.0**-22
+    assert np.mean(actual == expected) >= min_exact_fraction
+
+
+class TestFallbackHSVToBGRMatchesOpenCV:
+    def test_uint8_hsv_grid_matches_opencv(self) -> None:
+        """Match OpenCV on every hue, including wrapped ones, across an S and V grid."""
+        hue, saturation, value = np.meshgrid(
+            np.arange(256), np.arange(0, 256, 3), np.arange(0, 256, 3), indexing="ij"
+        )
+        # 256-pixel rows are whole vector blocks on every OpenCV build.
+        source = np.stack((hue, saturation, value), axis=-1).reshape(-1, 256, 3)
+        source = source.astype(np.uint8)
+
+        actual = _cvt_color(source, _COLOR_HSV2BGR)
+
+        expected = cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
+        _assert_matches_opencv_hsv(actual, expected, min_exact_fraction=0.999)
+
+    @pytest.mark.parametrize("width", [1, 7, 33])
+    def test_uint8_row_ends_match_opencv(self, width: int) -> None:
+        """Round the pixels OpenCV's scalar code converts at the end of each row."""
+        rng = np.random.default_rng(width)
+        source = rng.integers(0, 256, size=(64, width, 3), dtype=np.uint8)
+
+        actual = _cvt_color(source, _COLOR_HSV2BGR)
+
+        expected = cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
+        _assert_matches_opencv_hsv(actual, expected, min_exact_fraction=0.999)
+
+    def test_heat_map_colors_match_opencv(self) -> None:
+        """Match the full-saturation hues :class:`HeatMapAnnotator` draws."""
+        source = np.full((4, 192, 3), 255, dtype=np.uint8)
+        source[..., 0] = np.arange(192) % 180
+
+        actual = _cvt_color(source, _COLOR_HSV2BGR)
+
+        np.testing.assert_array_equal(actual, cv2.cvtColor(source, cv2.COLOR_HSV2BGR))
+
+
+@pytest.mark.parametrize("dtype", [np.uint16, np.float64])
+def test_fallback_hsv_to_bgr_rejects_dtypes_opencv_rejects(
+    dtype: type[np.generic],
+) -> None:
+    """Raise for the depths OpenCV's HSV2BGR does not accept."""
+    source = np.zeros((2, 2, 3), dtype=dtype)
+
+    with pytest.raises(cv2.error):
+        cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
+    with pytest.raises(ValueError, match="8-bit or float32"):
+        _cvt_color(source, _COLOR_HSV2BGR)
 
 
 def test_fallback_merge_matches_opencv() -> None:

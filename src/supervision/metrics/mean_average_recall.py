@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from copy import deepcopy
+from copy import copy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -791,7 +791,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
         For the mask target this may return a
         :class:`~supervision.detection.compact_mask.CompactMask` rather than a
-        dense boolean array when the detections carry compact masks.
+        dense boolean array when the detections carry compact masks. Oriented
+        corners retain their precision until IoU translates them into a local frame;
+        float16 corners are promoted before subtracting potentially large extents.
         """
         if self._metric_target == MetricTarget.BOXES:
             return cast(npt.NDArray[Any], detections.xyxy)
@@ -808,7 +810,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is not None and len(obb) > 0:
-                result_obb: npt.NDArray[np.float32] = np.array(obb, dtype=np.float32)
+                result_obb: npt.NDArray[Any] = np.array(obb)
+                if np.issubdtype(result_obb.dtype, np.float16):
+                    result_obb = result_obb.astype(np.float32)
                 return result_obb
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
@@ -850,7 +854,11 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     def _filter_detections_by_size(
         self, detections: Detections, size_category: ObjectSizeCategory
     ) -> Detections:
-        """Return a copy of detections kept by the inclusive COCO size range.
+        """Select a copy of the rows in the inclusive COCO size range.
+
+        Slice the selected rows on a shallow copy to avoid copying unused
+        masks and metadata. The targets were validated at construction, so
+        do not revalidate accepted non-bool masks during each size filter.
 
         Matches
         :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
@@ -860,32 +868,31 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         :class:`~supervision.metrics.utils.object_size.ObjectSizeCategory` stay
         for general filtering; mAR needs the inclusive COCO semantics.
         """
-        new_detections = deepcopy(detections)
         if detections.is_empty() or size_category == ObjectSizeCategory.ANY:
-            return new_detections
-
-        areas = get_detection_areas(new_detections, self._metric_target)
-        small_area, medium_area = SIZE_THRESHOLDS
-        max_all_area = 1e5**2
-        if size_category == ObjectSizeCategory.SMALL:
-            size_mask = (areas >= 0) & (areas <= small_area)
-        elif size_category == ObjectSizeCategory.MEDIUM:
-            size_mask = (areas >= small_area) & (areas <= medium_area)
-        elif size_category == ObjectSizeCategory.LARGE:
-            size_mask = (areas >= medium_area) & (areas <= max_all_area)
+            size_mask = np.ones(len(detections), dtype=bool)
         else:
-            raise ValueError(f"Invalid size category: {size_category}")
+            areas = get_detection_areas(detections, self._metric_target)
+            small_area, medium_area = SIZE_THRESHOLDS
+            max_all_area = 1e5**2
+            if size_category == ObjectSizeCategory.SMALL:
+                size_mask = (areas >= 0) & (areas <= small_area)
+            elif size_category == ObjectSizeCategory.MEDIUM:
+                size_mask = (areas >= small_area) & (areas <= medium_area)
+            elif size_category == ObjectSizeCategory.LARGE:
+                size_mask = (areas >= medium_area) & (areas <= max_all_area)
+            else:
+                raise ValueError(f"Invalid size category: {size_category}")
 
-        new_detections.xyxy = new_detections.xyxy[size_mask]
-        if new_detections.mask is not None:
-            new_detections.mask = new_detections.mask[size_mask]
-        if new_detections.class_id is not None:
-            new_detections.class_id = new_detections.class_id[size_mask]
-        if new_detections.confidence is not None:
-            new_detections.confidence = new_detections.confidence[size_mask]
-        if new_detections.tracker_id is not None:
-            new_detections.tracker_id = new_detections.tracker_id[size_mask]
-        if new_detections.data is not None:
-            new_detections.data = get_data_item(new_detections.data, size_mask)
-
-        return new_detections
+        selected = copy(detections)
+        selected.xyxy = detections.xyxy[size_mask]
+        if detections.mask is not None:
+            selected.mask = detections.mask[size_mask]
+        if detections.class_id is not None:
+            selected.class_id = detections.class_id[size_mask]
+        if detections.confidence is not None:
+            selected.confidence = detections.confidence[size_mask]
+        if detections.tracker_id is not None:
+            selected.tracker_id = detections.tracker_id[size_mask]
+        if detections.data is not None:
+            selected.data = get_data_item(detections.data, size_mask)
+        return selected

@@ -616,6 +616,20 @@ class Detections:
         Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
         holds one score per detection.
 
+        !!! tip "RF-DETR"
+
+            For RF-DETR, prefer the official
+            [`rfdetr`](https://github.com/roboflow/rf-detr) package maintained by
+            Roboflow: its `predict()` returns
+            :class:`~supervision.detection.core.Detections` directly. RF-DETR
+            results from Transformers can also be converted here.
+
+        For zero-shot object detection, pass the result of
+        `post_process_grounded_object_detection`. Class names come from its
+        `text_labels` rather than `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo set
+        `class_id` to the index of the matched text query; Grounding DINO reports
+        the matched phrases instead of indices, so its `class_id` is `None`.
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
@@ -656,7 +670,6 @@ class Detections:
             )
             ```
         """
-
         if (
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
@@ -683,7 +696,8 @@ class Detections:
             raise ValueError(
                 "The provided Transformers results do not contain any valid fields."
                 " Expected fields are 'boxes', 'masks', 'segments_info' or"
-                " 'segmentation'."
+                " 'segmentation'. If you are using RF-DETR, consider the official"
+                " `rfdetr` package, whose predict() returns Detections directly."
             )
 
     @classmethod
@@ -2255,7 +2269,8 @@ class Detections:
            oriented bounding box corners (result lies on the actual rotated
            body).
         2. If ``anchor`` is ``Position.CENTER_OF_MASS``, the detection mask
-           centroid is returned regardless of OBB data presence.
+           centroid is returned regardless of OBB data presence. An empty batch
+           returns no anchors, with or without a mask.
         3. Otherwise, the anchor is derived from the axis-aligned envelope
            (``xyxy``).
 
@@ -2273,7 +2288,8 @@ class Detections:
             dtype.
 
         Raises:
-            ValueError: If the provided `anchor` is not supported.
+            ValueError: If the provided `anchor` is not supported, or if `anchor` is
+                ``Position.CENTER_OF_MASS`` and a non-empty batch has no mask.
 
         Examples:
             Axis-aligned detection:
@@ -2330,6 +2346,10 @@ class Detections:
             )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
+                # `from_inference` and `from_ultralytics` return an empty batch without
+                # a mask when a model finds nothing. It has no anchors to compute.
+                if len(self) == 0:
+                    return np.empty((0, 2), dtype=np.int_)
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )

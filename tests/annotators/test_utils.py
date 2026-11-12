@@ -15,6 +15,7 @@ from supervision.annotators.utils import (
     resolve_color_idx,
     resolve_text_background_xyxy,
     rgba_to_hex,
+    snap_boxes,
     wrap_text,
 )
 from supervision.detection.core import Detections
@@ -165,6 +166,11 @@ def test_resolve_color_accepts_palette_from_src_namespace() -> None:
         (12345, None, ["12345"], DoesNotRaise()),  # plain integer
         (-6789, None, ["-6789"], DoesNotRaise()),  # negative integer
         (np.int64(1000), None, ["1000"], DoesNotRaise()),  # NumPy int64
+        pytest.param(0, None, ["0"], DoesNotRaise(), id="integer-zero"),
+        pytest.param(0, 10, ["0"], DoesNotRaise(), id="integer-zero-wrapped"),
+        pytest.param(np.int64(0), None, ["0"], DoesNotRaise(), id="numpy-int-zero"),
+        pytest.param(0.0, None, ["0.0"], DoesNotRaise(), id="float-zero"),
+        pytest.param(False, None, ["False"], DoesNotRaise(), id="boolean-false"),
         ([1, 2, 3], None, ["[1, 2, 3]"], DoesNotRaise()),  # list to string
         (
             "When you play the game of thrones, you win or you die.\nFear cuts deeper than swords.\nA mind needs books as a sword needs a whetstone.",  # noqa: E501
@@ -534,3 +540,43 @@ class TestTraceEmptyFrames:
 
         with pytest.raises(ValueError, match="without a detection mask"):
             trace.put(detections)
+
+
+class TestSnapBoxes:
+    """Tests for `snap_boxes`, which moves label boxes into the frame."""
+
+    @pytest.mark.parametrize(
+        ("xyxy", "expected"),
+        [
+            pytest.param(
+                [-10, 10, 30, 50], [0, 10, 40, 50], id="off-left-edge-shifts-right"
+            ),
+            pytest.param(
+                [310, 200, 350, 250],
+                [280, 190, 320, 240],
+                id="off-right-and-bottom-edges-shift-in",
+            ),
+            pytest.param(
+                [-20, 10, 350, 50],
+                [0, 10, 370, 50],
+                id="wider-than-frame-from-outside-keeps-left-edge",
+            ),
+            pytest.param(
+                [10, 10, 400, 50],
+                [0, 10, 390, 50],
+                id="wider-than-frame-from-inside-keeps-left-edge",
+            ),
+            pytest.param(
+                [10, 10, 40, 300],
+                [10, 0, 40, 290],
+                id="taller-than-frame-from-inside-keeps-top-edge",
+            ),
+        ],
+    )
+    def test_snaps_box_into_frame_prioritizing_top_left(
+        self, xyxy: list[float], expected: list[float]
+    ) -> None:
+        """A box moves into the frame; one too large for it keeps its top-left."""
+        snapped = snap_boxes(np.array([xyxy], dtype=np.float32), (320, 240))
+
+        assert np.array_equal(snapped, np.array([expected], dtype=np.float32))
