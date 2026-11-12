@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.metrics.MeanAverageRecall` selects targets by size before copying their rows. The size filter no longer copies every target mask for each range or fails on unused image metadata that cannot be deep-copied.
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 
