@@ -9,6 +9,14 @@ date_modified: 2026-10-31
 
 - `sv.DetectionDataset.from_coco` accepts `mask_rasterizer="pycocotools"` to load COCO polygons with the COCO reference rasterization, which matches the masks COCO evaluation builds for well-formed polygons (nested lists of even-length parts with at least three vertices each). Install `supervision[coco]` for this optional mode; without it, this mode raises `ImportError` with the install command as soon as loading starts, even for files without polygons, while failures in nested imports or its compiled extension retain their original error. Continuous vertices are retained and disjoint parts are merged per object. This mode raises `ValueError` for a polygon vertex far outside the image and emits no NumPy 2 `DeprecationWarning` from `pycocotools` mask decoding. Omitting `mask_rasterizer` keeps the current inclusive integer fill (`"supervision"`). Relying on that default for a file that contains polygon segmentation is deprecated in `0.32.0` and emits a `SupervisionWarnings` warning, because the default changes to `"pycocotools"` no earlier than `0.35.0`; pass `mask_rasterizer="supervision"` to keep the current masks. The generic polygon rasterizer and RLE decoding keep their existing behavior. ([#2714](https://github.com/roboflow/supervision/pull/2714))
 
+- `sv.metrics.MeanAverageRecall` selects targets by size before copying their rows. The size filter no longer copies every target mask for each range or fails on unused image metadata that cannot be deep-copied. ([#2953](https://github.com/roboflow/supervision/pull/2953))
+
+- `sv.resize_image` with `keep_aspect_ratio=True` and `sv.letterbox_image` no longer lose 1 pixel on the fitted axis when its exact size is a whole number. The size came from a float ratio, so `640 / (640 / 427)` gave `426.99999999999994` and a 640x427 image letterboxed to 640x640 was resampled to 640x426 instead of only padded. The size is now calculated with integer arithmetic, so a target with the image's aspect ratio produces exactly the target dimensions. Other fits are unchanged. ([#2952](https://github.com/roboflow/supervision/pull/2952))
+
+- `sv.xyxy_to_xywh` now computes integer box widths and heights without wraparound. Integer inputs return `int64`, or `float64` when an output value exceeds the `int64` range, instead of negative extents caused by overflow. ([#2951](https://github.com/roboflow/supervision/pull/2951))
+
+- `sv.JSONSink` now rejects additional data whose names collide with built-in detection fields, preventing custom metadata from silently overwriting coordinates, class IDs, confidence scores or tracker IDs. Rename such metadata fields, for example to `calibrated_confidence`. ([#2949](https://github.com/roboflow/supervision/pull/2949))
+
 ### 0.31.7 <small>Nov 11, 2026</small>
 
 - **Metrics**: `sv.metrics.MeanAveragePrecision` agrees with `pycocotools` on size buckets and crowd targets.

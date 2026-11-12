@@ -220,6 +220,96 @@ def test_xyxy_to_xywh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
     np.testing.assert_array_equal(result, expected_result)
 
 
+class TestXyxyToXywhIntegerGeometry:
+    """Tests for exact box extents without integer wraparound."""
+
+    def test_preserves_small_extents_above_int64_range(self) -> None:
+        """Unsigned corners retain their small separation before float conversion."""
+        xyxy = np.array([[2**64 - 5, 0, 2**64 - 1, 2]], dtype=np.uint64)
+
+        result = xyxy_to_xywh(xyxy)
+
+        np.testing.assert_array_equal(
+            result, np.array([[2**64 - 5, 0, 4, 2]], dtype=np.float64)
+        )
+        assert result.dtype == np.float64
+
+    @pytest.mark.parametrize("dtype", ["int8", "int16", "int32"])
+    def test_preserves_extents_across_zero(self, dtype: str) -> None:
+        """Ordered signed corners can span more than the source dtype allows."""
+        limits = np.iinfo(dtype)
+        lower, upper = int(limits.min) + 1, int(limits.max) - 1
+        xyxy = np.array([[lower, lower, upper, upper]], dtype=dtype)
+        original = xyxy.copy()
+
+        result = xyxy_to_xywh(xyxy)
+
+        np.testing.assert_array_equal(
+            result, [[lower, lower, upper - lower, upper - lower]]
+        )
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(xyxy, original)
+
+    @pytest.mark.parametrize(
+        ("coordinates", "expected", "expected_dtype"),
+        [
+            pytest.param(
+                [-(2**63), 0, 2**63 - 1, 1],
+                [-(2**63), 0, 2**64 - 1, 1],
+                "float64",
+                id="span-exceeds-int64",
+            ),
+            pytest.param(
+                [2**53 + 1, 0, 2**53 + 4, 1],
+                [2**53 + 1, 0, 3, 1],
+                "int64",
+                id="exact-large-origin",
+            ),
+            pytest.param(
+                [-(2**63), 0, -(2**63) + 3, 1],
+                [-(2**63), 0, 3, 1],
+                "int64",
+                id="minimum-origin",
+            ),
+        ],
+    )
+    def test_handles_int64_boundaries(
+        self, coordinates: list[int], expected: list[int], expected_dtype: str
+    ) -> None:
+        """Extreme corners avoid wraparound and preserve exact int64 results."""
+        xyxy = np.array([coordinates], dtype=np.int64)
+        original = xyxy.copy()
+
+        result = xyxy_to_xywh(xyxy)
+
+        np.testing.assert_array_equal(
+            result, np.array([expected], dtype=expected_dtype)
+        )
+        assert result.dtype == np.dtype(expected_dtype)
+        np.testing.assert_array_equal(xyxy, original)
+
+    @pytest.mark.parametrize(
+        "dtype", ["uint8", "int16", "uint64", "float16", "float32", "float64"]
+    )
+    def test_preserves_regular_and_empty_inputs(self, dtype: str) -> None:
+        """Ordinary and empty inputs preserve geometry and documented output types."""
+        xyxy = np.array([[10, 20, 30, 40], [5, 5, 5, 5]], dtype=dtype)
+        original = xyxy.copy()
+
+        result = xyxy_to_xywh(xyxy)
+        empty = xyxy_to_xywh(xyxy[:0])
+
+        np.testing.assert_array_equal(result, [[10, 20, 20, 20], [5, 5, 0, 0]])
+        expected_dtype = (
+            np.dtype(dtype) if dtype.startswith("float") else np.dtype("int64")
+        )
+        assert result.dtype == expected_dtype
+        assert empty.shape == (0, 4)
+        assert empty.dtype == expected_dtype
+        np.testing.assert_array_equal(xyxy, original)
+        assert not np.shares_memory(result, xyxy)
+
+
 @pytest.mark.parametrize(
     ("xyxy", "expected_result"),
     [
