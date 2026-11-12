@@ -853,10 +853,10 @@ class TestDepthClipRange:
         """Thinning repeatedly does not favour the clip's late frames over early ones.
 
         Sixty-four maps of 10,000 values each drift upward, map `t` spreading evenly
-        over `t + 1` to `t + 2`. With the sample budget cut to 40,000 the clip's
-        samples are halved seven times, so later maps must be kept at the halved rate,
-        or they would be over-represented against the early maps. The range must
-        still match NumPy's percentiles of the full clip.
+        over `t + 1` to `t + 2`. With the sample budget cut to 40,000 the clip's samples
+        are halved seven times, so later maps must be kept at the halved rate, or they
+        would be over-represented against the early maps. The range must still match
+        NumPy's percentiles of the full clip.
         """
         monkeypatch.setattr(depth_annotators, "_CLIP_SAMPLE_BUDGET", 40_000)
         spread = np.arange(10_000, dtype=np.float64) / 10_000

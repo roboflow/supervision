@@ -39,7 +39,10 @@ def _rotated_rect(
         dtype=np.float32,
     )
     center = np.array([center_x, center_y], dtype=np.float32)
-    return (corners @ rotation.T + center).astype(np.float32)
+    rotated: npt.NDArray[np.float32] = (corners @ rotation.T + center).astype(
+        np.float32
+    )
+    return rotated
 
 
 def _detections_from_quads(
@@ -124,7 +127,7 @@ class TestDetectionArea:
 
         area = detection_area(detections)
 
-        np.testing.assert_allclose(area, np.array([200.0]))
+        np.testing.assert_allclose(np.asarray(area, dtype=np.float64), [200.0])
         assert detections.box_area[0] > area[0]
 
     def test_returns_box_area_when_no_richer_geometry_is_present(self) -> None:
@@ -238,7 +241,7 @@ class TestDetectionArea:
 
         area = detection_area(detections)
 
-        np.testing.assert_allclose(area, np.array([0.0]))
+        np.testing.assert_allclose(np.asarray(area, dtype=np.float64), [0.0])
 
 
 class TestDetectionIou:

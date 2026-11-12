@@ -70,12 +70,14 @@ class TestFiltering:
         det, _ = _make_compact_detections(3)
         # Detections converts int to [int] internally -> subset has 1 element
         subset = det[1]
+        assert isinstance(subset, Detections)
         assert isinstance(subset.mask, CompactMask)
         assert len(subset) == 1
 
     def test_slice_preserves_compact_mask(self) -> None:
         det, masks = _make_compact_detections(4)
         subset = det[1:3]
+        assert isinstance(subset, Detections)
         assert isinstance(subset.mask, CompactMask)
         assert len(subset) == 2
         np.testing.assert_array_equal(subset.mask.to_dense(), masks[1:3])
@@ -84,6 +86,7 @@ class TestFiltering:
         det, masks = _make_compact_detections(4)
         selector = np.array([True, False, True, False])
         subset = det[selector]
+        assert isinstance(subset, Detections)
         assert isinstance(subset.mask, CompactMask)
         assert len(subset) == 2
         np.testing.assert_array_equal(subset.mask.to_dense(), masks[[0, 2]])
@@ -235,6 +238,8 @@ class TestAnnotators:
     def test_mask_annotator(self) -> None:
         h, w = 40, 40
         det_compact, masks = _make_compact_detections(2, h, w)
+        assert det_compact.confidence is not None
+        assert det_compact.class_id is not None
         det_dense = Detections(
             xyxy=det_compact.xyxy.copy(),
             mask=masks,

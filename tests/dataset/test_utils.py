@@ -1,14 +1,18 @@
 import random
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import numpy as np
 import pytest
 
 import supervision.dataset.utils as dataset_utils
-from supervision import DetectionDataset, Detections
+from supervision import DetectionDataset, Detections, _cv2
 from supervision.dataset.utils import (
+    _bridge_holes,
+    _is_hole_contour,
+    _splice_holes_in_order,
     approximate_mask_with_polygons,
     build_class_index_mapping,
     check_no_basename_collisions,
@@ -82,7 +86,7 @@ def test_train_test_split(
     random_state: int,
     shuffle: bool,
     expected_result: tuple[list[T], list[T]] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = train_test_split(
@@ -95,7 +99,7 @@ def test_train_test_split(
 
 
 def test_approximate_mask_with_polygons_default_preserves_polygon(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Default mask polygon conversion forwards zero simplification."""
     percentages: list[float] = []
@@ -189,6 +193,48 @@ class TestApproximateMaskWithPolygons:
         assert len(polygons) == 1
         np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
 
+    @pytest.mark.parametrize("small_hole_first", [False, True])
+    def test_bridges_nested_holes_in_either_contour_order(
+        self, small_hole_first: bool
+    ) -> None:
+        """A hole enclosed by a C-shaped hole bridges in either contour order."""
+        mask = np.zeros((40, 40), dtype=bool)
+        mask[2:38, 2:38] = True
+        mask[8:32, 8:32] = False
+        mask[12:28, 12:28] = True
+        mask[18:22, 28:32] = True
+        mask[18:22, 18:22] = False
+        polygons: list[Any] = mask_to_polygons(mask)
+        outer = next(p for p in polygons if not _is_hole_contour(p))
+        holes = sorted(
+            (p for p in polygons if _is_hole_contour(p)),
+            key=lambda hole: np.ptp(hole[:, 0]),
+            reverse=not small_hole_first,
+        )
+
+        bridged = _bridge_holes(mask=mask, outer=outer, holes=holes)
+
+        np.testing.assert_array_equal(_fill_polygons([bridged], (40, 40)), mask)
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_keeps_the_given_hole_order_when_it_works(self, reverse: bool) -> None:
+        """A mask the given order can bridge keeps the polygon that order produces."""
+        mask = _ring_mask()
+        mask[48:55, 20:50] = False
+        polygons: list[Any] = mask_to_polygons(mask)
+        outer = next(p for p in polygons if not _is_hole_contour(p))
+        holes = [p for p in polygons if _is_hole_contour(p)]
+        assert len(holes) == 2
+        other_order = _splice_holes_in_order(mask=mask, outer=outer, holes=holes[::-1])
+        expected = _splice_holes_in_order(mask=mask, outer=outer, holes=holes)
+        assert not np.array_equal(expected, other_order)
+        if reverse:
+            holes, expected = holes[::-1], other_order
+
+        bridged = _bridge_holes(mask=mask, outer=outer, holes=holes)
+
+        np.testing.assert_array_equal(bridged, expected)
+
     def test_keeps_seam_on_foreground_when_nearest_vertex_is_across_background(
         self,
     ) -> None:
@@ -212,11 +258,11 @@ class TestApproximateMaskWithPolygons:
         np.testing.assert_array_equal(filled, mask)
 
     def test_builds_one_spatial_index_for_all_holes_of_a_region(
-        self, monkeypatch
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Seams are found against one index, not one rebuilt index per hole."""
         builds: list[int] = []
-        build_tree = dataset_utils.cKDTree
+        build_tree = dataset_utils.cKDTree  # type: ignore[attr-defined]
 
         def counting_tree(points: np.ndarray) -> object:
             """Record the size of every spatial index built, then build it."""
@@ -231,7 +277,7 @@ class TestApproximateMaskWithPolygons:
         assert len(builds) <= 3
 
     def test_joins_hole_to_nearest_outer_vertex_when_no_seam_is_searched(
-        self, monkeypatch
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Without any clear seam a hole is still bridged, never dropped or raised."""
         monkeypatch.setattr(dataset_utils, "_SEAM_SEARCH_PASSES", ())
@@ -243,7 +289,7 @@ class TestApproximateMaskWithPolygons:
         np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
 
     def test_rejects_unsafe_nearest_fallback_when_no_seam_is_searched(
-        self, monkeypatch
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """An unsafe nearest fallback raises instead of corrupting the filled mask."""
         monkeypatch.setattr(dataset_utils, "_SEAM_SEARCH_PASSES", ())
@@ -301,7 +347,7 @@ class TestApproximateMaskWithPolygons:
         )
 
         assert len(polygons) == 1
-        assert polygons[0].min() >= 40
+        assert np.min(polygons[0]) >= 40
 
     def test_drops_hole_with_its_outer_contour_when_above_max_area(self) -> None:
         """A large ring removed by the maximum area leaves no stray hole polygon."""
@@ -313,7 +359,7 @@ class TestApproximateMaskWithPolygons:
         )
 
         assert len(polygons) == 1
-        assert polygons[0].min() >= 70
+        assert np.min(polygons[0]) >= 70
 
     def test_approximation_reduces_points_of_bridged_polygon(self) -> None:
         """Simplification still applies, and the ring stays one polygon."""
@@ -329,6 +375,22 @@ class TestApproximateMaskWithPolygons:
 
         assert len(simplified) == len(exact) == 1
         assert len(simplified[0]) < len(exact[0])
+
+    @pytest.mark.parametrize("approximation_percentage", [0.5, 0.75])
+    def test_bridges_traced_contours_when_simplified_ones_have_no_seam(
+        self, approximation_percentage: float, ragged_mask_with_hole: np.ndarray
+    ) -> None:
+        """A hole the simplified outline cannot reach is bridged, not raised."""
+        mask = ragged_mask_with_hole
+
+        polygons = approximate_mask_with_polygons(
+            mask,
+            approximation_percentage=approximation_percentage,
+            bridge_holes=True,
+        )
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (7, 10)), mask)
 
 
 class TestIsSegmentInsideMask:
@@ -408,7 +470,9 @@ class TestIsSegmentInsideMask:
     ],
 )
 def test_merge_class_maps(
-    class_lists: list[list[str]], expected_result: list[str], exception: Exception
+    class_lists: list[list[str]],
+    expected_result: list[str],
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = merge_class_lists(class_lists=class_lists)
@@ -456,7 +520,7 @@ def test_build_class_index_mapping(
     source_classes: list[str],
     target_classes: list[str],
     expected_result: dict[int, int] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = build_class_index_mapping(
@@ -516,7 +580,7 @@ def test_map_detections_class_id(
     source_to_target_mapping: dict[int, int],
     detections: Detections,
     expected_result: Detections | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = map_detections_class_id(
@@ -676,5 +740,5 @@ class TestSaveDatasetImages:
 
         dataset_utils.save_dataset_images(dataset, str(tmp_path))
 
-        saved = dataset_utils.cv2.imread(str(tmp_path / "image.png"))
+        saved = _cv2.imread(str(tmp_path / "image.png"))
         np.testing.assert_array_equal(saved, image)

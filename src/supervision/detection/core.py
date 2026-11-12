@@ -543,7 +543,7 @@ class Detections:
                 task="yolo",
                 model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
              )
-            result = yolo_pipeline(<SOURCE IMAGE PATH>)
+            result = yolo_pipeline("<SOURCE_IMAGE_PATH>")
             detections = sv.Detections.from_deepsparse(result)
             ```
         """  # noqa: E501 // docs
@@ -616,6 +616,20 @@ class Detections:
         Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
         holds one score per detection.
 
+        !!! tip "RF-DETR"
+
+            For RF-DETR, prefer the official
+            [`rfdetr`](https://github.com/roboflow/rf-detr) package maintained by
+            Roboflow: its `predict()` returns
+            :class:`~supervision.detection.core.Detections` directly. RF-DETR
+            results from Transformers can also be converted here.
+
+        For zero-shot object detection, pass the result of
+        `post_process_grounded_object_detection`. Class names come from its
+        `text_labels` rather than `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo set
+        `class_id` to the index of the matched text query; Grounding DINO reports
+        the matched phrases instead of indices, so its `class_id` is `None`.
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
@@ -656,7 +670,6 @@ class Detections:
             )
             ```
         """
-
         if (
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
@@ -683,7 +696,8 @@ class Detections:
             raise ValueError(
                 "The provided Transformers results do not contain any valid fields."
                 " Expected fields are 'boxes', 'masks', 'segments_info' or"
-                " 'segmentation'."
+                " 'segmentation'. If you are using RF-DETR, consider the official"
+                " `rfdetr` package, whose predict() returns Detections directly."
             )
 
     @classmethod
@@ -1205,7 +1219,10 @@ class Detections:
 
     @classmethod
     def from_vlm(
-        cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
+        cls,
+        vlm: VLM | str,
+        result: str | dict[str, Any] | tuple[str, list[Any]],
+        **kwargs: Any,
     ) -> Detections:
         """Creates a Detections object from the given result string based on the
         specified Vision Language Model, :class:`~supervision.detection.vlm.VLM`.
@@ -1227,7 +1244,9 @@ class Detections:
 
         Args:
             vlm: The type of VLM (Vision Language Model) to use.
-            result: The result string containing the detection data.
+            result: The model output containing the detection data: a string for
+                text-based VLMs, a dict for Florence-2 and Moondream, or the
+                `(caption, entities)` tuple returned by Kosmos-2.
             **kwargs: Additional keyword arguments required by the specified VLM.
 
         Returns:
@@ -1941,7 +1960,7 @@ class Detections:
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = get_model(
                 "yolov8s",
-                target_size=640
+                target_size=640,
                 prob_threshold=0.5,
                 nms_threshold=0.45,
                 num_threads=4,
@@ -2250,7 +2269,8 @@ class Detections:
            oriented bounding box corners (result lies on the actual rotated
            body).
         2. If ``anchor`` is ``Position.CENTER_OF_MASS``, the detection mask
-           centroid is returned regardless of OBB data presence.
+           centroid is returned regardless of OBB data presence. An empty batch
+           returns no anchors, with or without a mask.
         3. Otherwise, the anchor is derived from the axis-aligned envelope
            (``xyxy``).
 
@@ -2268,7 +2288,8 @@ class Detections:
             dtype.
 
         Raises:
-            ValueError: If the provided `anchor` is not supported.
+            ValueError: If the provided `anchor` is not supported, or if `anchor` is
+                ``Position.CENTER_OF_MASS`` and a non-empty batch has no mask.
 
         Examples:
             Axis-aligned detection:
@@ -2325,6 +2346,10 @@ class Detections:
             )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
+                # `from_inference` and `from_ultralytics` return an empty batch without
+                # a mask when a model finds nothing. It has no anchors to compute.
+                if len(self) == 0:
+                    return np.empty((0, 2), dtype=np.int_)
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
@@ -2921,6 +2946,28 @@ class Detections:
             ValueError: If `confidence` is None.
                 If `class_id` is None and class_agnostic is False.
                 If `sigma` is not greater than `0`.
+
+        Example:
+            Two identical boxes show that Soft-NMS decays the lower score but
+            keeps both detections by default. A score threshold removes the
+            detection whose decayed score falls below it.
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 4, 4], [0, 0, 4, 4]], dtype=np.float32),
+            ...     confidence=np.array([0.9, 0.8], dtype=np.float32),
+            ...     class_id=np.array([0, 0]),
+            ... )
+            >>> softened = detections.with_soft_nms(sigma=0.5)
+            >>> len(softened), np.round(softened.confidence, 3).tolist()
+            (2, [0.9, 0.108])
+            >>> filtered = detections.with_soft_nms(sigma=0.5, score_threshold=0.2)
+            >>> len(filtered), np.round(filtered.confidence, 3).tolist()
+            (1, [0.9])
+
+            ```
         """
         if len(self) == 0:
             return self

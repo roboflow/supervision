@@ -12,7 +12,8 @@ from tests.helpers import assert_almost_equal
 
 class TestRecall:
     @pytest.fixture
-    def predictions_multiple_classes(self):
+    def predictions_multiple_classes(self) -> Detections:
+        """Predictions spanning two classes for per-class averaging tests."""
         return Detections(
             xyxy=np.array(
                 [
@@ -26,7 +27,8 @@ class TestRecall:
         )
 
     @pytest.fixture
-    def targets_multiple_classes(self):
+    def targets_multiple_classes(self) -> Detections:
+        """Targets spanning two classes for per-class averaging tests."""
         return Detections(
             xyxy=np.array(
                 [
@@ -39,7 +41,7 @@ class TestRecall:
             class_id=np.array([0, 0, 1]),
         )
 
-    def test_initialization_default(self):
+    def test_initialization_default(self) -> None:
         """Test that Recall can be initialized with default parameters."""
         metric = Recall()
         assert metric._metric_target == MetricTarget.BOXES
@@ -47,7 +49,7 @@ class TestRecall:
         assert metric._predictions_list == []
         assert metric._targets_list == []
 
-    def test_initialization_custom(self):
+    def test_initialization_custom(self) -> None:
         """Test that Recall can be initialized with custom parameters."""
         metric = Recall(
             metric_target=MetricTarget.MASKS,
@@ -91,7 +93,7 @@ class TestRecall:
 
         assert r_dense.recall_at_50 == pytest.approx(r_compact.recall_at_50)
 
-    def test_reset(self, dummy_prediction):
+    def test_reset(self, dummy_prediction: Detections) -> None:
         """Test that reset() clears all stored data."""
         metric = Recall()
 
@@ -107,7 +109,9 @@ class TestRecall:
         assert metric._predictions_list == []
         assert metric._targets_list == []
 
-    def test_perfect_match(self, detections_50_50, targets_50_50):
+    def test_perfect_match(
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
         """Test recall with perfect matching predictions and targets."""
         metric = Recall()
         result = metric.update(detections_50_50, targets_50_50).compute()
@@ -119,7 +123,9 @@ class TestRecall:
         assert len(result.matched_classes) == 1
         assert result.matched_classes[0] == 0
 
-    def test_no_overlap(self, predictions_no_overlap, targets_no_overlap):
+    def test_no_overlap(
+        self, predictions_no_overlap: Detections, targets_no_overlap: Detections
+    ) -> None:
         """Test recall with predictions that don't overlap with targets."""
         metric = Recall()
         result = metric.update(predictions_no_overlap, targets_no_overlap).compute()
@@ -145,7 +151,9 @@ class TestRecall:
             ),
         ],
     )
-    def test_absent_class_predictions_are_tracked(self, method, expected):
+    def test_absent_class_predictions_are_tracked(
+        self, method: AveragingMethod, expected: float
+    ) -> None:
         """A class predicted but never present in the targets is still tracked.
 
         Recall for such a class is 0.0 rather than undefined, which is what sklearn
@@ -171,7 +179,7 @@ class TestRecall:
         assert result.recall_at_50 == expected
         assert list(result.matched_classes) == [0, 1]
 
-    def test_tracked_classes_match_precision_and_f1(self):
+    def test_tracked_classes_match_precision_and_f1(self) -> None:
         """The three metrics must agree on which classes exist for the same data.
 
         They return `matched_classes` and a `*_per_class` array that read as parallel
@@ -375,7 +383,7 @@ class TestRecall:
         assert np.all(result.recall_per_class[1] == 0.0)  # class 1000: no targets
         assert result.recall_at_50 == pytest.approx(0.5)
 
-    def test_empty_predictions(self, targets_50_50):
+    def test_empty_predictions(self, targets_50_50: Detections) -> None:
         """Test recall with empty predictions but existing targets."""
         predictions = Detections.empty()
 
@@ -386,7 +394,7 @@ class TestRecall:
         assert result.recall_at_50 == 0.0
         assert result.recall_at_75 == 0.0
 
-    def test_empty_targets(self, detections_50_50):
+    def test_empty_targets(self, detections_50_50: Detections) -> None:
         """Test recall with predictions but no targets."""
         targets = Detections.empty()
 
@@ -415,8 +423,8 @@ class TestRecall:
         assert result.medium_objects.recall_at_50 == 1.0
 
     def test_single_class_missed_detections(
-        self, detections_50_50, targets_two_objects_class_0
-    ):
+        self, detections_50_50: Detections, targets_two_objects_class_0: Detections
+    ) -> None:
         """Test recall calculation with some missed detections."""
         metric = Recall()
         result = metric.update(detections_50_50, targets_two_objects_class_0).compute()
@@ -427,8 +435,10 @@ class TestRecall:
         assert_almost_equal(result.recall_at_75, 0.5)
 
     def test_multiple_classes(
-        self, predictions_multiple_classes, targets_multiple_classes
-    ):
+        self,
+        predictions_multiple_classes: Detections,
+        targets_multiple_classes: Detections,
+    ) -> None:
         """Test recall calculation for multiple classes."""
         metric = Recall()
         result = metric.update(
@@ -445,7 +455,9 @@ class TestRecall:
         assert 0 in result.matched_classes
         assert 1 in result.matched_classes
 
-    def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064):
+    def test_different_iou_thresholds(
+        self, predictions_iou_064: Detections, targets_iou_064: Detections
+    ) -> None:
         """Test recall at different IoU thresholds."""
         metric = Recall()
         result = metric.update(predictions_iou_064, targets_iou_064).compute()
@@ -455,7 +467,9 @@ class TestRecall:
         assert result.recall_at_50 == 1.0  # TP=1, FN=0
         assert result.recall_at_75 == 0.0  # TP=0, FN=1
 
-    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
+    def test_confidence_ranking(
+        self, predictions_confidence_ranking: Detections, targets_50_50: Detections
+    ) -> None:
         """Test that higher confidence predictions are preferred for matching."""
         metric = Recall()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -465,8 +479,8 @@ class TestRecall:
         assert result.recall_at_50 == 1.0
 
     def test_multiple_predictions_one_target(
-        self, predictions_confidence_ranking, targets_50_50
-    ):
+        self, predictions_confidence_ranking: Detections, targets_50_50: Detections
+    ) -> None:
         """Test recall when multiple predictions compete for one target."""
         metric = Recall()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -476,8 +490,12 @@ class TestRecall:
         assert result.recall_at_50 == 1.0
 
     def test_list_inputs(
-        self, detections_50_50, targets_50_50, prediction_class_1, target_class_1
-    ):
+        self,
+        detections_50_50: Detections,
+        targets_50_50: Detections,
+        prediction_class_1: Detections,
+        target_class_1: Detections,
+    ) -> None:
         """Test recall with list inputs."""
         metric = Recall()
         result = metric.update(
@@ -488,7 +506,9 @@ class TestRecall:
         assert result.recall_at_50 == 1.0
         assert result.recall_at_75 == 1.0
 
-    def test_mismatched_list_lengths(self, detections_50_50, targets_50_50):
+    def test_mismatched_list_lengths(
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
         """Test that mismatched prediction/target list lengths raise error."""
         metric = Recall()
 
@@ -501,7 +521,7 @@ class TestRecall:
         ["predictions_class_id", "targets_class_id", "predictions_confidence"],
     )
     def test_compute_value_error_for_missing_required_fields(
-        self, missing_attribute
+        self, missing_attribute: str
     ) -> None:
         """Test compute raises ValueError when required fields are missing."""
         metric = Recall()
@@ -539,7 +559,12 @@ class TestRecall:
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
-    def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50):
+    def test_averaging_methods(
+        self,
+        averaging_method: AveragingMethod,
+        detections_50_50: Detections,
+        targets_50_50: Detections,
+    ) -> None:
         """Test different averaging methods."""
         metric = Recall(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()
@@ -548,7 +573,7 @@ class TestRecall:
         assert result.recall_at_50 == 1.0
         assert result.averaging_method == averaging_method
 
-    def test_macro_averaging(self):
+    def test_macro_averaging(self) -> None:
         """Test MACRO averaging with specific example."""
         # Class 0: 1/2 targets matched -> recall = 0.5
         # Class 1: 1/1 targets matched -> recall = 1.0
@@ -584,7 +609,7 @@ class TestRecall:
         # Macro average: (0.5 + 1.0) / 2 = 0.75
         assert result.recall_at_50 == 0.75
 
-    def test_greedy_matching_two_valid_pairs(self):
+    def test_greedy_matching_two_valid_pairs(self) -> None:
         """Greedy matching finds both TPs; np.unique style missed the second pair.
 
         IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal

@@ -1,11 +1,16 @@
 import json
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
+from typing import Any, NoReturn
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 from defusedxml import ElementTree
 
+import supervision.dataset.utils as dataset_utils
 from supervision import DetectionDataset, Detections
 from supervision import _cv2 as cv2
 from supervision.dataset.formats.coco import (
@@ -91,9 +96,9 @@ def mock_coco_annotation(
     category_id: int = 0,
     bbox: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
     area: float = 0.0,
-    segmentation: list[list] | dict | None = None,
+    segmentation: list[list[float]] | dict[str, Any] | None = None,
     iscrowd: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     if not segmentation:
         segmentation = []
     return {
@@ -233,7 +238,9 @@ def coco_data_with_unannotated_image() -> dict[str, object]:
     ],
 )
 def test_coco_categories_to_classes(
-    coco_categories: list[dict], expected_result: list[str], exception: Exception
+    coco_categories: list[dict[str, Any]],
+    expected_result: list[str],
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = coco_categories_to_classes(coco_categories=coco_categories)
@@ -249,7 +256,7 @@ def test_coco_categories_to_classes(
     ],
 )
 def test_classes_to_coco_categories_and_back_to_classes(
-    classes: list[str], exception: Exception
+    classes: list[str], exception: AbstractContextManager[object]
 ) -> None:
     with exception:
         coco_categories = classes_to_coco_categories(classes=classes)
@@ -309,7 +316,9 @@ def test_classes_to_coco_categories_and_back_to_classes(
     ],
 )
 def test_group_coco_annotations_by_image_id(
-    coco_annotations: list[dict], expected_result: dict, exception: Exception
+    coco_annotations: list[dict[str, Any]],
+    expected_result: dict[int, list[dict[str, Any]]],
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = group_coco_annotations_by_image_id(coco_annotations=coco_annotations)
@@ -333,8 +342,8 @@ def test_coco_annotations_to_detections_defaults_missing_area_and_iscrowd() -> N
         use_iscrowd=True,
     )
 
-    assert detections.data["iscrowd"].tolist() == [0]
-    assert detections.data["area"].tolist() == [12.0]
+    assert np.asarray(detections.data["iscrowd"]).tolist() == [0]
+    assert np.asarray(detections.data["area"]).tolist() == [12.0]
 
 
 def test_load_coco_annotations_can_skip_iscrowd_metadata(tmp_path: Path) -> None:
@@ -477,8 +486,9 @@ def test_coco_box_only_annotation_survives_yolo_and_pascal_voc_export(
     assert len(objects) == 2
     assert objects[1].findtext("name") == "object"
     box = objects[1].find("bndbox")
+    assert box is not None
     actual = [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
-    expected = ["7", "7", "10", "10"]
+    expected = ["7", "7", "9", "9"]
     assert actual == expected
 
 
@@ -520,8 +530,9 @@ def test_detection_dataset_from_coco_preserves_show_progress_positional_arg(
         False,
     )
 
-    assert dataset.annotations[str(image_path)].data["iscrowd"].tolist() == [1]
-    assert dataset.annotations[str(image_path)].data["area"].tolist() == [12.0]
+    detections = dataset.annotations[str(image_path)]
+    assert np.asarray(detections.data["iscrowd"]).tolist() == [1]
+    assert np.asarray(detections.data["area"]).tolist() == [12.0]
 
 
 @pytest.mark.parametrize(
@@ -1029,12 +1040,12 @@ def test_detection_dataset_from_coco_preserves_show_progress_positional_arg(
     ],
 )
 def test_coco_annotations_to_detections(
-    image_annotations: list[dict],
+    image_annotations: list[dict[str, Any]],
     resolution_wh: tuple[int, int],
     with_masks: bool,
     use_iscrowd: bool,
     expected_result: Detections,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = coco_annotations_to_detections(
@@ -1093,10 +1104,10 @@ def test_coco_annotations_to_detections(
     ],
 )
 def test_build_coco_class_index_mapping(
-    coco_categories: list[dict],
+    coco_categories: list[dict[str, Any]],
     target_classes: list[str],
     expected_result: dict[int, int],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = build_coco_class_index_mapping(
@@ -1224,8 +1235,8 @@ def test_detections_to_coco_annotations(
     detections: Detections,
     image_id: int,
     annotation_id: int,
-    expected_result: list[dict],
-    exception: Exception,
+    expected_result: list[dict[str, Any]],
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result, _ = detections_to_coco_annotations(
@@ -1339,6 +1350,118 @@ def test_detections_to_coco_annotations_round_trip_disjoint_mask() -> None:
     reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(W, H))
 
     assert np.array_equal(reloaded[0], _DISJOINT_2X2_MASK[0])
+
+
+def _mask_with_hole() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask with one 10x10 hole."""
+    mask = np.zeros((40, 40), dtype=bool)
+    mask[5:35, 5:35] = True
+    mask[15:25, 15:25] = False
+    return mask
+
+
+def _mask_with_island_in_hole() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask whose hole contains a separate island."""
+    mask = _mask_with_hole()
+    mask[18:22, 18:22] = True
+    return mask
+
+
+def _mask_with_nested_holes() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask with a hole enclosed by a C-shaped hole."""
+    mask = np.zeros((40, 40), dtype=bool)
+    mask[2:38, 2:38] = True
+    mask[8:32, 8:32] = False
+    mask[12:28, 12:28] = True
+    mask[18:22, 28:32] = True
+    mask[18:22, 18:22] = False
+    return mask
+
+
+class TestDetectionsToCocoAnnotationsMaskHoles:
+    """Non-crowd masks keep their holes through a COCO polygon export."""
+
+    @pytest.mark.parametrize(
+        "make_mask",
+        [
+            pytest.param(_mask_with_hole, id="hole"),
+            pytest.param(_mask_with_island_in_hole, id="island-in-hole"),
+            pytest.param(_mask_with_nested_holes, id="nested-holes"),
+        ],
+    )
+    def test_round_trip_restores_mask(
+        self, make_mask: Callable[[], npt.NDArray[np.bool_]]
+    ) -> None:
+        """Export and import give back the same mask, holes included."""
+        mask = make_mask()
+        annotations, _ = detections_to_coco_annotations(
+            detections=_make_iscrowd0_detections(mask[np.newaxis]),
+            image_id=0,
+            annotation_id=0,
+            approximation_percentage=0.0,
+        )
+
+        reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(40, 40))
+
+        np.testing.assert_array_equal(reloaded[0], mask)
+
+    def test_unbridgeable_hole_warns_and_keeps_exporting(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A hole with no seam stays a separate part and does not abort the export."""
+
+        def find_no_seam(*args: Any, **kwargs: Any) -> NoReturn:
+            """Stand in for a seam search that finds nothing."""
+            raise dataset_utils._SeamNotFoundError
+
+        monkeypatch.setattr(dataset_utils, "_find_seam", find_no_seam)
+        mask = _mask_with_hole()
+
+        with pytest.warns(UserWarning, match="Could not join the holes"):
+            annotations, _ = detections_to_coco_annotations(
+                detections=_make_iscrowd0_detections(mask[np.newaxis]),
+                image_id=0,
+                annotation_id=0,
+                approximation_percentage=0.0,
+            )
+
+        assert len(annotations[0]["segmentation"]) == 2
+
+    def test_invalid_approximation_percentage_raises_without_warning(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        """A bad argument raises as such, not as a hole that could not be joined."""
+        mask = _mask_with_hole()
+
+        with pytest.raises(ValueError, match="Percentage must be"):
+            detections_to_coco_annotations(
+                detections=_make_iscrowd0_detections(mask[np.newaxis]),
+                image_id=0,
+                annotation_id=0,
+                approximation_percentage=1.5,
+            )
+
+        assert not recwarn.list
+
+    @pytest.mark.filterwarnings("ignore:__array__ implementation:DeprecationWarning")
+    def test_pycocotools_keeps_hole_open(self) -> None:
+        """A reference COCO reader sees the hole and keeps the foreground around it."""
+        coco_mask = pytest.importorskip("pycocotools.mask")
+        mask = _mask_with_hole()
+        annotations, _ = detections_to_coco_annotations(
+            detections=_make_iscrowd0_detections(mask[np.newaxis]),
+            image_id=0,
+            annotation_id=0,
+            approximation_percentage=0.0,
+        )
+
+        rles = coco_mask.frPyObjects(annotations[0]["segmentation"], 40, 40)
+        decoded = coco_mask.decode(coco_mask.merge(rles)).astype(bool)
+
+        # Contours lie on foreground pixels and pycocotools reads them as continuous
+        # coordinates, so the traced hole misses one corner pixel. The seam paints none.
+        assert int(decoded[15:25, 15:25].sum()) == 1
+        assert decoded[mask].mean() > 0.85
 
 
 def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
@@ -1496,7 +1619,7 @@ def test_detections_to_coco_annotations_fallback_area_when_no_data() -> None:
 
 
 def test_load_coco_annotations_infers_masks_from_segmentation_field(
-    tmp_path, coco_data_with_and_without_segmentation: dict[str, object]
+    tmp_path: Path, coco_data_with_and_without_segmentation: dict[str, object]
 ) -> None:
     images_directory = tmp_path / "images"
     images_directory.mkdir()
@@ -1542,7 +1665,7 @@ def test_load_coco_annotations_infers_masks_from_segmentation_field(
 
 
 def test_load_coco_annotations_force_masks_with_no_annotations(
-    tmp_path, coco_data_with_unannotated_image: dict[str, object]
+    tmp_path: Path, coco_data_with_unannotated_image: dict[str, object]
 ) -> None:
     images_directory = tmp_path / "images"
     images_directory.mkdir()
@@ -1626,7 +1749,7 @@ def test_coco_annotations_to_masks_rejects_non_finite_polygon_vertex(
     [".", "", "subdir/.."],
 )
 def test_load_coco_annotations_rejects_file_name_resolving_to_images_directory(
-    tmp_path,
+    tmp_path: Path,
     file_name: str,
 ) -> None:
     """Reject file_name resolving to the images directory itself (equality guard)."""
@@ -1657,7 +1780,7 @@ def test_load_coco_annotations_rejects_file_name_resolving_to_images_directory(
     ],
 )
 def test_load_coco_annotations_rejects_file_name_outside_images_directory(
-    tmp_path,
+    tmp_path: Path,
     malicious_file_name: str,
 ) -> None:
     """Reject relative traversal file_name values that escape the images directory."""
@@ -1686,7 +1809,7 @@ def test_load_coco_annotations_rejects_file_name_outside_images_directory(
         )
 
 
-def test_load_coco_annotations_rejects_absolute_file_name(tmp_path) -> None:
+def test_load_coco_annotations_rejects_absolute_file_name(tmp_path: Path) -> None:
     """Reject absolute file_name values that escape the images directory."""
     images_directory = tmp_path / "images"
     images_directory.mkdir()
@@ -1714,7 +1837,7 @@ def test_load_coco_annotations_rejects_absolute_file_name(tmp_path) -> None:
 
 
 def test_load_coco_annotations_rejects_file_name_resolving_to_directory(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     """Reject file_name resolving to a subdirectory inside images/ (is_dir guard)."""
     images_directory = tmp_path / "images"
@@ -1753,10 +1876,11 @@ def test_load_coco_annotations_rejects_unresolvable_file_name(
 
     original_resolve = Path.resolve
 
-    def fake_resolve(self: Path, *args: object, **kwargs: object) -> Path:
+    def fake_resolve(self: Path, strict: bool = False) -> Path:
+        """Raise OSError for the bad image path, delegate for every other path."""
         if self == images_directory / "bad.jpg":
             raise OSError("unresolvable path")
-        return original_resolve(self, *args, **kwargs)
+        return original_resolve(self, strict)
 
     monkeypatch.setattr(Path, "resolve", fake_resolve)
 
@@ -1767,7 +1891,7 @@ def test_load_coco_annotations_rejects_unresolvable_file_name(
         )
 
 
-def test_load_coco_annotations_accepts_valid_nested_file_name(tmp_path) -> None:
+def test_load_coco_annotations_accepts_valid_nested_file_name(tmp_path: Path) -> None:
     """Accept a legitimate nested file_name inside images/ without raising."""
     images_directory = tmp_path / "images"
     images_directory.mkdir()
@@ -1816,7 +1940,7 @@ def test_load_coco_annotations_rejects_duplicate_resolved_file_names(
 
 
 def test_load_coco_annotations_force_masks_handles_missing_segmentation(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     images_directory = tmp_path / "images"
     images_directory.mkdir()
@@ -1846,7 +1970,7 @@ def test_load_coco_annotations_force_masks_handles_missing_segmentation(
 
     image_path = str(images_directory / "image.jpg")
     image_annotations = annotations[image_path]
-    assert image_annotations.mask is not None
+    assert isinstance(image_annotations.mask, np.ndarray)
     assert image_annotations.mask.shape == (1, 5, 5)
     assert not image_annotations.mask.any()
     assert np.array_equal(image_annotations.xyxy, np.array([[0, 0, 2, 2]], dtype=float))
@@ -1894,7 +2018,7 @@ class TestFromCocoMasks:
     @pytest.mark.parametrize("force_masks", [False, True])
     def test_multi_segment_masks_merged(
         self,
-        tmp_path,
+        tmp_path: Path,
         coco_data_with_multi_segment_segmentation: dict[str, object],
         force_masks: bool,
     ) -> None:
@@ -1932,7 +2056,9 @@ class TestFromCocoMasks:
             ),
         )
 
-    def test_multi_segment_masks_uneven_length_no_value_error(self, tmp_path) -> None:
+    def test_multi_segment_masks_uneven_length_no_value_error(
+        self, tmp_path: Path
+    ) -> None:
         """Uneven-length segments load without ValueError (issue #1209 regression)."""
         images_directory = tmp_path / "images"
         images_directory.mkdir()
@@ -2007,7 +2133,7 @@ def test_detections_to_coco_annotations_category_id_is_one_indexed() -> None:
 
 
 def test_coco_round_trip_preserves_class_ids_and_writes_one_indexed_categories(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     """as_coco -> from_coco is lossless for internal class_ids while the on-disk COCO
     category ids are 1-indexed (regression for #1181)."""
@@ -2054,7 +2180,7 @@ def test_coco_round_trip_preserves_class_ids_and_writes_one_indexed_categories(
 
 
 def _tiny_detection_dataset(
-    tmp_path, prefix: str, num_images: int, dets_per_image: int
+    tmp_path: Path, prefix: str, num_images: int, dets_per_image: int
 ) -> DetectionDataset:
     """Build a DetectionDataset of ``num_images`` 10x10 RGB images on disk, each holding
     ``dets_per_image`` 1x1 detections of class 0.
@@ -2083,7 +2209,8 @@ def _tiny_detection_dataset(
     )
 
 
-def _read_ids(annotation_path) -> tuple[list[int], list[int]]:
+def _read_ids(annotation_path: Path) -> tuple[list[int], list[int]]:
+    """Read the image and annotation ids written to a COCO JSON file."""
     with open(annotation_path) as f:
         payload = json.load(f)
     image_ids = [img["id"] for img in payload["images"]]
@@ -2117,7 +2244,7 @@ class TestSaveCocoAnnotationsCollisionGuard:
             )
 
 
-def test_save_coco_annotations_defaults_start_at_one(tmp_path):
+def test_save_coco_annotations_defaults_start_at_one(tmp_path: Path) -> None:
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=3)
     annotation_path = tmp_path / "annotations.json"
 
@@ -2133,7 +2260,7 @@ def test_save_coco_annotations_defaults_start_at_one(tmp_path):
     assert next_annotation_id == 7
 
 
-def test_save_coco_annotations_respects_starting_ids(tmp_path):
+def test_save_coco_annotations_respects_starting_ids(tmp_path: Path) -> None:
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=2)
     annotation_path = tmp_path / "annotations.json"
 
@@ -2151,7 +2278,7 @@ def test_save_coco_annotations_respects_starting_ids(tmp_path):
     assert next_annotation_id == 504
 
 
-def test_as_coco_chains_ids_across_splits_without_collision(tmp_path):
+def test_as_coco_chains_ids_across_splits_without_collision(tmp_path: Path) -> None:
     """Regression for #768: exporting train/valid/test splits with the returned ids fed
     forward yields globally unique image and annotation ids."""
     train = _tiny_detection_dataset(tmp_path, "train", num_images=3, dets_per_image=2)
@@ -2192,7 +2319,9 @@ def test_as_coco_chains_ids_across_splits_without_collision(tmp_path):
     assert all_annotation_ids == list(range(1, 6 + 8 + 5 + 1))
 
 
-def test_save_coco_annotations_empty_dataset_returns_starting_ids(tmp_path):
+def test_save_coco_annotations_empty_dataset_returns_starting_ids(
+    tmp_path: Path,
+) -> None:
     """An empty dataset writes a valid (but empty) COCO file and returns the starting
     ids unchanged so chaining still composes around it."""
     dataset = DetectionDataset(classes=["object"], images=[], annotations={})
@@ -2212,7 +2341,7 @@ def test_save_coco_annotations_empty_dataset_returns_starting_ids(tmp_path):
     assert next_annotation_id == 42
 
 
-def test_as_coco_without_annotations_path_returns_starting_ids(tmp_path):
+def test_as_coco_without_annotations_path_returns_starting_ids(tmp_path: Path) -> None:
     """When only writing images, the starting ids round-trip unchanged so chaining still
     works in the images-only branch."""
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=1)
@@ -2225,7 +2354,9 @@ def test_as_coco_without_annotations_path_returns_starting_ids(tmp_path):
     assert next_annotation_id == 99
 
 
-def test_save_coco_annotations_annotation_image_id_references_correct_image(tmp_path):
+def test_save_coco_annotations_annotation_image_id_references_correct_image(
+    tmp_path: Path,
+) -> None:
     """Every annotation's image_id must reference an image id present in the same file,
     even when a non-default starting_image_id is used."""
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=3, dets_per_image=2)
@@ -2247,7 +2378,7 @@ def test_save_coco_annotations_annotation_image_id_references_correct_image(tmp_
     )
 
 
-def test_save_coco_annotations_zero_annotation_images(tmp_path):
+def test_save_coco_annotations_zero_annotation_images(tmp_path: Path) -> None:
     """Dataset with images but zero detections per image: image ids are assigned
     sequentially but annotation list stays empty."""
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=0)
@@ -2352,7 +2483,7 @@ class TestSaveCocoAnnotationsHeaderSizeReads:
 # --- Regression: legacy 0-indexed COCO files still load correctly (#1181) ---
 
 
-def test_from_coco_loads_legacy_zero_indexed_category_ids(tmp_path) -> None:
+def test_from_coco_loads_legacy_zero_indexed_category_ids(tmp_path: Path) -> None:
     """COCO files with 0-indexed category ids (written by supervision <=0.28.x) must
     still load and produce correct internal 0-indexed class_ids."""
     images_dir = tmp_path / "images"
@@ -2411,7 +2542,7 @@ def test_from_coco_loads_legacy_zero_indexed_category_ids(tmp_path) -> None:
     ],
 )
 def test_save_coco_annotations_rejects_zero_starting_ids(
-    tmp_path, starting_image_id: int, starting_annotation_id: int
+    tmp_path: Path, starting_image_id: int, starting_annotation_id: int
 ) -> None:
     """starting_image_id and starting_annotation_id below 1 must raise ValueError."""
     dataset = DetectionDataset(classes=["object"], images=[], annotations={})
@@ -2447,7 +2578,7 @@ def test_detections_to_coco_annotations_raises_when_class_id_is_none() -> None:
 # --- Round-trip: multi-class-per-image case ---
 
 
-def test_coco_round_trip_multi_class_single_image(tmp_path) -> None:
+def test_coco_round_trip_multi_class_single_image(tmp_path: Path) -> None:
     """Single image with two detections of different classes round-trips losslessly."""
     img_path = str(tmp_path / "img.jpg")
     assert cv2.imwrite(img_path, np.zeros((10, 10, 3), dtype=np.uint8))
@@ -2483,10 +2614,11 @@ def test_coco_round_trip_multi_class_single_image(tmp_path) -> None:
 
 
 def _coco_annotation_with_segmentation(
-    segmentation: list[list[int]],
+    segmentation: list[list[float]],
     bbox: tuple[float, float, float, float] = (0, 0, 5, 5),
     area: float = 25,
-) -> dict:
+) -> dict[str, Any]:
+    """Build a single COCO annotation carrying the given polygon segmentation."""
     return mock_coco_annotation(
         annotation_id=1,
         image_id=1,
@@ -2497,7 +2629,8 @@ def _coco_annotation_with_segmentation(
     )
 
 
-def _single_image_coco_data(annotation: dict) -> dict[str, object]:
+def _single_image_coco_data(annotation: dict[str, Any]) -> dict[str, object]:
+    """Wrap one COCO annotation in a minimal single-image COCO payload."""
     return {
         "info": {},
         "licenses": [],
@@ -2505,6 +2638,118 @@ def _single_image_coco_data(annotation: dict) -> dict[str, object]:
         "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
         "annotations": [annotation],
     }
+
+
+class TestCocoExportMaskArea:
+    @pytest.mark.parametrize(
+        ("mask_side", "stored_area", "iscrowd", "expected_area"),
+        [
+            pytest.param(0, None, 0, 30.0, id="empty-placeholder"),
+            pytest.param(0, np.nan, 0, 30.0, id="nonfinite-stored-area"),
+            pytest.param(0, 0.0, 0, 0.0, id="explicit-zero"),
+            pytest.param(0, 24.0, 0, 24.0, id="explicit-positive-area"),
+            pytest.param(0, None, 1, 0.0, id="empty-crowd-rle"),
+            pytest.param(4, None, 0, 16.0, id="filtered-nonempty-mask"),
+        ],
+    )
+    def test_uses_area_for_the_available_geometry(
+        self,
+        mask_side: int,
+        stored_area: float | None,
+        iscrowd: int,
+        expected_area: float,
+    ) -> None:
+        """Preserve explicit and mask areas while exporting bbox placeholders."""
+        mask = np.zeros((1, 10, 10), dtype=bool)
+        mask[0, :mask_side, :mask_side] = True
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
+            "iscrowd": np.array([iscrowd], dtype=int)
+        }
+        if stored_area is not None:
+            data["area"] = np.array([stored_area], dtype=float)
+        detections = Detections(
+            xyxy=np.array([[1, 1, 7, 6]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+            mask=mask,
+            data=data,
+        )
+
+        context = (
+            DoesNotRaise()
+            if iscrowd
+            else pytest.warns(
+                UserWarning, match="mask approximation returned no polygons"
+            )
+        )
+        with context:
+            annotations, _ = detections_to_coco_annotations(
+                detections=detections,
+                image_id=1,
+                annotation_id=1,
+                max_image_area_percentage=0.05,
+            )
+
+        (annotation,) = annotations
+        assert annotation["bbox"] == [1, 1, 6, 5]
+        assert annotation["area"] == expected_area
+        assert annotation["segmentation"] == (
+            {"counts": [100], "size": [10, 10]} if iscrowd else []
+        )
+
+    @pytest.mark.parametrize("mixed", [False, True])
+    def test_box_area_survives_dataset_round_trip(
+        self, tmp_path: Path, mixed: bool
+    ) -> None:
+        """Retain box area for a round trip using all-zero mask placeholders."""
+        image_path = tmp_path / "img.jpg"
+        assert cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+        bbox = [1, 1, 6, 5]
+        box_annotation = {
+            "id": 1,
+            "image_id": 1,
+            "category_id": 1,
+            "bbox": bbox,
+            "segmentation": [],
+        }
+        annotations = [box_annotation]
+        if mixed:
+            annotations.append(
+                {
+                    **box_annotation,
+                    "id": 2,
+                    "bbox": [6, 6, 3, 3],
+                    "segmentation": [[6, 6, 8, 6, 8, 8, 6, 8]],
+                }
+            )
+        source = tmp_path / "source.json"
+        source.write_text(
+            json.dumps(
+                {**_single_image_coco_data(box_annotation), "annotations": annotations}
+            )
+        )
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(tmp_path),
+            annotations_path=str(source),
+            force_masks=not mixed,
+            use_iscrowd=False,
+        )
+        detections = dataset.annotations[str(image_path)]
+        assert detections.mask is not None
+        assert not detections.mask[0].any()
+        assert "area" not in detections.data
+        target = tmp_path / "target.json"
+
+        with pytest.warns(UserWarning, match="mask approximation returned no polygons"):
+            dataset.as_coco(annotations_path=str(target))
+
+        exported = json.loads(target.read_text())["annotations"]
+        assert len(exported) == len(annotations)
+        assert exported[0]["bbox"] == bbox
+        assert exported[0]["segmentation"] == []
+        assert exported[0]["area"] == 30.0
+        if mixed:
+            assert exported[1]["segmentation"]
+            assert exported[1]["area"] == 9.0
 
 
 def test_detections_to_coco_annotations_exports_all_polygons() -> None:
@@ -2550,8 +2795,8 @@ def test_detections_to_coco_annotations_exports_all_polygons() -> None:
     ],
 )
 def test_coco_polygon_segmentation_survives_roundtrip(
-    tmp_path,
-    segmentation: list[list[int]],
+    tmp_path: Path,
+    segmentation: list[list[float]],
     bbox: tuple[float, float, float, float],
     area: float,
     expected_min_polygon_count: int,
@@ -2647,6 +2892,133 @@ def test_coco_iscrowd_mask_exports_as_rle() -> None:
     assert isinstance(seg, dict), "multi-segment mask must export as RLE dict, not list"
     assert "counts" in seg
     assert "size" in seg
+
+
+class TestCocoExportBoxArithmetic:
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "expected_bbox", "expected_area"),
+        [
+            pytest.param(
+                "uint8", [0, 0, 200, 200], [0, 0, 200, 200], 40000, id="uint8-area"
+            ),
+            pytest.param(
+                "int16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="int16-area"
+            ),
+            pytest.param(
+                "uint16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="uint16-area"
+            ),
+            pytest.param(
+                "int32",
+                [0, 0, 65536, 65536],
+                [0, 0, 65536, 65536],
+                2**32,
+                id="int32-area",
+            ),
+            pytest.param(
+                "float16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="float16-area"
+            ),
+            pytest.param(
+                "float16",
+                [-40000, 0, 40000, 1],
+                [-40000, 0, 80000, 1],
+                80000,
+                id="float16-width",
+            ),
+            pytest.param(
+                "float32",
+                [0, 0, 2**70, 2**70],
+                [0, 0, 2**70, 2**70],
+                2**140,
+                id="float32-area",
+            ),
+            pytest.param(
+                "int64",
+                [2**53 + 1, 2**53 + 1, 2**53 + 4, 2**53 + 6],
+                [2**53 + 1, 2**53 + 1, 3, 5],
+                15,
+                id="int64-origin",
+            ),
+            pytest.param(
+                "uint64",
+                [2**63 + 1, 2**63 + 1, 2**63 + 4, 2**63 + 6],
+                [2**63 + 1, 2**63 + 1, 3, 5],
+                15,
+                id="uint64-origin",
+            ),
+            pytest.param(
+                "float32",
+                [0.25, 1.5, 300.75, 302.5],
+                [0.25, 1.5, 300.5, 301],
+                90450.5,
+                id="float32-fractional",
+            ),
+            pytest.param(
+                "float64",
+                [0.25, 1.5, 300.75, 302.5],
+                [0.25, 1.5, 300.5, 301],
+                90450.5,
+                id="float64-fractional",
+            ),
+            pytest.param(
+                "int16", [300, 300, 0, 0], [0, 0, 300, 300], 90000, id="reversed-int16"
+            ),
+        ],
+    )
+    def test_preserves_box_extents_and_area(
+        self,
+        dtype: str,
+        xyxy: list[int | float],
+        expected_bbox: list[int | float],
+        expected_area: int | float,
+    ) -> None:
+        """Export finite extents and areas without losing integer origins."""
+        detections = Detections(
+            xyxy=np.array([xyxy], dtype=dtype), class_id=np.array([0])
+        )
+
+        annotations, _ = detections_to_coco_annotations(
+            detections=detections, image_id=1, annotation_id=1
+        )
+
+        bbox = [
+            value.item() if isinstance(value, np.generic) else value
+            for value in annotations[0]["bbox"]
+        ]
+        assert bbox == expected_bbox
+        assert annotations[0]["area"] == expected_area
+
+    @pytest.mark.parametrize("dtype", ["float16", "int16"])
+    def test_round_trip_keeps_finite_area(self, tmp_path: Path, dtype: str) -> None:
+        """Write valid JSON and retain the box area when loading it again."""
+        image_path = str(tmp_path / "image.png")
+        assert cv2.imwrite(image_path, np.zeros((320, 320, 3), dtype=np.uint8))
+        detections = Detections(
+            xyxy=np.array([[0, 0, 300, 300]], dtype=dtype),
+            class_id=np.array([0]),
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        annotation_path = tmp_path / "annotations.json"
+
+        dataset.as_coco(annotations_path=str(annotation_path))
+        exported = json.loads(
+            annotation_path.read_text(encoding="utf-8"),
+            parse_constant=lambda token: pytest.fail(
+                f"Non-finite JSON constant: {token}"
+            ),
+        )
+        restored = DetectionDataset.from_coco(
+            images_directory_path=str(tmp_path),
+            annotations_path=str(annotation_path),
+        )
+
+        assert exported["annotations"][0]["area"] == 90000
+        restored_detections = next(iter(restored.annotations.values()))
+        np.testing.assert_array_equal(restored_detections.data["area"], [90000])
+        np.testing.assert_array_equal(restored_detections.xyxy, [[0, 0, 300, 300]])
 
 
 class TestCocoBoxExtent:

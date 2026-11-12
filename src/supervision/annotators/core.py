@@ -1,12 +1,15 @@
+import importlib
+import re
 from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
+from types import ModuleType
 from typing import Any, ClassVar, cast
 
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, features
 from scipy.interpolate import splev, splprep
 
 from supervision import _cv2 as cv2
@@ -46,6 +49,7 @@ from supervision.utils.conversion import (
     ensure_pil_image_for_class_method,
 )
 from supervision.utils.image import (
+    _match_overlay_to_scene_channels,
     _overlay_image,
     crop_image,
     letterbox_image,
@@ -54,6 +58,28 @@ from supervision.utils.image import (
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+# Hebrew, Arabic, Syriac, Thaana, NKo and their presentation forms
+_RTL_TEXT = re.compile("[֐-ࣿיִ-﷿ﹰ-ﻼ]")
+
+
+@lru_cache(maxsize=2)
+def _warn_unshaped_rtl_text(unsupported_mode: bool = False) -> None:
+    """Warn once when Pillow cannot shape right-to-left text."""
+    # Pillow joins Arabic letters and orders right-to-left text only with Raqm
+    if not features.check("raqm"):
+        if unsupported_mode:
+            logger.warning(
+                "The `rtl` extra requires RGB or RGBA images. Pillow needs Raqm "
+                "to shape right-to-left labels. Convert the image to RGB or RGBA "
+                "to use the extra."
+            )
+        else:
+            logger.warning(
+                "Right-to-left labels (Arabic, Hebrew) need Pillow with Raqm or the "
+                "`rtl` extra to render correctly. Run `uv pip install "
+                "'supervision[rtl]'` or `uv add supervision --extra rtl`."
+            )
 
 
 @lru_cache
@@ -96,10 +122,10 @@ def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPa
     """Normalize accepted color inputs to internal color objects.
 
     Accepts :class:`~supervision.draw.color.Color`,
-    :class:`~supervision.draw.color.ColorPalette`, or hex string input. Hex strings
-    are parsed via :func:`~supervision.annotators.utils.hex_to_rgba` and converted
-    to :class:`~supervision.draw.color.Color` (alpha channel is ignored because
-    annotator drawing uses RGB/BGR colors).
+    :class:`~supervision.draw.color.ColorPalette`, or hex string input. Hex strings are
+    parsed via :func:`~supervision.annotators.utils.hex_to_rgba` and converted to
+    :class:`~supervision.draw.color.Color` (alpha channel is ignored because annotator
+    drawing uses RGB/BGR colors).
     """
     if isinstance(color, str):
         r, g, b, _ = hex_to_rgba(color)
@@ -443,13 +469,40 @@ def _color_for_canvas(
 ) -> tuple[int, ...]:
     """Return the color as the pixel value OpenCV drawing writes to `canvas`.
 
-    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first
-    (blue) channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match
-    the boxes and polygons other annotators draw on the same scene.
+    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
+    channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
+    polygons other annotators draw on the same scene.
     """
     if canvas.ndim == 2 or canvas.shape[2] == 1:
         return color_bgr[:1]
     return color_bgr
+
+
+def _pillow_fill(color: Color, mode: str) -> float | tuple[int, ...]:
+    """Return `color` as the fill Pillow's `ImageDraw` accepts for a scene of `mode`.
+
+    Pillow rejects an RGB tuple on grayscale modes. Those take the first (blue) BGR
+    channel, as :func:`~supervision.annotators.core._color_for_canvas` does, so rich
+    labels match what the other annotators draw on the same scene. Integer modes
+    deeper than 8 bits scale it by 257, the mapping of 0-255 onto 0-65535 that
+    :func:`~supervision.utils.conversion.ensure_cv2_image_for_class_method` applies.
+
+    Args:
+        color: Color to draw.
+        mode: Pillow mode of the scene.
+
+    Returns:
+        Fill value for `ImageDraw` on an image of that mode.
+    """
+    if mode == "1":
+        return 255 if color.b >= 128 else 0
+    if mode in ("L", "F"):
+        return color.b
+    if mode == "LA":
+        return (color.b, 255)
+    if mode == "I" or mode.startswith("I;16"):
+        return color.b * 257
+    return color.as_rgb()
 
 
 def _paint_masks_by_area(
@@ -1703,6 +1756,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             text_color: The color to use for the text.
             font_path: Path to the font file (e.g., ".ttf" or ".otf")
                 to use for rendering text. If `None`, the default PIL font will be used.
+                With the `rtl` extra installed, Arabic and Hebrew lines in RGB or
+                RGBA images are drawn with `khatt`, using this font when supplied.
+                Missing glyphs use Noto Naskh Arabic or Rubik (Hebrew). Other image
+                modes fall back to Pillow, which requires Raqm for shaping and may
+                not support every image mode.
             font_size: Font size for the text.
             text_padding: Padding around the text within its background box.
             text_position: Position of the text relative to the detection.
@@ -1719,6 +1777,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         self.font_path = font_path
         self.font_size = font_size
         self.font = self._load_font(font_size, font_path)
+        # khatt draws in the font file Pillow loaded (which may be resolved from a
+        # system font directory), or its bundled Arabic font when the default PIL
+        # font (no Arabic glyphs, loaded from memory) is in use
+        loaded_path = getattr(self.font, "path", None)
+        self._rtl_font = loaded_path if isinstance(loaded_path, str) else None
         super().__init__(
             color=color,
             color_lookup=color_lookup,
@@ -1745,7 +1808,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         Args:
             scene: The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale scenes, shaped `(H, W)` or
+                `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`,
+                `I`, `F` or `I;16`), are supported.
             detections: Object detections to annotate.
             labels: Custom labels for each detection.
             custom_color_lookup: Custom color lookup array.
@@ -1798,6 +1863,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             )
 
         self._draw_labels(
+            scene=cast(Image.Image, scene),
             draw=draw,
             labels=labels,
             label_properties=label_properties,
@@ -1806,6 +1872,48 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         return scene
+
+    def _rtl_engine(self, draw: ImageDraw.ImageDraw, line: str) -> ModuleType | None:
+        """The `khatt` module when `line` holds right-to-left text, the scene is RGB or
+        RGBA and the `rtl` extra is installed, else `None` (the line is measured and
+        drawn by Pillow)."""
+        if not _RTL_TEXT.search(line):
+            return None
+        if draw.mode not in ("RGB", "RGBA"):
+            _warn_unshaped_rtl_text(unsupported_mode=True)
+            return None
+        try:
+            return importlib.import_module("khatt")
+        except ModuleNotFoundError as exc:
+            if exc.name != "khatt":
+                raise
+            _warn_unshaped_rtl_text()
+            return None
+
+    def _rtl_options(self) -> dict[str, Any]:
+        # khatt's bundled Noto Naskh Arabic and Rubik (Hebrew) cover characters
+        # the label font lacks
+        if self._rtl_font is None:
+            return {
+                "font": "noto-naskh",
+                "size_px": self.font_size,
+                "fallback_fonts": ("rubik",),
+            }
+        return {
+            "font": self._rtl_font,
+            "size_px": self.font_size,
+            "fallback_fonts": ("noto-naskh", "rubik"),
+        }
+
+    def _text_bbox(
+        self, draw: ImageDraw.ImageDraw, line: str
+    ) -> tuple[float, float, float, float]:
+        khatt = self._rtl_engine(draw, line)
+        if khatt is not None:
+            left, top, right, bottom = khatt.text_bbox(line, **self._rtl_options())
+        else:
+            left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+        return left, top, right, bottom
 
     def _get_label_properties(
         self, draw: ImageDraw.ImageDraw, detections: Detections, labels: list[str]
@@ -1829,7 +1937,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             total_height = 0.0
 
             for line in wrapped_lines:
-                left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                left, top, right, bottom = self._text_bbox(draw, line)
                 line_width = right - left
                 line_height = bottom - top
 
@@ -1861,12 +1969,14 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
     def _draw_labels(
         self,
+        scene: Image.Image,
         draw: ImageDraw.ImageDraw,
         labels: list[str],
         label_properties: npt.NDArray[np.float32],
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None,
     ) -> None:
+        """Draw each label's background and text in a fill valid for `scene.mode`."""
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
             f"labels ({len(labels)}) and detections ({len(detections)}) "
@@ -1900,7 +2010,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             draw.rounded_rectangle(
                 tuple(box_xyxy),
                 radius=self.border_radius,
-                fill=background_color.as_rgb(),
+                fill=_pillow_fill(background_color, scene.mode),
                 outline=None,
             )
 
@@ -1910,15 +2020,35 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             y_position = box_xyxy[1] + self.text_padding - text_top
 
             for line in wrapped_lines:
-                draw.text(
-                    xy=(x_position, y_position),
-                    text=line,
-                    font=self.font,
-                    fill=text_color.as_rgb(),
-                )
+                khatt = self._rtl_engine(draw, line)
+                if khatt is not None:
+                    # Right-aligned in the box, with its ink top where Pillow's
+                    # lines start. Oversized boxes extend beyond the frame, so
+                    # align shaped RTL text to the visible right edge instead.
+                    _left, top, right, _bottom = self._text_bbox(draw, line)
+                    right_edge = box_xyxy[2]
+                    if self.smart_position and box_xyxy[2] - box_xyxy[0] > scene.width:
+                        right_edge = min(right_edge, scene.width)
+                    khatt.draw_text(
+                        scene,
+                        (
+                            right_edge - self.text_padding - right,
+                            y_position + text_top - top,
+                        ),
+                        line,
+                        fill=text_color.as_rgb(),
+                        **self._rtl_options(),
+                    )
+                else:
+                    draw.text(
+                        xy=(x_position, y_position),
+                        text=line,
+                        font=self.font,
+                        fill=_pillow_fill(text_color, scene.mode),
+                    )
 
                 # Move to the next line position
-                _left, top, _right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                _left, top, _right, bottom = self._text_bbox(draw, line)
                 line_height = bottom - top
                 y_position += line_height + self.text_padding
 
@@ -2520,11 +2650,16 @@ class HeatMapAnnotator(BaseAnnotator):
                 npt.NDArray[np.uint8],
                 cv2.blur(heat_hue, (self.kernel_size, self.kernel_size)),
             )
-        hsv = np.full(scene.shape, 255, dtype=np.uint8)
+        hsv = np.full((*scene.shape[:2], 3), 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
-        heat_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
+        # A grayscale scene takes the heat colors as their gray luminance.
+        heat_overlay = _match_overlay_to_scene_channels(overlay=heat_bgr, roi=scene)
         mask2d = heat_mask > 0
-        blended = cv2.addWeighted(heat_bgr, self.opacity, scene, 1 - self.opacity, 0)
+        # OpenCV drops a singleton channel axis; restore the scene's layout.
+        blended = cv2.addWeighted(
+            heat_overlay, self.opacity, scene, 1 - self.opacity, 0
+        ).reshape(scene.shape)
         scene[mask2d] = blended[mask2d]
         return scene
 
@@ -3304,7 +3439,9 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
+        colored_mask = np.full_like(
+            scene, _color_for_canvas(self.color.as_bgr(), scene), dtype=np.uint8
+        )
 
         cv2.addWeighted(
             scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
@@ -3385,7 +3522,9 @@ class ComparisonAnnotator:
         Args:
             scene: The image where detections will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`; regions are blended with the first (blue) channel
+                of their color, as OpenCV draws boxes and polygons.
             detections_1: The first set of detections or predictions.
             detections_2: The second set of detections to compare or
                 ground truth.
@@ -3443,9 +3582,11 @@ class ComparisonAnnotator:
         mask_2 = mask_2 & ~mask_overlap
 
         color_layer = np.zeros_like(scene, dtype=np.uint8)
-        color_layer[mask_overlap] = self.color_overlap.as_bgr()
-        color_layer[mask_1] = self.color_1.as_bgr()
-        color_layer[mask_2] = self.color_2.as_bgr()
+        color_layer[mask_overlap] = _color_for_canvas(
+            self.color_overlap.as_bgr(), scene
+        )
+        color_layer[mask_1] = _color_for_canvas(self.color_1.as_bgr(), scene)
+        color_layer[mask_2] = _color_for_canvas(self.color_2.as_bgr(), scene)
 
         scene[mask_overlap] = (1 - self.opacity) * scene[
             mask_overlap

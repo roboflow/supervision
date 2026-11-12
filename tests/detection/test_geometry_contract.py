@@ -108,13 +108,13 @@ _GEOMETRY_AWARE_OPS = [
 class TestGeometryAwareOperations:
     """Contract tests shared by geometry-aware detection operations."""
 
-    @pytest.mark.parametrize(("name", "run"), _GEOMETRY_AWARE_OPS)
+    @pytest.mark.parametrize(("name", "fn_run"), _GEOMETRY_AWARE_OPS)
     def test_op_respects_geometry(
-        self, name: str, run: Callable[[Callable[..., Detections]], np.ndarray]
+        self, name: str, fn_run: Callable[[Callable[..., Detections]], np.ndarray]
     ) -> None:
         """A geometry-aware op must not answer the same for a box and its envelope."""
-        with_corners = np.asarray(run(_oriented), dtype=float)
-        without_corners = np.asarray(run(_envelope_only), dtype=float)
+        with_corners = np.asarray(fn_run(_oriented), dtype=float)
+        without_corners = np.asarray(fn_run(_envelope_only), dtype=float)
 
         assert with_corners.shape == without_corners.shape, (
             f"{name} changed result shape depending on whether corners were present"
@@ -134,10 +134,11 @@ class TestGeometryContractValues:
         expected_obb = 2 * HALF_DIAGONAL**2
         expected_envelope = 4 * HALF_DIAGONAL**2
 
-        assert_allclose(detection_area(_oriented()), [expected_obb], rtol=1e-5)
-        assert_allclose(
-            detection_area(_envelope_only()), [expected_envelope], rtol=1e-5
-        )
+        obb_area = np.asarray(detection_area(_oriented()), dtype=np.float64)
+        envelope_area = np.asarray(detection_area(_envelope_only()), dtype=np.float64)
+
+        assert_allclose(obb_area, [expected_obb], rtol=1e-5)
+        assert_allclose(envelope_area, [expected_envelope], rtol=1e-5)
 
     def test_iou_uses_the_rotated_body(self) -> None:
         """Diamonds offset along the diagonal touch on an edge; envelopes overlap.

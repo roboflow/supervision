@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -429,9 +430,9 @@ class TestFromCocoRle:
     )
     def test_raises_on_invalid_input(
         self,
-        rles: list,
+        rles: list[Any],
         xyxy_arr: np.ndarray,
-        image_shape: tuple,
+        image_shape: tuple[int, int],
         err_match: str,
     ) -> None:
         """from_coco_rle raises ValueError for each documented invalid-input path."""
@@ -848,7 +849,7 @@ class TestArrayProtocol:
         assert arr.sum() == 25
 
     @pytest.mark.parametrize(
-        ("converter", "kwargs"),
+        ("fn_converter", "kwargs"),
         [
             pytest.param(np.array, {}, id="array-default"),
             pytest.param(np.array, {"copy": True}, id="array-copy"),
@@ -874,7 +875,7 @@ class TestArrayProtocol:
     )
     def test_returns_dense_pixels_without_warnings(
         self,
-        converter: Callable[..., np.ndarray],
+        fn_converter: Callable[..., np.ndarray],
         kwargs: dict[str, bool],
         dtype: np.dtype | None,
     ) -> None:
@@ -882,7 +883,7 @@ class TestArrayProtocol:
         masks = np.eye(3, dtype=bool)[None, ...]
         cm = _make_cm(masks, (3, 3))
 
-        result = converter(cm, dtype=dtype, **kwargs)
+        result = fn_converter(cm, dtype=dtype, **kwargs)
 
         np.testing.assert_array_equal(result, masks)
         assert result.dtype == (np.dtype(bool) if dtype is None else dtype)
@@ -892,11 +893,11 @@ class TestArrayProtocol:
         reason="NumPy 1 allows allocation when copy=False",
     )
     @pytest.mark.parametrize(
-        "converter",
+        "fn_converter",
         [pytest.param(np.array, id="array"), pytest.param(np.asarray, id="asarray")],
     )
     def test_rejects_zero_copy_before_materializing(
-        self, converter: Callable[..., np.ndarray], monkeypatch: pytest.MonkeyPatch
+        self, fn_converter: Callable[..., np.ndarray], monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A zero-copy request fails before allocating the dense mask tensor."""
         cm = _make_cm(np.ones((1, 3, 3), dtype=bool), (3, 3))
@@ -905,7 +906,7 @@ class TestArrayProtocol:
         )
 
         with pytest.raises(ValueError, match="copy=False"):
-            converter(cm, copy=False)
+            fn_converter(cm, copy=False)
 
     def test_copies_empty_masks(self) -> None:
         """Explicit copies retain the spatial dimensions of empty mask collections."""
@@ -1497,7 +1498,7 @@ class TestCompactMaskFilterRandom:
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
-        num_selected = min(num_masks, max(1, rng.integers(1, num_masks + 1)))
+        num_selected = min(num_masks, max(1, int(rng.integers(1, num_masks + 1))))
         indices = sorted(
             rng.choice(num_masks, size=num_selected, replace=False).tolist()
         )
@@ -1518,7 +1519,7 @@ class TestCompactMaskWithOffsetRandom:
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
         # Use smaller images to keep move_masks fast.
-        num_masks = rng.integers(1, 10)
+        num_masks = int(rng.integers(1, 10))
         img_h, img_w = int(rng.integers(30, 80)), int(rng.integers(30, 80))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
@@ -1547,7 +1548,7 @@ class TestCompactMaskWithOffsetRandom:
     def test_offset_into_larger_canvas(self, seed: int) -> None:
         """Offset into a larger destination image must preserve pixels."""
         rng = np.random.default_rng(seed + 100)
-        num_masks = rng.integers(1, 8)
+        num_masks = int(rng.integers(1, 8))
         img_h, img_w = int(rng.integers(20, 50)), int(rng.integers(20, 50))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
@@ -2106,3 +2107,177 @@ class TestResizeParallelPath:
         # Both return correct shapes.
         assert resized_par.shape == (n_parallel, target[0], target[1])
         assert resized_seq.shape == (n_sequential, target[0], target[1])
+
+
+class TestCompactMaskSum:
+    """Tests that sum reductions on a CompactMask match the equivalent dense mask."""
+
+    @staticmethod
+    def _masks() -> np.ndarray:
+        """Return dense masks whose sums differ on every axis combination."""
+        masks = np.zeros((3, 6, 8), dtype=bool)
+        masks[0, 1:3, 1:3] = True
+        masks[1, 2:6, 2:7] = True
+        masks[2, 0, 0] = True
+        return masks
+
+    @pytest.mark.parametrize(
+        "axis",
+        [
+            None,
+            0,
+            1,
+            2,
+            -1,
+            -2,
+            -3,
+            pytest.param((), id="no-axes"),
+            pytest.param((0,), id="tuple-0"),
+            pytest.param((0, 1), id="0-1"),
+            pytest.param((0, 2), id="0-2"),
+            pytest.param((1, 2), id="1-2-area"),
+            pytest.param((2, 1), id="2-1"),
+            pytest.param((-2, -1), id="negative-2-1"),
+            pytest.param((0, 1, 2), id="0-1-2"),
+            pytest.param(np.int64(0), id="np-int64-0"),
+            pytest.param(np.int64(-1), id="np-int64-negative-1"),
+            pytest.param(np.array(1), id="zero-dim-array-1"),
+            pytest.param((np.int64(1), np.int64(2)), id="np-int64-tuple-area"),
+        ],
+    )
+    def test_np_sum_matches_dense_on_every_axis(self, axis: Any) -> None:
+        """np.sum on a CompactMask matches the dense values, shape and dtype."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        result = np.sum(cm, axis=axis)
+
+        expected = np.sum(masks, axis=axis)
+        np.testing.assert_array_equal(result, expected)
+        assert np.shape(result) == np.shape(expected)
+        assert result.dtype == expected.dtype
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({"axis": (1, 2), "dtype": np.float32}, id="area-axis-dtype"),
+            pytest.param({"dtype": np.uint8}, id="total-dtype"),
+            pytest.param({"axis": (1, 2), "keepdims": True}, id="area-axis-keepdims"),
+            pytest.param({"keepdims": True}, id="total-keepdims"),
+            pytest.param({"axis": (1, 2), "initial": 5}, id="area-axis-initial"),
+            pytest.param({"initial": 5}, id="total-initial"),
+            pytest.param(
+                {"axis": (1, 2), "where": np.arange(8) < 2}, id="area-axis-where"
+            ),
+            pytest.param({"axis": 0, "where": np.arange(8) < 2}, id="axis-0-where"),
+        ],
+    )
+    def test_np_sum_honours_reduction_keywords(self, kwargs: dict[str, Any]) -> None:
+        """Reduction keywords reach the result, including on the fast-path axis."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        result = np.sum(cm, **kwargs)
+
+        expected = np.sum(masks, **kwargs)
+        np.testing.assert_array_equal(result, expected)
+        assert np.shape(result) == np.shape(expected)
+        assert result.dtype == expected.dtype
+
+    @pytest.mark.parametrize(
+        ("axis", "shape"),
+        [
+            pytest.param((1, 2), (3,), id="per-mask"),
+            pytest.param(0, (6, 8), id="per-pixel"),
+        ],
+    )
+    def test_np_sum_writes_into_out(
+        self, axis: int | tuple[int, ...], shape: tuple[int, ...]
+    ) -> None:
+        """An out array receives the result and is returned, as NumPy does."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+        out = np.zeros(shape, dtype=np.int64)
+
+        result = np.sum(cm, axis=axis, out=out)
+
+        assert result is out
+        np.testing.assert_array_equal(out, masks.sum(axis=axis))
+
+    def test_positional_arguments_follow_ndarray_sum_order(self) -> None:
+        """cm.sum accepts axis, dtype and out positionally, like ndarray.sum."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+        out = np.zeros(3, dtype=np.float64)
+
+        result = cm.sum((1, 2), np.float64, out)
+
+        assert result is out
+        np.testing.assert_array_equal(out, masks.sum(axis=(1, 2)))
+
+    def test_np_sum_per_mask_area_does_not_materialise_dense(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """np.sum(cm, axis=(1, 2)) keeps the RLE area fast path."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        def fail_to_dense(self: CompactMask) -> np.ndarray:
+            """Fail the test if the dense masks are built."""
+            raise AssertionError("to_dense must not be called")
+
+        monkeypatch.setattr(CompactMask, "to_dense", fail_to_dense)
+
+        result = np.sum(cm, axis=(1, 2))
+
+        np.testing.assert_array_equal(result, masks.sum(axis=(1, 2)))
+
+    def test_array_axis_raises_type_error_like_dense(self) -> None:
+        """A 1-D array axis raises TypeError as dense does, not ValueError."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+        axis: Any = np.array([1, 2])
+
+        with pytest.raises(TypeError):
+            masks.sum(axis=axis)
+        with pytest.raises(TypeError):
+            cm.sum(axis=axis)
+
+    @pytest.mark.parametrize(
+        "axis",
+        [
+            pytest.param((1.0, 2.0), id="float-axes"),
+            pytest.param((True, 2), id="boolean-axis"),
+        ],
+    )
+    def test_invalid_tuple_axes_raise_type_error(self, axis: Any) -> None:
+        """Invalid tuple axes raise the same error for compact and dense masks."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        with pytest.raises(TypeError):
+            np.sum(masks, axis=axis)
+        with pytest.raises(TypeError):
+            np.sum(cm, axis=axis)
+
+    def test_rejects_unknown_keyword(self) -> None:
+        """An unknown keyword raises TypeError instead of being ignored."""
+        cm = _make_cm(self._masks(), (6, 8))
+
+        with pytest.raises(TypeError, match="not_a_keyword"):
+            cm.sum(axis=(1, 2), not_a_keyword=True)
+
+    @pytest.mark.parametrize("axis", [None, 0, pytest.param((1, 2), id="1-2-area")])
+    def test_np_sum_matches_dense_when_empty(
+        self, axis: int | tuple[int, ...] | None
+    ) -> None:
+        """np.sum on a CompactMask with no masks matches an empty dense mask."""
+        masks = np.zeros((0, 6, 8), dtype=bool)
+        cm = _make_cm(masks, (6, 8))
+
+        result = np.sum(cm, axis=axis)
+
+        expected = np.sum(masks, axis=axis)
+        np.testing.assert_array_equal(result, expected)
+        assert np.shape(result) == np.shape(expected)
+        assert result.dtype == expected.dtype

@@ -240,8 +240,10 @@ def from_paligemma(
     """
     w, h = _validate_resolution(resolution_wh)
 
+    # Labels end at a detection separator or model token, not at punctuation
+    # inside an open-vocabulary class name.
     pattern = re.compile(
-        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
+        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([^;<]+)"
     )
     matches = pattern.findall(result)
     matches_arr: npt.NDArray[Any] = np.array(matches) if matches else np.empty((0, 5))
@@ -322,7 +324,8 @@ def from_qwen_2_5_vl(
       ]
       ```
 
-    A truncated response yields every complete detection before the cut.
+    A truncated response yields every complete detection before the cut. Items
+    without a finite, four-coordinate box are skipped without losing valid siblings.
 
     Args:
         result: String containing Qwen-2.5-VL JSON bounding box and label data.
@@ -383,7 +386,13 @@ def from_qwen_2_5_vl(
     for item in data:
         if not isinstance(item, dict) or "bbox_2d" not in item or "label" not in item:
             continue
-        boxes_list.append(item["bbox_2d"])
+        try:
+            box = np.asarray(item["bbox_2d"], dtype=float)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if box.shape != (4,) or not np.isfinite(box).all():
+            continue
+        boxes_list.append(box)
         labels_list.append(item["label"])
 
     if not boxes_list:
@@ -455,8 +464,8 @@ def from_deepseek_vl_2(
             shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
             optional array of shape `(n,)` with class indices, and `class_name`
             is an array of shape `(n,)` with class labels. When the input
-            contains no detections (or all are filtered by `classes`), returns
-            `(np.empty((0, 4)), np.empty(0), np.empty(0))`.
+            contains no detections (or all are filtered by `classes`), `xyxy`
+            has shape `(0, 4)` and `class_id` is an empty integer array.
     """  # noqa: E501
 
     width, height = resolution_wh
@@ -499,7 +508,9 @@ def from_deepseek_vl_2(
     else:
         unique_classes = sorted(list(set(class_name)))
         class_to_id = {name: i for i, name in enumerate(unique_classes)}
-        class_id = np.array([class_to_id[name] for name in class_name])
+        # `dtype=int` matters only when there are no detections: an empty list would
+        # otherwise make NumPy pick `float64` for an array of class indices.
+        class_id = np.array([class_to_id[name] for name in class_name], dtype=int)
 
     return xyxy, class_id, class_name
 
@@ -815,7 +826,9 @@ def _parse_gemini_boxes(
         keep_mask = np.array([name in classes for name in class_name], dtype=bool)
         xyxy = xyxy[keep_mask]
         class_name = class_name[keep_mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        # `dtype=int` matters only when every item is filtered out: an empty list
+        # would otherwise make NumPy pick `float64` for an array of class indices.
+        class_id = np.array([classes.index(name) for name in class_name], dtype=int)
         if confidence_list is not None:
             confidence_list = [
                 score for score, keep in zip(confidence_list, keep_mask) if keep
@@ -947,7 +960,8 @@ def from_google_gemini_2_5(
             `confidence` is an optional array of shape `(n,)` with confidence
             scores, and `masks` is an optional array of shape `(n, h, w)` with
             segmentation masks. Each mask PNG is a 0-255 probability map, kept
-            where it is above `127` after resizing to its box.
+            where it is above `127` after resizing to its box. A box that leaves
+            the image is returned as is, while its mask is cropped to the image.
     """
     w, h = _validate_resolution(resolution_wh)
 
@@ -1013,15 +1027,39 @@ def from_google_gemini_2_5(
                 masks_list.append(np.zeros((h, w), dtype=bool))
                 continue
 
+            # `box_2d` is only nominally within 0-1000, and a box that overshoots the
+            # image (or a negative one, whose slice would wrap) cannot be assigned
+            # into the mask as is. Keep only the part inside the image, as the
+            # polygon masks of Gemini 3.6 do, and let a box wholly outside the
+            # image degrade to an all-false mask like every other bad mask.
+            visible_x_min, visible_x_max = max(x_min, 0), min(x_max, w)
+            visible_y_min, visible_y_max = max(y_min, 0), min(y_max, h)
+            if visible_x_min >= visible_x_max or visible_y_min >= visible_y_max:
+                masks_list.append(np.zeros((h, w), dtype=bool))
+                continue
+
+            # Resample straight from the part of the PNG that lands inside the
+            # image, so the mask keeps its alignment with the full box and a huge
+            # box does not allocate an image larger than the frame.
+            scale_x = mask_img.width / bbox_width
+            scale_y = mask_img.height / bbox_height
             mask_img = mask_img.resize(
-                (bbox_width, bbox_height),
+                (visible_x_max - visible_x_min, visible_y_max - visible_y_min),
                 resample=Image.Resampling.BILINEAR,
+                box=(
+                    (visible_x_min - x_min) * scale_x,
+                    (visible_y_min - y_min) * scale_y,
+                    (visible_x_max - x_min) * scale_x,
+                    (visible_y_max - y_min) * scale_y,
+                ),
             )
             np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
             # The PNG is a probability map from 0 to 255, and the bilinear resize
             # blends values along every edge. Binarize at the midpoint, as Google's
             # segmentation guide does, so pixels scored as unlikely stay outside.
-            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 127
+            np_mask[visible_y_min:visible_y_max, visible_x_min:visible_x_max] = (
+                np.array(mask_img) > 127
+            )
             masks_list.append(np_mask)
 
         # A response whose items are all filtered out still owes the caller a 3D

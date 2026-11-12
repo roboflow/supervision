@@ -41,16 +41,17 @@ class TestMeanAveragePrecisionArea:
         ],
     )
     def test_area_calculation_and_size_specific_map(
-        self, xyxy, expected_areas, expected_size_maps
+        self,
+        xyxy: np.ndarray,
+        expected_areas: list[float],
+        expected_size_maps: dict[str, bool],
     ) -> None:
         """Test area calculation and size-specific mAP functionality."""
-        gt = Detections(
-            xyxy=xyxy,
-            class_id=np.arange(len(xyxy)),
-        )
+        class_id = np.arange(len(xyxy))
+        gt = Detections(xyxy=xyxy, class_id=class_id)
         pred = Detections(
             xyxy=gt.xyxy.copy(),
-            class_id=gt.class_id.copy(),
+            class_id=class_id.copy(),
             confidence=np.full(len(xyxy), 0.9),
         )
 
@@ -66,6 +67,9 @@ class TestMeanAveragePrecisionArea:
 
         # Test size-specific mAP
         result = map_metric.compute()
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
 
         if expected_size_maps["small"]:
             assert result.small_objects.map50 > 0.9, (
@@ -107,7 +111,7 @@ class TestMeanAveragePrecisionArea:
 
         pred = Detections(
             xyxy=gt.xyxy.copy(),
-            class_id=gt.class_id.copy(),
+            class_id=np.array([0]),
             confidence=np.array([0.9]),
         )
         pred.data = {"area": np.array([3000.0])}
@@ -174,6 +178,9 @@ class TestMeanAveragePrecisionCoordinateDtypes:
 
         result = metric.compute()
 
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
         assert result.map50_95 == pytest.approx(1.0)
         assert result.large_objects.map50_95 == pytest.approx(1.0)
         assert result.small_objects.map50_95 == -1.0
@@ -207,5 +214,6 @@ class TestMeanAveragePrecisionCoordinateDtypes:
 
         result = metric.compute()
 
+        assert result.small_objects is not None
         assert result.map50_95 == pytest.approx(0.5)
         assert result.small_objects.map50_95 == pytest.approx(1.0)

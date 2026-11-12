@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import warnings
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -12,6 +13,7 @@ from tqdm.auto import tqdm
 from supervision.config import AREA_DATA_FIELD, COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
     _image_file_resolution_wh,
+    _SeamNotFoundError,
     approximate_mask_with_polygons,
     check_no_basename_collisions,
     map_detections_class_id,
@@ -166,10 +168,10 @@ def coco_annotations_to_masks(
 def _check_box_extent(image_annotation: CocoDict) -> list[float]:
     """Return a COCO ``bbox``, rejecting a negative width or height.
 
-    COCO stores a box as ``[x, y, width, height]``, so a negative extent would
-    place ``x_max`` before ``x_min`` once the corners are formed. Such a box
-    makes ``Detections.area`` negative and scores two boxes covering the same
-    region at ``0.0`` under ``box_iou_batch``.
+    COCO stores a box as ``[x, y, width, height]``, so a negative extent would place
+    ``x_max`` before ``x_min`` once the corners are formed. Such a box makes
+    ``Detections.area`` negative and scores two boxes covering the same region at
+    ``0.0`` under ``box_iou_batch``.
     """
     bbox = image_annotation["bbox"]
     box_width, box_height = float(bbox[2]), float(bbox[3])
@@ -317,13 +319,21 @@ def detections_to_coco_annotations(
         For ``iscrowd=0`` annotations, ``segmentation`` is a
         ``list[list[float]]`` where each inner list encodes one polygon
         part as flat ``[x1, y1, x2, y2, ...]`` coordinates. A single
-        object with *N* disjoint parts produces *N* inner lists.
+        object with *N* disjoint parts produces *N* inner lists. A hole is
+        joined to its part along a zero-width seam, because COCO readers
+        union the parts of an object and would fill a separate hole polygon.
+        If no seam is found, a warning is issued and the hole stays a
+        separate part.
 
         When ``iscrowd`` is not in ``detections.data``, masks with holes
         or multiple disjoint segments are auto-encoded as RLE
         (``iscrowd=1``); simple single-region masks use polygon format
         (``iscrowd=0``). Supply ``data={"iscrowd": np.array([0])}`` to
         force polygon output regardless of mask topology.
+
+        A finite stored area takes precedence. Otherwise, an empty mask that
+        produces no segmentation uses the bounding-box area. A nonempty mask
+        keeps its pixel area even when polygon approximation filters it out.
 
     Example:
         ```pycon
@@ -350,10 +360,12 @@ def detections_to_coco_annotations(
     for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
+        # Python scalars keep narrow-dtype arithmetic from wrapping or overflowing.
+        x1, y1, x2, y2 = xyxy.tolist()
         # Order the corners first: a reversed box would otherwise be written
         # with a negative width or height, which the loader now rejects.
-        x_min, x_max = min(xyxy[0], xyxy[2]), max(xyxy[0], xyxy[2])
-        y_min, y_max = min(xyxy[1], xyxy[3]), max(xyxy[1], xyxy[3])
+        x_min, x_max = min(x1, x2), max(x1, x2)
+        y_min, y_max = min(y1, y2), max(y1, y2)
         box_width, box_height = x_max - x_min, y_max - y_min
         segmentation: list[list[float]] | dict[str, list[int]] = []
         if mask is not None:
@@ -374,12 +386,24 @@ def detections_to_coco_annotations(
                     "size": list(mask.shape[:2]),
                 }
             else:
-                polygons = approximate_mask_with_polygons(
+                approximate = partial(
+                    approximate_mask_with_polygons,
                     mask=mask_bool,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
                 )
+                try:
+                    polygons = approximate(bridge_holes=True)
+                except _SeamNotFoundError:
+                    # One mask must not abort the export of a whole dataset.
+                    warnings.warn(
+                        "Could not join the holes of COCO annotation "
+                        f"id={annotation_id} to their outline, so they stay separate "
+                        "polygon parts, which COCO readers fill.",
+                        stacklevel=2,
+                    )
+                    polygons = approximate()
                 # Small/noisy masks can be filtered out by approximation settings.
                 # Guard against empty output and keep a valid COCO annotation record.
                 if polygons:
@@ -418,7 +442,10 @@ def detections_to_coco_annotations(
         if stored_area is not None and np.isfinite(stored_area):
             area = stored_area
         elif mask is not None:
-            area = float(np.count_nonzero(mask))
+            mask_area = np.count_nonzero(mask)
+            area = float(
+                mask_area if mask_area or segmentation else box_width * box_height
+            )
         else:
             area = float(box_width * box_height)
         coco_annotation = {
