@@ -3147,3 +3147,42 @@ class TestBoxWeightedBoxFusion:
                 predictions,
                 overlap_metric="bogus",  # type: ignore[arg-type]
             )
+
+    @pytest.mark.parametrize(
+        ("dtype", "expected_dtype"),
+        [
+            pytest.param(np.float32, np.float32, id="float32-stays-float32"),
+            pytest.param(np.float64, np.float64, id="float64-stays-float64"),
+            pytest.param(np.int16, np.float32, id="int16-becomes-float32"),
+            pytest.param(np.int64, np.float64, id="int64-becomes-float64"),
+        ],
+    )
+    @pytest.mark.parametrize("box_count", [0, 2])
+    def test_output_dtype_is_same_for_empty_and_fused_input(
+        self, dtype: type, expected_dtype: type, box_count: int
+    ) -> None:
+        """Float input keeps its dtype and integer input turns float, empty or not."""
+        predictions: np.ndarray = np.array(
+            [
+                [0, 0, 10, 10, 1, 0],
+                [1, 1, 11, 11, 1, 0],
+            ],
+            dtype=dtype,
+        )[:box_count]
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert result.dtype == expected_dtype
+
+    def test_float32_input_fuses_to_float32_values(self) -> None:
+        """Float32 input returns the float64 fusion result rounded to float32."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+            ],
+            dtype=np.float32,
+        )
+        expected_result = box_weighted_box_fusion(
+            predictions.astype(np.float64), iou_threshold=0.5
+        ).astype(np.float32)
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.array_equal(result, expected_result)

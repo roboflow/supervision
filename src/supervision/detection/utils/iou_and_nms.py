@@ -2096,7 +2096,11 @@ def box_weighted_box_fusion(
             fused confidence. Fused boxes with equal confidence come back in a
             deterministic order: ascending class id first, then, within a
             class, the order in which their clusters were started (descending
-            score of the first box, input order among equal scores).
+            score of the first box, input order among equal scores). The dtype
+            is `numpy.result_type(predictions.dtype, numpy.float32)` for empty
+            and non-empty input alike: float32 input stays float32, float64
+            input stays float64, and integer input becomes floating point
+            (float32 for 8- and 16-bit integers, float64 for wider ones).
 
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
@@ -2142,8 +2146,12 @@ def box_weighted_box_fusion(
     # Resolve the metric before any early return: with empty input or one box
     # per class no overlap is ever computed, so a bad value would pass silently.
     overlap_metric = OverlapMetric.from_value(overlap_metric)
+    # One output dtype for the empty and the fused path: float inputs keep their
+    # precision, while integer inputs become floating point because fused
+    # coordinates and scores are averages.
+    output_dtype = np.result_type(predictions.dtype, np.float32)
     if len(predictions) == 0:
-        empty_result: npt.NDArray[np.floating] = predictions.copy()
+        empty_result: npt.NDArray[np.floating] = predictions.astype(output_dtype)
         return empty_result
     _validate_fusion_confidences(predictions[:, 4])
 
@@ -2178,7 +2186,11 @@ def box_weighted_box_fusion(
     # (class id ascending, then cluster creation order), so ties come back
     # deterministic instead of reversed or scrambled by an unstable sort.
     descending_score = np.argsort(-fused[:, 4], kind="stable")
-    result: npt.NDArray[np.floating] = fused[descending_score]
+    # Fusion runs in float64 so the strict threshold comparison does not move;
+    # only the finished result is cast to the output dtype.
+    result: npt.NDArray[np.floating] = fused[descending_score].astype(
+        output_dtype, copy=False
+    )
     return result
 
 
