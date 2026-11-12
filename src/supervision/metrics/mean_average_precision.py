@@ -20,6 +20,7 @@ from supervision.config import (
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
+    _oriented_box_pair_intersections,
     _polygon_areas,
     box_iou_batch_with_jaccard,
     oriented_box_iou_batch,
@@ -106,11 +107,13 @@ class MeanAveragePrecisionResult(MetricResult):
         matched_classes: the class IDs of all matched classes.
             Corresponds to the rows of `ap_per_class`.
         small_objects: the mAP results
-            for small objects (area < 32²).
+            for small objects (area ≤ 32²).
         medium_objects: the mAP results
-            for medium objects (32² ≤ area < 96²).
+            for medium objects (32² ≤ area ≤ 96²).
         large_objects: the mAP results
-            for large objects (area ≥ 96²).
+            for large objects (area ≥ 96²). Like `pycocotools`, the size limits
+            are inclusive, so an object whose area is exactly 32² or 96² counts
+            in both neighboring buckets.
         max_detection_thresholds: The three evaluation limits. AP uses the last
             limit, per image and category after any class mapping.
     """
@@ -585,6 +588,56 @@ def _with_agnostic_class_id(detections: Detections) -> Detections:
     return labeled
 
 
+def _oriented_box_iou_with_jaccard(
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    is_crowd: list[bool],
+) -> npt.NDArray[np.float64]:
+    """Calculate the IoU between detection oriented boxes (dt) and ground-truth oriented
+    boxes (gt), following the COCO convention: a detection may match any subregion of a
+    crowd ground truth, so for crowd rows the union collapses to the detection area
+    (oriented box counterpart of
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch_with_jaccard`).
+
+    Args:
+        boxes_true: Ground-truth oriented boxes of shape `(N, 4, 2)`.
+        boxes_detection: Detection oriented boxes of shape `(M, 4, 2)`.
+        is_crowd: List indicating if each ground-truth box is a crowd region.
+
+    Returns:
+        Array of IoU values of shape `(len(boxes_detection), len(boxes_true))`.
+    """
+    if len(boxes_detection) == 0 or len(boxes_true) == 0:
+        return np.empty((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+
+    # oriented_box_iou_batch returns (gt, dt); the evaluator expects (dt, gt).
+    iou: npt.NDArray[np.float64] = oriented_box_iou_batch(
+        boxes_true, boxes_detection
+    ).T.astype(np.float64)
+    crowd = np.asarray(is_crowd, dtype=bool)
+    if not np.any(crowd):
+        return iou
+
+    crowd_true = boxes_true[crowd]
+    rows, cols, intersections = _oriented_box_pair_intersections(
+        crowd_true, boxes_detection
+    )
+    areas_detection = _polygon_areas(boxes_detection)
+    crowd_iou = np.zeros((len(boxes_detection), len(crowd_true)), dtype=np.float64)
+    # A fixed epsilon changes exact threshold matches and dominates tiny areas.
+    detection_areas = areas_detection[cols]
+    crowd_iou[cols, rows] = np.divide(
+        intersections,
+        detection_areas,
+        out=np.zeros_like(intersections),
+        where=detection_areas > 0,
+    )
+    # Intersections use float32-rounded polygons and can exceed the detection
+    # area by about 1e-7, so clip as oriented_box_iou_batch does.
+    iou[:, crowd] = np.clip(crowd_iou, 0.0, 1.0)
+    return iou
+
+
 def _mask_iou_with_jaccard(
     masks_true: list[npt.NDArray[np.bool_]],
     masks_detection: list[npt.NDArray[np.bool_]],
@@ -872,16 +925,14 @@ class COCOEvaluator:
                 [g["content"] for g in gt], [d["content"] for d in dt], is_crowd
             )
         elif self.metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            # Crowd regions are not supported for oriented boxes; the standard
-            # IoU is used for every ground truth.
             if len(gt) == 0 or len(dt) == 0:
                 iou = np.empty((len(dt), len(gt)), dtype=np.float64)
             else:
-                gt_obb = np.stack([g["content"] for g in gt])
-                dt_obb = np.stack([d["content"] for d in dt])
-                # oriented_box_iou_batch returns (gt, dt);
-                # the evaluator expects (dt, gt).
-                iou = oriented_box_iou_batch(gt_obb, dt_obb).T.astype(np.float64)
+                iou = _oriented_box_iou_with_jaccard(
+                    np.stack([g["content"] for g in gt]),
+                    np.stack([d["content"] for d in dt]),
+                    is_crowd,
+                )
         else:
             gt_boxes = [g["bbox"] for g in gt]
             dt_boxes = [d["bbox"] for d in dt]

@@ -14,6 +14,10 @@ from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
 
+_RESERVED_FIELDS = frozenset(
+    ("x_min", "y_min", "x_max", "y_max", "class_id", "confidence", "tracker_id")
+)
+
 
 class JSONSink:
     """A utility class for saving detection data to a JSON file. This class is designed
@@ -172,7 +176,18 @@ class JSONSink:
             A list of dictionaries, one per detection, containing ``xyxy``
             coordinates, ``class_id``, ``confidence``, ``tracker_id``, and any
             values from ``detections.data`` or ``custom_data``.
+
+        Raises:
+            ValueError: If additional data uses a built-in detection field name.
         """
+        extra_fields = set(detections.data)
+        if custom_data is not None:
+            extra_fields.update(custom_data)
+        conflicts = extra_fields.intersection(_RESERVED_FIELDS)
+        if conflicts:
+            names = ", ".join(sorted(conflicts))
+            raise ValueError(f"Additional data uses reserved JSON field names {names}.")
+
         parsed_rows = []
         n = len(detections.xyxy)
         for i in range(n):
@@ -219,6 +234,11 @@ class JSONSink:
                 this batch. NumPy arrays, lists, and tuples with length equal
                 to ``len(detections)`` are sliced per detection; other lists
                 and tuples are broadcast unchanged.
+
+        Raises:
+            ValueError: If additional data uses a built-in detection field name.
+                The batch is rejected before any buffered rows are changed,
+                including when the batch contains no detections.
         """
         parsed_rows = JSONSink.parse_detection_data(detections, custom_data)
         self.data.extend(deepcopy(parsed_rows))
