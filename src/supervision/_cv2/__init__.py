@@ -167,8 +167,12 @@ if _IS_CV2_AVAILABLE:
         """Return whether OpenCV would read the path in the ANSI code page."""
         return os.name == "nt" and not str(filename).isascii()
 
-    def imread(filename: str, flags: int = IMREAD_COLOR) -> npt.NDArray[Any] | None:
-        """Read an image like `cv2.imread`, also from non-ASCII paths on Windows."""
+    def imread(filename: str, flags: int = IMREAD_COLOR) -> Any:
+        """Read an image like `cv2.imread`, also from non-ASCII paths on Windows.
+
+        Returns the array, or `None` when the file cannot be read. The return type
+        is left open, as OpenCV's own stubs do not mark the `None` either.
+        """
         if not _is_non_ascii_windows_path(filename):
             return cv2.imread(filename, flags)
         # OpenCV opens Windows paths with the ANSI code page, so let NumPy read the

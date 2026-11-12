@@ -196,9 +196,7 @@ class TestFallbackDatasetImageExport:
 class TestNonAsciiImagePaths:
     """Read and write images whose path has characters outside ASCII."""
 
-    @pytest.mark.parametrize(
-        "folder_name", ["caf\u00e9", "\u732b", "\u0444\u043e\u0442\u043e"]
-    )
+    @pytest.mark.parametrize("folder_name", ["café", "猫", "фото"])
     def test_imwrite_then_imread_round_trips(
         self, tmp_path: Path, folder_name: str
     ) -> None:
@@ -218,13 +216,30 @@ class TestNonAsciiImagePaths:
         """Name the written file as given instead of in another encoding."""
         image = np.zeros((4, 6, 3), dtype=np.uint8)
 
-        written = _cv2.imwrite(str(tmp_path / "caf\u00e9.png"), image)
+        written = _cv2.imwrite(str(tmp_path / "café.png"), image)
 
         assert written
-        assert [path.name for path in tmp_path.iterdir()] == ["caf\u00e9.png"]
+        assert [path.name for path in tmp_path.iterdir()] == ["café.png"]
 
     def test_imread_returns_none_for_missing_non_ascii_path(
         self, tmp_path: Path
     ) -> None:
         """Report a missing file the way `cv2.imread` does."""
-        assert _cv2.imread(str(tmp_path / "caf\u00e9.png")) is None
+        assert _cv2.imread(str(tmp_path / "café.png")) is None
+
+    def test_byte_route_round_trips_on_every_platform(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Take the Windows route on any platform so it stays exercised in CI."""
+        monkeypatch.setattr(
+            _cv2, "_is_non_ascii_windows_path", lambda filename: True, raising=False
+        )
+        image = np.random.default_rng(0).integers(0, 256, (4, 6, 3), dtype=np.uint8)
+        image_path = tmp_path / "image.png"
+
+        written = _cv2.imwrite(str(image_path), image)
+
+        assert written
+        np.testing.assert_array_equal(_cv2.imread(str(image_path)), image)
+        assert _cv2.imread(str(tmp_path / "missing.png")) is None
+        assert not _cv2.imwrite(str(tmp_path / "missing" / "image.png"), image)
