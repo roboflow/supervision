@@ -4,7 +4,10 @@ from typing import Any
 import numpy as np
 import pytest
 
-from supervision.config import HANDEDNESS_SCORE_DATA_FIELD
+from supervision.config import (
+    HANDEDNESS_SCORE_DATA_FIELD,
+    KEYPOINT_VISIBILITY_DATA_FIELD,
+)
 from supervision.key_points.core import KeyPoints
 from tests.helpers import (
     _create_key_points,
@@ -746,6 +749,81 @@ class TestKeyPointsSelect:
             assert result.visible is None
             assert result.class_id is None
             assert result.data == {}
+
+
+class TestKeyPointsSelectKeypointAlignedData:
+    """Tests that keypoint-aligned ``data`` fields follow keypoint-axis selection."""
+
+    @pytest.mark.parametrize(
+        ("index", "expected"),
+        [
+            pytest.param(
+                (slice(None), [2, 1, 0]), [[0, 1, 2], [1, 2, 0]], id="reorder"
+            ),
+            pytest.param((slice(None), [0, 2]), [[2, 0], [0, 1]], id="subset"),
+            pytest.param(
+                (slice(None), np.array([True, False, True])),
+                [[2, 0], [0, 1]],
+                id="boolean-mask",
+            ),
+            pytest.param((np.array(1), [2, 0]), [[1, 0]], id="scalar-array-row"),
+            pytest.param((0, 1), [[1]], id="single-keypoint"),
+            pytest.param(([1, 0], 2), [[1], [0]], id="scalar-keypoint"),
+        ],
+    )
+    def test_indexes_visibility_along_the_keypoint_axis(
+        self, index: Any, expected: list[list[int]]
+    ) -> None:
+        """The visibility field is selected along the keypoint axis, like ``visible``.
+
+        Selected by skeleton only, a reordered or narrowed annotation would keep stale
+        flags against moved coordinates and export them as such.
+        """
+        flags = np.array([[2, 1, 0], [0, 2, 1]], dtype=np.float32)
+        key_points = KeyPoints(
+            xy=np.arange(12, dtype=np.float32).reshape(2, 3, 2),
+            visible=flags > 0,
+            data={KEYPOINT_VISIBILITY_DATA_FIELD: flags},
+        )
+
+        result = key_points[index]
+
+        assert isinstance(result, KeyPoints)
+        np.testing.assert_array_equal(
+            result.data[KEYPOINT_VISIBILITY_DATA_FIELD], expected
+        )
+
+    def test_two_dimensional_mask_selects_visibility_per_skeleton(self) -> None:
+        """A 2D boolean mask picks each skeleton's own visibility values."""
+        flags = np.array([[2, 1, 0], [0, 2, 1]], dtype=np.float32)
+        key_points = KeyPoints(
+            xy=np.arange(12, dtype=np.float32).reshape(2, 3, 2),
+            data={KEYPOINT_VISIBILITY_DATA_FIELD: flags},
+        )
+        mask = np.array([[True, False, True], [False, True, True]])
+
+        result = key_points[mask]
+
+        assert isinstance(result, KeyPoints)
+        np.testing.assert_array_equal(
+            result.data[KEYPOINT_VISIBILITY_DATA_FIELD], [[2, 0], [2, 1]]
+        )
+
+    def test_keeps_other_data_fields_row_aligned(self) -> None:
+        """A field not registered as keypoint-aligned is indexed by skeleton only.
+
+        A per-skeleton box is as wide as a 4-keypoint skeleton, so the width of a value
+        must not decide whether it follows the keypoint axis.
+        """
+        boxes = np.array([[0, 0, 4, 4], [1, 1, 5, 5]], dtype=np.float32)
+        key_points = KeyPoints(
+            xy=np.zeros((2, 4, 2), dtype=np.float32), data={"xyxy": boxes}
+        )
+
+        result = key_points[:, [3, 2, 1, 0]]
+
+        assert isinstance(result, KeyPoints)
+        np.testing.assert_array_equal(result.data["xyxy"], boxes)
 
 
 class TestKeyPointsVisible:
