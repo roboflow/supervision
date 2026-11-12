@@ -761,12 +761,50 @@ def test_empty_inputs_keep_max_detection_axis() -> None:
     )
     np.testing.assert_allclose(
         result.recall_scores,
-        np.zeros(result.max_detections.shape[0]),
+        np.full(result.max_detections.shape[0], -1.0),
     )
-    assert result.mAR_at_1 == 0.0
-    assert result.mAR_at_10 == 0.0
-    assert result.mAR_at_100 == 0.0
+    assert result.mAR_at_1 == -1.0
+    assert result.mAR_at_10 == -1.0
+    assert result.mAR_at_100 == -1.0
     assert result.matched_classes.shape == (0,)
+
+
+@pytest.mark.parametrize(
+    "targets",
+    [
+        pytest.param(Detections.empty(), id="no-targets"),
+        pytest.param(
+            Detections(
+                xyxy=np.array([[0, 0, 200, 200]], dtype=np.float32),
+                class_id=np.array([0], dtype=np.int32),
+            ),
+            id="only-large-targets",
+        ),
+    ],
+)
+def test_results_without_targets_match_coco_sentinel(targets: Detections) -> None:
+    """mAR without targets is `-1`, like COCO AR and `MeanAveragePrecision`."""
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 200, 200]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+
+    result = MeanAverageRecall().update(predictions, targets).compute()
+
+    reference = evaluate_detections(predictions, targets)
+    np.testing.assert_allclose(result.recall_scores, reference.stats[6:9])
+    assert result.small_objects is not None
+    assert result.medium_objects is not None
+    assert result.large_objects is not None
+    np.testing.assert_allclose(
+        [
+            result.small_objects.mAR_at_100,
+            result.medium_objects.mAR_at_100,
+            result.large_objects.mAR_at_100,
+        ],
+        reference.stats[9:12],
+    )
 
 
 def test_medium_bucket_scores_target_matched_small_prediction() -> None:
@@ -1118,8 +1156,8 @@ class TestMeanAverageRecallCocoSizeBuckets:
     @pytest.mark.parametrize(
         ("xyxy", "expected_recall"),
         [
-            pytest.param([[0, 0, 32, 32]], [1.0, 1.0, 0.0], id="at-32"),
-            pytest.param([[0, 0, 96, 96]], [0.0, 1.0, 1.0], id="at-96"),
+            pytest.param([[0, 0, 32, 32]], [1.0, 1.0, -1.0], id="at-32"),
+            pytest.param([[0, 0, 96, 96]], [-1.0, 1.0, 1.0], id="at-96"),
             pytest.param(
                 [[0, 0, 32, 32], [0, 0, 96, 96]],
                 [1.0, 1.0, 1.0],

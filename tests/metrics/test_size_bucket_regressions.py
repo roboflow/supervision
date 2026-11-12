@@ -81,8 +81,8 @@ def test_size_bucket_match_is_not_stolen(
         assert getattr(bucket_result, score_attr) == pytest.approx(score_expected)
 
 
-def test_small_bucket_mar_returns_zero_without_bucket_targets() -> None:
-    """Bucketed mAR must return zeros instead of NaN when there is no support."""
+def test_small_bucket_mar_returns_sentinel_without_bucket_targets() -> None:
+    """Bucketed mAR must return `-1` instead of NaN when there is no support."""
     predictions = Detections(
         xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
         confidence=np.array([0.9], dtype=np.float32),
@@ -102,10 +102,10 @@ def test_small_bucket_mar_returns_zero_without_bucket_targets() -> None:
     )
 
     assert result.small_objects is not None
-    np.testing.assert_allclose(result.small_objects.recall_scores, np.zeros(3))
-    assert result.small_objects.mAR_at_1 == 0.0
-    assert result.small_objects.mAR_at_10 == 0.0
-    assert result.small_objects.mAR_at_100 == 0.0
+    np.testing.assert_allclose(result.small_objects.recall_scores, np.full(3, -1.0))
+    assert result.small_objects.mAR_at_1 == -1.0
+    assert result.small_objects.mAR_at_10 == -1.0
+    assert result.small_objects.mAR_at_100 == -1.0
 
 
 def test_medium_bucket_mar_counts_global_rank_budget() -> None:
