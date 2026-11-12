@@ -50,7 +50,9 @@ class TestCocoMissingMaskArea:
         }
 
         detections = coco_annotations_to_detections(
-            [annotation], resolution_wh=(100, 100), with_masks=True
+            [annotation],
+            resolution_wh=(100, 100),
+            with_masks=True,
         )
 
         np.testing.assert_array_equal(detections.data["area"], [2500.0])
@@ -67,7 +69,9 @@ class TestCocoMissingMaskArea:
         }
 
         detections = coco_annotations_to_detections(
-            [annotation], resolution_wh=(100, 100), with_masks=True
+            [annotation],
+            resolution_wh=(100, 100),
+            with_masks=True,
         )
 
         np.testing.assert_array_equal(detections.data["area"], [stored_area])
@@ -84,7 +88,9 @@ class TestCocoMissingMaskArea:
         ]
 
         detections = coco_annotations_to_detections(
-            annotations, resolution_wh=(100, 100), with_masks=True
+            annotations,
+            resolution_wh=(100, 100),
+            with_masks=True,
         )
 
         np.testing.assert_array_equal(detections.data["area"], [6400.0, 2500.0])
@@ -466,6 +472,7 @@ def test_coco_box_only_annotation_survives_yolo_and_pascal_voc_export(
     dataset = DetectionDataset.from_coco(
         images_directory_path=str(images_directory),
         annotations_path=str(annotations_path),
+        mask_rasterizer="supervision",
     )
     detections = dataset.annotations[str(image_path)]
     assert detections.mask is not None
@@ -1634,6 +1641,7 @@ def test_load_coco_annotations_infers_masks_from_segmentation_field(
         annotations_path=str(annotations_path),
         force_masks=False,
         use_iscrowd=True,
+        mask_rasterizer="supervision",
     )
 
     assert classes == ["object"]
@@ -1680,6 +1688,7 @@ def test_load_coco_annotations_force_masks_with_no_annotations(
         images_directory_path=str(images_directory),
         annotations_path=str(annotations_path),
         force_masks=True,
+        mask_rasterizer="supervision",
     )
 
     has_segmentation_path = str(images_directory / "has_segmentation.jpg")
@@ -1723,7 +1732,8 @@ def test_coco_annotations_to_masks_rounds_decimal_polygon_vertices() -> None:
     ]
 
     masks = coco_annotations_to_masks(
-        image_annotations=image_annotations, resolution_wh=(12, 12)
+        image_annotations=image_annotations,
+        resolution_wh=(12, 12),
     )
 
     expected_mask = np.zeros((12, 12), dtype=bool)
@@ -1740,7 +1750,8 @@ def test_coco_annotations_to_masks_rejects_non_finite_polygon_vertex(
 
     with pytest.raises(ValueError, match="id=7 has a vertex that is not a finite"):
         coco_annotations_to_masks(
-            image_annotations=image_annotations, resolution_wh=(5, 5)
+            image_annotations=image_annotations,
+            resolution_wh=(5, 5),
         )
 
 
@@ -2035,6 +2046,7 @@ class TestFromCocoMasks:
             images_directory_path=str(images_directory),
             annotations_path=str(annotations_path),
             force_masks=force_masks,
+            mask_rasterizer="supervision",
         )
 
         annotation = dataset.annotations[str(images_directory / "image.jpg")]
@@ -2089,6 +2101,7 @@ class TestFromCocoMasks:
         dataset = DetectionDataset.from_coco(
             images_directory_path=str(images_directory),
             annotations_path=str(annotations_path),
+            mask_rasterizer="supervision",
         )
 
         annotation = dataset.annotations[str(images_directory / "image.jpg")]
@@ -2732,6 +2745,7 @@ class TestCocoExportMaskArea:
             annotations_path=str(source),
             force_masks=not mixed,
             use_iscrowd=False,
+            mask_rasterizer="supervision",
         )
         detections = dataset.annotations[str(image_path)]
         assert detections.mask is not None
@@ -2831,6 +2845,7 @@ def test_coco_polygon_segmentation_survives_roundtrip(
     ds = DetectionDataset.from_coco(
         images_directory_path=str(images_dir),
         annotations_path=str(ann_path),
+        mask_rasterizer="supervision",
     )
 
     # 3. Export it back to COCO JSON.
