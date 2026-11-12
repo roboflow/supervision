@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.tint_image` now tints BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (3,) into shape (H,W,4)`. The colors match the tint of the BGR copy, and opaque pixels stay opaque.
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 

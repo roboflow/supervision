@@ -496,6 +496,22 @@ def test_tint_image_accepts_grayscale_array() -> None:
     np.testing.assert_array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
 
 
+def test_tint_image_accepts_bgra_array() -> None:
+    """A BGRA array is tinted like its BGR copy and stays opaque where it was."""
+    # given
+    image = np.zeros((2, 2, 4), dtype=np.uint8)
+    image[..., 3] = [[255, 255], [0, 0]]
+
+    # when
+    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+
+    # then
+    np.testing.assert_array_equal(
+        result[..., :3], np.full((2, 2, 3), 128, dtype=np.uint8)
+    )
+    np.testing.assert_array_equal(result[..., 3], [[255, 255], [128, 128]])
+
+
 @pytest.mark.parametrize(
     "image",
     [
