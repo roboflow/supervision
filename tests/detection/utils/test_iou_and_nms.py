@@ -2981,3 +2981,61 @@ def test_box_weighted_box_fusion_pulls_toward_higher_confidence_box() -> None:
     )
     fused_box = box_weighted_box_fusion(predictions, iou_threshold=0.2)[0, :4]
     assert np.all(np.abs(fused_box - high_box) < np.abs(fused_box - low_box))
+
+
+class TestBoxWeightedBoxFusion:
+    """box_weighted_box_fusion rescales fused scores by the number of models."""
+
+    @pytest.mark.parametrize(
+        "num_models", [2, pytest.param(np.int64(2), id="numpy-integer")]
+    )
+    def test_num_models_demotes_box_missed_by_other_models(
+        self, num_models: int
+    ) -> None:
+        """A box seen by one of two models is halved; a box both models saw is not."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [50.0, 50.0, 60.0, 60.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+            ]
+        )
+        result = box_weighted_box_fusion(
+            predictions, iou_threshold=0.5, num_models=num_models
+        )
+        assert np.allclose(result[:, 4], [0.85, 0.45])
+
+    def test_cluster_larger_than_num_models_keeps_mean_score(self) -> None:
+        """A cluster with more boxes than models keeps its plain mean confidence."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+                [0.0, 1.0, 10.0, 11.0, 0.7, 0.0],
+            ]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5, num_models=2)
+        assert np.allclose(result[:, 4], [0.8])
+
+    def test_single_model_count_matches_default(self) -> None:
+        """Setting num_models to 1 gives the same output as leaving it unset."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+                [50.0, 50.0, 60.0, 60.0, 0.6, 0.0],
+                [0.0, 0.0, 10.0, 10.0, 0.7, 1.0],
+            ]
+        )
+        expected = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5, num_models=1)
+        assert np.array_equal(result, expected)
+
+    @pytest.mark.parametrize("num_models", [0, -1, 2.0, True])
+    def test_rejects_num_models_that_is_not_positive_integer(
+        self, num_models: int
+    ) -> None:
+        """A zero, negative, float or bool model count raises even for empty input."""
+        predictions = np.empty((0, 6))
+        with pytest.raises(ValueError, match="num_models must be a positive integer"):
+            box_weighted_box_fusion(predictions, num_models=num_models)

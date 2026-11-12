@@ -1866,6 +1866,33 @@ def box_non_max_merge(
     return _non_max_merge_per_category(predictions, group_within)
 
 
+def _validate_num_models(num_models: int | None) -> None:
+    """Reject a Weighted Box Fusion model count that is not a positive integer.
+
+    ``None`` passes and means no rescaling. A ``bool`` is rejected even though it
+    is an ``int`` subclass, because ``True`` silently standing for one model
+    would hide a caller mistake.
+
+    Args:
+        num_models: The model count passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`.
+
+    Raises:
+        ValueError: If `num_models` is not `None` and not a positive integer.
+    """
+    if num_models is None:
+        return
+    is_integer = isinstance(num_models, (int, np.integer)) and not isinstance(
+        num_models, bool
+    )
+    if not is_integer or num_models < 1:
+        raise ValueError(
+            f"num_models must be a positive integer or None, got {num_models!r}. "
+            "Pass the number of models whose predictions were concatenated, "
+            "or leave it as None to keep the plain mean confidence."
+        )
+
+
 def _best_matching_cluster(
     fused_boxes: npt.NDArray[np.float64],
     box: npt.NDArray[np.float64],
@@ -1977,6 +2004,7 @@ def box_weighted_box_fusion(
     predictions: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    num_models: int | None = None,
 ) -> npt.NDArray[np.floating]:
     """
     Fuse overlapping object detection boxes with Weighted Box Fusion (WBF).
@@ -2001,6 +2029,14 @@ def box_weighted_box_fusion(
             box. Defaults to 0.5.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of boxes (e.g., IoU, IoS).
+        num_models: Number of models (or test-time augmentations) whose
+            predictions were concatenated into `predictions`. When set, each
+            fused score is multiplied by `min(T, num_models) / num_models`, as in
+            the WBF paper, where `T` is the number of boxes in the cluster. A box
+            that only some of the models predicted is demoted, so a single-model
+            false positive no longer keeps its full score. `T` counts boxes, not
+            distinct models: a model that puts two boxes into one cluster counts
+            twice. Defaults to `None`, which keeps the plain mean confidence.
 
     Returns:
         An array of fused predictions with the same number of columns as the
@@ -2009,7 +2045,8 @@ def box_weighted_box_fusion(
 
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
-            from `0` to `1`.
+            from `0` to `1`, or if `num_models` is not `None` and not a
+            positive integer.
 
     Examples:
         ```pycon
@@ -2024,8 +2061,27 @@ def box_weighted_box_fusion(
         array([0.85])
 
         ```
+
+        Rescale scores when fusing the predictions of two models. The second
+        box was predicted by only one model, so its score is halved:
+
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0.0, 0.0, 10.0, 10.0, 0.9, 0],
+        ...     [50.0, 50.0, 60.0, 60.0, 0.9, 0],
+        ...     [1.0, 1.0, 11.0, 11.0, 0.8, 0],
+        ... ])
+        >>> sv.box_weighted_box_fusion(predictions)[:, 4]
+        array([0.9 , 0.85])
+        >>> sv.box_weighted_box_fusion(predictions, num_models=2)[:, 4]
+        array([0.85, 0.45])
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
+    _validate_num_models(num_models)
     if len(predictions) == 0:
         empty_result: npt.NDArray[np.floating] = predictions.copy()
         return empty_result
@@ -2040,12 +2096,17 @@ def box_weighted_box_fusion(
     fused_per_class: list[npt.NDArray[np.float64]] = []
     for class_position, class_id in enumerate(unique_class_ids):
         in_class = class_positions == class_position
-        fused_boxes, fused_scores, _ = _fuse_single_class_boxes(
+        fused_boxes, fused_scores, cluster_sizes = _fuse_single_class_boxes(
             predictions[in_class, :4],
             predictions[in_class, 4],
             iou_threshold,
             overlap_metric,
         )
+        if num_models is not None:
+            # Paper rescale: a cluster backed by fewer boxes than there are
+            # models is demoted in proportion to the models that missed it.
+            rescale = np.minimum(cluster_sizes, num_models) / num_models
+            fused_scores = fused_scores * rescale
         columns = [fused_boxes, fused_scores[:, np.newaxis]]
         if has_class_column:
             columns.append(np.full((len(fused_scores), 1), class_id, dtype=np.float64))
