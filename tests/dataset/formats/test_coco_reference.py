@@ -77,6 +77,7 @@ _requires_pycocotools = pytest.mark.skipif(
 )
 
 
+@_requires_pycocotools
 class TestCocoReferenceRasterization:
     """Opt-in masks agree with the COCO reference without changing defaults."""
 
@@ -102,7 +103,6 @@ class TestCocoReferenceRasterization:
         ],
     )
     @_IGNORE_REFERENCE_DECODE_WARNING
-    @_requires_pycocotools
     def test_loader_matches_reference(
         self, tmp_path: Path, polygons: list[list[float]]
     ) -> None:
@@ -121,7 +121,6 @@ class TestCocoReferenceRasterization:
         np.testing.assert_array_equal(detections.mask[0], reference)
         assert detections.mask.dtype == bool
 
-    @_requires_pycocotools
     def test_keeps_box_and_class_id(self, tmp_path: Path) -> None:
         """Reference rasterization leaves the annotation's box and class unchanged."""
         path = _write_dataset(tmp_path, [[1.6, 1.6, 5.6, 1.6, 5.6, 5.6, 1.6, 5.6]])
@@ -134,7 +133,6 @@ class TestCocoReferenceRasterization:
         np.testing.assert_array_equal(detections.class_id, [0])
         np.testing.assert_array_equal(detections.xyxy, [[1, 1, 5, 5]])
 
-    @_requires_pycocotools
     def test_loads_polygons_without_deprecation_warning(self, tmp_path: Path) -> None:
         """Reference polygon loading emits no NumPy deprecation warning."""
         path = _write_dataset(tmp_path, [[1, 1, 5, 1, 5, 5, 1, 5]])
@@ -154,7 +152,6 @@ class TestCocoReferenceRasterization:
         np.testing.assert_array_equal(detections.mask[0], expected)
 
     @_IGNORE_REFERENCE_DECODE_WARNING
-    @_requires_pycocotools
     def test_loader_matches_reference_on_rectangular_image(
         self, tmp_path: Path
     ) -> None:
@@ -184,7 +181,6 @@ class TestCocoReferenceRasterization:
         ],
     )
     @_IGNORE_REFERENCE_DECODE_WARNING
-    @_requires_pycocotools
     def test_skips_degenerate_parts_like_reference(
         self, polygons: list[list[float]]
     ) -> None:
@@ -202,7 +198,6 @@ class TestCocoReferenceRasterization:
 
         np.testing.assert_array_equal(masks[0], reference)
 
-    @_requires_pycocotools
     def test_aligns_masks_across_mixed_segmentations(self) -> None:
         """Polygon, RLE and empty annotations keep one aligned mask each, in order."""
         rle_pixels = np.zeros((8, 8), dtype=np.uint8)
@@ -225,6 +220,51 @@ class TestCocoReferenceRasterization:
         )
 
         np.testing.assert_array_equal(masks, expected)
+
+    @pytest.mark.parametrize(
+        "rasterizer_kwargs",
+        [
+            pytest.param({}, id="omitted"),
+            pytest.param({"mask_rasterizer": None}, id="explicit-none"),
+            pytest.param({"mask_rasterizer": "pycocotools"}, id="reference"),
+        ],
+    )
+    def test_loads_box_only_file_without_masks_or_warning(
+        self, tmp_path: Path, rasterizer_kwargs: dict[str, Any]
+    ) -> None:
+        """A file without segmentation loads no masks and emits no selector warning."""
+        path = _write_dataset(tmp_path, [])
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            dataset = DetectionDataset.from_coco(
+                str(tmp_path), str(path), **rasterizer_kwargs
+            )
+
+        assert next(iter(dataset.annotations.values())).mask is None
+
+    @pytest.mark.parametrize("rasterizer", ["supervision", "pycocotools"])
+    def test_preserves_rle(
+        self, tmp_path: Path, rasterizer: Literal["supervision", "pycocotools"]
+    ) -> None:
+        """The selector affects polygon conversion only, preserving RLE pixels."""
+        expected = np.zeros((8, 8), dtype=np.uint8)
+        expected[1:5, 1:5] = 1
+        rle = coco_mask.encode(np.asfortranarray(expected))
+        rle["counts"] = rle["counts"].decode("ascii")
+        path = _write_dataset(tmp_path, rle)
+
+        dataset = DetectionDataset.from_coco(
+            str(tmp_path), str(path), mask_rasterizer=rasterizer
+        )
+
+        detections = next(iter(dataset.annotations.values()))
+        assert detections.mask is not None
+        np.testing.assert_array_equal(detections.mask[0], expected)
+
+
+class TestCocoMaskRasterizerSelection:
+    """The mask rasterizer selector and its defaults work without pycocotools."""
 
     @pytest.mark.parametrize(
         "rasterizer_kwargs",
@@ -261,49 +301,6 @@ class TestCocoReferenceRasterization:
 
         with pytest.warns(SupervisionWarnings, match="no earlier than `0.35.0`"):
             dataset = DetectionDataset.from_coco(str(tmp_path), str(path))
-
-        detections = next(iter(dataset.annotations.values()))
-        assert detections.mask is not None
-        np.testing.assert_array_equal(detections.mask[0], expected)
-
-    @pytest.mark.parametrize(
-        "rasterizer_kwargs",
-        [
-            pytest.param({}, id="omitted"),
-            pytest.param({"mask_rasterizer": None}, id="explicit-none"),
-            pytest.param({"mask_rasterizer": "pycocotools"}, id="reference"),
-        ],
-    )
-    @_requires_pycocotools
-    def test_loads_box_only_file_without_masks_or_warning(
-        self, tmp_path: Path, rasterizer_kwargs: dict[str, Any]
-    ) -> None:
-        """A file without segmentation loads no masks and emits no selector warning."""
-        path = _write_dataset(tmp_path, [])
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", SupervisionWarnings)
-            dataset = DetectionDataset.from_coco(
-                str(tmp_path), str(path), **rasterizer_kwargs
-            )
-
-        assert next(iter(dataset.annotations.values())).mask is None
-
-    @pytest.mark.parametrize("rasterizer", ["supervision", "pycocotools"])
-    @_requires_pycocotools
-    def test_preserves_rle(
-        self, tmp_path: Path, rasterizer: Literal["supervision", "pycocotools"]
-    ) -> None:
-        """The selector affects polygon conversion only, preserving RLE pixels."""
-        expected = np.zeros((8, 8), dtype=np.uint8)
-        expected[1:5, 1:5] = 1
-        rle = coco_mask.encode(np.asfortranarray(expected))
-        rle["counts"] = rle["counts"].decode("ascii")
-        path = _write_dataset(tmp_path, rle)
-
-        dataset = DetectionDataset.from_coco(
-            str(tmp_path), str(path), mask_rasterizer=rasterizer
-        )
 
         detections = next(iter(dataset.annotations.values()))
         assert detections.mask is not None
