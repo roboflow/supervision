@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.JSONSink` now rejects additional data whose names collide with built-in detection fields, preventing custom metadata from silently overwriting coordinates, class IDs, confidence scores or tracker IDs. Rename such metadata fields, for example to `calibrated_confidence`. ([#2949](https://github.com/roboflow/supervision/pull/2949))
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 
