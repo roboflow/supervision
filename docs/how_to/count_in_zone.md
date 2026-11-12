@@ -148,7 +148,7 @@ for frame in sv.get_video_frames_generator(VIDEO):
     frame = zone_annotator.annotate(frame, coord_transform=coord_transform)
 ```
 
-- Pass the same transform to `PolygonZoneAnnotator.annotate` and `LineZoneAnnotator.annotate` to draw the zone, line and count labels where they appear in the current frame. `LineZoneAnnotatorMulticlass` still draws the line where it was defined.
+- Pass the same transform to `PolygonZoneAnnotator.annotate` and `LineZoneAnnotator.annotate` to draw the zone, line and count labels where they appear in the current frame. `LineZoneAnnotatorMulticlass` draws a count table at a fixed frame corner, so it needs no transform.
 - A zone or line with any point mapped to a non-finite coordinate, or beyond `2**20` pixels, is not drawn on that frame. A homography can map points behind the camera to finite but mirrored coordinates, so a zone that crosses the horizon may be drawn folded.
 - Use one reference frame per zone and pass a transform on every call; `LineZone` keeps its crossing history in that frame.
 

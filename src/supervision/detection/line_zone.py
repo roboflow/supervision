@@ -556,10 +556,15 @@ class LineZoneAnnotator:
                 to :meth:`~supervision.detection.line_zone.LineZone.trigger`. The
                 line's endpoints are mapped into the current frame with
                 :meth:`~supervision.geometry.core.CoordinatesTransformation.abs_to_rel`
-                and rounded to the nearest pixel. The count labels follow the mapped
-                line. If either endpoint maps to a non-finite coordinate or one
-                beyond `2**20` pixels, the line is not drawn on this frame and
-                `frame` is returned unchanged.
+                and rounded to the nearest pixel, where drawing without a transform
+                truncates. The count labels follow the mapped line. An oriented
+                label (`text_orient_to_line=True`) beyond the left or top edge is
+                pulled back only as far as the line point it is anchored on, so
+                the labels of a line that leaves the frame leave with it; without a
+                transform they are always pulled back onto the frame. If either
+                endpoint maps to a non-finite coordinate or one beyond `2**20`
+                pixels, the line is not drawn on this frame and `frame` is returned
+                unchanged.
 
         Returns:
             The image with the line drawn on it.

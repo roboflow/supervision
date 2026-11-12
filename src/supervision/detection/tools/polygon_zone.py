@@ -285,9 +285,9 @@ class PolygonZoneAnnotator:
                 The zone's vertices, and its count label when shown, are mapped
                 into the current frame with
                 :meth:`~supervision.geometry.core.CoordinatesTransformation.abs_to_rel`
-                and rounded to the nearest pixel. If any of them maps to a
-                non-finite coordinate or one beyond `2**20` pixels, the zone is not
-                drawn on this frame.
+                and rounded to the nearest pixel, where drawing without a transform
+                truncates. If any of them maps to a non-finite coordinate or one
+                beyond `2**20` pixels, the zone is not drawn on this frame.
 
         Returns:
             The image with the polygon zone and count of detected objects
