@@ -2064,7 +2064,10 @@ def box_weighted_box_fusion(
     Returns:
         An array of fused predictions with the same number of columns as the
             input (`(m, 5)` or `(m, 6)`, with `m <= n`), ordered by descending
-            fused confidence.
+            fused confidence. Fused boxes with equal confidence come back in a
+            deterministic order: ascending class id first, then, within a
+            class, the order in which their clusters were started (descending
+            score of the first box, input order among equal scores).
 
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
@@ -2136,7 +2139,10 @@ def box_weighted_box_fusion(
         fused_per_class.append(np.hstack(columns))
     fused = np.concatenate(fused_per_class)
 
-    descending_score = np.flip(fused[:, 4].argsort())
+    # A stable sort on the negated score keeps equal scores in matching order
+    # (class id ascending, then cluster creation order), so ties come back
+    # deterministic instead of reversed or scrambled by an unstable sort.
+    descending_score = np.argsort(-fused[:, 4], kind="stable")
     result: npt.NDArray[np.floating] = fused[descending_score]
     return result
 

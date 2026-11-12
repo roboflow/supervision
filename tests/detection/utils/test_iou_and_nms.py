@@ -3001,7 +3001,7 @@ def test_box_weighted_box_fusion_pulls_toward_higher_confidence_box() -> None:
 
 
 class TestBoxWeightedBoxFusion:
-    """box_weighted_box_fusion rescales fused scores by the number of models."""
+    """box_weighted_box_fusion fuses overlapping boxes into confidence-weighted ones."""
 
     @pytest.mark.parametrize(
         "num_models", [2, pytest.param(np.int64(2), id="numpy-integer")]
@@ -3056,3 +3056,38 @@ class TestBoxWeightedBoxFusion:
         predictions = np.empty((0, 6))
         with pytest.raises(ValueError, match="num_models must be a positive integer"):
             box_weighted_box_fusion(predictions, num_models=num_models)
+
+    def test_tied_classes_come_back_in_ascending_class_id(self) -> None:
+        """Equal-score boxes of different classes come back in ascending class id."""
+        predictions = np.array(
+            [
+                [40.0, 0.0, 50.0, 10.0, 0.5, 2.0],
+                [0.0, 0.0, 10.0, 10.0, 0.5, 0.0],
+                [20.0, 0.0, 30.0, 10.0, 0.5, 1.0],
+            ]
+        )
+        expected_result = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.5, 0.0],
+                [20.0, 0.0, 30.0, 10.0, 0.5, 1.0],
+                [40.0, 0.0, 50.0, 10.0, 0.5, 2.0],
+            ]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.array_equal(result, expected_result)
+
+    def test_tied_boxes_of_one_class_keep_input_order(self) -> None:
+        """Twenty disjoint equal-score boxes of one class come back in input order."""
+        x_min = np.arange(20)[::-1] * 20.0
+        predictions = np.column_stack(
+            [
+                x_min,
+                np.zeros(20),
+                x_min + 10.0,
+                np.full(20, 10.0),
+                np.full(20, 0.5),
+                np.zeros(20),
+            ]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.array_equal(result, predictions)
