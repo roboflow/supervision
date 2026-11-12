@@ -308,9 +308,11 @@ def resize_image(
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
     Note:
-        With `keep_aspect_ratio=True` the fitted axis keeps at least one pixel, so
-        an aspect ratio too extreme to fit the target box returns a one-pixel-wide
-        or one-pixel-tall image rather than raising.
+        With `keep_aspect_ratio=True` the fitted axis is rounded down to a whole
+        pixel and keeps at least one pixel, so an aspect ratio too extreme to fit
+        the target box returns a one-pixel-wide or one-pixel-tall image rather
+        than raising. A target with the same aspect ratio as the image returns
+        exactly the target size.
 
     Examples:
         ```pycon
@@ -342,17 +344,20 @@ def resize_image(
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     if keep_aspect_ratio:
-        image_ratio = image.shape[1] / image.shape[0]
-        target_ratio = resolution_wh[0] / resolution_wh[1]
+        height_old, width_old = image.shape[:2]
+        target_width, target_height = resolution_wh
+        # Compare and scale with integer products, not float ratios. A ratio such as
+        # 640 / 427 is inexact, so `640 / (640 / 427)` gives 426.99999999999994 and
+        # `int()` dropped a pixel from a fitted axis whose exact size is whole.
         # The fitted axis truncates to zero once the aspect ratio outgrows the target
         # box, and `cv2.resize` answers a zero-sized target with a bare assertion.
         # One pixel is the smallest image that still exists, so clamp there instead.
-        if image_ratio >= target_ratio:
-            width_new = resolution_wh[0]
-            height_new = max(1, int(resolution_wh[0] / image_ratio))
+        if width_old * target_height >= target_width * height_old:
+            width_new = target_width
+            height_new = max(1, int(target_width * height_old // width_old))
         else:
-            height_new = resolution_wh[1]
-            width_new = max(1, int(resolution_wh[1] * image_ratio))
+            height_new = target_height
+            width_new = max(1, int(target_height * width_old // height_old))
     else:
         width_new, height_new = resolution_wh
 

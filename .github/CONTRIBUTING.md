@@ -365,6 +365,8 @@ def test_overlap_metric_determines_suppression(
 
 When tests claim parity with or compare results to a reference implementation or golden standard, compute the reference results using the live package on the same inputs rather than hardcoded expected values. Keep reference packages in the development dependency group; do not add them to runtime dependencies or optional extras.
 
+> **Exception:** a reference package that is also a documented, opt-in runtime backend may additionally appear in an optional extra. Currently this covers only `pycocotools` in the `coco` extra, which backs `mask_rasterizer="pycocotools"`; test-only reference packages stay in the development group. Revisit this exception when the default rasterizer changes (no earlier than `0.35.0`), after deciding whether to port the algorithm natively or make `pycocotools` a core dependency.
+
 ### Doctests
 
 **Guidance:** when an example uses only `supervision`, NumPy, and the standard library — no optional extras (e.g. no `--extra metrics` packages), no external files, no network, no devices — prefer `>>>` doctest format so it is automatically verified by the test suite. Fenced ```` ```python ```` blocks are appropriate when the example cannot reasonably be executed (e.g. loading a third-party model, reading a video file) or when the primary purpose is demonstrating error/exception behaviour rather than return values.
