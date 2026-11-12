@@ -39,14 +39,44 @@ if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 
+#: Image file extensions the YOLO detection and pose loaders list from the images
+#: directory; matched case-insensitively by
+#: :func:`~supervision.utils.file.list_files_with_extensions`.
+_YOLO_IMAGE_EXTENSIONS: tuple[str, ...] = (
+    "bmp",
+    "dng",
+    "jpg",
+    "jpeg",
+    "mpo",
+    "png",
+    "tif",
+    "tiff",
+    "webp",
+)
+
+
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
     """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
 
-    Every value must be finite: ``nan`` or an infinity cannot place a box, and ``nan``
-    would pass the extent check below unnoticed. A negative width or height would
-    place ``x_min`` past ``x_max``, breaking the ordering every consumer of ``xyxy``
-    assumes: :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
-    reports no overlap between identical regions,
+    Returns the corners of
+    :func:`~supervision.dataset.formats.yolo._parse_relative_xyxy` as a
+    ``float32`` array, the precision of the detection loader.
+    """
+    return np.array(_parse_relative_xyxy(values=values), dtype=np.float32)
+
+
+def _parse_relative_xyxy(values: list[str]) -> tuple[float, float, float, float]:
+    """Validate a YOLO ``x_center y_center width height`` box, return its corners.
+
+    The corners are relative ``(x_min, y_min, x_max, y_max)`` Python floats, so
+    a caller picks the array precision it stores them in.
+
+    Every value must be finite: ``nan`` or an infinity cannot place a box, and
+    ``nan`` would pass the extent check below unnoticed. A negative width or
+    height would place ``x_min`` past ``x_max``, breaking the ordering every
+    consumer of ``xyxy`` assumes:
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch` reports no
+    overlap between identical regions,
     :meth:`~supervision.detection.core.Detections.with_nms` stops suppressing,
     and the :class:`~supervision.detection.core.Detections` ``area`` property
     turns negative when only one of the two extents is negative. Reject both
@@ -65,14 +95,11 @@ def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
             f"Invalid box extent ({width!r}, {height!r}) in YOLO annotation; "
             "expected a non-negative width and height."
         )
-    return np.array(
-        [
-            box_x_center - box_width / 2,
-            box_y_center - box_height / 2,
-            box_x_center + box_width / 2,
-            box_y_center + box_height / 2,
-        ],
-        dtype=np.float32,
+    return (
+        box_x_center - box_width / 2,
+        box_y_center - box_height / 2,
+        box_x_center + box_width / 2,
+        box_y_center + box_height / 2,
     )
 
 
@@ -170,7 +197,26 @@ def _read_data_yaml(file_path: str) -> dict[str, Any]:
 
 
 def _extract_class_names(file_path: str) -> list[str]:
-    """Return class names from a YOLO data.yaml file ordered by class index.
+    """Read a YOLO data.yaml file and return its class names by class index.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        Class names in class-index order.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping, or if ``names`` is
+            invalid as described in
+            :func:`~supervision.dataset.formats.yolo._extract_class_names_from_data`.
+    """
+    return _extract_class_names_from_data(
+        data=_read_data_yaml(file_path=file_path), file_path=file_path
+    )
+
+
+def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list[str]:
+    """Return class names from parsed YOLO data.yaml content ordered by class index.
 
     Supports list and dict forms of the ``names`` field. Dict keys that are
     all int-like (plain ints or digit strings) are sorted numerically so
@@ -180,16 +226,16 @@ def _extract_class_names(file_path: str) -> list[str]:
     because ``bool`` is a subclass of ``int`` in Python.
 
     Args:
-        file_path: Path to the data.yaml file.
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
 
     Returns:
         Class names in class-index order.
 
     Raises:
-        ValueError: If the YAML root is not a mapping, if ``names`` is
-            neither a list nor a dict, or if the dict has mixed key types.
+        ValueError: If ``names`` is neither a list nor a dict, or if the dict
+            has mixed key types.
     """
-    data = _read_data_yaml(file_path=file_path)
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
@@ -241,10 +287,7 @@ def _is_positive_whole_number(value: Any) -> bool:
 
 
 def _extract_pose_value_count(file_path: str) -> int:
-    """Return the number of keypoint values that follow the box in a pose label.
-
-    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
-    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+    """Read a YOLO data.yaml file and return the keypoint values per pose label.
 
     Args:
         file_path: Path to the data.yaml file.
@@ -254,9 +297,31 @@ def _extract_pose_value_count(file_path: str) -> int:
 
     Raises:
         ValueError: If the YAML root is not a mapping, or if ``kpt_shape`` is
-            not ``[K, 2]`` or ``[K, 3]`` with a positive whole number ``K``.
+            invalid as described in
+            :func:`~supervision.dataset.formats.yolo._extract_pose_value_count_from_data`.
     """
-    data = _read_data_yaml(file_path=file_path)
+    return _extract_pose_value_count_from_data(
+        data=_read_data_yaml(file_path=file_path), file_path=file_path
+    )
+
+
+def _extract_pose_value_count_from_data(data: dict[str, Any], file_path: str) -> int:
+    """Return the number of keypoint values that follow the box in a pose label.
+
+    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
+    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+
+    Args:
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
+
+    Returns:
+        ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
+
+    Raises:
+        ValueError: If ``kpt_shape`` is not ``[K, 2]`` or ``[K, 3]`` with a
+            positive whole number ``K``.
+    """
     if "kpt_shape" not in data:
         return 0
     kpt_shape = data["kpt_shape"]
@@ -451,17 +516,7 @@ def load_yolo_annotations(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path,
-            extensions=[
-                "bmp",
-                "dng",
-                "jpg",
-                "jpeg",
-                "mpo",
-                "png",
-                "tif",
-                "tiff",
-                "webp",
-            ],
+            extensions=_YOLO_IMAGE_EXTENSIONS,
         )
     ]
 
