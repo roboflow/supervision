@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Performance: `sv.CompactMask.area` now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 3–9× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. No output changes. ([#2744](https://github.com/roboflow/supervision/pull/2744))
+- Performance: `sv.CompactMask.area` now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 3–9× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. Accumulation now uses int64, avoiding overflow for areas above the int32 limit with NumPy 1.x on Windows. ([#2744](https://github.com/roboflow/supervision/pull/2744))
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 

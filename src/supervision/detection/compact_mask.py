@@ -1360,7 +1360,8 @@ class CompactMask:
             foreground runs of consecutive masks are concatenated and summed per
             mask with one NumPy reduction per chunk of about 65,536 runs, instead
             of one :func:`~supervision.detection.compact_mask._rle_area` call per
-            mask, with identical results.
+            mask. Accumulation uses int64, avoiding the overflow that could occur
+            for areas above the int32 limit with NumPy 1.x on Windows.
 
         Returns:
             int64 array of shape ``(N,)`` with per-mask pixel counts.
