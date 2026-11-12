@@ -1182,6 +1182,11 @@ class KeyPoints:
             A new :class:`~supervision.key_points.core.KeyPoints` instance
             containing the selected rows or anchors.
 
+        Raises:
+            IndexError: If a nonempty one-dimensional boolean mask does not
+                match the selected axis. Anchor selection on
+                :meth:`~supervision.key_points.core.KeyPoints.empty` stays empty.
+
         Example:
             ```pycon
             >>> import numpy as np
@@ -1216,14 +1221,32 @@ class KeyPoints:
         ):
             i = i.reshape(1)
 
-        if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
+        if (
+            isinstance(i, list)
+            and i
+            and all(isinstance(x, (bool, np.bool_)) for x in i)
+        ):
             i = np.array(i)
-        if isinstance(j, list) and j and all(isinstance(x, bool) for x in j):
+        if (
+            isinstance(j, list)
+            and j
+            and all(isinstance(x, (bool, np.bool_)) for x in j)
+        ):
             j = np.array(j)
 
         if isinstance(i, np.ndarray) and i.dtype == bool:
+            if i.ndim == 1 and i.size not in (0, self.xy.shape[0]):
+                raise IndexError(
+                    f"boolean index has length {i.size}, but object count is "
+                    f"{self.xy.shape[0]}"
+                )
             i = np.flatnonzero(i)
         if isinstance(j, np.ndarray) and j.dtype == bool:
+            if j.ndim == 1 and j.size not in (0, self.xy.shape[1]):
+                raise IndexError(
+                    f"boolean index has length {j.size}, but keypoint count is "
+                    f"{self.xy.shape[1]}"
+                )
             j = np.flatnonzero(j)
 
         raw_i = i

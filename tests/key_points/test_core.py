@@ -557,6 +557,68 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
 class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_rejects_mismatched_numpy_boolean_list(self, axis: int) -> None:
+        """Reject NumPy boolean scalar lists that do not match the selected axis."""
+        key_points = KeyPoints(xy=np.zeros((2, 3, 2)))
+        mask = [np.bool_(True)]
+        index = (mask, [0]) if axis == 0 else ([0], mask)
+
+        with pytest.raises(IndexError, match="boolean index"):
+            key_points.select(index)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_selects_with_numpy_boolean_list(self, axis: int) -> None:
+        """Select matching entries using a list of NumPy boolean scalars."""
+        key_points = KeyPoints(xy=np.arange(12).reshape(2, 3, 2))
+        mask = [np.bool_(True)] + [np.bool_(False)] * (key_points.xy.shape[axis] - 1)
+        index = (mask, [0]) if axis == 0 else ([0], mask)
+
+        result = key_points.select(index)
+
+        np.testing.assert_array_equal(result.xy, key_points.xy[:1, :1])
+
+    @pytest.mark.parametrize("method", ["select", "__getitem__"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("as_array", [False, True])
+    @pytest.mark.parametrize("too_long", [False, True])
+    @pytest.mark.parametrize("all_false", [False, True])
+    def test_rejects_mismatched_boolean_mask_length(
+        self,
+        method: str,
+        axis: int,
+        as_array: bool,
+        too_long: bool,
+        all_false: bool,
+    ) -> None:
+        """Reject nonempty boolean masks that do not match their selected axis."""
+        key_points = KeyPoints(xy=np.arange(12, dtype=float).reshape(2, 3, 2))
+        mask_length = key_points.xy.shape[axis] + (1 if too_long else -1)
+        mask = [False] * mask_length
+        if not all_false:
+            mask[0] = True
+        selector = np.array(mask) if as_array else mask
+        index = selector if axis == 0 else (slice(None), selector)
+
+        with pytest.raises(IndexError, match="boolean index"):
+            getattr(key_points, method)(index)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("empty", [False, True])
+    def test_empty_boolean_mask_preserves_axis_shape(
+        self, axis: int, empty: bool
+    ) -> None:
+        """An empty boolean mask remains a valid selection of no entries."""
+        xy = np.zeros((0 if empty else 2, 3, 2), dtype=np.float32)
+        key_points = KeyPoints(xy=xy)
+        selector = np.array([], dtype=bool)
+        index = selector if axis == 0 else (slice(None), selector)
+
+        result = key_points.select(index)
+
+        expected_shape = (0, 3, 2) if axis == 0 else (xy.shape[0], 0, 2)
+        assert result.xy.shape == expected_shape
+
     @pytest.mark.parametrize("method", ["select", "__getitem__"])
     @pytest.mark.parametrize("row", [0, -1])
     @pytest.mark.parametrize(

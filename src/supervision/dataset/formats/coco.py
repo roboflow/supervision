@@ -331,6 +331,10 @@ def detections_to_coco_annotations(
         (``iscrowd=0``). Supply ``data={"iscrowd": np.array([0])}`` to
         force polygon output regardless of mask topology.
 
+        A finite stored area takes precedence. Otherwise, an empty mask that
+        produces no segmentation uses the bounding-box area. A nonempty mask
+        keeps its pixel area even when polygon approximation filters it out.
+
     Example:
         ```pycon
         >>> import numpy as np
@@ -438,7 +442,10 @@ def detections_to_coco_annotations(
         if stored_area is not None and np.isfinite(stored_area):
             area = stored_area
         elif mask is not None:
-            area = float(np.count_nonzero(mask))
+            mask_area = np.count_nonzero(mask)
+            area = float(
+                mask_area if mask_area or segmentation else box_width * box_height
+            )
         else:
             area = float(box_width * box_height)
         coco_annotation = {

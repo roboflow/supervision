@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 
 import supervision.metrics.mean_average_precision as mean_average_precision
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
@@ -15,6 +15,7 @@ from supervision.metrics.mean_average_precision import (
     COCOEvaluator,
     EvaluationDataset,
     MeanAveragePrecision,
+    MeanAveragePrecisionResult,
     _TypeCocoDict,
 )
 from tests.metrics.coco_reference import evaluate_detections
@@ -1111,6 +1112,171 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
 
 
+def _boxes_with_corners(
+    xyxy: list[list[float]],
+    confidence: list[float] | None = None,
+    iscrowd: list[int] | None = None,
+) -> Detections:
+    """Build class 0 `Detections` whose oriented boxes are their axis-aligned boxes."""
+    boxes = np.array(xyxy, dtype=np.float64)
+    x_min, y_min, x_max, y_max = boxes.T
+    corners = np.stack(
+        [
+            np.stack([x_min, y_min], axis=1),
+            np.stack([x_max, y_min], axis=1),
+            np.stack([x_max, y_max], axis=1),
+            np.stack([x_min, y_max], axis=1),
+        ],
+        axis=1,
+    )
+    data: dict[str, Any] = {ORIENTED_BOX_COORDINATES: corners}
+    if iscrowd is not None:
+        data["iscrowd"] = np.array(iscrowd)
+    return Detections(
+        xyxy=boxes,
+        class_id=np.zeros(len(xyxy), dtype=int),
+        confidence=None if confidence is None else np.array(confidence),
+        data=data,
+    )
+
+
+class TestMeanAveragePrecisionOrientedBoxesCrowdBranch:
+    """Crowd targets use the COCO crowd IoU for oriented boxes, as for boxes."""
+
+    def test_exact_threshold_crowd_overlap_is_ignored(self) -> None:
+        """A crowd overlap exactly at 0.5 does not lower mAP at 0.5."""
+        # Arrange
+        targets = _boxes_with_corners([[2, 0, 3, 1], [0, 0, 0.5, 1]], iscrowd=[0, 1])
+        predictions = _boxes_with_corners(
+            [[0, 0, 1, 1], [2, 0, 3, 1]], confidence=[0.9, 0.8]
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        # Act
+        result = metric.update(predictions, targets).compute()
+
+        # Assert
+        assert result.map50 == pytest.approx(1.0)
+
+    def test_small_contained_crowd_overlap_uses_detection_area(self) -> None:
+        """A tiny positive detection area does not reduce crowd overlap."""
+        # Arrange
+        corners = np.array([[[0, 0], [1e-8, 0], [1e-8, 1e-8], [0, 1e-8]]])
+
+        # Act
+        iou = mean_average_precision._oriented_box_iou_with_jaccard(
+            corners, corners, is_crowd=[True]
+        )
+
+        # Assert
+        np.testing.assert_allclose(iou, [[1.0]], rtol=1e-6)
+
+    def test_zero_area_detection_has_zero_crowd_overlap(self) -> None:
+        """A zero-area detection produces zero crowd overlap."""
+        # Arrange
+        crowd = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=float)
+        detection = np.array([[[0, 0], [0.5, 0.5], [1, 1], [1.5, 1.5]]])
+
+        # Act
+        with np.errstate(divide="raise", invalid="raise"):
+            iou = mean_average_precision._oriented_box_iou_with_jaccard(
+                crowd, detection, is_crowd=[True]
+            )
+
+        # Assert
+        np.testing.assert_array_equal(iou, [[0.0]])
+
+    def test_oriented_crowd_iou_divides_by_detection_area(self) -> None:
+        """Crowd overlap is the intersection over the detection area."""
+        # Arrange
+        square = [[0, 0], [10, 0], [10, 10], [0, 10]]
+        shifted = [[5, 0], [15, 0], [15, 10], [5, 10]]
+        boxes_true = np.array([square, square], dtype=np.float64)
+        boxes_detection = np.array([shifted], dtype=np.float64)
+
+        # Act
+        iou = mean_average_precision._oriented_box_iou_with_jaccard(
+            boxes_true, boxes_detection, is_crowd=[True, False]
+        )
+
+        # Assert
+        np.testing.assert_allclose(iou, [[0.5, 1 / 3]])
+
+    def test_axis_aligned_crowd_scores_match_pycocotools_boxes(self) -> None:
+        """Axis-aligned oriented boxes with a crowd target score like COCO boxes."""
+        # Arrange
+        # One prediction lies inside the crowd target, and one covers it at a
+        # crowd IoU of 0.5625, which matches only at the thresholds 0.5 and 0.55.
+        targets = _boxes_with_corners(
+            [[100, 100, 140, 140], [0, 0, 64, 64]], iscrowd=[0, 1]
+        )
+        predictions = _boxes_with_corners(
+            [[8, 8, 40, 40], [40, 40, 72, 72], [100, 100, 140, 140]],
+            confidence=[0.9, 0.85, 0.8],
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        # Act
+        result = metric.update(predictions, targets).compute()
+
+        # Assert
+        reference = evaluate_detections(predictions, targets)
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+        scores = [
+            result.map50_95,
+            result.map50,
+            result.map75,
+            result.small_objects.map50_95,
+            result.medium_objects.map50_95,
+            result.large_objects.map50_95,
+        ]
+        np.testing.assert_allclose(scores, reference.stats[:6])
+
+    def test_rotated_crowd_target_ignores_contained_detection(self) -> None:
+        """A detection inside a rotated crowd target is ignored, not a false positive.
+
+        The square lies inside the diamond, so its crowd IoU is 1.0. Its standard IoU is
+        0.08, which made it a false positive above the perfect match.
+        """
+        # Arrange
+        diamond = [[100, 50], [150, 100], [100, 150], [50, 100]]
+        target_box = [[200, 200], [240, 200], [240, 240], [200, 240]]
+        inside_square = [[90, 90], [110, 90], [110, 110], [90, 110]]
+        targets = Detections(
+            xyxy=np.array([[50, 50, 150, 150], [200, 200, 240, 240]], dtype=float),
+            class_id=np.array([0, 0]),
+            data={
+                ORIENTED_BOX_COORDINATES: np.array([diamond, target_box], dtype=float),
+                "iscrowd": np.array([1, 0]),
+            },
+        )
+        predictions = Detections(
+            xyxy=np.array([[90, 90, 110, 110], [200, 200, 240, 240]], dtype=float),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+            data={
+                ORIENTED_BOX_COORDINATES: np.array(
+                    [inside_square, target_box], dtype=float
+                )
+            },
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        # Act
+        result = metric.update(predictions, targets).compute()
+
+        # Assert
+        assert result.map50_95 == pytest.approx(1.0)
+
+
 class TestMaskIouWithJaccard:
     """Tests for dense-mask IoU validation and temporary-buffer bounds."""
 
@@ -1532,3 +1698,86 @@ class TestMeanAveragePrecisionPycocotoolsParity:
 
         reference = evaluate_detections(predictions, targets, MetricTarget.MASKS)
         assert result.map50_95 == pytest.approx(reference.stats[0])
+
+
+def _rectangle_detections(
+    xyxy: list[list[int]],
+    confidence: list[float] | None = None,
+    area: list[float] | None = None,
+) -> Detections:
+    """Build class 0 `Detections` whose masks fill their integer boxes."""
+    masks = np.zeros((len(xyxy), 128, 128), dtype=bool)
+    for index, (x_min, y_min, x_max, y_max) in enumerate(xyxy):
+        masks[index, y_min:y_max, x_min:x_max] = True
+    return Detections(
+        xyxy=np.array(xyxy, dtype=np.float64),
+        mask=masks,
+        class_id=np.zeros(len(xyxy), dtype=int),
+        confidence=None if confidence is None else np.array(confidence),
+        data={} if area is None else {AREA_DATA_FIELD: np.array(area)},
+    )
+
+
+def _size_bucket_scores(result: MeanAveragePrecisionResult) -> list[float]:
+    """Read the small, medium and large mAP@[.50:.95] of a result."""
+    scores = []
+    for bucket in (result.small_objects, result.medium_objects, result.large_objects):
+        assert bucket is not None
+        scores.append(bucket.map50_95)
+    return scores
+
+
+class TestMeanAveragePrecisionSizeBucketParity:
+    """Objects fall in the size buckets that pycocotools gives them."""
+
+    @pytest.mark.parametrize("metric_target", [MetricTarget.BOXES, MetricTarget.MASKS])
+    def test_prediction_area_metadata_keeps_geometry_bucket(
+        self, metric_target: MetricTarget
+    ) -> None:
+        """A prediction is sized by its geometry, not by its area metadata."""
+        # Arrange
+        # A small target with a perfect prediction, and a higher-scored medium
+        # false positive whose area metadata says it is small.
+        targets = _rectangle_detections([[0, 0, 20, 20]])
+        predictions = _rectangle_detections(
+            [[0, 0, 20, 20], [60, 60, 100, 100]],
+            confidence=[0.5, 0.9],
+            area=[400.0, 300.0],
+        )
+
+        # Act
+        result = (
+            MeanAveragePrecision(metric_target=metric_target)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        # Assert
+        reference = evaluate_detections(predictions, targets, metric_target)
+        np.testing.assert_allclose(_size_bucket_scores(result), reference.stats[3:6])
+
+    @pytest.mark.parametrize(
+        ("side", "target_area"),
+        [
+            pytest.param(32, 1023.99998, id="just-below-small-limit"),
+            pytest.param(32, 1024.00003, id="just-above-small-limit"),
+            pytest.param(96, 9215.9997, id="just-below-medium-limit"),
+            pytest.param(96, 9216.0004, id="just-above-medium-limit"),
+        ],
+    )
+    def test_target_area_near_a_limit_stays_in_one_bucket(
+        self, side: int, target_area: float
+    ) -> None:
+        """A target area near 32² or 96² falls in one bucket, not in both."""
+        # Arrange
+        # float32 rounds each of these areas onto the limit, which both
+        # neighbouring buckets include.
+        targets = _rectangle_detections([[0, 0, side, side]], area=[target_area])
+        predictions = _rectangle_detections([[0, 0, side, side]], confidence=[0.9])
+
+        # Act
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # Assert
+        reference = evaluate_detections(predictions, targets)
+        np.testing.assert_allclose(_size_bucket_scores(result), reference.stats[3:6])
