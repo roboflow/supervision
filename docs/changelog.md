@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.HeatMapAnnotator`, `sv.CropAnnotator` and `sv.IconAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising an OpenCV `Sizes of input arguments do not match` error or `ValueError: operands could not be broadcast together`. A BGR heat map, crop or icon is pasted with an opaque alpha, so an opaque scene gets the same colors as its BGR copy.
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 

@@ -2247,6 +2247,57 @@ class TestCropAnnotator:
         )
 
 
+class TestBgraOverlayAnnotators:
+    """Verify annotators that paste an overlay onto BGRA scenes."""
+
+    @staticmethod
+    def _scenes() -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
+        """Return a 48x48 BGR scene and its opaque BGRA copy."""
+        bgr = (np.arange(48 * 48 * 3) % 251).astype(np.uint8).reshape(48, 48, 3)
+        bgra = np.dstack([bgr, np.full((48, 48), 255, dtype=np.uint8)])
+        return bgr, bgra
+
+    def test_heat_map_opaque_bgra_matches_bgr_scene(self) -> None:
+        """A heat map on an opaque BGRA scene has the BGR colors and stays opaque."""
+        bgr, scene = self._scenes()
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = HeatMapAnnotator(radius=6).annotate(bgr.copy(), detections)
+
+        result = HeatMapAnnotator(radius=6).annotate(scene, detections)
+
+        assert result is scene
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_crop_opaque_bgra_matches_bgr_scene(self) -> None:
+        """A crop pasted onto an opaque BGRA scene has the colors of the BGR copy."""
+        bgr, scene = self._scenes()
+        detections = _create_detections(xyxy=[[8, 16, 24, 32]], class_id=[0])
+        expected = CropAnnotator().annotate(bgr.copy(), detections)
+
+        result = CropAnnotator().annotate(scene, detections)
+
+        assert result.shape == (48, 48, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+
+    def test_icon_opaque_bgra_matches_bgr_scene(self, tmp_path: Path) -> None:
+        """An icon drawn on an opaque BGRA scene has the BGR colors and stays opaque."""
+        icon_path = tmp_path / "icon.png"
+        Image.fromarray(np.full((16, 16, 3), 200, dtype=np.uint8)).save(icon_path)
+        bgr, scene = self._scenes()
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        annotator = IconAnnotator(icon_resolution_wh=(16, 16))
+        expected = annotator.annotate(bgr.copy(), detections, icon_path=str(icon_path))
+
+        result = annotator.annotate(scene, detections, icon_path=str(icon_path))
+
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+
 class TestIconAnnotator:
     """Tests for IconAnnotator class."""
 
