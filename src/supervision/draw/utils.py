@@ -14,7 +14,8 @@ from supervision.geometry.core import (
 )
 
 #: Largest absolute pixel coordinate a mapped point may have and still be drawn: it
-#: fits int32 on both drawing backends and bounds their per-shape drawing work.
+#: fits int32 for OpenCV and bounds OpenCV `fillPoly` work, which grows with the
+#: coordinate magnitude; the NumPy fallback clips shapes to the canvas.
 _MAX_DRAWING_COORDINATE = 2**20
 
 
