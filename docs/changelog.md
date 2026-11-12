@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.resize_image` with `keep_aspect_ratio=True` and `sv.letterbox_image` no longer lose 1 pixel on the fitted axis when its exact size is a whole number. The size came from a float ratio, so `640 / (640 / 427)` gave `426.99999999999994` and a 640x427 image letterboxed to 640x640 was resampled to 640x426 instead of only padded. The size is now calculated with integer arithmetic, so a target with the image's aspect ratio keeps every pixel. Other fits are unchanged. ([#2952](https://github.com/roboflow/supervision/pull/2952))
 
 ### 0.31.7 <small>Nov 11, 2026</small>
 
