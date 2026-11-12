@@ -10,8 +10,18 @@ import numpy.typing as npt
 
 
 def _to_numpy(value: Any) -> npt.NDArray[Any]:
-    """Return a NumPy property directly or convert a tensor through the CPU."""
-    return value if isinstance(value, np.ndarray) else value.cpu().numpy()
+    """Return a NumPy property directly or convert a tensor through the CPU.
+
+    A `bfloat16` tensor has no NumPy dtype, so it is widened to `float32` first; every
+    other dtype keeps its own precision.
+    """
+    if isinstance(value, np.ndarray):
+        return value
+    tensor = value.cpu()
+    if str(getattr(tensor, "dtype", None)) == "torch.bfloat16":
+        tensor = tensor.float()
+    result: npt.NDArray[Any] = tensor.numpy()
+    return result
 
 
 class SupervisionWarnings(Warning):

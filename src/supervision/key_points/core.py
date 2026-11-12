@@ -1019,13 +1019,13 @@ class KeyPoints:
             return cls.empty()
 
         if "keypoints" in transformers_results[0]:
-            if transformers_results[0]["keypoints"].cpu().numpy().size == 0:
+            if _to_numpy(transformers_results[0]["keypoints"]).size == 0:
                 return cls.empty()
 
             result_data = [
                 (
-                    result["keypoints"].cpu().numpy(),
-                    result["scores"].cpu().numpy(),
+                    _to_numpy(result["keypoints"]),
+                    _to_numpy(result["scores"]),
                 )
                 for result in transformers_results
             ]

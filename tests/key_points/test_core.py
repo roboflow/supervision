@@ -2049,6 +2049,25 @@ class TestFromTransformers:
         np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
         np.testing.assert_array_equal(key_points.class_id, [0])
 
+    @pytest.mark.parametrize("dtype_name", ["bfloat16", "float16", "float32"])
+    def test_pose_result_accepts_tensor_precisions(self, dtype_name: str) -> None:
+        """Half-precision pose outputs load, with bfloat16 widened to float32."""
+        torch = pytest.importorskip("torch")
+        dtype = getattr(torch, dtype_name)
+        results = [
+            {
+                "keypoints": torch.tensor([[10.0, 20.0], [30.0, 40.0]], dtype=dtype),
+                "scores": torch.tensor([0.5, 0.25], dtype=dtype),
+            }
+        ]
+
+        key_points = KeyPoints.from_transformers(results)
+
+        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_array_equal(key_points.keypoint_confidence, [[0.5, 0.25]])
+        np.testing.assert_array_equal(key_points.class_id, [0])
+
     def test_multiple_poses_are_stacked_with_one_shared_class_id(self) -> None:
         """Several poses stack into one `(N, K, 2)` array, all with class ID `0`."""
         results = [
