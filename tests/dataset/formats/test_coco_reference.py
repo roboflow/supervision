@@ -8,14 +8,17 @@ from typing import Any, Literal
 import numpy as np
 import pytest
 from PIL import Image
-from pycocotools import mask as coco_mask
 
 from supervision import DetectionDataset
+from supervision.dataset.formats import coco as coco_module
 from supervision.dataset.formats.coco import (
     _IS_PYCOCOTOOLS_AVAILABLE,
     coco_annotations_to_masks,
 )
 from supervision.utils.internal import SupervisionWarnings
+
+if _IS_PYCOCOTOOLS_AVAILABLE:
+    from pycocotools import mask as coco_mask
 
 #: Silences the NumPy 2 DeprecationWarning that ``pycocotools.mask.decode`` emits.
 #: Only the tests that build their expected mask with ``decode`` carry it; every
@@ -66,9 +69,11 @@ def _write_dataset(
     return path
 
 
-#: Runs only where the optional ``pycocotools`` extra is not installed.
-_skip_pycocotools_installed = pytest.mark.skipif(
-    _IS_PYCOCOTOOLS_AVAILABLE, reason="pycocotools is installed"
+# The missing-extra tests need no ``pycocotools`` and must also run where it is
+# absent; only tests that call or compare against it are gated.
+_requires_pycocotools = pytest.mark.skipif(
+    not _IS_PYCOCOTOOLS_AVAILABLE,
+    reason="pycocotools is required as the reference implementation",
 )
 
 
@@ -97,6 +102,7 @@ class TestCocoReferenceRasterization:
         ],
     )
     @_IGNORE_REFERENCE_DECODE_WARNING
+    @_requires_pycocotools
     def test_loader_matches_reference(
         self, tmp_path: Path, polygons: list[list[float]]
     ) -> None:
@@ -115,6 +121,7 @@ class TestCocoReferenceRasterization:
         np.testing.assert_array_equal(detections.mask[0], reference)
         assert detections.mask.dtype == bool
 
+    @_requires_pycocotools
     def test_keeps_box_and_class_id(self, tmp_path: Path) -> None:
         """Reference rasterization leaves the annotation's box and class unchanged."""
         path = _write_dataset(tmp_path, [[1.6, 1.6, 5.6, 1.6, 5.6, 5.6, 1.6, 5.6]])
@@ -127,6 +134,7 @@ class TestCocoReferenceRasterization:
         np.testing.assert_array_equal(detections.class_id, [0])
         np.testing.assert_array_equal(detections.xyxy, [[1, 1, 5, 5]])
 
+    @_requires_pycocotools
     def test_loads_polygons_without_deprecation_warning(self, tmp_path: Path) -> None:
         """Reference polygon loading emits no NumPy deprecation warning."""
         path = _write_dataset(tmp_path, [[1, 1, 5, 1, 5, 5, 1, 5]])
@@ -146,6 +154,7 @@ class TestCocoReferenceRasterization:
         np.testing.assert_array_equal(detections.mask[0], expected)
 
     @_IGNORE_REFERENCE_DECODE_WARNING
+    @_requires_pycocotools
     def test_loader_matches_reference_on_rectangular_image(
         self, tmp_path: Path
     ) -> None:
@@ -175,6 +184,7 @@ class TestCocoReferenceRasterization:
         ],
     )
     @_IGNORE_REFERENCE_DECODE_WARNING
+    @_requires_pycocotools
     def test_skips_degenerate_parts_like_reference(
         self, polygons: list[list[float]]
     ) -> None:
@@ -192,6 +202,7 @@ class TestCocoReferenceRasterization:
 
         np.testing.assert_array_equal(masks[0], reference)
 
+    @_requires_pycocotools
     def test_aligns_masks_across_mixed_segmentations(self) -> None:
         """Polygon, RLE and empty annotations keep one aligned mask each, in order."""
         rle_pixels = np.zeros((8, 8), dtype=np.uint8)
@@ -239,9 +250,11 @@ class TestCocoReferenceRasterization:
         assert detections.mask is not None
         np.testing.assert_array_equal(detections.mask[0], expected)
 
-    @_skip_pycocotools_installed
-    def test_default_loads_without_optional_dependency(self, tmp_path: Path) -> None:
+    def test_default_loads_without_optional_dependency(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Omitting the selector keeps the inclusive mask when pycocotools is absent."""
+        monkeypatch.setattr(coco_module, "_IS_PYCOCOTOOLS_AVAILABLE", False)
         path = _write_dataset(tmp_path, [[1, 1, 5, 1, 5, 5, 1, 5]])
         expected = np.zeros((8, 8), dtype=bool)
         expected[1:6, 1:6] = True
@@ -261,6 +274,7 @@ class TestCocoReferenceRasterization:
             pytest.param({"mask_rasterizer": "pycocotools"}, id="reference"),
         ],
     )
+    @_requires_pycocotools
     def test_loads_box_only_file_without_masks_or_warning(
         self, tmp_path: Path, rasterizer_kwargs: dict[str, Any]
     ) -> None:
@@ -276,6 +290,7 @@ class TestCocoReferenceRasterization:
         assert next(iter(dataset.annotations.values())).mask is None
 
     @pytest.mark.parametrize("rasterizer", ["supervision", "pycocotools"])
+    @_requires_pycocotools
     def test_preserves_rle(
         self, tmp_path: Path, rasterizer: Literal["supervision", "pycocotools"]
     ) -> None:
@@ -302,11 +317,11 @@ class TestCocoReferenceRasterization:
             pytest.param([], id="box-only"),
         ],
     )
-    @_skip_pycocotools_installed
     def test_reports_missing_optional_dependency(
-        self, tmp_path: Path, segmentation: Any
+        self, tmp_path: Path, segmentation: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Reference mode reports the install command at load start, polygons or not."""
+        monkeypatch.setattr(coco_module, "_IS_PYCOCOTOOLS_AVAILABLE", False)
         path = _write_dataset(tmp_path, segmentation)
 
         with pytest.raises(ImportError, match=r"supervision\[coco\]"):
