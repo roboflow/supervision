@@ -185,6 +185,9 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
     """Read a text file and return a list of strings without newline characters.
     Optionally skip empty lines.
 
+    The file is decoded as UTF-8, whatever the platform's default encoding is, and
+    a leading byte order mark is ignored.
+
     Args:
         file_path: The file path as a string or Path object.
         skip_empty: If True, skip lines that are empty or contain only
@@ -208,7 +211,7 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
 
         ```
     """
-    with open(str(file_path)) as file:
+    with open(str(file_path), encoding="utf-8-sig") as file:
         if skip_empty:
             lines = [line.rstrip("\n") for line in file if line.strip()]
         else:
@@ -220,11 +223,14 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
 def save_text_file(lines: list[str], file_path: str | Path) -> None:
     """Write a list of strings to a text file, each string on a new line.
 
+    The file is written as UTF-8, the encoding
+    :func:`~supervision.utils.file.read_txt_file` reads.
+
     Args:
         lines: The list of strings to be written to the file.
         file_path: The file path as a string or Path object.
     """
-    with open(str(file_path), "w") as file:
+    with open(str(file_path), "w", encoding="utf-8") as file:
         for line in lines:
             file.write(line + "\n")
 
@@ -233,7 +239,7 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
     """Read a json file and return a dict.
 
     The file is decoded as UTF-8, the encoding JSON files are written in, whatever
-    the platform's default encoding is.
+    the platform's default encoding is. A leading byte order mark is ignored.
 
     Args:
         file_path: The file path as a string or Path object.
@@ -255,7 +261,7 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
 
         ```
     """
-    with open(str(file_path), encoding="utf-8") as file:
+    with open(str(file_path), encoding="utf-8-sig") as file:
         data = json.load(file)
     return data  # type: ignore
 

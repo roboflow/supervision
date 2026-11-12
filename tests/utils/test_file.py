@@ -19,6 +19,7 @@ from supervision.utils.file import (
     read_txt_file,
     read_yaml_file,
     save_json_file,
+    save_text_file,
 )
 
 
@@ -258,6 +259,36 @@ def test_read_structured_file_decodes_utf8_text(
     data = fn_read_file(file_path)
 
     assert data == {"names": ["café", "고양이", "猫"]}
+
+
+class TestByteOrderMark:
+    def test_read_txt_file_ignores_byte_order_mark(self, tmp_path: Path) -> None:
+        """A UTF-8 byte order mark is not returned as part of the first line."""
+        file_path = tmp_path / "labels.txt"
+        file_path.write_bytes(b"\xef\xbb\xbf0 0.5 0.5 0.2 0.2\n")
+
+        lines = read_txt_file(file_path)
+
+        assert lines == ["0 0.5 0.5 0.2 0.2"]
+
+    def test_read_json_file_ignores_byte_order_mark(self, tmp_path: Path) -> None:
+        """A JSON file saved with a UTF-8 byte order mark still parses."""
+        file_path = tmp_path / "data.json"
+        file_path.write_bytes(b"\xef\xbb\xbf" + b'{"key": "value"}')
+
+        data = read_json_file(file_path)
+
+        assert data == {"key": "value"}
+
+    def test_text_file_round_trips_non_ascii_lines(self, tmp_path: Path) -> None:
+        """Lines written by save_text_file read back unchanged on every platform."""
+        file_path = tmp_path / "names.txt"
+        lines = ["caf\u00e9", "\u732b"]
+
+        save_text_file(lines, file_path)
+
+        assert read_txt_file(file_path) == lines
+        assert file_path.read_bytes().decode("utf-8").splitlines() == lines
 
 
 class TestSaveJsonFile:
