@@ -2019,6 +2019,27 @@ def box_weighted_box_fusion(
     on Solovyev et al., "Weighted Boxes Fusion: Ensembling boxes from different
     object detection models" (2019).
 
+    Boxes are clustered sequentially within each class (across all boxes when
+    there is no class column). They are visited in descending confidence order,
+    and each box is compared with the current fused box of every existing
+    cluster. The box joins the cluster with the highest overlap only when that
+    overlap is strictly greater than `iou_threshold`, and that cluster's fused
+    box is then recomputed; otherwise the box starts a new cluster. Because a
+    fused box moves as boxes join it, a box can join a cluster even when its
+    overlap with the cluster's highest-scoring box alone is too low, unlike the
+    seed-anchored grouping of
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge`.
+
+    !!! warning
+
+        The fused score is the mean confidence of the cluster, not its maximum,
+        so it can be lower than the score of the best box in the cluster. For
+        example, a `0.95` detection fused with an overlapping `0.15` box scores
+        `0.55`, where
+        :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`
+        would keep `0.95`. Revisit any downstream confidence filter tuned for
+        non-maximum suppression before switching to WBF.
+
     Args:
         predictions: An array of shape `(n, 5)` or `(n, 6)` containing the
             bounding boxes coordinates in format `[x1, y1, x2, y2]`, the
