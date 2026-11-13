@@ -3349,3 +3349,79 @@ class TestBoxWeightedBoxFusion:
         )
         result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.array_equal(result, expected_result)
+
+
+def _nmm_groups(kind: str, rectangles: list[list[int]]) -> list[list[int]]:
+    """Run the NMM grouping for `kind` on pixel rectangles at `iou_threshold=0`.
+
+    Each `[x1, y1, x2, y2]` rectangle covers pixels `x1:x2` by `y1:y2`; masks and
+    oriented boxes are derived from it so every kind sees the same geometry. Confidences
+    descend with the index.
+    """
+    boxes = np.array(rectangles, dtype=np.float32)
+    confidence = np.linspace(0.9, 0.5, len(rectangles), dtype=np.float32)
+    predictions = np.column_stack([boxes, confidence, np.zeros(len(boxes))])
+    if kind == "box":
+        return box_non_max_merge(predictions, iou_threshold=0.0)
+    if kind == "oriented-box":
+        x1, y1, x2, y2 = boxes.T
+        corners = np.stack(
+            [
+                np.stack([x1, y1], axis=1),
+                np.stack([x2, y1], axis=1),
+                np.stack([x2, y2], axis=1),
+                np.stack([x1, y2], axis=1),
+            ],
+            axis=1,
+        )
+        return oriented_box_non_max_merge(predictions, corners, iou_threshold=0.0)
+
+    height = width = int(boxes.max()) + 1
+    masks = np.zeros((len(rectangles), height, width), dtype=bool)
+    for index, (left, top, right, bottom) in enumerate(rectangles):
+        masks[index, top:bottom, left:right] = True
+    if kind == "dense-mask":
+        return mask_non_max_merge(predictions, masks, iou_threshold=0.0)
+    from supervision.detection.compact_mask import CompactMask
+
+    compact_mask = CompactMask.from_dense(
+        masks=masks,
+        xyxy=np.tile([0, 0, width - 1, height - 1], (len(rectangles), 1)),
+        image_shape=(height, width),
+    )
+    return mask_non_max_merge(predictions, compact_mask, iou_threshold=0.0)
+
+
+class TestNonMaxMergeZeroThreshold:
+    """Non-max merge at `iou_threshold=0` groups only detections that overlap."""
+
+    @pytest.mark.parametrize(
+        "kind", ["box", "dense-mask", "compact-mask", "oriented-box"]
+    )
+    @pytest.mark.parametrize(
+        ("rectangles", "expected_groups"),
+        [
+            pytest.param(
+                [[0, 0, 10, 10], [100, 100, 110, 110], [200, 200, 210, 210]],
+                [[0], [1], [2]],
+                id="disjoint-stay-separate",
+            ),
+            pytest.param(
+                [[0, 0, 10, 10], [10, 0, 20, 10]],
+                [[0], [1]],
+                id="shared-edge-stays-separate",
+            ),
+            pytest.param(
+                [[0, 0, 10, 10], [9, 9, 19, 19]],
+                [[0, 1]],
+                id="one-pixel-overlap-merges",
+            ),
+        ],
+    )
+    def test_groups_only_overlapping_detections(
+        self, kind: str, rectangles: list[list[int]], expected_groups: list[list[int]]
+    ) -> None:
+        """At threshold zero only pairs with positive overlap share a group."""
+        groups = _nmm_groups(kind, rectangles)
+
+        assert sorted(sorted(group) for group in groups) == expected_groups

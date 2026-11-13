@@ -2806,6 +2806,48 @@ class TestMergeDetectionGroup:
             assert np.allclose(result.xyxy, xyxyxyxy_to_xyxy(corners), atol=1e-5)
 
 
+def _make_rectangle_detections(kind: str, rectangles: list[list[int]]) -> Detections:
+    """Build same-class detections of `kind` from `[x1, y1, x2, y2]` pixel rectangles.
+
+    Rectangles cover pixels `x1:x2` by `y1:y2`. `kind` selects the geometry: `box`,
+    `dense-mask`, `compact-mask` or `obb`. Confidences descend with the index.
+    """
+    boxes = np.array(rectangles, dtype=np.float32)
+    detections = Detections(
+        xyxy=boxes,
+        confidence=np.linspace(0.9, 0.5, len(rectangles), dtype=np.float32),
+        class_id=np.zeros(len(rectangles), dtype=int),
+    )
+    if kind == "box":
+        return detections
+    if kind == "obb":
+        x1, y1, x2, y2 = boxes.T
+        detections.data[ORIENTED_BOX_COORDINATES] = np.stack(
+            [
+                np.stack([x1, y1], axis=1),
+                np.stack([x2, y1], axis=1),
+                np.stack([x2, y2], axis=1),
+                np.stack([x1, y2], axis=1),
+            ],
+            axis=1,
+        )
+        return detections
+
+    height = width = int(boxes.max()) + 1
+    masks = np.zeros((len(rectangles), height, width), dtype=bool)
+    for index, (left, top, right, bottom) in enumerate(rectangles):
+        masks[index, top:bottom, left:right] = True
+    if kind == "dense-mask":
+        detections.mask = masks
+    else:
+        detections.mask = CompactMask.from_dense(
+            masks=masks,
+            xyxy=np.tile([0, 0, width - 1, height - 1], (len(rectangles), 1)),
+            image_shape=(height, width),
+        )
+    return detections
+
+
 class TestDetectionsWithNMM:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
 
@@ -3171,6 +3213,36 @@ class TestDetectionsWithNMM:
         assert result_mask[1, 1]
         assert result_mask[7, 7]
         assert result_mask[8, 8]
+
+    @pytest.mark.parametrize("kind", ["box", "dense-mask", "compact-mask", "obb"])
+    def test_zero_threshold_keeps_disjoint_detections_unchanged(
+        self, kind: str
+    ) -> None:
+        """Disjoint same-class detections are not merged at threshold 0."""
+        detections = _make_rectangle_detections(
+            kind, [[0, 0, 10, 10], [100, 100, 110, 110], [200, 200, 210, 210]]
+        )
+
+        result = detections.with_nmm(threshold=0.0)
+
+        assert len(result) == 3
+        np.testing.assert_array_equal(result.xyxy, detections.xyxy)
+        assert result.confidence is not None
+        assert detections.confidence is not None
+        np.testing.assert_allclose(result.confidence, detections.confidence)
+
+    @pytest.mark.parametrize("kind", ["box", "dense-mask", "compact-mask", "obb"])
+    def test_zero_threshold_merges_detections_with_any_overlap(self, kind: str) -> None:
+        """A pair sharing a single pixel of area is still merged at threshold 0."""
+        detections = _make_rectangle_detections(
+            kind, [[0, 0, 10, 10], [9, 9, 19, 19], [100, 100, 110, 110]]
+        )
+
+        result = detections.with_nmm(threshold=0.0)
+
+        assert len(result) == 2
+        assert [0, 0, 19, 19] in result.xyxy.tolist()
+        assert [100, 100, 110, 110] in result.xyxy.tolist()
 
 
 class TestDetectionsArea:

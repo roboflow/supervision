@@ -94,6 +94,29 @@ def _validate_iou_threshold(iou_threshold: float) -> None:
         )
 
 
+def _is_mergeable_overlap(
+    overlaps: npt.NDArray[np.floating], iou_threshold: float
+) -> npt.NDArray[np.bool_]:
+    """Flag pairs whose overlap is high enough to be grouped by non-max merging.
+
+    A pair qualifies when its overlap reaches `iou_threshold` and is strictly
+    positive. The positivity guard only matters at `iou_threshold=0`, where a
+    plain `>=` would group disjoint pairs, whereas non-max suppression, which
+    compares with a strict `>`, never suppresses them. For any positive
+    threshold the result equals `overlaps >= iou_threshold`.
+
+    Args:
+        overlaps: Overlap values (IoU or IoS) of candidates against one
+            reference, as a `np.ndarray` of any shape.
+        iou_threshold: Minimum overlap, in the closed range from 0 to 1.
+
+    Returns:
+        Boolean `np.ndarray` with the shape of `overlaps`.
+    """
+    mergeable: npt.NDArray[np.bool_] = (overlaps >= iou_threshold) & (overlaps > 0)
+    return mergeable
+
+
 def _coordinate_difference(upper: np.number, lower: np.number) -> float:
     """Subtract box coordinates without overflowing integer NumPy scalars."""
     return float(np.asarray(upper).item() - np.asarray(lower).item())
@@ -1579,7 +1602,7 @@ def _group_overlapping_masks(
         candidate_groups = [idx]
         while len(order) > 0:
             ious = mask_iou_batch(masks[order], merge_candidate, overlap_metric)
-            above_threshold: npt.NDArray[np.bool_] = ious.flatten() >= iou_threshold
+            above_threshold = _is_mergeable_overlap(ious.flatten(), iou_threshold)
             if not above_threshold.any():
                 break
             above_idx = order[above_threshold]
@@ -1730,7 +1753,7 @@ def _greedy_nmm_via_mask_candidate(
         merge_group = [idx]
         while len(order) > 0:
             ious = mask_iou_batch(masks[order], candidate, overlap_metric).flatten()
-            above_threshold = ious >= iou_threshold
+            above_threshold = _is_mergeable_overlap(ious, iou_threshold)
             if not above_threshold.any():
                 break
             above_idx = order[above_threshold]
@@ -1820,7 +1843,7 @@ def _group_overlapping_boxes(
             predictions[idx : idx + 1, :4],
             overlap_metric,
         ).flatten()
-        above_threshold = ious >= iou_threshold
+        above_threshold = _is_mergeable_overlap(ious, iou_threshold)
         merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]
@@ -2362,7 +2385,7 @@ def _group_overlapping_oriented_boxes(
             oriented_boxes[idx][None, ...],
             overlap_metric,
         ).flatten()
-        above_threshold = ious >= iou_threshold
+        above_threshold = _is_mergeable_overlap(ious, iou_threshold)
         merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]
