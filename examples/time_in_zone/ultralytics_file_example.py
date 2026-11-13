@@ -1,4 +1,4 @@
-from contextlib import ExitStack
+from contextlib import ExitStack, suppress
 
 import numpy as np
 from trackers import ByteTrackTracker
@@ -39,17 +39,15 @@ def _open_video_sink(
         RuntimeError: If none of `VIDEO_CODECS` can be opened for the path.
     """
     for codec in VIDEO_CODECS:
-        try:
+        with suppress(RuntimeError):
             video_sink = stack.enter_context(
                 sv.VideoSink(output_video_path, video_info, codec=codec)
             )
-        except RuntimeError:
-            continue
-        print(f"Video output being saved: {output_video_path}")
-        # The container may remap the requested codec (e.g. XVID to mp4v for
-        # .mp4), so report what was requested, not what is written.
-        print(f"Requested codec: {codec} (the container may remap it)")
-        return video_sink
+            print(f"Video output being saved: {output_video_path}")
+            # The container may remap the requested codec (e.g. XVID to mp4v for
+            # .mp4), so report what was requested, not what is written.
+            print(f"Requested codec: {codec} (the container may remap it)")
+            return video_sink
     raise RuntimeError(
         f"Could not open a video writer for {output_video_path!r} with any "
         f"of the codecs {VIDEO_CODECS}. Check that the output directory "
