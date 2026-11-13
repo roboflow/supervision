@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Fixed `KeyPoints` selection to keep per-joint covariance matrices aligned when subsetting or reordering joints, preventing ellipse annotation errors and incorrect uncertainty ellipses.
+- Fixed `KeyPoints` selection to keep per-joint covariance matrices aligned when subsetting or reordering joints, preventing ellipse annotation errors and incorrect uncertainty ellipses. ([#2979](https://github.com/roboflow/supervision/pull/2979))
 
 - `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#2455](https://github.com/roboflow/supervision/pull/2455)).
 
