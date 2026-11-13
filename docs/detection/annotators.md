@@ -1,356 +1,365 @@
 ---
 comments: true
-status: new
+description: API reference for supervision's annotator classes — draw bounding boxes, masks, labels, tracks, and heatmaps on images with one method call.
 ---
 
 # Annotators
 
 Annotators accept detections and apply box or mask visualizations to the detections. Annotators have many available styles.
 
-=== "Box"
+!!! note "Pillow scenes"
 
-    ```python
-    import supervision as sv
+    Annotators also accept a `PIL.Image.Image` as `scene`. They update it in place and change only the pixels they draw, so transparency and 16-bit depth of untouched pixels stay intact. For annotators that draw through NumPy, palette images (modes `P` and `PA`) use opaque slots unused by untouched pixels to add drawn colors to RGB palettes; RGBA palettes and colors without a free slot use the nearest opaque entry. A palette that is full and has no opaque entry raises `ValueError` on this drawing path. `RichLabelAnnotator` draws directly through Pillow and uses Pillow's native palette handling instead.
 
-    image = ...
-    detections = sv.Detections(...)
+=== "Outlines"
 
-    box_annotator = sv.BoxAnnotator()
-    annotated_frame = box_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+    === "Box"
 
-    <div class="result" markdown>
+        ```python
+        import supervision as sv
 
-    ![bounding-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/bounding-box-annotator-example-purple.png){ align=center width="800" }
+        image = ...
+        detections = sv.Detections(...)
 
-    </div>
+        box_annotator = sv.BoxAnnotator()
+        annotated_frame = box_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-=== "RoundBox"
+        <div class="result" markdown>
 
-    ```python
-    import supervision as sv
+        ![bounding-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/bounding-box-annotator-example-purple.png){ align=center width="800" }
 
-    image = ...
-    detections = sv.Detections(...)
+        </div>
 
-    round_box_annotator = sv.RoundBoxAnnotator()
-    annotated_frame = round_box_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+    === "RoundBox"
 
-    <div class="result" markdown>
+        ```python
+        import supervision as sv
 
-    ![round-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/round-box-annotator-example-purple.png){ align=center width="800" }
+        image = ...
+        detections = sv.Detections(...)
 
-    </div>
+        round_box_annotator = sv.RoundBoxAnnotator()
+        annotated_frame = round_box_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-=== "BoxCorner"
+        <div class="result" markdown>
 
-    ```python
-    import supervision as sv
+        ![round-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/round-box-annotator-example-purple.png){ align=center width="800" }
 
-    image = ...
-    detections = sv.Detections(...)
+        </div>
 
-    corner_annotator = sv.BoxCornerAnnotator()
-    annotated_frame = corner_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+    === "BoxCorner"
 
-    <div class="result" markdown>
+        ```python
+        import supervision as sv
 
-    ![box-corner-annotator-example](https://media.roboflow.com/supervision-annotator-examples/box-corner-annotator-example-purple.png){ align=center width="800" }
+        image = ...
+        detections = sv.Detections(...)
 
-    </div>
+        corner_annotator = sv.BoxCornerAnnotator()
+        annotated_frame = corner_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-=== "Color"
+        <div class="result" markdown>
 
-    ```python
-    import supervision as sv
+        ![box-corner-annotator-example](https://media.roboflow.com/supervision-annotator-examples/box-corner-annotator-example-purple.png){ align=center width="800" }
 
-    image = ...
-    detections = sv.Detections(...)
+        </div>
 
-    color_annotator = sv.ColorAnnotator()
-    annotated_frame = color_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+    === "Circle"
 
-    <div class="result" markdown>
+        ```python
+        import supervision as sv
 
-    ![box-mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/box-mask-annotator-example-purple.png){ align=center width="800" }
+        image = ...
+        detections = sv.Detections(...)
 
-    </div>
+        circle_annotator = sv.CircleAnnotator()
+        annotated_frame = circle_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-=== "Circle"
+        <div class="result" markdown>
 
-    ```python
-    import supervision as sv
+        ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/circle-annotator-example-purple.png){ align=center width="800" }
 
-    image = ...
-    detections = sv.Detections(...)
+        </div>
 
-    circle_annotator = sv.CircleAnnotator()
-    annotated_frame = circle_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+    === "Ellipse"
 
-    <div class="result" markdown>
+        ```python
+        import supervision as sv
 
-    ![circle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/circle-annotator-example-purple.png){ align=center width="800" }
+        image = ...
+        detections = sv.Detections(...)
 
-    </div>
+        ellipse_annotator = sv.EllipseAnnotator()
+        annotated_frame = ellipse_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-=== "Dot"
+        <div class="result" markdown>
 
-    ```python
-    import supervision as sv
+        ![ellipse-annotator-example](https://media.roboflow.com/supervision-annotator-examples/ellipse-annotator-example-purple.png){ align=center width="800" }
 
-    image = ...
-    detections = sv.Detections(...)
+        </div>
 
-    dot_annotator = sv.DotAnnotator()
-    annotated_frame = dot_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+    === "Polygon"
 
-    <div class="result" markdown>
+        ```python
+        import supervision as sv
 
-    ![dot-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
+        image = ...
+        detections = sv.Detections(...)
 
-    </div>
+        polygon_annotator = sv.PolygonAnnotator()
+        annotated_frame = polygon_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-=== "Triangle"
+        <div class="result" markdown>
 
-    ```python
-    import supervision as sv
+        ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/polygon-annotator-example-purple.png){ align=center width="800" }
 
-    image = ...
-    detections = sv.Detections(...)
+        </div>
 
-    triangle_annotator = sv.TriangleAnnotator()
-    annotated_frame = triangle_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+=== "Shading"
 
-    <div class="result" markdown>
+    === "Color"
 
-    ![triangle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/triangle-annotator-example.png){ align=center width="800" }
+        ```python
+        import supervision as sv
 
-    </div>
+        image = ...
+        detections = sv.Detections(...)
 
-=== "Ellipse"
+        color_annotator = sv.ColorAnnotator()
+        annotated_frame = color_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-    ```python
-    import supervision as sv
+        <div class="result" markdown>
 
-    image = ...
-    detections = sv.Detections(...)
+        ![box-mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/box-mask-annotator-example-purple.png){ align=center width="800" }
 
-    ellipse_annotator = sv.EllipseAnnotator()
-    annotated_frame = ellipse_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        </div>
 
-    <div class="result" markdown>
+    === "Halo"
 
-    ![ellipse-annotator-example](https://media.roboflow.com/supervision-annotator-examples/ellipse-annotator-example-purple.png){ align=center width="800" }
+        ```python
+        import supervision as sv
 
-    </div>
+        image = ...
+        detections = sv.Detections(...)
 
-=== "Halo"
+        halo_annotator = sv.HaloAnnotator()
+        annotated_frame = halo_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-    ```python
-    import supervision as sv
+        <div class="result" markdown>
 
-    image = ...
-    detections = sv.Detections(...)
+        ![halo-annotator-example](https://media.roboflow.com/supervision-annotator-examples/halo-annotator-example-purple.png){ align=center width="800" }
 
-    halo_annotator = sv.HaloAnnotator()
-    annotated_frame = halo_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        </div>
 
-    <div class="result" markdown>
+    === "Mask"
 
-    ![halo-annotator-example](https://media.roboflow.com/supervision-annotator-examples/halo-annotator-example-purple.png){ align=center width="800" }
+        ```python
+        import supervision as sv
 
-    </div>
+        image = ...
+        detections = sv.Detections(...)
 
-=== "PercentageBar"
+        mask_annotator = sv.MaskAnnotator()
+        annotated_frame = mask_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-    ```python
-    import supervision as sv
+        !!! note
 
-    image = ...
-    detections = sv.Detections(...)
+            `MaskAnnotator` expects `detections.mask` to contain instance segmentation masks aligned to the image passed to `annotate`. For dense masks, provide a boolean array of shape `(N, H, W)` where `(H, W)` matches the image height and width (it also accepts `sv.CompactMask`). If your model returns framework-specific results, convert them to `sv.Detections` first. RF-DETR's `predict()` already returns `sv.Detections`; for other models use `sv.Detections.from_inference(...)` or `sv.Detections.from_ultralytics(...)`.
 
-    percentage_bar_annotator = sv.PercentageBarAnnotator()
-    annotated_frame = percentage_bar_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        <div class="result" markdown>
 
-    <div class="result" markdown>
+        ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/mask-annotator-example-purple.png){ align=center width="800" }
 
-    ![percentage-bar-annotator-example](https://media.roboflow.com/supervision-annotator-examples/percentage-bar-annotator-example-purple.png){ align=center width="800" }
+        </div>
 
-    </div>
+=== "Markers"
 
-=== "Mask"
+    === "Dot"
 
-    ```python
-    import supervision as sv
+        ```python
+        import supervision as sv
 
-    image = ...
-    detections = sv.Detections(...)
+        image = ...
+        detections = sv.Detections(...)
 
-    mask_annotator = sv.MaskAnnotator()
-    annotated_frame = mask_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        dot_annotator = sv.DotAnnotator()
+        annotated_frame = dot_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-    <div class="result" markdown>
+        <div class="result" markdown>
 
-    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    mask-annotator-example-purple.png){ align=center width="800" }
+        ![dot-annotator-example](https://media.roboflow.com/supervision-annotator-examples/dot-annotator-example-purple.png){ align=center width="800" }
 
-    </div>
+        </div>
 
-=== "Polygon"
+    === "Triangle"
 
-    ```python
-    import supervision as sv
+        ```python
+        import supervision as sv
 
-    image = ...
-    detections = sv.Detections(...)
+        image = ...
+        detections = sv.Detections(...)
 
-    polygon_annotator = sv.PolygonAnnotator()
-    annotated_frame = polygon_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        triangle_annotator = sv.TriangleAnnotator()
+        annotated_frame = triangle_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-    <div class="result" markdown>
+        <div class="result" markdown>
 
-    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    polygon-annotator-example-purple.png){ align=center width="800" }
+        ![triangle-annotator-example](https://media.roboflow.com/supervision-annotator-examples/triangle-annotator-example.png){ align=center width="800" }
 
-    </div>
+        </div>
 
-=== "Label"
+=== "Labels"
 
-    ```python
-    import supervision as sv
+    === "Label"
 
-    image = ...
-    detections = sv.Detections(...)
+        ```python
+        import supervision as sv
 
-    labels = [
-        f"{class_name} {confidence:.2f}"
-        for class_name, confidence
-        in zip(detections['class_name'], detections.confidence)
-    ]
+        image = ...
+        detections = sv.Detections(...)
 
-    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
-    annotated_frame = label_annotator.annotate(
-        scene=image.copy(),
-        detections=detections,
-        labels=labels
-    )
-    ```
+        labels = [
+            f"{class_name} {confidence:.2f}"
+            for class_name, confidence in zip(
+                detections["class_name"],
+                detections.confidence,
+            )
+        ]
 
-    <div class="result" markdown>
+        label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+        annotated_frame = label_annotator.annotate(
+            scene=image.copy(), detections=detections, labels=labels
+        )
+        ```
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    label-annotator-example-purple.png){ align=center width="800" }
+        <div class="result" markdown>
 
-    </div>
+        ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
 
-=== "RichLabel"
+        </div>
 
-    ```python
-    import supervision as sv
+    === "RichLabel"
 
-    image = ...
-    detections = sv.Detections(...)
+        ```python
+        import supervision as sv
 
-    labels = [
-        f"{class_name} {confidence:.2f}"
-        for class_name, confidence
-        in zip(detections['class_name'], detections.confidence)
-    ]
+        image = ...
+        detections = sv.Detections(...)
 
-    rich_label_annotator = sv.RichLabelAnnotator(
-        font_path="<TTF_FONT_PATH>",
-        text_position=sv.Position.CENTER
-    )
-    annotated_frame = rich_label_annotator.annotate(
-        scene=image.copy(),
-        detections=detections,
-        labels=labels
-    )
-    ```
+        labels = [
+            f"{class_name} {confidence:.2f}"
+            for class_name, confidence in zip(
+                detections["class_name"],
+                detections.confidence,
+            )
+        ]
 
-    <div class="result" markdown>
+        rich_label_annotator = sv.RichLabelAnnotator(
+            font_path="TTF_FONT_PATH",
+            text_position=sv.Position.CENTER,
+        )
+        annotated_frame = rich_label_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+            labels=labels,
+        )
+        ```
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    label-annotator-example-purple.png){ align=center width="800" }
+        <div class="result" markdown>
 
-    </div>
+        ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
 
-=== "Icon"
+        </div>
 
-    ```python
-    import supervision as sv
+=== "Transformative"
 
-    image = ...
-    detections = sv.Detections(...)
+    === "Blur"
 
-    icon_paths = [
-        "<ICON_PATH>"
-        for _ in detections
-    ]
+        ```python
+        import supervision as sv
 
-    icon_annotator = sv.IconAnnotator()
-    annotated_frame = icon_annotator.annotate(
-        scene=image.copy(),
-        detections=detections,
-        icon_path=icon_paths
-    )
-    ```
+        image = ...
+        detections = sv.Detections(...)
 
-    <div class="result" markdown>
+        blur_annotator = sv.BlurAnnotator()
+        annotated_frame = blur_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    icon-annotator-example.png){ align=center width="800" }
+        <div class="result" markdown>
 
-    </div>
+        ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/blur-annotator-example-purple.png){ align=center width="800" }
 
-    <!-- === "Crop"
+        </div>
+
+    === "Pixelate"
+
+        ```python
+        import supervision as sv
+
+        image = ...
+        detections = sv.Detections(...)
+
+        pixelate_annotator = sv.PixelateAnnotator()
+        annotated_frame = pixelate_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
+
+        <div class="result" markdown>
+
+        ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/pixelate-annotator-example-10.png){ align=center width="800" }
+
+        </div>
+
+        <!-- === "Crop"
 
         ```python
         import supervision as sv
@@ -361,167 +370,178 @@ Annotators accept detections and apply box or mask visualizations to the detecti
         crop_annotator = sv.CropAnnotator()
         annotated_frame = crop_annotator.annotate(
             scene=image.copy(),
-            detections=detections
+            detections=detections,
         )
         ```
+
         <div class="result" markdown>
 
-        ![crop-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-        crop-annotator-example.png){ align=center width="800" }
+        ![crop-annotator-example](https://media.roboflow.com/supervision-annotator-examples/crop-annotator-example.png){ align=center width="800" }
 
         </div>
-    -->
 
-=== "Blur"
+        -->
 
-    ```python
-    import supervision as sv
+=== "Tracking & Aggregation"
 
-    image = ...
-    detections = sv.Detections(...)
+    !!! warning "Removed tracker wrapper"
 
-    blur_annotator = sv.BlurAnnotator()
-    annotated_frame = blur_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        `sv.ByteTrack` was removed as of `supervision-0.31.0`. Use `ByteTrackTracker` from the external `trackers` package (`pip install trackers`) instead — its update method is `update()`, not `update_with_detections()`.
 
-    <div class="result" markdown>
+    === "Trace"
 
-    ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    blur-annotator-example-purple.png){ align=center width="800" }
+        ```python
+        import supervision as sv
+        from rfdetr import RFDETRMedium
+        from trackers import ByteTrackTracker
 
-    </div>
+        model = RFDETRMedium()
 
-=== "Pixelate"
+        trace_annotator = sv.TraceAnnotator()
 
-    ```python
-    import supervision as sv
+        video_info = sv.VideoInfo.from_video_path(video_path="...")
+        frames_generator = sv.get_video_frames_generator(source_path="...")
+        tracker = ByteTrackTracker(
+            track_activation_threshold=0.25, minimum_consecutive_frames=1
+        )
 
-    image = ...
-    detections = sv.Detections(...)
+        with sv.VideoSink(target_path="...", video_info=video_info) as sink:
+            for frame in frames_generator:
+                detections = model.predict(frame[:, :, ::-1])
+                detections = tracker.update(detections)
+                detections = detections[detections.tracker_id != -1]
+                annotated_frame = trace_annotator.annotate(
+                    scene=frame.copy(),
+                    detections=detections,
+                )
+                sink.write_frame(frame=annotated_frame)
+        ```
 
-    pixelate_annotator = sv.PixelateAnnotator()
-    annotated_frame = pixelate_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        <div class="result" markdown>
 
-    <div class="result" markdown>
+        ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/trace-annotator-example-purple.png){ align=center width="800" }
 
-    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    pixelate-annotator-example-10.png){ align=center width="800" }
+        </div>
 
-    </div>
+    === "HeatMap"
 
-=== "Trace"
+        ```python
+        import supervision as sv
+        from rfdetr import RFDETRMedium
 
-    ```python
-    import supervision as sv
-    from ultralytics import YOLO
+        model = RFDETRMedium()
 
-    model = YOLO('yolov8x.pt')
+        heat_map_annotator = sv.HeatMapAnnotator()
 
-    trace_annotator = sv.TraceAnnotator()
+        video_info = sv.VideoInfo.from_video_path(video_path="...")
+        frames_generator = sv.get_video_frames_generator(source_path="...")
 
-    video_info = sv.VideoInfo.from_video_path(video_path='...')
-    frames_generator = sv.get_video_frames_generator(source_path='...')
-    tracker = sv.ByteTrack()
+        with sv.VideoSink(target_path="...", video_info=video_info) as sink:
+            for frame in frames_generator:
+                detections = model.predict(frame[:, :, ::-1])
+                annotated_frame = heat_map_annotator.annotate(
+                    scene=frame.copy(),
+                    detections=detections,
+                )
+                sink.write_frame(frame=annotated_frame)
+        ```
 
-    with sv.VideoSink(target_path='...', video_info=video_info) as sink:
-        for frame in frames_generator:
-            result = model(frame)[0]
-            detections = sv.Detections.from_ultralytics(result)
-            detections = tracker.update_with_detections(detections)
-            annotated_frame = trace_annotator.annotate(
-                scene=frame.copy(),
-                detections=detections)
-            sink.write_frame(frame=annotated_frame)
-    ```
+        <div class="result" markdown>
 
-    <div class="result" markdown>
+        ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
 
-    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    trace-annotator-example-purple.png){ align=center width="800" }
+        </div>
 
-    </div>
+=== "Others"
 
-=== "HeatMap"
+    === "PercentageBar"
 
-    ```python
-    import supervision as sv
-    from ultralytics import YOLO
+        ```python
+        import supervision as sv
 
-    model = YOLO('yolov8x.pt')
+        image = ...
+        detections = sv.Detections(...)
 
-    heat_map_annotator = sv.HeatMapAnnotator()
+        percentage_bar_annotator = sv.PercentageBarAnnotator()
+        annotated_frame = percentage_bar_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-    video_info = sv.VideoInfo.from_video_path(video_path='...')
-    frames_generator = sv.get_video_frames_generator(source_path='...')
+        <div class="result" markdown>
 
-    with sv.VideoSink(target_path='...', video_info=video_info) as sink:
-        for frame in frames_generator:
-            result = model(frame)[0]
-            detections = sv.Detections.from_ultralytics(result)
-            annotated_frame = heat_map_annotator.annotate(
-                scene=frame.copy(),
-                detections=detections)
-            sink.write_frame(frame=annotated_frame)
-    ```
+        ![percentage-bar-annotator-example](https://media.roboflow.com/supervision-annotator-examples/percentage-bar-annotator-example-purple.png){ align=center width="800" }
 
-    <div class="result" markdown>
+        </div>
 
-    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    heat-map-annotator-example-purple.png){ align=center width="800" }
+    === "Icon"
 
-    </div>
+        ```python
+        import supervision as sv
 
-=== "Background Color"
+        image = ...
+        detections = sv.Detections(...)
 
-    ```python
-    import supervision as sv
+        icon_paths = ["<ICON_PATH>" for _ in detections]
 
-    image = ...
-    detections = sv.Detections(...)
+        icon_annotator = sv.IconAnnotator()
+        annotated_frame = icon_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+            icon_path=icon_paths,
+        )
+        ```
 
-    background_overlay_annotator = sv.BackgroundOverlayAnnotator()
-    annotated_frame = background_overlay_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
-    ```
+        <div class="result" markdown>
 
-    <div class="result" markdown>
+        ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
 
-    ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png){ align=center width="800" }
+        </div>
 
-    </div>
+    === "Background Color"
 
-=== "Comparison"
+        ```python
+        import supervision as sv
 
-    ```python
-    import supervision as sv
+        image = ...
+        detections = sv.Detections(...)
 
-    image = ...
-    detections_1 = sv.Detections(...)
-    detections_2 = sv.Detections(...)
+        background_overlay_annotator = sv.BackgroundOverlayAnnotator()
+        annotated_frame = background_overlay_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
 
-    comparison_annotator = sv.ComparisonAnnotator()
-    annotated_frame = comparison_annotator.annotate(
-        scene=image.copy(),
-        detections_1=detections_1,
-        detections_2=detections_2
-    )
-    ```
+        <div class="result" markdown>
 
-    <div class="result" markdown>
+        ![background-overlay-annotator-example](https://media.roboflow.com/supervision-annotator-examples/background-color-annotator-example-purple.png){ align=center width="800" }
 
-    ![comparison-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    comparison-annotator-example.png){ align=center width="800" }
+        </div>
 
-    </div>
+    === "Comparison"
+
+        ```python
+        import supervision as sv
+
+        image = ...
+        detections_1 = sv.Detections(...)
+        detections_2 = sv.Detections(...)
+
+        comparison_annotator = sv.ComparisonAnnotator()
+        annotated_frame = comparison_annotator.annotate(
+            scene=image.copy(),
+            detections_1=detections_1,
+            detections_2=detections_2,
+        )
+        ```
+
+        <div class="result" markdown>
+
+        ![comparison-annotator-example](https://media.roboflow.com/supervision-annotator-examples/comparison-annotator-example.png){ align=center width="800" }
+
+        </div>
 
 <div class="md-typeset">
     <h2>Try Supervision Annotators on your own image</h2>

@@ -1,0 +1,302 @@
+from __future__ import annotations
+
+import io
+from typing import Any, cast
+
+import numpy as np
+import numpy.typing as npt
+from PIL import Image
+
+from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.utils.converters import mask_to_xyxy
+
+
+def process_transformers_detection_result(
+    detection_result: dict[str, Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
+    """Process the result of Transformers object detection functions such as
+    `post_process` (v4), `post_process_detection` (v5) and
+    `post_process_grounded_object_detection`.
+
+    Zero-shot detectors name their detections in `text_labels`, which then sets the
+    class names instead of `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo give the index
+    of the matched text query in `labels`, used as the class ID. Grounding DINO gives
+    the matched phrases in `labels` instead, so its class IDs are `None`.
+
+    Args:
+        detection_result: Dictionary containing detection results with keys
+            'boxes', 'labels', and 'scores', and optionally 'text_labels'.
+        id2label: A dictionary mapping class IDs to labels,
+            typically part of the `transformers` model configuration. If provided, the
+            resulting dictionary will include class names.
+
+    Returns:
+        Processed detection result including bounding boxes, confidence scores,
+            class IDs, and data.
+    """
+    # Grounding DINO warns on reading `labels`, which repeats its `text_labels`;
+    # the base `dict` lookup reads the entry without that warning.
+    labels = dict.__getitem__(detection_result, "labels")
+    text_labels = detection_result.get("text_labels")
+    if isinstance(labels, list):
+        # Phrases rather than query indices, so there is no class ID to give.
+        class_ids = None
+        phrases = labels if text_labels is None else text_labels
+        data = {CLASS_NAME_DATA_FIELD: np.array(phrases, dtype=str)}
+    else:
+        class_ids = labels.cpu().detach().numpy().astype(int)
+        if text_labels is None:
+            data = append_class_names_to_data(class_ids, id2label, {})
+        else:
+            data = {CLASS_NAME_DATA_FIELD: np.array(text_labels, dtype=str)}
+
+    return dict(
+        xyxy=detection_result["boxes"].cpu().detach().numpy(),
+        confidence=detection_result["scores"].cpu().detach().numpy(),
+        class_id=class_ids,
+        data=data,
+    )
+
+
+def process_transformers_v4_segmentation_result(
+    segmentation_result: dict[str, Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
+    """Process the result of Transformers segmentation functions such as
+    `post_process_panoptic`, `post_process_segmentation`, and `post_process_instance`
+    (v4).
+
+    Args:
+        segmentation_result: Dictionary containing segmentation results with keys
+            'masks', 'labels', and 'scores'.
+        id2label: A dictionary mapping class IDs to labels,
+            typically part of the `transformers` model configuration. If provided, the
+            resulting dictionary will include class names.
+
+    Returns:
+        Processed segmentation result including bounding boxes, masks, confidence
+            scores, class IDs, and data.
+    """
+    if "png_string" in segmentation_result:
+        return process_transformers_v4_panoptic_segmentation_result(
+            segmentation_result, id2label
+        )
+    else:
+        boxes = None
+        if "boxes" in segmentation_result:
+            boxes = segmentation_result["boxes"].cpu().detach().numpy()
+        masks = segmentation_result["masks"].cpu().detach().numpy().astype(bool)
+        class_ids = segmentation_result["labels"].cpu().detach().numpy().astype(int)
+
+        return dict(
+            xyxy=boxes if boxes is not None else mask_to_xyxy(masks),
+            mask=np.squeeze(masks, axis=1) if boxes is not None else masks,
+            confidence=segmentation_result["scores"].cpu().detach().numpy(),
+            class_id=class_ids,
+            data=append_class_names_to_data(class_ids, id2label, {}),
+        )
+
+
+def process_transformers_v5_segmentation_result(
+    segmentation_result: Any, id2label: dict[int, str] | None
+) -> dict[str, Any]:
+    """Process the result of Transformers segmentation functions such as
+    `post_process_semantic_segmentation`, `post_process_instance_segmentation`, and
+    `post_process_panoptic_segmentation` (v5).
+
+    Args:
+        segmentation_result: A tensor containing a semantic segmentation map, a
+            dictionary with `segmentation` and `segmentation_scores` for a semantic
+            result, or a dictionary with `segments_info` and `segmentation` for an
+            instance or panoptic result.
+        id2label: A dictionary mapping class IDs to labels,
+            typically part of the `transformers` model configuration. If provided, the
+            resulting dictionary will include class names.
+
+    Returns:
+        Processed segmentation result including bounding boxes, masks, confidence
+            scores, class IDs, and data.
+    """
+    if segmentation_result.__class__.__name__ == "Tensor":
+        semantic_map = segmentation_result
+    elif (
+        "segments_info" not in segmentation_result
+        and "segmentation_scores" in segmentation_result
+    ):
+        semantic_map = segmentation_result["segmentation"]
+    else:
+        return process_transformers_v5_semantic_or_instance_segmentation_result(
+            cast(dict[str, Any], segmentation_result), id2label
+        )
+
+    segmentation_array = semantic_map.cpu().detach().numpy()
+    return process_transformers_v5_panoptic_segmentation_result(
+        segmentation_array, id2label
+    )
+
+
+def process_transformers_v5_semantic_or_instance_segmentation_result(
+    segmentation_result: dict[str, Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
+    """Process the result of Transformers segmentation functions such as
+    `post_process_semantic_segmentation` and `post_process_instance_segmentation` (v5).
+
+    Args:
+        segmentation_result: Dictionary containing segmentation results with keys
+            `segments_info` and `segmentation`. `segmentation` is either a
+            `(height, width)` map of segment ids or, for
+            `post_process_instance_segmentation(return_binary_maps=True)`, a
+            `(num_segments, height, width)` stack of binary maps.
+        id2label: A dictionary mapping class IDs to labels,
+            typically part of the `transformers` model configuration. If provided, the
+            resulting dictionary will include class names.
+
+    Returns:
+        Processed segmentation result including bounding boxes, masks, confidence
+            scores, class IDs, and data.
+    """
+    segments_info = segmentation_result["segments_info"]
+    segmentation_array = segmentation_result["segmentation"].cpu().detach().numpy()
+    scores = np.array([segment["score"] for segment in segments_info], dtype=float)
+    class_ids = np.array([segment["label_id"] for segment in segments_info], dtype=int)
+    if len(segments_info) == 0:
+        # An empty binary-map stack is `(0, H, W)`; only its last two axes are the
+        # image, as for a segment-id map.
+        masks = np.empty((0, *segmentation_array.shape[-2:]), dtype=bool)
+    elif segmentation_array.ndim == 3:
+        # Binary maps are stacked in `segments_info` order, so the k-th entry owns
+        # the k-th map. Segment ids cannot index the stack: Mask2Former and
+        # MaskFormer number them from 0, RF-DETR from 1. Reading the maps directly
+        # also keeps pixels shared by overlapping instances, which a segment-id map
+        # drops.
+        masks = segmentation_array.astype(bool)
+    else:
+        masks = np.array(
+            [segmentation_array == segment["id"] for segment in segments_info]
+        ).astype(bool)
+    data = append_class_names_to_data(class_ids, id2label, {})
+
+    return dict(
+        xyxy=mask_to_xyxy(masks),
+        mask=masks,
+        confidence=scores,
+        class_id=class_ids,
+        data=data,
+    )
+
+
+def process_transformers_v4_panoptic_segmentation_result(
+    segmentation_result: dict[str, Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
+    """Process the result of the Transformers function `post_process_panoptic` (v4).
+
+    Args:
+        segmentation_result: Dictionary containing segmentation results with keys
+            such as 'png_string' and 'segments_info'.
+        id2label: A dictionary mapping class IDs to labels,
+            typically part of the `transformers` model configuration. If provided, the
+            resulting dictionary will include class names.
+
+    Returns:
+        Processed segmentation result including bounding boxes, masks,
+            class IDs, and data.
+    """
+    segments_info = segmentation_result["segments_info"]
+    png_string = segmentation_result["png_string"]
+    class_ids = np.array(
+        [segment["category_id"] for segment in segments_info], dtype=int
+    )
+    segmentation_array = png_string_to_segmentation_array(png_string=png_string)
+    if len(segments_info) == 0:
+        masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+    else:
+        masks = np.array(
+            [segmentation_array == segment["id"] for segment in segments_info]
+        ).astype(bool)
+    data = append_class_names_to_data(class_ids, id2label, {})
+
+    return dict(
+        xyxy=mask_to_xyxy(masks),
+        mask=masks,
+        class_id=class_ids,
+        data=data,
+    )
+
+
+def process_transformers_v5_panoptic_segmentation_result(
+    segmentation_array: npt.NDArray[Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
+    """Process a v5 Transformers semantic segmentation tensor.
+
+    Args:
+        segmentation_array: Segmentation array where unique values are class IDs.
+        id2label: A dictionary mapping class IDs to labels,
+            typically part of the `transformers` model configuration. If provided, the
+            resulting dictionary will include class names.
+
+    Returns:
+        Processed segmentation result including bounding boxes, masks,
+            class IDs, and data.
+    """
+    class_ids = np.unique(segmentation_array).astype(int)
+    if len(class_ids) == 0:
+        masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+    else:
+        masks = np.stack(
+            [segmentation_array == class_id for class_id in class_ids], axis=0
+        ).astype(bool)
+    data = append_class_names_to_data(class_ids, id2label, {})
+    return dict(xyxy=mask_to_xyxy(masks), mask=masks, class_id=class_ids, data=data)
+
+
+def png_string_to_segmentation_array(png_string: bytes) -> npt.NDArray[Any]:
+    """Convert a PNG byte string to a panoptic segmentation array.
+
+    Args:
+        png_string: A byte string representing the PNG image.
+
+    Returns:
+        A segmentation ID array with shape (H, W), where each unique value
+            represents a different object or category. RGB-encoded panoptic
+            PNGs are decoded as little-endian 24-bit integers; alpha is ignored.
+    """
+    image = Image.open(io.BytesIO(png_string))
+    mask = np.array(image, dtype=np.uint8)
+    if mask.ndim == 2:
+        return mask.astype(np.uint32)
+    if mask.shape[2] < 3:
+        raise ValueError("Panoptic PNG masks must have at least 3 channels.")
+
+    segmentation = (
+        mask[:, :, 0].astype(np.uint32)
+        + (mask[:, :, 1].astype(np.uint32) << 8)
+        + (mask[:, :, 2].astype(np.uint32) << 16)
+    )
+    return cast(npt.NDArray[Any], segmentation)
+
+
+def append_class_names_to_data(
+    class_ids: npt.NDArray[Any],
+    id2label: dict[int, str] | None,
+    data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Helper function to create or append to a data dictionary with class names if
+    available.
+
+    Args:
+        class_ids: Array of class IDs.
+        id2label: A dictionary mapping class IDs to labels,
+            typically part of the `transformers` model configuration. If provided, the
+            resulting dictionary will include class names.
+        data: An existing data dictionary to append to.
+
+    Returns:
+        Dictionary containing class names if id2label is provided.
+    """
+    if data is None:
+        data = {}
+
+    if id2label is not None:
+        class_names = np.array([id2label[class_id] for class_id in class_ids])
+        data[CLASS_NAME_DATA_FIELD] = class_names
+
+    return data

@@ -12,6 +12,12 @@ status: new
 :::supervision.utils.image.crop_image
 
 <div class="md-typeset">
+    <h2><a href="#supervision.utils.image.load_image_from_url">load_image_from_url</a></h2>
+</div>
+
+:::supervision.utils.image.load_image_from_url
+
+<div class="md-typeset">
     <h2><a href="#supervision.utils.image.scale_image">scale_image</a></h2>
 </div>
 
@@ -40,6 +46,12 @@ status: new
 </div>
 
 :::supervision.utils.image.grayscale_image
+
+<div class="md-typeset">
+    <h2><a href="#supervision.utils.image.get_image_resolution_wh">get_image_resolution_wh</a></h2>
+</div>
+
+:::supervision.utils.image.get_image_resolution_wh
 
 <div class="md-typeset">
     <h2><a href="#supervision.utils.image.ImageSink">ImageSink</a></h2>
