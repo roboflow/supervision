@@ -765,6 +765,12 @@ class TestDetectionDatasetSplit:
         train, test = ds.split(split_ratio=0.7, random_state=0)
         assert set(train.image_paths).isdisjoint(set(test.image_paths))
 
+    def test_split_ratio_keeps_image_that_float_rounding_drops(self) -> None:
+        """90 images at 0.7 split 63 / 27, not the 62 / 28 float flooring gives."""
+        ds = _make_detection_dataset(90)
+        train, test = ds.split(split_ratio=0.7, random_state=0)
+        assert (len(train), len(test)) == (63, 27)
+
     def test_split_ratio_zero_empties_train(self) -> None:
         """split_ratio=0.0 sends all images to the test set."""
         ds = _make_detection_dataset(6)
@@ -838,6 +844,12 @@ def _make_classification_dataset(n: int) -> ClassificationDataset:
 
 class TestClassificationDatasetSplit:
     """ClassificationDataset.split() partitions images correctly."""
+
+    def test_split_ratio_keeps_image_that_float_rounding_drops(self) -> None:
+        """90 images at 0.7 split 63 / 27, not the 62 / 28 float flooring gives."""
+        ds = _make_classification_dataset(90)
+        train, test = ds.split(split_ratio=0.7, random_state=0)
+        assert (len(train), len(test)) == (63, 27)
 
     def test_split_ratio_zero_empties_train(self) -> None:
         """split_ratio=0.0 sends all images to the test set."""
