@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Fixed `sv.KeyPoints.from_transformers` to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. An empty first pose no longer hides later poses.
+- Fixed `sv.KeyPoints.from_transformers` to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. An empty first pose no longer hides later poses. ([#2978](https://github.com/roboflow/supervision/pull/2978))
 
 - `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#2455](https://github.com/roboflow/supervision/pull/2455)).
 
