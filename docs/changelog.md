@@ -11,6 +11,8 @@ date_modified: 2026-11-18
 
 - `sv.xyxy_to_xcycarh` now computes centers and dimensions of integer boxes without overflowing the input dtype, avoiding incorrect centers and aspect ratios for boxes spanning integer limits. ([#2966](https://github.com/roboflow/supervision/pull/2966))
 
+- `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). Cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#NNNN](https://github.com/roboflow/supervision/pull/NNNN))
+
 - `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#2455](https://github.com/roboflow/supervision/pull/2455)).
 
 - On Windows, images whose path has characters outside ASCII, such as an accented, Cyrillic or CJK folder name, can now be read and written. OpenCV reads such a path in the ANSI code page, so `sv.DetectionDataset` raised `ValueError: Could not read image from path` when its images were loaded, and `as_yolo`, `as_coco`, `as_pascal_voc` and `sv.ImageSink` failed to save or wrote a file with a garbled name. ([#2963](https://github.com/roboflow/supervision/pull/2963))
