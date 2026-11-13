@@ -739,6 +739,37 @@ def test_crop_image_clips_out_of_bounds_coordinates() -> None:
     )
 
 
+class TestCropImageEmptyResult:
+    @pytest.mark.parametrize("mode", ["RGB", "RGBA", "P", "L"])
+    @pytest.mark.parametrize(
+        ("xyxy", "expected_size"),
+        [
+            pytest.param((-30, -30, -5, -5), (0, 0), id="outside-top-left"),
+            pytest.param((70, 50, 90, 60), (0, 0), id="outside-bottom-right"),
+            pytest.param((5, 5, 5, 5), (0, 0), id="zero-area"),
+            pytest.param((10, 10, 30, 10), (20, 0), id="zero-height"),
+        ],
+    )
+    def test_pillow_image_without_pixels_in_box_is_returned_empty(
+        self, mode: str, xyxy: tuple[int, int, int, int], expected_size: tuple[int, int]
+    ) -> None:
+        """A Pillow crop with no pixels is empty, like the NumPy crop, not an error."""
+        image = Image.new(mode, (60, 40))
+
+        cropped = crop_image(image=image, xyxy=xyxy)
+
+        assert isinstance(cropped, Image.Image)
+        assert cropped.size == expected_size
+
+    def test_numpy_image_without_pixels_in_box_is_returned_empty(self) -> None:
+        """The NumPy crop keeps returning an empty array for the same boxes."""
+        image = np.zeros((40, 60, 3), dtype=np.uint8)
+
+        cropped = crop_image(image=image, xyxy=(-30, -30, -5, -5))
+
+        assert cropped.shape == (0, 0, 3)
+
+
 class TestCropImageLargeCoordinates:
     @pytest.mark.parametrize("as_pillow", [False, True])
     @pytest.mark.parametrize(

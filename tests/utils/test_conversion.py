@@ -123,6 +123,19 @@ def test_cv2_to_pillow_bgr_reorders_channels_to_rgb() -> None:
     assert result.getpixel((0, 0)) == (30, 20, 10)
 
 
+def test_cv2_to_pillow_bgr_without_pixels_gives_empty_image() -> None:
+    """A BGR array with no pixels becomes an empty RGB image instead of raising."""
+    # given
+    image = np.zeros((0, 5, 3), dtype=np.uint8)
+
+    # when
+    result = cv2_to_pillow(image)
+
+    # then
+    assert result.mode == "RGB"
+    assert result.size == (5, 0)
+
+
 def test_cv2_to_pillow_grayscale_passes_through() -> None:
     """A 2-D grayscale array becomes an L-mode image of the same size."""
     # given
