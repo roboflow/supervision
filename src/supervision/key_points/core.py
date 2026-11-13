@@ -965,6 +965,10 @@ class KeyPoints:
                 object category and reports no class of its own. An empty
                 `transformers_results` returns
                 :meth:`~supervision.key_points.core.KeyPoints.empty`.
+                Joint `labels` retain their skeleton indices after confidence
+                filtering. Missing slots have zero coordinates and confidence;
+                the joint axis ends at the largest retained label. Results without
+                `labels` use their keypoint list order.
 
         Examples:
             ```python
@@ -1019,22 +1023,30 @@ class KeyPoints:
             return cls.empty()
 
         if "keypoints" in transformers_results[0]:
-            if transformers_results[0]["keypoints"].cpu().numpy().size == 0:
-                return cls.empty()
-
-            result_data = [
-                (
-                    result["keypoints"].cpu().numpy(),
-                    result["scores"].cpu().numpy(),
+            result_data = []
+            for result in transformers_results:
+                points = result["keypoints"].cpu().numpy()
+                labels = (
+                    result["labels"].cpu().numpy()
+                    if "labels" in result
+                    else np.arange(len(points))
                 )
-                for result in transformers_results
-            ]
-
-            xy, scores = zip(*result_data)
+                result_data.append((points, result["scores"].cpu().numpy(), labels))
+            keypoint_count = max(
+                (int(labels.max()) + 1 for _, _, labels in result_data if labels.size),
+                default=0,
+            )
+            if keypoint_count == 0:
+                return cls.empty()
+            xy = np.zeros((len(result_data), keypoint_count, 2), dtype=np.float32)
+            scores = np.zeros((len(result_data), keypoint_count), dtype=np.float32)
+            for index, (points, confidence, labels) in enumerate(result_data):
+                xy[index, labels] = points
+                scores[index, labels] = confidence
 
             return cls(
-                xy=np.stack(xy).astype(np.float32),
-                keypoint_confidence=np.stack(scores).astype(np.float32),
+                xy=xy,
+                keypoint_confidence=scores,
                 class_id=np.zeros(len(xy), dtype=int),
             )
         else:
