@@ -156,6 +156,8 @@ def crop_image(
         Coordinates are rounded to integers and clipped to the image bounds
         before slicing. This keeps NumPy and Pillow inputs aligned and avoids
         negative-index wrap-around on NumPy arrays.
+        A box with no pixels inside the image (outside it, or with no area)
+        returns an empty image of the input type.
 
     Examples:
         ```pycon
