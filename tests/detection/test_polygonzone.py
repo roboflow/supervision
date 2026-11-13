@@ -617,6 +617,82 @@ class TestBoxesUnionMask:
 
 
 class TestPolygonZoneOccupancyRatio:
+    def test_sparse_compact_masks_do_not_decode_a_huge_union(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Distant sparse masks do not require decoding their full union rectangle."""
+        compact = CompactMask(
+            rles=[np.array([0, 1], dtype=np.int32)] * 2,
+            crop_shapes=np.ones((2, 2), dtype=np.int32),
+            offsets=np.array([[0, 0], [99_999, 99_999]], dtype=np.int32),
+            image_shape=(100_000, 100_000),
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 1, 1], [99_999, 99_999, 100_000, 100_000]]),
+            mask=compact,
+        )
+        zone = sv.PolygonZone(np.array([[0, 0], [9, 0], [9, 9], [0, 9]]))
+        original_crop = CompactMask.crop
+
+        def bounded_crop(mask: CompactMask, index: int) -> npt.NDArray[np.bool_]:
+            """Prevent the regression from allocating the huge union crop."""
+            assert np.prod(mask._crop_shapes[index], dtype=np.int64) <= 10_000
+            return original_crop(mask, index)
+
+        monkeypatch.setattr(CompactMask, "crop", bounded_crop)
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.01)
+
+    def test_compact_long_run_is_clipped_before_expansion(self) -> None:
+        """A long foreground run only paints the part inside the zone."""
+        compact = CompactMask(
+            rles=[np.array([0, 100_000_000], dtype=np.int32)],
+            crop_shapes=np.array([[1, 100_000_000]], dtype=np.int32),
+            offsets=np.array([[0, 0]], dtype=np.int32),
+            image_shape=(1, 100_000_000),
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 100_000_000, 1]]), mask=compact
+        )
+        zone = sv.PolygonZone(np.array([[0, 0], [9, 0], [9, 9], [0, 9]]))
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.1)
+
+    @pytest.mark.parametrize(
+        ("corner", "dtype"),
+        [
+            pytest.param(2**32, np.int64, id="int64-wraps-to-zone"),
+            pytest.param(2**31, np.float32, id="float32-rounded-limit"),
+        ],
+    )
+    def test_rejects_oriented_coordinates_outside_int32(
+        self, corner: int, dtype: type
+    ) -> None:
+        """Distant oriented vertices cannot wrap into the zone during rasterization."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        polygons: npt.NDArray[Any] = np.array(
+            [
+                [
+                    [corner, corner],
+                    [corner + 99, corner],
+                    [corner + 99, corner + 99],
+                    [corner, corner + 99],
+                ]
+            ],
+            dtype=dtype,
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[corner, corner, corner + 99, corner + 99]]),
+            data={ORIENTED_BOX_COORDINATES: polygons},
+        )
+
+        with pytest.raises(ValueError, match="int32"):
+            zone.occupancy_ratio(detections)
+
     @pytest.mark.parametrize(
         ("xyxy", "expected"),
         [

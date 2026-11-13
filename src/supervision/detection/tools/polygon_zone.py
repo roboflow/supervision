@@ -7,7 +7,10 @@ import numpy.typing as npt
 from supervision import Detections
 from supervision import _cv2 as cv2
 from supervision.config import ORIENTED_BOX_COORDINATES
-from supervision.detection.compact_mask import CompactMask, _compact_mask_union
+from supervision.detection.compact_mask import (
+    CompactMask,
+    _rle_split_cols,
+)
 from supervision.detection.utils.converters import (
     MIN_POLYGON_POINT_COUNT,
     polygon_to_mask,
@@ -26,28 +29,6 @@ from supervision.geometry.core import (
     _transform_points,
 )
 from supervision.geometry.utils import get_polygon_center
-
-
-def _paste_mask(
-    canvas: npt.NDArray[np.bool_],
-    patch: npt.NDArray[np.bool_],
-    offset_xy: tuple[int, int],
-) -> None:
-    """OR a local boolean patch into ``canvas`` at ``offset_xy``, clipped to bounds.
-
-    Args:
-        canvas: Target boolean array of shape ``(H, W)``, updated in place.
-        patch: Boolean array of shape ``(h, w)`` to merge into the canvas.
-        offset_xy: Canvas ``(x, y)`` position of the patch's top-left pixel.
-    """
-    canvas_h, canvas_w = canvas.shape
-    patch_h, patch_w = patch.shape
-    x0, y0 = offset_xy
-    x1, y1 = max(x0, 0), max(y0, 0)
-    x2, y2 = min(x0 + patch_w, canvas_w), min(y0 + patch_h, canvas_h)
-    if x2 <= x1 or y2 <= y1:
-        return
-    canvas[y1:y2, x1:x2] |= patch[y1 - y0 : y2 - y0, x1 - x0 : x2 - x0]
 
 
 def _polygons_union_mask(
@@ -71,7 +52,11 @@ def _polygons_union_mask(
     # One `fillPoly` call shares a single even-odd fill across all its contours,
     # so overlapping polygons would cancel each other out. Painting each polygon
     # separately onto the same canvas keeps their union.
-    for polygon in polygons[finite].astype(np.int32):
+    valid = np.trunc(polygons[finite].astype(np.float64))
+    limits = np.iinfo(np.int32)
+    if np.any((valid < limits.min) | (valid > limits.max)):
+        raise ValueError("Oriented box coordinates must fit in int32.")
+    for polygon in valid.astype(np.int32):
         cv2.fillPoly(canvas, [polygon], color=(1,))
     return canvas.astype(bool)
 
@@ -181,11 +166,23 @@ def _detections_to_union_mask(
             _validate_shape(np.shape(mask), (len(detections), "H", "W"), "mask")
         canvas = np.zeros((height, width), dtype=bool)
         if isinstance(mask, CompactMask):
-            # Union the RLE crops without decoding the full frame, then paste the
-            # single bbox-local union crop at its offset, clipped to the canvas.
-            union = _compact_mask_union([mask])
-            offset_x, offset_y = (int(value) for value in union.offsets[0])
-            _paste_mask(canvas, union.crop(0), (offset_x, offset_y))
+            # Read only columns intersecting the zone; even a single foreground
+            # run can span a crop too large to decode or expand into intervals.
+            for rle, shape, offset in zip(mask._rles, mask._crop_shapes, mask.offsets):
+                crop_h, crop_w = (int(value) for value in shape)
+                offset_x, offset_y = (int(value) for value in offset)
+                x_start = max(0, -offset_x)
+                x_stop = min(crop_w, width - offset_x)
+                if x_stop <= x_start or offset_y >= height or offset_y + crop_h <= 0:
+                    continue
+                columns = _rle_split_cols(rle, crop_h, crop_w, x_start, x_stop - 1)
+                for x, runs in enumerate(columns, start=x_start + offset_x):
+                    y = offset_y
+                    for index, length in enumerate(runs):
+                        end = y + length
+                        if index % 2 and end > 0 and y < height:
+                            canvas[max(y, 0) : min(end, height), x] = True
+                        y = end
         else:
             # Reduce only the overlapping window: pixels beyond the canvas are
             # outside the zone, and canvas pixels beyond the frame stay empty.
@@ -434,7 +431,8 @@ class PolygonZone:
                 example because the polygon lies entirely at negative coordinates,
                 even when `detections` is empty; or if a dense detection mask is
                 not of shape `(N, H, W)` or the oriented box corners are not of
-                shape `(N, K, 2)`, with `N` detections.
+                shape `(N, K, 2)`, with `N` detections, or their finite coordinates
+                cannot be represented as `int32` after truncation.
 
         Example:
             ```pycon
