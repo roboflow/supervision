@@ -361,6 +361,39 @@ def test_xyxy_to_xcycarh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
     np.testing.assert_allclose(result, expected_result)
 
 
+class TestXyxyToXcycarhIntegerPrecision:
+    @pytest.mark.parametrize("dtype", [np.int8, np.int16, np.int32, np.int64])
+    def test_signed_span_does_not_overflow(self, dtype: type) -> None:
+        """A valid box spanning both signs retains its center and ratio."""
+        limit = np.iinfo(dtype).max
+        boxes: npt.NDArray[Any] = np.array(
+            [[-limit, -limit, limit, limit]], dtype=dtype
+        )
+
+        result = xyxy_to_xcycarh(boxes)
+
+        np.testing.assert_array_equal(result, [[0, 0, 1, float(2 * int(limit))]])
+
+    def test_small_extent_at_large_unsigned_origin(self) -> None:
+        """Widths and heights retain unit precision above float64's exact range."""
+        origin = 2**63
+        boxes = np.array([[origin, origin, origin + 2, origin + 4]], dtype=np.uint64)
+
+        result = xyxy_to_xcycarh(boxes)
+
+        np.testing.assert_array_equal(
+            result, [[float(origin + 1), float(origin + 2), 0.5, 4]]
+        )
+
+    def test_zero_height_still_has_zero_aspect_ratio(self) -> None:
+        """A zero-height integer box keeps the documented zero-ratio behavior."""
+        boxes = np.array([[-100, 10, 100, 10]], dtype=np.int8)
+
+        result = xyxy_to_xcycarh(boxes)
+
+        np.testing.assert_array_equal(result, [[0, 10, 0, 0]])
+
+
 @pytest.mark.parametrize(
     ("xcycwh", "expected_result"),
     [

@@ -251,6 +251,8 @@ def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
     Returns:
         Bounding box in format
             `(center x, center y, aspect ratio, height)`. Shape `(N, 4)`.
+            Integer coordinates are calculated without integer overflow and the
+            result is float64. Very large values may be rounded to float64.
 
     Examples:
         ```pycon
@@ -270,10 +272,20 @@ def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
         return np.empty((0, 4), dtype=float)
 
     x1, y1, x2, y2 = xyxy.T
-    width = x2 - x1
-    height = y2 - y1
-    center_x = x1 + width / 2
-    center_y = y1 + height / 2
+    if np.issubdtype(xyxy.dtype, np.integer):
+        # Compute integer differences before float conversion to retain small
+        # extents at origins beyond float64's exact integer range.
+        from supervision.detection.utils.boxes import _box_midpoint
+
+        extents = xyxy_to_xywh(xyxy)
+        width, height = extents[:, 2], extents[:, 3]
+        center_x = _box_midpoint(x1, x2)
+        center_y = _box_midpoint(y1, y2)
+    else:
+        width = x2 - x1
+        height = y2 - y1
+        center_x = x1 + width / 2
+        center_y = y1 + height / 2
 
     aspect_ratio = np.divide(
         width,
