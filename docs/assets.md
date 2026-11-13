@@ -1,21 +1,11 @@
 ---
 comments: true
+description: API reference for supervision's assets module — download sample video and image files for demos, testing, and tutorials.
 ---
 
 # Assets
 
-Supervision offers an assets download utility that allows you to download video files
-that you can use in your demos.
-
-## Install extra
-
-To install the Supervision assets utility, you can use `pip`. This utility is available
-as an extra within the Supervision package.
-
-!!! example "pip install"
-    ```bash
-    pip install "supervision[assets]"
-    ```
+Supervision offers an assets download utility that allows you to download image and video files that you can use in your demos.
 
 <div class="md-typeset">
     <h2><a href="#supervision.assets.downloader.download_assets.download_assets">download_assets</a></h2>
@@ -28,3 +18,9 @@ as an extra within the Supervision package.
 </div>
 
 :::supervision.assets.list.VideoAssets
+
+<div class="md-typeset">
+    <h2><a href="#supervision.assets.list.ImageAssets">ImageAssets</a></h2>
+</div>
+
+:::supervision.assets.list.ImageAssets

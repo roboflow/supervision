@@ -4,13 +4,23 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: ⬆️
+    target-branch: "develop"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
   # Python
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: ⬆️
+    target-branch: "develop"

@@ -1,6 +1,6 @@
 name: 🤩 Feature Request
-description: Suggest a Supervision idea
-# title: " "
+title: "[Feature]: "
+description: Suggest a new feature or improvement
 labels: [enhancement]
 body:
   - type: markdown
@@ -11,39 +11,40 @@ body:
   - type: checkboxes
     attributes:
       label: Search before asking
-      description: >
-        Please search the [issues](https://github.com/roboflow/supervision/issues) to see if a similar feature request already exists.
+      description: Please search [issues](https://github.com/roboflow/supervision/issues) and [discussions](https://github.com/roboflow/supervision/discussions) first.
       options:
-        - label: >
-            I have searched the Supervision [issues](https://github.com/roboflow/supervision/issues) and found no similar feature requests.
+        - label: I have searched the issues and discussions and found no similar feature request.
           required: true
 
   - type: textarea
     attributes:
-      label: Description
-      description: A short description of your feature.
+      label: Feature Description
+      description: What feature would you like and why?
       placeholder: |
-        What new feature would you like to see in Supervision?
+        **What:** Describe the feature...
+
+        **Why:** What problem does it solve? Who would benefit?
+
+        **How (optional):** Any ideas on implementation?
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: Use case
-      description: |
-        Describe the use case of your feature request. It will help us understand and prioritize the feature request.
+      label: Example Usage
+      description: (Optional) Show how you'd like to use this feature
       placeholder: |
-        How would this feature be used, and who would use it?
+        ```python
+        import supervision as sv
 
-  - type: textarea
-    attributes:
-      label: Additional
-      description: Anything else you would like to share?
+        # Your example usage here
+        ```
+    validations:
+      required: false
 
   - type: checkboxes
     attributes:
       label: Are you willing to submit a PR?
-      description: >
-        (Optional) We encourage you to submit a [Pull Request](https://github.com/roboflow/supervision/pulls) (PR) to help improve Supervision for everyone, especially if you have a good understanding of how to implement a fix or feature.
+      description: (Optional) We encourage community contributions!
       options:
         - label: Yes I'd like to help by submitting a PR!

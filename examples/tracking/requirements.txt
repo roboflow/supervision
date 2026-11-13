@@ -1,4 +1,7 @@
-inference==0.9.17
-supervision==0.19.0
+inference
+rfdetr
+supervision
 tqdm
+trackers
 ultralytics
+jsonargparse[signatures]

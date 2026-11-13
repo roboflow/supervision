@@ -1,0 +1,1211 @@
+import csv
+import errno
+import io
+import json
+import os
+from collections.abc import Callable
+from functools import partial
+from pathlib import Path
+from typing import Any
+from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
+import supervision as sv
+from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.tools import csv_sink as csv_sink_module
+from supervision.detection.tools.csv_sink import CSVSink
+from tests.helpers import _create_detections
+
+
+class TestCSVSinkEncoding:
+    @pytest.mark.parametrize("label", ["café", "猫"])
+    def test_preserves_unicode_with_non_utf8_default(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, label: str
+    ) -> None:
+        """CSV labels and custom fields round-trip even under a legacy locale."""
+        path = tmp_path / "detections.csv"
+        monkeypatch.setattr(
+            csv_sink_module, "open", partial(open, encoding="cp1252"), raising=False
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[1, 2, 3, 4]]),
+            data={"class_name": np.array([label])},
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"note": f'{label}, "quoted"\nline'})
+
+        with path.open(encoding="utf-8", newline="") as file:
+            rows = list(csv.DictReader(file))
+        assert len(rows) == 1
+        assert rows[0]["class_name"] == label
+        assert rows[0]["note"] == f'{label}, "quoted"\nline'
+
+
+@pytest.mark.parametrize(
+    (
+        "detections",
+        "custom_data",
+        "second_detections",
+        "second_custom_data",
+        "file_name",
+        "expected_result",
+    ),
+    [
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.7, 0.8],
+                class_id=[0, 0],
+                tracker_id=[0, 1],
+                data={"class_name": ["person", "person"]},
+            ),
+            {"frame_number": 42},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45], [55, 65, 75, 85]],
+                confidence=[0.6, 0.9],
+                class_id=[1, 1],
+                tracker_id=[2, 3],
+                data={"class_name": ["car", "car"]},
+            ),
+            {"frame_number": 43},
+            "test_detections.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "class_name",
+                    "frame_number",
+                ],
+                ["10.0", "20.0", "30.0", "40.0", "0", "0.7", "0", "person", "42"],
+                ["50.0", "60.0", "70.0", "80.0", "0", "0.8", "1", "person", "42"],
+                ["15.0", "25.0", "35.0", "45.0", "1", "0.6", "2", "car", "43"],
+                ["55.0", "65.0", "75.0", "85.0", "1", "0.9", "3", "car", "43"],
+            ],
+        ),  # multiple detections
+        (
+            _create_detections(
+                xyxy=[[60, 70, 80, 90], [100, 110, 120, 130]],
+                tracker_id=[4, 5],
+                data={"class_name": ["bike", "dog"]},
+            ),
+            {"frame_number": 44},
+            _create_detections(
+                xyxy=[[65, 75, 85, 95], [105, 115, 125, 135]],
+                confidence=[0.5, 0.4],
+                data={"class_name": ["tree", "cat"]},
+            ),
+            {"frame_number": 45},
+            "test_detections_missing_fields.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "class_name",
+                    "frame_number",
+                ],
+                ["60.0", "70.0", "80.0", "90.0", "", "", "4", "bike", "44"],
+                ["100.0", "110.0", "120.0", "130.0", "", "", "5", "dog", "44"],
+                ["65.0", "75.0", "85.0", "95.0", "", "0.5", "", "tree", "45"],
+                ["105.0", "115.0", "125.0", "135.0", "", "0.4", "", "cat", "45"],
+            ],
+        ),  # missing fields
+        (
+            _create_detections(
+                xyxy=[[10, 11, 12, 13]],
+                confidence=[0.95],
+                data={"class_name": "unknown", "is_detected": True, "score": 1},
+            ),
+            {"frame_number": 46},
+            _create_detections(
+                xyxy=[[14, 15, 16, 17]],
+                data={"class_name": "artifact", "is_detected": False, "score": 0.85},
+            ),
+            {"frame_number": 47},
+            "test_detections_varied_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "class_name",
+                    "frame_number",
+                    "is_detected",
+                    "score",
+                ],
+                [
+                    "10.0",
+                    "11.0",
+                    "12.0",
+                    "13.0",
+                    "",
+                    "0.95",
+                    "",
+                    "unknown",
+                    "46",
+                    "True",
+                    "1",
+                ],
+                [
+                    "14.0",
+                    "15.0",
+                    "16.0",
+                    "17.0",
+                    "",
+                    "",
+                    "",
+                    "artifact",
+                    "47",
+                    "False",
+                    "0.85",
+                ],
+            ],
+        ),  # Inconsistent Data Types
+        (
+            _create_detections(
+                xyxy=[[20, 21, 22, 23]],
+            ),
+            {
+                "metadata": {"sensor_id": 101, "location": "north"},
+                "tags": ["urgent", "review"],
+            },
+            _create_detections(
+                xyxy=[[14, 15, 16, 17]],
+            ),
+            {
+                "metadata": {"sensor_id": 104, "location": "west"},
+                "tags": ["not-urgent", "done"],
+            },
+            "test_detections_complex_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "metadata",
+                    "tags",
+                ],
+                [
+                    "20.0",
+                    "21.0",
+                    "22.0",
+                    "23.0",
+                    "",
+                    "",
+                    "",
+                    "{'sensor_id': 101, 'location': 'north'}",
+                    "['urgent', 'review']",
+                ],
+                [
+                    "14.0",
+                    "15.0",
+                    "16.0",
+                    "17.0",
+                    "",
+                    "",
+                    "",
+                    "{'sensor_id': 104, 'location': 'west'}",
+                    "['not-urgent', 'done']",
+                ],
+            ],
+        ),  # Complex Data
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.9, 0.8],
+                class_id=[0, 1],
+            ),
+            {"area": np.array([400.0, 400.0]), "frame": 5},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45]],
+                confidence=[0.7],
+                class_id=[2],
+            ),
+            {"area": np.array([100.0]), "frame": 6},
+            "test_detections_mixed_custom_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "area",
+                    "frame",
+                ],
+                ["10.0", "20.0", "30.0", "40.0", "0", "0.9", "", "400.0", "5"],
+                ["50.0", "60.0", "70.0", "80.0", "1", "0.8", "", "400.0", "5"],
+                ["15.0", "25.0", "35.0", "45.0", "2", "0.7", "", "100.0", "6"],
+            ],
+        ),  # mixed custom_data: ndarray sliced per row, scalar broadcast to all rows
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.9, 0.8],
+                class_id=[0, 1],
+            ),
+            {"ids": ["a", "b"], "tags": ("x", "y"), "frame": 7},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45]],
+                confidence=[0.7],
+                class_id=[2],
+            ),
+            {"ids": ["c"], "tags": ("z",), "frame": 8},
+            "test_detections_list_custom_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "frame",
+                    "ids",
+                    "tags",
+                ],
+                ["10.0", "20.0", "30.0", "40.0", "0", "0.9", "", "7", "a", "x"],
+                ["50.0", "60.0", "70.0", "80.0", "1", "0.8", "", "7", "b", "y"],
+                ["15.0", "25.0", "35.0", "45.0", "2", "0.7", "", "8", "c", "z"],
+            ],
+        ),  # list/tuple custom_data matching detection count is sliced per row
+        (
+            sv.Detections(
+                xyxy=np.array([[10, 20, 30, 40], [50, 60, 70, 80]]),
+                data={"labels": ["person", "car"]},
+            ),
+            None,
+            sv.Detections(
+                xyxy=np.array([[15, 25, 35, 45]]),
+                data={"labels": ["bus"]},
+            ),
+            None,
+            "test_detections_plain_list_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "labels",
+                ],
+                ["10", "20", "30", "40", "", "", "", "person"],
+                ["50", "60", "70", "80", "", "", "", "car"],
+                ["15", "25", "35", "45", "", "", "", "bus"],
+            ],
+        ),  # plain Python list in detections.data is sliced per row without custom_data
+    ],
+)
+def test_csv_sink(
+    detections: sv.Detections,
+    custom_data: dict[str, Any] | None,
+    second_detections: sv.Detections,
+    second_custom_data: dict[str, Any] | None,
+    file_name: str,
+    expected_result: list[list[Any]],
+) -> None:
+    with sv.CSVSink(file_name) as sink:
+        if custom_data is None:
+            sink.append(detections)
+        else:
+            sink.append(detections, custom_data)
+        if second_custom_data is None:
+            sink.append(second_detections)
+        else:
+            sink.append(second_detections, second_custom_data)
+
+    assert_csv_equal(file_name, expected_result)
+
+
+@pytest.mark.parametrize(
+    (
+        "detections",
+        "custom_data",
+        "second_detections",
+        "second_custom_data",
+        "file_name",
+        "expected_result",
+    ),
+    [
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.7, 0.8],
+                class_id=[0, 0],
+                tracker_id=[0, 1],
+                data={"class_name": ["person", "person"]},
+            ),
+            {"frame_number": 42},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45], [55, 65, 75, 85]],
+                confidence=[0.6, 0.9],
+                class_id=[1, 1],
+                tracker_id=[2, 3],
+                data={"class_name": ["car", "car"]},
+            ),
+            {"frame_number": 43},
+            "test_detections.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "class_name",
+                    "frame_number",
+                ],
+                ["10.0", "20.0", "30.0", "40.0", "0", "0.7", "0", "person", "42"],
+                ["50.0", "60.0", "70.0", "80.0", "0", "0.8", "1", "person", "42"],
+                ["15.0", "25.0", "35.0", "45.0", "1", "0.6", "2", "car", "43"],
+                ["55.0", "65.0", "75.0", "85.0", "1", "0.9", "3", "car", "43"],
+            ],
+        ),  # multiple detections
+        (
+            _create_detections(
+                xyxy=[[60, 70, 80, 90], [100, 110, 120, 130]],
+                tracker_id=[4, 5],
+                data={"class_name": ["bike", "dog"]},
+            ),
+            {"frame_number": 44},
+            _create_detections(
+                xyxy=[[65, 75, 85, 95], [105, 115, 125, 135]],
+                confidence=[0.5, 0.4],
+                data={"class_name": ["tree", "cat"]},
+            ),
+            {"frame_number": 45},
+            "test_detections_missing_fields.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "class_name",
+                    "frame_number",
+                ],
+                ["60.0", "70.0", "80.0", "90.0", "", "", "4", "bike", "44"],
+                ["100.0", "110.0", "120.0", "130.0", "", "", "5", "dog", "44"],
+                ["65.0", "75.0", "85.0", "95.0", "", "0.5", "", "tree", "45"],
+                ["105.0", "115.0", "125.0", "135.0", "", "0.4", "", "cat", "45"],
+            ],
+        ),  # missing fields
+        (
+            _create_detections(
+                xyxy=[[10, 11, 12, 13]],
+                confidence=[0.95],
+                data={"class_name": "unknown", "is_detected": True, "score": 1},
+            ),
+            {"frame_number": 46},
+            _create_detections(
+                xyxy=[[14, 15, 16, 17]],
+                data={"class_name": "artifact", "is_detected": False, "score": 0.85},
+            ),
+            {"frame_number": 47},
+            "test_detections_varied_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "class_name",
+                    "frame_number",
+                    "is_detected",
+                    "score",
+                ],
+                [
+                    "10.0",
+                    "11.0",
+                    "12.0",
+                    "13.0",
+                    "",
+                    "0.95",
+                    "",
+                    "unknown",
+                    "46",
+                    "True",
+                    "1",
+                ],
+                [
+                    "14.0",
+                    "15.0",
+                    "16.0",
+                    "17.0",
+                    "",
+                    "",
+                    "",
+                    "artifact",
+                    "47",
+                    "False",
+                    "0.85",
+                ],
+            ],
+        ),  # Inconsistent Data Types
+        (
+            _create_detections(
+                xyxy=[[20, 21, 22, 23]],
+            ),
+            {
+                "metadata": {"sensor_id": 101, "location": "north"},
+                "tags": ["urgent", "review"],
+            },
+            _create_detections(
+                xyxy=[[14, 15, 16, 17]],
+            ),
+            {
+                "metadata": {"sensor_id": 104, "location": "west"},
+                "tags": ["not-urgent", "done"],
+            },
+            "test_detections_complex_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "metadata",
+                    "tags",
+                ],
+                [
+                    "20.0",
+                    "21.0",
+                    "22.0",
+                    "23.0",
+                    "",
+                    "",
+                    "",
+                    "{'sensor_id': 101, 'location': 'north'}",
+                    "['urgent', 'review']",
+                ],
+                [
+                    "14.0",
+                    "15.0",
+                    "16.0",
+                    "17.0",
+                    "",
+                    "",
+                    "",
+                    "{'sensor_id': 104, 'location': 'west'}",
+                    "['not-urgent', 'done']",
+                ],
+            ],
+        ),  # Complex Data
+    ],
+)
+def test_csv_sink_manual(
+    detections: sv.Detections,
+    custom_data: dict[str, Any],
+    second_detections: sv.Detections,
+    second_custom_data: dict[str, Any],
+    file_name: str,
+    expected_result: list[list[Any]],
+) -> None:
+    sink = sv.CSVSink(file_name)
+    sink.open()
+    sink.append(detections, custom_data)
+    sink.append(second_detections, second_custom_data)
+    sink.close()
+
+    assert_csv_equal(file_name, expected_result)
+
+
+def assert_csv_equal(file_name: str, expected_rows: list[list[Any]]) -> None:
+    """Assert a CSV sink file holds the expected rows, then delete it."""
+    with open(file_name, newline="") as file:
+        reader = csv.reader(file)
+        for i, row in enumerate(reader):
+            assert [str(item) for item in expected_rows[i]] == row, (
+                f"Row in CSV didn't match expected output: {row} != {expected_rows[i]}"
+            )
+
+    os.remove(file_name)
+
+
+@pytest.mark.parametrize(
+    ("value", "i", "n", "expected"),
+    [
+        (["x"], 0, 1, "x"),
+        (["a", "b", "c"], 0, 2, ["a", "b", "c"]),
+        ([42, "hello", None], 1, 3, "hello"),
+        ([["a", "b"], ["c", "d"]], 0, 2, ["a", "b"]),
+        ("ab", 0, 2, "ab"),
+        (("z",), 0, 1, "z"),
+    ],
+)
+def test_csv_sink_slice_value(value: Any, i: int, n: int, expected: Any) -> None:
+    assert CSVSink._slice_value(value, i, n) == expected
+
+
+@pytest.mark.parametrize(
+    ("custom_data", "expected_value"),
+    [
+        pytest.param(
+            {"embedding": np.array([1, 2, 3])},
+            np.array([1, 2, 3]),
+            id="custom_data_ndarray_length_mismatch",
+        )
+    ],
+)
+def test_csv_sink_broadcasts_ndarray_when_length_mismatches_detection_count(
+    custom_data: dict[str, Any] | None, expected_value: np.ndarray
+) -> None:
+    """Mismatched ndarray data is broadcast instead of indexed per row."""
+    detections = sv.Detections(
+        xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+    )
+
+    rows = CSVSink.parse_detection_data(detections, custom_data=custom_data)
+
+    assert len(rows) == 2
+    np.testing.assert_array_equal(rows[0]["embedding"], expected_value)
+    np.testing.assert_array_equal(rows[1]["embedding"], expected_value)
+
+
+class TestCSVSinkLifecycle:
+    """Tests for opening and reopening a CSV sink."""
+
+    def test_reopening_starts_fresh_output_session(self, tmp_path: Any) -> None:
+        """Reopening a sink writes a new header and field schema."""
+        first_path = tmp_path / "first.csv"
+        second_path = tmp_path / "second.csv"
+        first_detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={"first_label": ["first"]},
+        )
+        second_detections = sv.Detections(
+            xyxy=np.array([[20, 20, 30, 30]]),
+            data={"second_label": ["second"]},
+        )
+        sink = sv.CSVSink(str(first_path))
+
+        with sink:
+            sink.append(first_detections)
+        sink.file_name = str(second_path)
+        with sink:
+            sink.append(second_detections)
+
+        with open(second_path, newline="") as file:
+            reader = csv.DictReader(file)
+            field_names = reader.fieldnames
+            rows = list(reader)
+
+        assert field_names == [
+            "x_min",
+            "y_min",
+            "x_max",
+            "y_max",
+            "class_id",
+            "confidence",
+            "tracker_id",
+            "second_label",
+        ]
+        assert rows == [
+            {
+                "x_min": "20",
+                "y_min": "20",
+                "x_max": "30",
+                "y_max": "30",
+                "class_id": "",
+                "confidence": "",
+                "tracker_id": "",
+                "second_label": "second",
+            }
+        ]
+
+
+def _run_empty_csv_session(sink: CSVSink, body_error: BaseException | None) -> None:
+    """Exit an empty CSV session, optionally raising a processing error."""
+    with sink:
+        sink.append(sv.Detections.empty())
+        if body_error is not None:
+            raise body_error
+
+
+class TestCSVSinkExitErrors:
+    @pytest.mark.parametrize("failure_phase", ["header", "flush"])
+    @pytest.mark.parametrize(
+        "body_error_type",
+        [
+            None,
+            pytest.param(ValueError, id="callback"),
+            pytest.param(KeyboardInterrupt, id="interrupt"),
+            pytest.param(SystemExit, id="system-exit"),
+        ],
+    )
+    def test_reports_cleanup_failure_without_replacing_body_error(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        failure_phase: str,
+        body_error_type: type[BaseException] | None,
+    ) -> None:
+        """Keep the block error when deferred-header writing or flushing fails."""
+        buffer = io.BytesIO()
+        stream = io.TextIOWrapper(
+            buffer, encoding="utf-8", write_through=failure_phase == "header"
+        )
+        cleanup_error = OSError(errno.ENOSPC, "No space left on device")
+        monkeypatch.setattr(buffer, "write", Mock(side_effect=cleanup_error))
+        monkeypatch.setattr(
+            csv_sink_module, "open", Mock(return_value=stream), raising=False
+        )
+        monkeypatch.setattr(csv_sink_module.logger, "handlers", [caplog.handler])
+        body_error = (
+            None if body_error_type is None else body_error_type("processing failed")
+        )
+        expected_error = cleanup_error if body_error is None else body_error
+        sink = CSVSink(str(tmp_path / "detections.csv"))
+
+        with pytest.raises(type(expected_error)) as caught:
+            _run_empty_csv_session(sink, body_error)
+
+        assert caught.value is expected_error
+        assert stream.closed
+        assert buffer.closed
+        if body_error is None:
+            assert not caplog.records
+        else:
+            assert len(caplog.records) == 1
+            record = caplog.records[0]
+            assert (
+                record.getMessage()
+                == "Failed to close CSV sink while handling an error."
+            )
+            assert record.exc_info is not None
+            assert record.exc_info[1] is cleanup_error
+
+    def test_preserves_body_error_when_close_succeeds(self, tmp_path: Path) -> None:
+        """Closing the CSV after a processing error still writes its deferred header."""
+        path = tmp_path / "detections.csv"
+        sink = CSVSink(str(path))
+        body_error = ValueError("processing failed")
+
+        with pytest.raises(ValueError, match="processing failed") as caught:
+            _run_empty_csv_session(sink, body_error)
+
+        assert caught.value is body_error
+        assert sink.file is not None
+        assert sink.file.closed
+        with path.open(encoding="utf-8", newline="") as file:
+            assert list(csv.reader(file)) == [csv_sink_module.BASE_HEADER]
+
+
+class TestCSVSinkEmptyBatches:
+    """Tests for appending batches that contain no detections.
+
+    Also covers close() idempotency for the deferred-header path, since that behavior is
+    only reachable through an empty-batch-only session.
+    """
+
+    def test_empty_first_batch_does_not_drop_later_columns(self, tmp_path: Any) -> None:
+        """A detection-free first frame leaves the header to the first real frame."""
+        path = tmp_path / "empty_first.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(detections, custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert rows == [
+            {
+                "x_min": "10",
+                "y_min": "20",
+                "x_max": "30",
+                "y_max": "40",
+                "class_id": "",
+                "confidence": "",
+                "tracker_id": "",
+                "class_name": "person",
+                "frame_number": "1",
+            }
+        ]
+
+    def test_empty_batch_does_not_warn_about_field_names(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A detection-free frame is not a header mismatch worth reporting.
+
+        The trailing empty batch must also contribute zero data rows: it is
+        not just silent about the field-name mismatch, it writes nothing at
+        all beyond the header the first, populated batch already fixed.
+        """
+        path = tmp_path / "empty_second.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+        warnings: list[tuple[Any, ...]] = []
+        monkeypatch.setattr(
+            csv_sink_module.logger,
+            "warning",
+            lambda *args, **kwargs: warnings.append(args),
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 1})
+
+        assert warnings == []
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+        assert len(rows) == 2  # header row plus the one populated detection row
+
+    def test_only_empty_batches_still_write_header(self, tmp_path: Any) -> None:
+        """A run that never detects anything stays readable as an empty table."""
+        path = tmp_path / "all_empty.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            reader = csv.reader(file)
+            rows = list(reader)
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+                "frame_number",
+            ]
+        ]
+
+    def test_closing_twice_does_not_duplicate_header(self, tmp_path: Any) -> None:
+        """The deferred header is written once, however often close() is called."""
+        path = tmp_path / "double_close.csv"
+        sink = sv.CSVSink(str(path))
+
+        sink.open()
+        sink.append(sv.Detections.empty())
+        sink.close()
+        sink.close()
+
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+            ]
+        ]
+
+    def test_differing_schema_empty_batches_use_first_batch_header(
+        self, tmp_path: Any
+    ) -> None:
+        """Empty batches with differing custom_data keys resolve via first-wins.
+
+        No batch in this run ever carries a detection, so the deferred header is built
+        entirely from empty-batch schemas. When those empty batches disagree on their
+        custom_data keys, the file must keep the schema remembered from the first empty
+        batch, not silently overwrite it with the schema of a later, equally empty
+        batch.
+        """
+        path = tmp_path / "differing_empty_schema.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"camera_id": "north"})
+
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+                "frame_number",
+            ]
+        ]
+
+    def test_failing_deferred_header_write_still_closes_file(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A writer failing on the deferred header still releases the file handle."""
+        path = tmp_path / "failing_header.csv"
+        sink = sv.CSVSink(str(path))
+        sink.open()
+        sink.append(sv.Detections.empty())
+        failing_writer = Mock(spec=csv_sink_module.WriterProtocol)
+        failing_writer.writerow.side_effect = OSError("disk full")
+        monkeypatch.setattr(sink, "writer", failing_writer)
+
+        with pytest.raises(OSError, match="disk full"):
+            sink.close()
+
+        assert sink.file is not None
+        assert sink.file.closed
+
+    def test_reopening_after_all_empty_session_resets_deferred_schema(
+        self, tmp_path: Any
+    ) -> None:
+        """Reopening after an all-empty session drops the stale deferred schema.
+
+        Session 1 never appends a real detection, so ``open()`` resetting
+        ``deferred_field_names`` is the only thing standing between session 2 and a
+        header still carrying columns from a run that detected nothing.
+        """
+        path = tmp_path / "reopen_after_empty.csv"
+        populated_detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+        sink = sv.CSVSink(str(path))
+
+        with sink:
+            sink.append(sv.Detections.empty(), custom_data={"stale_field": 0})
+        with sink:
+            sink.append(populated_detections, custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            reader = csv.DictReader(file)
+            field_names = reader.fieldnames
+
+        assert field_names == [
+            "x_min",
+            "y_min",
+            "x_max",
+            "y_max",
+            "class_id",
+            "confidence",
+            "tracker_id",
+            "class_name",
+            "frame_number",
+        ]
+
+
+class TestCSVSinkArrayData:
+    """Tests for writing array-valued detection data to CSV cells."""
+
+    @staticmethod
+    def _write_rows(path: Path, detections: sv.Detections) -> list[dict[str, str]]:
+        """Write detections through CSVSink and return the rows read back."""
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections)
+        with path.open(newline="") as file:
+            return list(csv.DictReader(file))
+
+    def test_high_dimensional_embedding_round_trips_exactly(
+        self, tmp_path: Path
+    ) -> None:
+        """A 1536-d float32 embedding per detection is recoverable from its cell."""
+        embedding = np.random.default_rng(0).random((2, 1536), dtype=np.float32)
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={"embedding": embedding},
+        )
+
+        rows = self._write_rows(tmp_path / "embedding.csv", detections)
+
+        for row, expected in zip(rows, embedding):
+            restored = np.array(json.loads(row["embedding"]), dtype=np.float32)
+            np.testing.assert_array_equal(restored, expected)
+
+    def test_oriented_box_corners_written_without_newlines(
+        self, tmp_path: Path
+    ) -> None:
+        """Each detection's (4, 2) corner array is a single-line JSON list."""
+        corners = np.array(
+            [
+                [[0.5, 0.25], [10.0, 0.0], [10.0, 5.0], [0.0, 5.0]],
+                [[1.0, 1.0], [2.0, 1.0], [2.0, 2.0], [1.0, 2.0]],
+            ]
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 5], [1, 1, 2, 2]]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+        rows = self._write_rows(tmp_path / "obb.csv", detections)
+
+        assert [row[ORIENTED_BOX_COORDINATES] for row in rows] == [
+            "[[0.5, 0.25], [10.0, 0.0], [10.0, 5.0], [0.0, 5.0]]",
+            "[[1.0, 1.0], [2.0, 1.0], [2.0, 2.0], [1.0, 2.0]]",
+        ]
+
+    @pytest.mark.parametrize(
+        ("array", "expected_cells"),
+        [
+            pytest.param(
+                np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int16),
+                ["[1, 2, 3]", "[4, 5, 6]"],
+                id="int",
+            ),
+            pytest.param(
+                np.array([[True, False], [False, True]]),
+                ["[true, false]", "[false, true]"],
+                id="bool",
+            ),
+            pytest.param(
+                np.array([["a", "b"], ["c", "d"]]),
+                ['["a", "b"]', '["c", "d"]'],
+                id="str",
+            ),
+            pytest.param(np.zeros((2, 0)), ["[]", "[]"], id="empty"),
+        ],
+    )
+    def test_non_float_arrays_written_as_json_lists(
+        self, tmp_path: Path, array: np.ndarray, expected_cells: list[str]
+    ) -> None:
+        """Integer, boolean, string and empty per-detection arrays become JSON."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={"values": array},
+        )
+
+        rows = self._write_rows(tmp_path / "values.csv", detections)
+
+        assert [row["values"] for row in rows] == expected_cells
+
+    def test_non_finite_floats_round_trip(self, tmp_path: Path) -> None:
+        """NaN and infinities are written as JSON tokens and parse back."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={"values": np.array([[np.nan, np.inf, -np.inf, 1.5]])},
+        )
+
+        rows = self._write_rows(tmp_path / "non_finite.csv", detections)
+
+        restored = np.array(json.loads(rows[0]["values"]))
+        np.testing.assert_array_equal(restored, detections.data["values"][0])
+
+    def test_broadcast_array_written_in_full_to_every_row(self, tmp_path: Path) -> None:
+        """A custom array whose length differs from the batch size is not sliced."""
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]))
+        path = tmp_path / "broadcast.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(
+                detections, custom_data={"embedding": np.array([1.5, 2.5, 3.5])}
+            )
+        with path.open(newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert [row["embedding"] for row in rows] == ["[1.5, 2.5, 3.5]"] * 2
+
+    def test_unserializable_array_does_not_raise(self, tmp_path: Path) -> None:
+        """An array JSON cannot represent falls back to its string form."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={"values": np.array([[1 + 2j, 3 + 4j]])},
+        )
+
+        rows = self._write_rows(tmp_path / "complex.csv", detections)
+
+        assert rows[0]["values"] == str(np.array([1 + 2j, 3 + 4j]))
+
+    def test_scalar_and_string_data_output_is_unchanged(self, tmp_path: Path) -> None:
+        """Per-detection scalars and strings keep their plain str() output."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={
+                "class_name": np.array(["person"]),
+                "score": np.array([0.85], dtype=np.float32),
+                "flag": np.array([True]),
+                "zero_dim": np.array(7),
+            },
+        )
+
+        rows = self._write_rows(tmp_path / "scalars.csv", detections)
+
+        assert (
+            rows[0]["class_name"],
+            rows[0]["score"],
+            rows[0]["flag"],
+            rows[0]["zero_dim"],
+        ) == ("person", "0.85", "True", "7")
+
+    def test_matches_json_sink_values(self, tmp_path: Path) -> None:
+        """Array cells parse to the same values JSONSink writes for them."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={
+                "embedding": np.random.default_rng(1).random((2, 8), dtype=np.float32),
+                ORIENTED_BOX_COORDINATES: np.arange(16.0).reshape(2, 4, 2),
+            },
+        )
+        json_path = tmp_path / "output.json"
+
+        rows = self._write_rows(tmp_path / "output.csv", detections)
+        with sv.JSONSink(str(json_path)) as sink:
+            sink.append(detections)
+        with json_path.open() as file:
+            json_rows = json.load(file)
+
+        for row, json_row in zip(rows, json_rows):
+            assert json.loads(row["embedding"]) == json_row["embedding"]
+            assert (
+                json.loads(row[ORIENTED_BOX_COORDINATES])
+                == json_row[ORIENTED_BOX_COORDINATES]
+            )
+
+    def test_circular_object_array_falls_back_to_string(self, tmp_path: Path) -> None:
+        """Circular object arrays keep the CSV writer's string fallback."""
+        cycle: list[object] = []
+        cycle.append(cycle)
+        values = np.empty(1, dtype=object)
+        values[0] = cycle
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]))
+        path = tmp_path / "circular.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"values": values})
+        with path.open(newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert [row["values"] for row in rows] == [str(values)] * 2
+
+
+class TestCSVSinkReservedColumns:
+    """Cover collisions with built-in detection columns."""
+
+    @pytest.mark.parametrize("count", [0, 1])
+    @pytest.mark.parametrize(
+        ("field_name", "from_custom_data"),
+        [
+            pytest.param("confidence", True, id="custom-data"),
+            pytest.param("x_min", False, id="detection-data"),
+        ],
+    )
+    def test_rejects_collision_without_writing_a_header(
+        self,
+        tmp_path: Path,
+        count: int,
+        field_name: str,
+        from_custom_data: bool,
+    ) -> None:
+        """An invalid batch cannot establish a CSV schema."""
+        path = tmp_path / "detections.csv"
+        custom_data = {field_name: 0.25} if from_custom_data else None
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]])[:count],
+            confidence=np.full(count, 0.75),
+            data={} if from_custom_data else {field_name: np.full(count, 42)},
+        )
+
+        with CSVSink(str(path)) as sink:
+            with pytest.raises(
+                ValueError, match=rf"reserved CSV column names {field_name}"
+            ):
+                sink.append(detections, custom_data=custom_data)
+
+        assert path.read_bytes() == b""
+
+    @pytest.mark.parametrize(
+        "parse", [CSVSink.parse_detection_data, CSVSink.parse_field_names]
+    )
+    def test_parsers_report_all_conflicts(self, parse: Callable[..., object]) -> None:
+        """The public row and header helpers share the reserved-name policy."""
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]]),
+            data={"x_min": np.array([42])},
+        )
+
+        with pytest.raises(
+            ValueError, match="reserved CSV column names confidence, x_min"
+        ):
+            parse(detections, custom_data={"confidence": 0.25, "x_min": 99})
+
+    def test_rejected_batch_preserves_existing_rows_and_extra_fields(
+        self, tmp_path: Path
+    ) -> None:
+        """A rejected batch leaves the sink usable and valid extra fields intact."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]]),
+            confidence=np.array([0.75]),
+            data={"frame": np.array([0])},
+        )
+
+        with CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame": 1})
+            with pytest.raises(
+                ValueError, match="reserved CSV column names confidence"
+            ):
+                sink.append(detections, custom_data={"frame": 2, "confidence": 0.25})
+            sink.append(detections, custom_data={"frame": 3})
+
+        with path.open(newline="", encoding="utf-8") as file:
+            rows = list(csv.reader(file))
+        assert rows == [
+            [*csv_sink_module.BASE_HEADER, "frame"],
+            ["2.0", "3.0", "7.0", "8.0", "", "0.75", "", "1"],
+            ["2.0", "3.0", "7.0", "8.0", "", "0.75", "", "3"],
+        ]
+
+    def test_rejected_empty_batch_preserves_deferred_header(
+        self, tmp_path: Path
+    ) -> None:
+        """Rejecting an empty batch retains the previously deferred header."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections.empty()
+
+        with CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame": 1})
+            with pytest.raises(
+                ValueError, match="reserved CSV column names tracker_id"
+            ):
+                sink.append(detections, custom_data={"tracker_id": 3})
+
+        with path.open(newline="", encoding="utf-8") as file:
+            assert list(csv.reader(file)) == [[*csv_sink_module.BASE_HEADER, "frame"]]

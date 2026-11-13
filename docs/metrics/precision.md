@@ -1,9 +1,14 @@
 ---
 comments: true
-status: new
 ---
 
 # Precision
+
+Install the metrics extra before using this API:
+
+```bash
+pip install "supervision[metrics]"
+```
 
 <div class="md-typeset">
     <h2><a href="#supervision.metrics.precision.Precision">Precision</a></h2>
