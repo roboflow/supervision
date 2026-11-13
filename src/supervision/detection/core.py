@@ -917,12 +917,13 @@ class Detections:
                 or an object, from which `segmentation_mask`, `class_map` and
                 `confidence_mask` are read. Also accepts the per-pixel class ids
                 alone, as a base64 PNG string without a data-URI prefix or an
-                `(H, W)` integer array or tensor.
+                `(H, W)` integer array or tensor. Class IDs must fit in `int64`.
             class_map: Maps a class id, as an integer or as text, to its name, for
                 example `{"1": "road"}`. A class missing from it is named by its id.
                 Overrides the one inside `segmentation_result`.
             confidence_mask: Optional per-pixel 8-bit confidence with the same
-                shape as the class ids, in the same formats. When available,
+                shape as the class ids, in the same formats and in the range 0-255.
+                When available,
                 `confidence` is each class's mean over its pixels divided by
                 255; otherwise `confidence` is `None`. Overrides the one inside
                 `segmentation_result`.
@@ -940,7 +941,8 @@ class Detections:
         Raises:
             ValueError: If the input is a list or holds no map, a map is not valid
                 base64, not a PNG, not a single-channel integer `(H, W)` map, or the
-                two maps differ in shape.
+                two maps differ in shape, a class ID exceeds the `int64` range, or
+                confidence values are outside 0-255.
 
         Example:
             ```python

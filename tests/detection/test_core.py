@@ -3850,6 +3850,56 @@ class TestDetectionsFromSemanticSegmentation:
                 self.LABEL_MAP, confidence_mask=np.zeros((3, 3), dtype=np.uint8)
             )
 
+    def test_rejects_base64_jpeg(self) -> None:
+        """Encoded label maps must use the documented lossless PNG format."""
+        buffer = io.BytesIO()
+        Image.fromarray(self.LABEL_MAP).save(buffer, format="JPEG")
+        encoded = base64.b64encode(buffer.getvalue()).decode()
+
+        with pytest.raises(ValueError, match="PNG"):
+            Detections.from_semantic_segmentation(encoded)
+
+    @pytest.mark.parametrize("value", [-1, 256])
+    def test_rejects_confidence_outside_eight_bit_range(self, value: int) -> None:
+        """Confidence values outside the 8-bit range cannot produce valid scores."""
+        confidence = np.full(self.LABEL_MAP.shape, value, dtype=np.int16)
+
+        with pytest.raises(ValueError, match=r"confidence_mask.*0.*255"):
+            Detections.from_semantic_segmentation(
+                self.LABEL_MAP, confidence_mask=confidence
+            )
+
+    def test_rejects_unsigned_class_id_above_int64(self) -> None:
+        """Unrepresentable class IDs raise a clear error instead of wrapping."""
+        labels = np.array([[2**63]], dtype=np.uint64)
+
+        with pytest.raises(ValueError, match="int64"):
+            Detections.from_semantic_segmentation(labels)
+
+    @pytest.mark.parametrize("value", [0, 255])
+    def test_accepts_confidence_boundaries(self, value: int) -> None:
+        """Both endpoints of the 8-bit confidence range normalize correctly."""
+        confidence = np.full(self.LABEL_MAP.shape, value, dtype=np.uint16)
+
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, confidence_mask=confidence
+        )
+
+        assert detections.confidence is not None
+        assert np.array_equal(detections.confidence, [value / 255] * 2)
+
+    def test_preserves_adjacent_large_unsigned_class_ids(self) -> None:
+        """Representable uint64 labels remain distinct near the int64 limit."""
+        maximum = np.iinfo(np.int64).max
+        labels = np.array([[maximum - 1, maximum]], dtype=np.uint64)
+
+        detections = Detections.from_semantic_segmentation(labels)
+
+        assert detections.class_id is not None
+        assert isinstance(detections.mask, np.ndarray)
+        assert np.array_equal(detections.class_id, [maximum - 1, maximum])
+        assert np.array_equal(detections.mask, [[[True, False]], [[False, True]]])
+
     @pytest.mark.parametrize(
         "wrap",
         [

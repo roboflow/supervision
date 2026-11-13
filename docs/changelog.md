@@ -7,8 +7,12 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_semantic_segmentation` now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the `int64` range instead of accepting invalid scores or failing with an indexing error. ([#2898](https://github.com/roboflow/supervision/pull/2898))
+
 - `sv.Detections.from_inference` now loads Roboflow Inference semantic segmentation results, such as RF-DETR semantic models, as one detection per class id, instead of failing with an opaque `TypeError`. The background id `0` is dropped, classes are named from `class_map`, and a `confidence_mask` gives each class's mean confidence. `compact_masks=True` builds a `sv.CompactMask` one class at a time.
+
 - Added `sv.Detections.from_semantic_segmentation`, which `from_inference` uses for semantic results. Call it directly for a map alone (a base64 PNG or an integer array), to override `class_map` or `confidence_mask`, or to keep the background with `background_id=None`.
+
 - Added `sv.Detections.remap_classes` to line model predictions up with a dataset's class list. It optionally renames class names with `class_name_mapping`, drops the detections whose name is not in `classes`, and rewrites `class_id` to the index of each name in `classes` and `data["class_name"]` to the remapped names. Class names can be a one-dimensional array or a single-column array. Boxes, masks, tracker ids and per-detection `data` of any shape follow the kept rows, and a result with no detections keeps integer class ids. Duplicate names in `classes`, mapping targets missing from `classes`, and class-id keys in `class_name_mapping` raise an error instead of silently dropping or misassigning detections. For a different filter, chain `sv.Detections.select` or boolean indexing on the result. ([#1846](https://github.com/roboflow/supervision/pull/1846))
 
 - `sv.PolygonZone.occupancy_ratio` avoids decoding a potentially huge compact-mask union outside the zone and raises `ValueError` for oriented coordinates that cannot be represented as `int32`. ([#1667](https://github.com/roboflow/supervision/pull/1667))

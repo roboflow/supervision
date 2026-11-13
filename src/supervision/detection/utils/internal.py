@@ -625,6 +625,8 @@ def decode_semantic_label_map(payload: Any, field: str) -> npt.NDArray[np.intege
             ) from error
         try:
             with Image.open(io.BytesIO(png_bytes)) as image:
+                if image.format != "PNG":
+                    raise ValueError(f"{field} must be a PNG image.")
                 array = np.asarray(image)
         except OSError as error:
             raise ValueError(f"{field} is not a decodable PNG.") from error
@@ -689,6 +691,12 @@ def process_semantic_segmentation(
         ```
     """
     label_map = decode_semantic_label_map(segmentation_mask, "segmentation_mask")
+    if np.issubdtype(label_map.dtype, np.unsignedinteger) and np.any(
+        label_map > np.iinfo(np.int64).max
+    ):
+        raise ValueError("segmentation_mask class IDs must fit in int64.")
+    # Normalize before comparing IDs: mixed uint64/int64 comparisons can lose precision.
+    label_map = label_map.astype(np.int64, copy=False)
     confidence_map = None
     if confidence_mask is not None:
         confidence_map = decode_semantic_label_map(confidence_mask, "confidence_mask")
@@ -697,10 +705,12 @@ def process_semantic_segmentation(
                 "confidence_mask and segmentation_mask must have the same shape, got "
                 f"{confidence_map.shape} and {label_map.shape}."
             )
+        if np.any((confidence_map < 0) | (confidence_map > 255)):
+            raise ValueError("confidence_mask values must be between 0 and 255.")
     # Inference keys class_map by text and Hugging Face id2label by integer.
     names_by_id = {str(key): name for key, name in (class_map or {}).items()}
 
-    class_ids = np.unique(label_map).astype(np.int64)
+    class_ids = np.unique(label_map)
     if background_id is not None:
         class_ids = class_ids[class_ids != background_id]
     class_names = np.array(
