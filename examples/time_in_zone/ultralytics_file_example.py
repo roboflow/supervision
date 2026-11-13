@@ -1,4 +1,5 @@
-import cv2
+from contextlib import ExitStack
+
 import numpy as np
 from trackers import ByteTrackTracker
 from ultralytics import YOLO
@@ -12,6 +13,48 @@ COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
 LABEL_ANNOTATOR = sv.LabelAnnotator(
     color=COLORS, text_color=sv.Color.from_hex("#000000")
 )
+#: Output video codecs tried in order; the first one OpenCV can open is used.
+VIDEO_CODECS = ("H264", "XVID")
+
+
+def _open_video_sink(
+    stack: ExitStack, output_video_path: str, video_info: sv.VideoInfo
+) -> sv.VideoSink:
+    """Open a video sink with the first codec in `VIDEO_CODECS` that works.
+
+    OpenCV does not raise when a codec or output path is unusable, so a failed
+    candidate surfaces as a `RuntimeError` from `sv.VideoSink`, which releases the
+    unusable writer itself. The opened sink is registered on `stack`, so it is
+    released when the stack exits.
+
+    Args:
+        stack: Exit stack that owns the opened sink.
+        output_video_path: Path of the video file to write.
+        video_info: Resolution and FPS of the video to write.
+
+    Returns:
+        The opened video sink.
+
+    Raises:
+        RuntimeError: If none of `VIDEO_CODECS` can be opened for the path.
+    """
+    for codec in VIDEO_CODECS:
+        try:
+            video_sink = stack.enter_context(
+                sv.VideoSink(output_video_path, video_info, codec=codec)
+            )
+        except RuntimeError:
+            continue
+        print(f"Video output being saved: {output_video_path}")
+        # The container may remap the requested codec (e.g. XVID to mp4v for
+        # .mp4), so report what was requested, not what is written.
+        print(f"Requested codec: {codec} (the container may remap it)")
+        return video_sink
+    raise RuntimeError(
+        f"Could not open a video writer for {output_video_path!r} with any "
+        f"of the codecs {VIDEO_CODECS}. Check that the output directory "
+        "exists and that OpenCV was built with an encoder for one of them."
+    )
 
 
 def main(
@@ -22,7 +65,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
     classes: list[int] = [],
-    output_video_path: str = None,
+    output_video_path: str | None = None,
 ) -> None:
     """Calculating detections dwell time in zones, using video file.
 
@@ -36,6 +79,10 @@ def main(
         classes: List of class IDs to track. If empty, all classes are tracked
         output_video_path: Path to save the output video. If not provided, video
             will only be displayed.
+
+    Raises:
+        RuntimeError: If `output_video_path` is given but no video writer can be
+            opened for it, for example because its directory does not exist.
     """
     model = YOLO(weights)
     tracker = ByteTrackTracker(
@@ -54,89 +101,70 @@ def main(
     ]
     timers = [FPSBasedTimer(video_info.fps) for _ in zones]
 
-    # Video writer setup
-    video_writer = None
-    if output_video_path:
-        # Use Twitter-compatible codec - try H264 first, then XVID
-        try:
-            fourcc = cv2.VideoWriter_fourcc(*"H264")
-            video_writer = cv2.VideoWriter(
-                output_video_path,
-                fourcc,
-                video_info.fps,
-                (video_info.width, video_info.height),
-            )
-            print(f"Video output being saved: {output_video_path}")
-            print("Using Twitter-compatible H.264 codec")
-        except:
-            # H264 desteklenmiyorsa XVID kullan
-            fourcc = cv2.VideoWriter_fourcc(*"XVID")
-            video_writer = cv2.VideoWriter(
-                output_video_path,
-                fourcc,
-                video_info.fps,
-                (video_info.width, video_info.height),
-            )
-            print(f"Video output being saved: {output_video_path}")
-            print("Using XVID codec (convert with FFmpeg for Twitter)")
+    video_sink: sv.VideoSink | None = None
+    # The stack releases the writer and closes the window on normal end, on `q`, and
+    # when inference or the user interrupts the loop with an exception.
+    with ExitStack() as stack:
+        if output_video_path:
+            video_sink = _open_video_sink(stack, output_video_path, video_info)
+        window = stack.enter_context(sv.ImageWindow("Processed Video"))
+        for frame in frames_generator:
+            results = model(
+                frame,
+                verbose=False,
+                device=device,
+                conf=confidence_threshold,
+                iou=iou_threshold,
+            )[0]
+            detections = sv.Detections.from_ultralytics(results)
+            detections = detections[find_in_list(detections.class_id, classes)]
+            detections = tracker.update(detections)
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
-    window = sv.ImageWindow("Processed Video")
-    for frame in frames_generator:
-        results = model(
-            frame,
-            verbose=False,
-            device=device,
-            conf=confidence_threshold,
-            iou=iou_threshold,
-        )[0]
-        detections = sv.Detections.from_ultralytics(results)
-        detections = detections[find_in_list(detections.class_id, classes)]
-        detections = tracker.update(detections)
-        detections = detections[detections.tracker_id != -1]  # -1 = pending track
+            annotated_frame = frame.copy()
 
-        annotated_frame = frame.copy()
+            for idx, zone in enumerate(zones):
+                annotated_frame = sv.draw_polygon(
+                    scene=annotated_frame,
+                    polygon=zone.polygon,
+                    color=COLORS.by_idx(idx),
+                )
 
-        for idx, zone in enumerate(zones):
-            annotated_frame = sv.draw_polygon(
-                scene=annotated_frame, polygon=zone.polygon, color=COLORS.by_idx(idx)
-            )
+                detections_in_zone = detections[zone.trigger(detections)]
+                time_in_zone = timers[idx].tick(detections_in_zone)
+                custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
 
-            detections_in_zone = detections[zone.trigger(detections)]
-            time_in_zone = timers[idx].tick(detections_in_zone)
-            custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
+                annotated_frame = COLOR_ANNOTATOR.annotate(
+                    scene=annotated_frame,
+                    detections=detections_in_zone,
+                    custom_color_lookup=custom_color_lookup,
+                )
+                labels = [
+                    f"#{tracker_id} {int(time // 60):02d}:{int(time % 60):02d}"
+                    for tracker_id, time in zip(
+                        detections_in_zone.tracker_id, time_in_zone
+                    )
+                ]
+                annotated_frame = LABEL_ANNOTATOR.annotate(
+                    scene=annotated_frame,
+                    detections=detections_in_zone,
+                    labels=labels,
+                    custom_color_lookup=custom_color_lookup,
+                )
 
-            annotated_frame = COLOR_ANNOTATOR.annotate(
-                scene=annotated_frame,
-                detections=detections_in_zone,
-                custom_color_lookup=custom_color_lookup,
-            )
-            labels = [
-                f"#{tracker_id} {int(time // 60):02d}:{int(time % 60):02d}"
-                for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)
-            ]
-            annotated_frame = LABEL_ANNOTATOR.annotate(
-                scene=annotated_frame,
-                detections=detections_in_zone,
-                labels=labels,
-                custom_color_lookup=custom_color_lookup,
-            )
+            window.show(annotated_frame)
 
-        window.show(annotated_frame)
+            # Save frame to output video if a sink is available
+            if video_sink is not None:
+                video_sink.write_frame(annotated_frame)
 
-        # Save frame to output video if writer is available
-        if video_writer is not None:
-            video_writer.write(annotated_frame)
+            key = window.wait_key(1)
+            if not window.is_open or key == "q":
+                break
 
-        key = window.wait_key(1)
-        if not window.is_open or key == "q":
-            break
-
-    # Cleanup
-    if video_writer is not None:
-        video_writer.release()
+    # Reached only when the loop ended normally or on `q`, after the sink is released
+    if video_sink is not None:
         print(f"Video successfully saved: {output_video_path}")
-
-    window.close()
 
 
 if __name__ == "__main__":
