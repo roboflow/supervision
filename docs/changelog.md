@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). Cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#NNNN](https://github.com/roboflow/supervision/pull/NNNN))
+- `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). Cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#2970](https://github.com/roboflow/supervision/pull/2970))
 
 - `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#2455](https://github.com/roboflow/supervision/pull/2455)).
 
