@@ -1632,6 +1632,24 @@ class TestRichLabelAnnotator:
         assert result.shape == shape
         assert 200 in result
 
+    def test_array_bgra_scene_matches_bgr_scene(self) -> None:
+        """A BGRA array gets the label colors of its BGR copy and keeps its alpha."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        bgr = np.full((100, 100, 3), 50, dtype=np.uint8)
+        scene = np.dstack([bgr, np.full((100, 100), 100, dtype=np.uint8)])
+        expected = RichLabelAnnotator().annotate(
+            scene=bgr.copy(), detections=detections, labels=["a"]
+        )
+
+        result = RichLabelAnnotator().annotate(
+            scene=scene, detections=detections, labels=["a"]
+        )
+
+        assert result is scene
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert set(np.unique(result[..., 3])) == {100, 255}
+
     @pytest.mark.parametrize(
         ("mode", "expected"),
         [
