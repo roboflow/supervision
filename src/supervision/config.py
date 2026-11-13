@@ -22,6 +22,8 @@ XYXY_DATA_FIELD: str = "xyxy"
 #: write a label file back unchanged. Only present for a ``kpt_shape`` of
 #: ``[K, 3]``.
 KEYPOINT_VISIBILITY_DATA_FIELD: str = "keypoint_visibility"
+#: Key for per-keypoint covariance matrices of shape ``(N, K, 2, 2)``.
+KEYPOINT_COVARIANCE_DATA_FIELD: str = "covariance"
 #: ``KeyPoints.data`` keys whose values are aligned with the keypoint axis.
 #:
 #: Each such value has shape ``(N, K, ...)``, one entry per keypoint of each
@@ -31,7 +33,7 @@ KEYPOINT_VISIBILITY_DATA_FIELD: str = "keypoint_visibility"
 #: width of a value never decides it, since a per-skeleton ``(N, 4)`` box has
 #: the width of a 4-keypoint skeleton.
 KEYPOINT_ALIGNED_DATA_FIELDS: frozenset[str] = frozenset(
-    {KEYPOINT_VISIBILITY_DATA_FIELD}
+    {KEYPOINT_VISIBILITY_DATA_FIELD, KEYPOINT_COVARIANCE_DATA_FIELD}
 )
 #: Key for per-target COCO crowd flags in ``Detections.data`` or ``KeyPoints.data``.
 #:

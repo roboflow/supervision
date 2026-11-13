@@ -6,6 +6,7 @@ import pytest
 
 from supervision.config import (
     HANDEDNESS_SCORE_DATA_FIELD,
+    KEYPOINT_COVARIANCE_DATA_FIELD,
     KEYPOINT_VISIBILITY_DATA_FIELD,
 )
 from supervision.key_points.core import KeyPoints
@@ -2955,3 +2956,52 @@ class TestFromMediapipeHandedness:
 
         assert key_points.class_id is None
         assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
+
+
+class TestCovarianceSelection:
+    """Keep each joint's uncertainty attached to its selected coordinates."""
+
+    @pytest.mark.parametrize(
+        ("index", "rows", "joints"),
+        [
+            pytest.param((slice(None), [2, 0]), [0, 1], [[2, 0], [2, 0]], id="subset"),
+            pytest.param(
+                (slice(None), [2, 1, 0]),
+                [0, 1],
+                [[2, 1, 0], [2, 1, 0]],
+                id="permutation",
+            ),
+            pytest.param((1, 2), [1], [[2]], id="scalar"),
+            pytest.param((slice(None), []), [0, 1], [[], []], id="empty-joints"),
+            pytest.param(
+                np.array([[True, False, True], [False, True, True]]),
+                [0, 1],
+                [[0, 2], [1, 2]],
+                id="per-row-mask",
+            ),
+        ],
+    )
+    def test_keeps_covariance_aligned(
+        self, index: Any, rows: list[int], joints: list[list[int]]
+    ) -> None:
+        """Joint selection retains matching covariance matrices."""
+        xy = np.arange(12, dtype=np.float32).reshape(2, 3, 2)
+        covariance = np.arange(24, dtype=np.float32).reshape(2, 3, 2, 2)
+        boxes = np.arange(8, dtype=np.float32).reshape(2, 4)
+        key_points = KeyPoints(
+            xy=xy, data={KEYPOINT_COVARIANCE_DATA_FIELD: covariance, "xyxy": boxes}
+        )
+
+        selected = key_points.select(index)
+
+        row_index = np.array(rows)[:, None]
+        joint_index = np.array(joints, dtype=int)
+        np.testing.assert_array_equal(selected.xy, xy[row_index, joint_index])
+        np.testing.assert_array_equal(
+            selected.data[KEYPOINT_COVARIANCE_DATA_FIELD],
+            covariance[row_index, joint_index],
+        )
+        np.testing.assert_array_equal(selected.data["xyxy"], boxes[rows])
+        np.testing.assert_array_equal(
+            key_points.data[KEYPOINT_COVARIANCE_DATA_FIELD], covariance
+        )

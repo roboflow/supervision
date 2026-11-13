@@ -7,6 +7,7 @@ import numpy.typing as npt
 
 from supervision import _cv2 as cv2
 from supervision.annotators.core import _color_for_canvas
+from supervision.config import KEYPOINT_COVARIANCE_DATA_FIELD
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color
@@ -330,7 +331,7 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
         self.max_axis = max_axis
 
     def _get_covariances(self, key_points: KeyPoints) -> npt.NDArray[np.float32]:
-        covariances = key_points.data.get("covariance")
+        covariances = key_points.data.get(KEYPOINT_COVARIANCE_DATA_FIELD)
         if covariances is None:
             raise ValueError(
                 "key_points.data must contain 'covariance' with shape (N, K, 2, 2)."
