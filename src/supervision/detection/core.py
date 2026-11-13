@@ -3101,10 +3101,12 @@ class Detections:
                 "Detections must have 'class_name' in .data to use transform()."
             )
         class_names = np.asarray(class_names, dtype=str)
-        # Remap class names if mapping is provided
+        # Remap and look up the distinct names only, so the Python-level work
+        # scales with the number of classes, not with the number of detections
+        unique_names, inverse = np.unique(class_names, return_inverse=True)
         if class_mapping is not None:
-            class_names = np.array(
-                [class_mapping.get(name, name) for name in class_names], dtype=str
+            unique_names = np.array(
+                [class_mapping.get(name, name) for name in unique_names], dtype=str
             )
         # A repeated name would silently resolve to its first index
         classes = list(dataset.classes)
@@ -3112,16 +3114,18 @@ class Detections:
         if duplicates:
             raise ValueError(f"dataset.classes holds duplicate names: {duplicates}")
         class_index = {name: index for index, name in enumerate(classes)}
-        # Filter out detections whose class is not in dataset.classes
-        keep = np.isin(class_names, classes)
+        # -1 marks names outside dataset.classes; those detections are filtered out
+        # Explicit dtype: an empty result would otherwise get float64 ids
+        unique_ids = np.array(
+            [class_index.get(name, -1) for name in unique_names], dtype=int
+        )
+        class_id = unique_ids[inverse]
+        keep = class_id >= 0
         # select() copies every field, including data of any shape, and handles
         # empty and fully filtered results
         result = self.select(keep)
-        # Explicit dtype: an empty result would otherwise get float64 ids
-        result.class_id = np.array(
-            [class_index[name] for name in class_names[keep]], dtype=int
-        )
-        result.data["class_name"] = class_names[keep]
+        result.class_id = class_id[keep]
+        result.data["class_name"] = unique_names[inverse][keep]
         return result
 
 
