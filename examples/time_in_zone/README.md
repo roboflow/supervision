@@ -255,7 +255,7 @@ Script to run object detection on a video file using the Ultralytics YOLOv8 mode
 - `--classes`: List of class IDs to track. If empty, all classes are tracked.
 - `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
 - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
-- `--output_video_path`: Optional path to save the annotated video. If not provided, the video is only displayed.
+- `--output_video_path`: Optional path to save the annotated video. If not provided, the video is only displayed. Must differ from `--source_video_path`.
 
 ```bash
 python ultralytics_file_example.py \

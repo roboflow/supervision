@@ -1,3 +1,4 @@
+import os
 from contextlib import ExitStack, suppress
 
 import numpy as np
@@ -15,6 +16,24 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 )
 #: Output video codecs tried in order; the first one OpenCV can open is used.
 VIDEO_CODECS = ("H264", "XVID")
+
+
+def _is_same_file(output_path: str, source_path: str) -> bool:
+    """Tell whether `output_path` already exists as the same file as `source_path`.
+
+    Opening a video writer truncates an existing target, so an output that is the
+    source file, through a symlink, a hard link or a differently spelled path,
+    would destroy the video before it is read. A missing output cannot be the
+    source, which must exist.
+
+    Args:
+        output_path: Path the annotated video would be written to.
+        source_path: Path of the video being read.
+
+    Returns:
+        `True` if both paths refer to the same existing file.
+    """
+    return os.path.exists(output_path) and os.path.samefile(output_path, source_path)
 
 
 def _open_video_sink(
@@ -79,9 +98,17 @@ def main(
             will only be displayed.
 
     Raises:
+        ValueError: If `output_video_path` is the same file as
+            `source_video_path`.
         RuntimeError: If `output_video_path` is given but no video writer can be
             opened for it, for example because its directory does not exist.
     """
+    if output_video_path and _is_same_file(output_video_path, source_video_path):
+        raise ValueError(
+            f"output_video_path {output_video_path!r} is the same file as "
+            f"source_video_path {source_video_path!r}; writing would overwrite the "
+            "source video. Choose a different output path."
+        )
     model = YOLO(weights)
     tracker = ByteTrackTracker(
         minimum_iou_threshold=0.5, track_activation_threshold=confidence_threshold
