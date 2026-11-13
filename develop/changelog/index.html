@@ -4456,6 +4456,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.PolygonZone.occupancy_ratio</code> avoids decoding a potentially huge compact-mask union outside the zone and raises <code>ValueError</code> for oriented coordinates that cannot be represented as <code>int32</code>. (<a href="https://github.com/roboflow/supervision/pull/1667">#1667</a>)</p>
+</li>
+<li>
+<p><code>sv.PolygonZone.occupancy_ratio</code> measures how much of a zone the detections cover: the share of zone pixels, from <code>0.0</code> to <code>1.0</code>, inside the union of the detection footprints, so overlapping detections are counted once. Each footprint comes from the first geometry the detections carry: segmentation masks, dense or <code>sv.CompactMask</code>, then oriented boxes in <code>data["xyxyxyxy"]</code>, then axis-aligned boxes, which are half-open as in <code>sv.Detections.box_area</code>. Detections must use the pixel coordinates of the frame the zone was drawn on; masks of any frame size are cropped or zero-padded to the zone, empty detections give <code>0.0</code>, and <code>current_count</code> is left unchanged. A zone without pixels, or a detection mask or oriented-box array of the wrong shape, raises <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/1667">#1667</a>)</p>
+</li>
+<li>
 <p><code>sv.box_weighted_box_fusion</code> — Weighted Box Fusion (WBF), a confidence-weighted alternative to <code>sv.box_non_max_suppression</code>. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) (<a href="https://github.com/roboflow/supervision/pull/2455">#2455</a>).</p>
 </li>
 <li>
@@ -6865,7 +6871,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 12, 2026 23:24:11 UTC">November 12, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 13, 2026 13:47:54 UTC">November 13, 2026</span>
   </span>
 
     
@@ -6893,9 +6899,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/rs-03" class="md-author" title="@rs-03">
+        <a href="https://github.com/AHB102" class="md-author" title="@AHB102">
           
-          <img src="https://avatars.githubusercontent.com/u/69567756?v=4&size=72" alt="rs-03">
+          <img src="https://avatars.githubusercontent.com/u/111697568?v=4&size=72" alt="AHB102">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6903,21 +6909,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/rs-03" class="md-author" title="@rs-03">
+          
+          <img src="https://avatars.githubusercontent.com/u/69567756?v=4&size=72" alt="rs-03">
+        </a>
+      
         <a href="https://github.com/kari-pikkarainen" class="md-author" title="@kari-pikkarainen">
           
           <img src="https://avatars.githubusercontent.com/u/154351964?v=4&size=72" alt="kari-pikkarainen">
-        </a>
-      
-        <a href="https://github.com/aminmiral" class="md-author" title="@aminmiral">
-          
-          <img src="https://avatars.githubusercontent.com/u/146321254?v=4&size=72" alt="aminmiral">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +27
+            +28
           </a>
         
       
