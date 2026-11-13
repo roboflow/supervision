@@ -1,0 +1,2083 @@
+from collections.abc import Callable, Iterable
+from contextlib import AbstractContextManager
+from contextlib import ExitStack as DoesNotRaise
+from typing import NoReturn
+from unittest import mock
+
+import numpy as np
+import pytest
+
+from supervision import (
+    Detections,
+    LineZone,
+    LineZoneAnnotator,
+    LineZoneAnnotatorMulticlass,
+    _cv2,
+)
+from supervision.draw.color import Color
+from supervision.geometry.core import Point, Position, Vector
+from supervision.utils.internal import SupervisionWarnings
+from tests.helpers import (
+    _ConstantTransform,
+    _create_detections,
+    _MoveBeyondX,
+    _NanBeyondX,
+    _ShearXTransform,
+    _ShiftTransform,
+    _WrongShapeTransform,
+)
+
+WHITE = [255, 255, 255]
+BLACK = [0, 0, 0]
+
+
+def _oriented_label_pixels(
+    line_zone: LineZone,
+    coord_transform: _ShiftTransform | _ConstantTransform | None,
+    text_centered: bool = True,
+) -> np.ndarray:
+    """Return a mask of the pixels the oriented "in" count label changes.
+
+    The same line is drawn with and without its label on a black frame, so the mask
+    holds the label box alone, whatever text backend sizes it.
+    """
+    frame = np.zeros((100, 200, 3), dtype=np.uint8)
+    with_label = LineZoneAnnotator(
+        text_orient_to_line=True, text_centered=text_centered, display_out_count=False
+    )
+    without_label = LineZoneAnnotator(
+        text_orient_to_line=True,
+        text_centered=text_centered,
+        display_in_count=False,
+        display_out_count=False,
+    )
+
+    labeled = with_label.annotate(
+        frame.copy(), line_zone, coord_transform=coord_transform
+    )
+    bare = without_label.annotate(
+        frame.copy(), line_zone, coord_transform=coord_transform
+    )
+
+    return np.asarray((labeled != bare).any(axis=2))
+
+
+@pytest.mark.parametrize(
+    ("vector", "expected_result", "exception"),
+    [
+        (
+            Vector(start=Point(x=0.0, y=0.0), end=Point(x=0.0, y=0.0)),
+            None,
+            pytest.raises(ValueError, match="magnitude of the vector"),
+        ),
+        (
+            Vector(start=Point(x=1.0, y=1.0), end=Point(x=1.0, y=1.0)),
+            None,
+            pytest.raises(ValueError, match="cannot be zero"),
+        ),
+        (
+            Vector(start=Point(x=0.0, y=0.0), end=Point(x=0.0, y=4.0)),
+            (
+                Vector(start=Point(x=0.0, y=0.0), end=Point(x=-1.0, y=0.0)),
+                Vector(start=Point(x=0.0, y=4.0), end=Point(x=1.0, y=4.0)),
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            Vector(Point(0.0, 0.0), Point(4.0, 0.0)),
+            (
+                Vector(start=Point(x=0.0, y=0.0), end=Point(x=0.0, y=1.0)),
+                Vector(start=Point(x=4.0, y=0.0), end=Point(x=4.0, y=-1.0)),
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            Vector(Point(0.0, 0.0), Point(3.0, 4.0)),
+            (
+                Vector(start=Point(x=0, y=0), end=Point(x=-0.8, y=0.6)),
+                Vector(start=Point(x=3, y=4), end=Point(x=3.8, y=3.4)),
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            Vector(Point(0.0, 0.0), Point(4.0, 3.0)),
+            (
+                Vector(start=Point(x=0, y=0), end=Point(x=-0.6, y=0.8)),
+                Vector(start=Point(x=4, y=3), end=Point(x=4.6, y=2.2)),
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            Vector(Point(0.0, 0.0), Point(3.0, -4.0)),
+            (
+                Vector(start=Point(x=0, y=0), end=Point(x=0.8, y=0.6)),
+                Vector(start=Point(x=3, y=-4), end=Point(x=2.2, y=-4.6)),
+            ),
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_calculate_region_of_interest_limits(
+    vector: Vector,
+    expected_result: tuple[Vector, Vector] | None,
+    exception: AbstractContextManager[object],
+) -> None:
+    """Region-of-interest limits are derived from the line vector, or raise."""
+    with exception:
+        result = LineZone._calculate_region_of_interest_limits(vector=vector)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("vector", "xyxy_sequence", "expected_crossed_in", "expected_crossed_out"),
+    [
+        (  # Vertical line, simple crossing
+            Vector(Point(0, 0), Point(0, 10)),
+            [
+                [4, 4, 6, 6],
+                [4 - 10, 4, 6 - 10, 6],
+                [4, 4, 6, 6],
+                [4 - 10, 4, 6 - 10, 6],
+            ],
+            [False, False, True, False],
+            [False, True, False, True],
+        ),
+        (  # Vertical line reversed, simple crossing
+            Vector(Point(0, 10), Point(0, 0)),
+            [
+                [4, 4, 6, 6],
+                [4 - 10, 4, 6 - 10, 6],
+                [4, 4, 6, 6],
+                [4 - 10, 4, 6 - 10, 6],
+            ],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Horizontal line, simple crossing
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [4, 4, 6, 6],
+                [4, 4 - 10, 6, 6 - 10],
+                [4, 4, 6, 6],
+                [4, 4 - 10, 6, 6 - 10],
+            ],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Horizontal line reversed, simple crossing
+            Vector(Point(10, 0), Point(0, 0)),
+            [
+                [4, 4, 6, 6],
+                [4, 4 - 10, 6, 6 - 10],
+                [4, 4, 6, 6],
+                [4, 4 - 10, 6, 6 - 10],
+            ],
+            [False, False, True, False],
+            [False, True, False, True],
+        ),
+        (  # Diagonal line, simple crossing
+            Vector(Point(5, 0), Point(0, 5)),
+            [
+                [0, 0, 2, 2],
+                [0 + 10, 0 + 10, 2 + 10, 2 + 10],
+                [0, 0, 2, 2],
+                [0 + 10, 0 + 10, 2 + 10, 2 + 10],
+            ],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Crossing beside - right side
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [20, 4, 24, 6],
+                [20, 4 - 10, 24, 6 - 10],
+                [20, 4, 24, 6],
+                [20, 4 - 10, 24, 6 - 10],
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (  # Horizontal line, simple crossing, far away
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [4, 1e32, 6, 1e32 + 2],
+                [4, -1e32, 6, -1e32 + 2],
+                [4, 1e32, 6, 1e32 + 2],
+                [4, -1e32, 6, -1e32 + 2],
+            ],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Crossing beside - left side
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-20, 4, -24, 6],
+                [-20, 4 - 10, -24, 6 - 10],
+                [-20, 4, -24, 6],
+                [-20, 4 - 10, -24, 6 - 10],
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (  # Move above
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-4, 4, -2, 6],
+                [-4 + 20, 4, -2 + 20, 6],
+                [-4, 4, -2, 6],
+                [-4 + 20, 4, -2 + 20, 6],
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (  # Move below
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-4, -6, -2, -4],
+                [-4 + 20, -6, -2 + 20, -4],
+                [-4, -6, -2, -4],
+                [-4 + 20, -6, -2 + 20, -4],
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (  # Move into line partway
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [4, 4, 6, 6],
+                [4 + 5, 4, 6 + 5, 6],
+                [4, 4, 6, 6],
+                [4 + 5, 4, 6 + 5, 6],
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (  # V-shaped crossing from outside limits - not supported.
+            Vector(Point(0, 0), Point(10, 0)),
+            [[-3, 6, -1, 8], [4, -6, 6, -4], [11, 6, 13, 8]],
+            [False, False, False],
+            [False, False, False],
+        ),
+        (  # Diagonal movement, from within limits to outside - not supported
+            Vector(Point(0, 0), Point(10, 0)),
+            [[4, 1, 6, 3], [11, 1 - 20, 13, 3 - 20]],
+            [False, False],
+            [False, False],
+        ),
+        (  # Diagonal movement, from outside limits to within - not supported
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [11, 21, 13, 23],
+                [4, -3, 6, -1],
+            ],
+            [False, False],
+            [False, False],
+        ),
+        (  # Diagonal crossing, from outside to outside limits - not supported.
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-4, 4, -2, 8],
+                [-4 + 16, -4, -2 + 16, -6],
+                [-4, 4, -2, 8],
+                [-4 + 16, -4, -2 + 16, -6],
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+    ],
+)
+def test_line_zone_one_detection_default_anchors(
+    vector: Vector,
+    xyxy_sequence: list[list[float]],
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
+) -> None:
+    line_zone = LineZone(start=vector.start, end=vector.end)
+
+    crossed_in_list = []
+    crossed_out_list = []
+    for i, bbox in enumerate(xyxy_sequence):
+        detections = _create_detections(
+            xyxy=[bbox],
+            tracker_id=[0],
+        )
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        crossed_in_list.append(crossed_in[0])
+        crossed_out_list.append(crossed_out[0])
+
+    assert crossed_in_list == expected_crossed_in, (
+        f"expected {expected_crossed_in}, got {crossed_in_list}"
+    )
+    assert crossed_out_list == expected_crossed_out, (
+        f"expected {expected_crossed_out}, got {crossed_out_list}"
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        "vector",
+        "xyxy_sequence",
+        "triggering_anchors",
+        "expected_crossed_in",
+        "expected_crossed_out",
+    ),
+    [
+        (  # Scrape line, left side, corner anchors
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-2, 4, 2, 6],
+                [-2, 4 - 10, 2, 6 - 10],
+                [-2, 4, 2, 6],
+                [-2, 4 - 10, 2, 6 - 10],
+            ],
+            [
+                Position.TOP_LEFT,
+                Position.BOTTOM_LEFT,
+                Position.TOP_RIGHT,
+                Position.BOTTOM_RIGHT,
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (  # Scrape line, left side, right anchors
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-2, 4, 2, 6],
+                [-2, 4 - 10, 2, 6 - 10],
+                [-2, 4, 2, 6],
+                [-2, 4 - 10, 2, 6 - 10],
+            ],
+            [Position.TOP_RIGHT, Position.BOTTOM_RIGHT],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Scrape line, left side, center anchor (along line point)
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-2, 4, 2, 6],
+                [-2, 4 - 10, 2, 6 - 10],
+                [-2, 4, 2, 6],
+                [-2, 4 - 10, 2, 6 - 10],
+            ],
+            [Position.CENTER],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Scrape line, left side, center anchor (along line point)
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [-2, 4, 2, 6],
+                [-2, 4 - 10, 2, 6 - 10],
+                [-2, 4, 2, 6],
+                [-2, 4 - 10, 2, 6 - 10],
+                [-2, 4 - 10, 2, 6 - 10],
+            ],
+            [Position.CENTER],
+            [False, True, False, True, False],
+            [False, False, True, False, False],
+        ),
+        (  # Scrape line, right side, corner anchors
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [8, 4, 12, 6],
+                [8, 4 - 10, 12, 6 - 10],
+                [8, 4, 12, 6],
+                [8, 4 - 10, 12, 6 - 10],
+            ],
+            [
+                Position.TOP_LEFT,
+                Position.BOTTOM_LEFT,
+                Position.TOP_RIGHT,
+                Position.BOTTOM_RIGHT,
+            ],
+            [False, False, False, False],
+            [False, False, False, False],
+        ),
+        (  # Scrape line, right side, left anchors
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [8, 4, 12, 6],
+                [8, 4 - 10, 12, 6 - 10],
+                [8, 4, 12, 6],
+                [8, 4 - 10, 12, 6 - 10],
+            ],
+            [Position.TOP_LEFT, Position.BOTTOM_LEFT],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Scrape line, right side, center anchor (along line point)
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [8, 4, 12, 6],
+                [8, 4 - 10, 12, 6 - 10],
+                [8, 4, 12, 6],
+                [8, 4 - 10, 12, 6 - 10],
+            ],
+            [Position.CENTER],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Simple crossing, one anchor
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [4, 4, 6, 6],
+                [4, 4 - 10, 6, 6 - 10],
+                [4, 4, 6, 6],
+                [4, 4 - 10, 6, 6 - 10],
+            ],
+            [Position.CENTER],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+        (  # Simple crossing, all box anchors
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [4, 4, 6, 6],
+                [4, 4 - 10, 6, 6 - 10],
+                [4, 4, 6, 6],
+                [4, 4 - 10, 6, 6 - 10],
+            ],
+            [
+                Position.CENTER,
+                Position.CENTER_LEFT,
+                Position.CENTER_RIGHT,
+                Position.TOP_CENTER,
+                Position.TOP_LEFT,
+                Position.TOP_RIGHT,
+                Position.BOTTOM_LEFT,
+                Position.BOTTOM_CENTER,
+                Position.BOTTOM_RIGHT,
+            ],
+            [False, True, False, True],
+            [False, False, True, False],
+        ),
+    ],
+)
+def test_line_zone_one_detection(
+    vector: Vector,
+    xyxy_sequence: list[list[float]],
+    triggering_anchors: list[Position],
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
+) -> None:
+    line_zone = LineZone(
+        start=vector.start, end=vector.end, triggering_anchors=triggering_anchors
+    )
+
+    crossed_in_list = []
+    crossed_out_list = []
+    for i, bbox in enumerate(xyxy_sequence):
+        detections = _create_detections(
+            xyxy=[bbox],
+            tracker_id=[0],
+        )
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        crossed_in_list.append(crossed_in[0])
+        crossed_out_list.append(crossed_out[0])
+
+    assert crossed_in_list == expected_crossed_in, (
+        f"expected {expected_crossed_in}, got {crossed_in_list}"
+    )
+    assert crossed_out_list == expected_crossed_out, (
+        f"expected {expected_crossed_out}, got {crossed_out_list}"
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        "vector",
+        "xyxy_sequence",
+        "anchors",
+        "expected_crossed_in",
+        "expected_crossed_out",
+        "exception",
+    ),
+    [
+        (  # One stays, one crosses
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+            ],
+            [
+                Position.TOP_LEFT,
+                Position.TOP_RIGHT,
+                Position.BOTTOM_LEFT,
+                Position.BOTTOM_RIGHT,
+            ],
+            [[False, False], [False, True], [False, False], [False, True]],
+            [[False, False], [False, False], [False, True], [False, False]],
+            DoesNotRaise(),
+        ),
+        (  # Both cross at the same time
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4 - 10, 6, 6 - 10], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4 - 10, 6, 6 - 10], [4, 4 - 10, 6, 6 - 10]],
+            ],
+            [
+                Position.TOP_LEFT,
+                Position.TOP_RIGHT,
+                Position.BOTTOM_LEFT,
+                Position.BOTTOM_RIGHT,
+            ],
+            [[False, False], [True, True], [False, False], [True, True]],
+            [[False, False], [False, False], [True, True], [False, False]],
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_line_zone_multiple_detections(
+    vector: Vector,
+    xyxy_sequence: list[list[list[float]]],
+    anchors: list[Position],
+    expected_crossed_in: list[list[bool]],
+    expected_crossed_out: list[list[bool]],
+    exception: AbstractContextManager[object],
+) -> None:
+    """Line crossings and counts follow the tracked anchors frame by frame."""
+    with exception:
+        line_zone = LineZone(
+            start=vector.start, end=vector.end, triggering_anchors=anchors
+        )
+        crossed_in_list = []
+        crossed_out_list = []
+        for bboxes in xyxy_sequence:
+            detections = _create_detections(
+                xyxy=bboxes,
+                tracker_id=[i for i in range(0, len(bboxes))],
+            )
+            crossed_in, crossed_out = line_zone.trigger(detections)
+            crossed_in_list.append(list(crossed_in))
+            crossed_out_list.append(list(crossed_out))
+
+        assert crossed_in_list == expected_crossed_in
+        assert crossed_out_list == expected_crossed_out
+
+
+@pytest.mark.parametrize(
+    (
+        "vector",
+        "xyxy_sequence",
+        "triggering_anchors",
+        "minimum_crossing_threshold",
+        "expected_crossed_in",
+        "expected_crossed_out",
+    ),
+    [
+        (  # Detection lingers around line, all crosses counted
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4 - 10, 3, 6],
+            ],
+            [
+                Position.TOP_LEFT,
+            ],
+            1,
+            [False, True, False, True, False],
+            [False, False, True, False, False],
+        ),
+        (  # Detection lingers around line, only final cross counted
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4 - 10, 3, 6],
+            ],
+            [
+                Position.TOP_LEFT,
+            ],
+            2,
+            [False, False, False, False, True],
+            [False, False, False, False, False],
+        ),
+        (  # Detection lingers around line for a long time
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4 - 10, 3, 6],
+            ],
+            [
+                Position.TOP_LEFT,
+            ],
+            2,
+            [False] * 12 + [True],
+            [False] * 13,
+        ),
+        (  # Detection lingers around line, longer cycle
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4 - 10, 3, 6],
+                [2, 4 - 10, 3, 6],
+            ],
+            [
+                Position.TOP_LEFT,
+            ],
+            4,
+            [False] * 8 + [True],
+            [False] * 9,
+        ),
+    ],
+)
+def test_line_zone_one_detection_long_horizon(
+    vector: Vector,
+    xyxy_sequence: list[list[float]],
+    triggering_anchors: list[Position],
+    minimum_crossing_threshold: int,
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
+) -> None:
+    line_zone = LineZone(
+        start=vector.start,
+        end=vector.end,
+        triggering_anchors=triggering_anchors,
+        minimum_crossing_threshold=minimum_crossing_threshold,
+    )
+
+    crossed_in_list = []
+    crossed_out_list = []
+    for i, bbox in enumerate(xyxy_sequence):
+        detections = _create_detections(
+            xyxy=[bbox],
+            tracker_id=[0],
+        )
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        crossed_in_list.append(crossed_in[0])
+        crossed_out_list.append(crossed_out[0])
+
+    assert crossed_in_list == expected_crossed_in, (
+        f"expected {expected_crossed_in}, got {crossed_in_list}"
+    )
+    assert crossed_out_list == expected_crossed_out, (
+        f"expected {expected_crossed_out}, got {crossed_out_list}"
+    )
+
+
+_ABOVE_LINE_BOX = [2.0, -6.0, 3.0, -4.0]
+_BELOW_LINE_BOX = [2.0, 4.0, 3.0, 6.0]
+_STRADDLING_LINE_BOX = [2.0, -1.0, 3.0, 1.0]
+_SIDE_TO_BOX = {"A": _ABOVE_LINE_BOX, "B": _BELOW_LINE_BOX, "S": _STRADDLING_LINE_BOX}
+
+
+def _boxes_from_sides(sides: str) -> list[list[float]]:
+    """Map a side string like `"AABSAA"` to boxes above, below, or straddling `y=0`.
+
+    `"A"` is above the line, `"B"` is below it, and `"S"` straddles both sides at once
+    (top corners above, bottom corners below) — one character encodes a single frame of
+    a tracker's trajectory and the whole string encodes the sequence.
+    """
+    return [_SIDE_TO_BOX[side] for side in sides]
+
+
+class TestLineZoneSubThresholdFlicker:
+    """Sub-threshold side changes must not be counted as crossings (#2598)."""
+
+    @staticmethod
+    def _line_zone(
+        minimum_crossing_threshold: int, max_absent_frames: int = 30
+    ) -> LineZone:
+        """Build a horizontal line zone driven by the TOP_LEFT anchor alone."""
+        return LineZone(
+            start=Point(0, 0),
+            end=Point(10, 0),
+            triggering_anchors=[Position.TOP_LEFT],
+            minimum_crossing_threshold=minimum_crossing_threshold,
+            max_absent_frames=max_absent_frames,
+        )
+
+    @pytest.mark.parametrize(
+        ("sides", "minimum_crossing_threshold", "expected_counts"),
+        [
+            pytest.param("AAAAAA", 2, (0, 0), id="never-leaves-side"),
+            pytest.param("AAABAAA", 2, (0, 0), id="one-frame-flicker"),
+            pytest.param("AAABAAABAAABAAA", 2, (0, 0), id="three-separated-flickers"),
+            pytest.param("AAABBAAA", 3, (0, 0), id="two-frame-flicker-under-threshold"),
+            pytest.param("AAABBB", 2, (0, 1), id="sustained-crossing"),
+            pytest.param("AAABBBAAA", 2, (1, 1), id="crossing-then-return"),
+            pytest.param("AAABAAABBB", 2, (0, 1), id="crossing-after-flicker"),
+            pytest.param("AB", 1, (0, 1), id="threshold-one-unchanged"),
+            pytest.param("BBBABBB", 2, (0, 0), id="one-frame-flicker-from-other-side"),
+            pytest.param("AAABBB", 3, (0, 1), id="sustained-crossing-threshold-three"),
+        ],
+    )
+    def test_counts_only_sustained_side_changes(
+        self,
+        sides: str,
+        minimum_crossing_threshold: int,
+        expected_counts: tuple[int, int],
+    ) -> None:
+        """An excursion shorter than the threshold is noise, not a crossing."""
+        line_zone = self._line_zone(minimum_crossing_threshold)
+
+        for box in _boxes_from_sides(sides):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+
+        assert (line_zone.in_count, line_zone.out_count) == expected_counts
+
+    def test_straddling_frame_is_skipped_with_default_anchors(self) -> None:
+        """A straddling box is invisible to the sustain-window gate, not a flicker.
+
+        With the default four-corner anchors, a box that straddles the line makes
+        `_compute_anchor_sides` report both `has_any_left_trigger` and
+        `has_any_right_trigger` as True for that frame, so it is skipped before ever
+        reaching the crossing history (the ambiguous-straddle guard). A straddle
+        sandwiched inside a sustained crossing must therefore count exactly as if that
+        frame were omitted from the sequence.
+        """
+        line_zone = LineZone(
+            start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=2
+        )
+
+        for box in _boxes_from_sides("AAASBBB"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    def test_flicker_does_not_leak_between_trackers(self) -> None:
+        """One tracker's flicker must not disturb another tracker's real crossing."""
+        line_zone = self._line_zone(minimum_crossing_threshold=2)
+        flickering_boxes = _boxes_from_sides("AAABAAA")
+        crossing_boxes = _boxes_from_sides("AAABBBB")
+
+        for flickering_box, crossing_box in zip(
+            flickering_boxes, crossing_boxes, strict=True
+        ):
+            line_zone.trigger(
+                _create_detections(
+                    xyxy=[flickering_box, crossing_box], tracker_id=[1, 2]
+                )
+            )
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    def test_dropped_frame_inside_excursion_is_coasted_through(self) -> None:
+        """A single dropped frame mid-excursion is coasted through, not reset.
+
+        The sustain-window deque records only observed sides, with no notion of a gap,
+        so a flicker excursion that straddles one dropped frame (the tracker entirely
+        absent from that frame's detections, per the coasting-tolerance eviction design)
+        is judged purely on the sides recorded either side of the gap. This documents
+        the resulting current behavior — one still-spurious crossing from the flicker,
+        plus the eventual genuine crossing — rather than asserting it is the intended
+        fix.
+        """
+        line_zone = self._line_zone(minimum_crossing_threshold=2)
+
+        for box in _boxes_from_sides("AAAB"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+        line_zone.trigger(Detections.empty())
+        for box in _boxes_from_sides("BAAA"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+
+        assert (line_zone.in_count, line_zone.out_count) == (1, 1)
+
+    def test_concurrent_flicker_does_not_leak_between_trackers(self) -> None:
+        """Two independently flickering trackers must not cross-contaminate counts.
+
+        Companion to `test_flicker_does_not_leak_between_trackers`, which pairs a
+        flicker with a real crossing; here both trackers are noisy at once, with
+        different flicker shapes (one single-frame excursion vs. two), to confirm per-
+        tracker isolation holds under concurrent noise, not only under a concurrent real
+        crossing.
+        """
+        line_zone = self._line_zone(minimum_crossing_threshold=2)
+        single_flicker_boxes = _boxes_from_sides("AAABAAA")
+        double_flicker_boxes = _boxes_from_sides("AABAABA")
+
+        for single_box, double_box in zip(
+            single_flicker_boxes, double_flicker_boxes, strict=True
+        ):
+            line_zone.trigger(
+                _create_detections(xyxy=[single_box, double_box], tracker_id=[1, 2])
+            )
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+    def test_evicted_tracker_does_not_inherit_confirmed_side(self) -> None:
+        """Eviction clears the reference side, so a reused tracker ID starts fresh."""
+        line_zone = self._line_zone(minimum_crossing_threshold=2, max_absent_frames=3)
+        for box in _boxes_from_sides("BBB"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+        for _ in range(line_zone.max_absent_frames):
+            line_zone.trigger(Detections.empty())
+
+        for box in _boxes_from_sides("AAA"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+
+@pytest.mark.parametrize(
+    (
+        "vector",
+        "xyxy_sequence",
+        "anchors",
+        "minimum_crossing_threshold",
+        "expected_crossed_in",
+        "expected_crossed_out",
+        "expected_count_in",
+        "expected_count_out",
+        "exception",
+    ),
+    [
+        (  # One stays, one crosses, one disappears before crossing
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+            ],
+            [
+                Position.TOP_LEFT,
+            ],
+            1,
+            [
+                [False, False, False],
+                [False, True, False],
+                [False, False],
+                [False, True],
+                [False, False],
+            ],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, True],
+                [False, False],
+                [False, False],
+            ],
+            [0, 1, 1, 2, 2],
+            [0, 0, 1, 1, 1],
+            DoesNotRaise(),
+        ),
+        (  # One stays, one crosses, one disappears immediately after crossing
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+            ],
+            [
+                Position.TOP_LEFT,
+            ],
+            1,
+            [
+                [False, False, False],
+                [False, True, False],
+                [False, False, True],
+                [False, True],
+                [False, False],
+            ],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, True, False],
+                [False, False],
+                [False, False],
+            ],
+            [0, 1, 2, 3, 3],
+            [0, 0, 1, 1, 1],
+            DoesNotRaise(),
+        ),
+        (  # One stays, one crosses, one disappears before crossing
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+            ],
+            [
+                Position.TOP_LEFT,
+            ],
+            2,
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False],
+                [False, False],
+                [False, True],
+            ],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False],
+                [False, False],
+                [False, False],
+            ],
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0],
+            DoesNotRaise(),
+        ),
+        (  # One stays, one crosses, one disappears immediately after crossing
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+                [[4, 4, 6, 6], [4, 4 - 10, 6, 6 - 10]],
+            ],
+            [
+                Position.TOP_LEFT,
+            ],
+            2,
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False, False],
+                [False, False],
+                [False, True],
+            ],
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False, False],
+                [False, False],
+                [False, False],
+            ],
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0],
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_line_zone_long_horizon_disappearing_detections(
+    vector: Vector,
+    xyxy_sequence: list[list[list[float]]],
+    anchors: list[Position],
+    minimum_crossing_threshold: int,
+    expected_crossed_in: list[list[bool]],
+    expected_crossed_out: list[list[bool]],
+    expected_count_in: list[int],
+    expected_count_out: list[int],
+    exception: AbstractContextManager[object],
+) -> None:
+    """Crossings and counts stay consistent when detections leave for many frames."""
+    with exception:
+        line_zone = LineZone(
+            start=vector.start,
+            end=vector.end,
+            triggering_anchors=anchors,
+            minimum_crossing_threshold=minimum_crossing_threshold,
+        )
+        crossed_in_list = []
+        crossed_out_list = []
+        count_in_list = []
+        count_out_list = []
+        for bboxes in xyxy_sequence:
+            detections = _create_detections(
+                xyxy=bboxes,
+                tracker_id=[i for i in range(0, len(bboxes))],
+            )
+            crossed_in, crossed_out = line_zone.trigger(detections)
+            crossed_in_list.append(list(crossed_in))
+            crossed_out_list.append(list(crossed_out))
+            count_in_list.append(line_zone.in_count)
+            count_out_list.append(line_zone.out_count)
+
+        assert crossed_in_list == expected_crossed_in
+        assert crossed_out_list == expected_crossed_out
+        assert count_in_list == expected_count_in
+        assert count_out_list == expected_count_out
+
+
+@pytest.mark.parametrize(
+    (
+        "xyxy_sequence",
+        "tracker_id_sequence",
+        "class_id_sequence",
+        "expected_in_count_per_class",
+        "expected_out_count_per_class",
+    ),
+    [
+        pytest.param(
+            [
+                [[4, 4, 6, 6]],  # frame 0: object 0, class 0, position 4,4,6,6
+                [[4, -6, 6, -4]],  # frame 1: object 0, class 0, position 4,-6,6,-4
+                [[4, 4, 6, 6]],  # frame 2: object 0, class 0, position 4,4,6,6
+                [[4, 4, 6, 6]],  # frame 3: object 0, class 1, position 4,4,6,6
+                [[4, -6, 6, -4]],  # frame 4: object 0, class 1, position 4,-6,6,-4
+                [[4, 4, 6, 6]],  # frame 5: object 0, class 1, position 4,4,6,6
+            ],
+            # tracker_id_sequence
+            [[0], [0], [0], [0], [0], [0]],
+            # class_id_sequence
+            [[0], [0], [0], [1], [1], [1]],
+            # expected_in_count_per_class
+            {0: 1, 1: 1},
+            # expected_out_count_per_class
+            {0: 1, 1: 1},
+            id="single_object_tracker_id_reuse_with_different_classes",
+        ),
+        pytest.param(
+            [
+                # frame 0: objects 0&1 cross IN
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                # frame 1
+                [[4, -6, 6, -4], [4, -6, 6, -4]],
+                # frame 2: objects 0&1 cross OUT
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                # frame 3: objects 2&3 cross IN
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                # frame 4
+                [[4, -6, 6, -4], [4, -6, 6, -4]],
+                # frame 5: objects 2&3 cross OUT
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+            ],
+            # tracker_id_sequence
+            [[0, 1], [0, 1], [0, 1], [2, 3], [2, 3], [2, 3]],
+            # class_id_sequence
+            [[0, 1], [0, 1], [0, 1], [4, 5], [4, 5], [4, 5]],
+            # expected_in_count_per_class
+            {0: 1, 1: 1, 4: 1, 5: 1},
+            # expected_out_count_per_class
+            {0: 1, 1: 1, 4: 1, 5: 1},
+            id="multiple_objects_tracker_id_reuse_with_different_classes",
+        ),
+    ],
+)
+def test_line_zone_tracker_id_reuse_with_different_classes(
+    xyxy_sequence: list[list[list[float]]],
+    tracker_id_sequence: list[list[int]],
+    class_id_sequence: list[list[int]],
+    expected_in_count_per_class: dict[int, int],
+    expected_out_count_per_class: dict[int, int],
+) -> None:
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+
+    for xyxy, tracker_id, class_id in zip(
+        xyxy_sequence, tracker_id_sequence, class_id_sequence
+    ):
+        detections = _create_detections(
+            xyxy=xyxy, tracker_id=tracker_id, class_id=class_id
+        )
+        line_zone.trigger(detections)
+
+    assert line_zone.in_count_per_class == expected_in_count_per_class
+    assert line_zone.out_count_per_class == expected_out_count_per_class
+
+
+def test_line_zone_trigger_does_not_call_np_cross(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Guard against reintroducing np.cross, deprecated for 2-D input in NumPy 2.0."""
+
+    def _raise(*args: object, **kwargs: object) -> NoReturn:
+        raise AssertionError("np.cross must not be called on 2-D vectors")
+
+    monkeypatch.setattr(np, "cross", _raise)
+
+    line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
+    for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:
+        detections = _create_detections(xyxy=[xyxy], tracker_id=[0])
+        crossed_in, crossed_out = line_zone.trigger(detections)
+
+    assert not crossed_in[0]
+    assert crossed_out[0]
+    assert line_zone.out_count == 1
+
+
+@pytest.mark.parametrize(
+    "make_anchors",
+    [
+        pytest.param(
+            lambda: (
+                anchor
+                for anchor in (
+                    Position.TOP_LEFT,
+                    Position.TOP_RIGHT,
+                    Position.BOTTOM_LEFT,
+                    Position.BOTTOM_RIGHT,
+                )
+            ),
+            id="generator",
+        ),
+        pytest.param(
+            lambda: map(
+                lambda name: Position[name],
+                ["TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT"],
+            ),
+            id="map",
+        ),
+        pytest.param(
+            lambda: filter(
+                lambda _: True,
+                (
+                    Position.TOP_LEFT,
+                    Position.TOP_RIGHT,
+                    Position.BOTTOM_LEFT,
+                    Position.BOTTOM_RIGHT,
+                ),
+            ),
+            id="filter",
+        ),
+    ],
+)
+def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
+    make_anchors: Callable[[], Iterable[Position]],
+) -> None:
+    """A single-pass anchors iterable survives construction and counts a crossing.
+
+    Covers the three single-pass iterable shapes named in the PR #2561 bug report —
+    generator expression, `map`, and `filter` — none of which must be exhausted by the
+    constructor's emptiness check before `trigger()` iterates them.
+    """
+    line_zone = LineZone(
+        start=Point(0, 100), end=Point(200, 100), triggering_anchors=make_anchors()
+    )
+
+    line_zone.trigger(_create_detections(xyxy=[[10, 110, 20, 150]], tracker_id=[1]))
+    line_zone.trigger(_create_detections(xyxy=[[10, 50, 20, 90]], tracker_id=[1]))
+
+    assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+
+def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
+    """History for tracker IDs absent from the current frame is evicted."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
+    first_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
+    )
+    second_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[1], class_id=[2]
+    )
+
+    line_zone.trigger(first_detections)
+    # Trigger twice with second_detections so tracker_id=0 accumulates
+    # max_absent_frames absent frames and is evicted.
+    line_zone.trigger(second_detections)
+    line_zone.trigger(second_detections)
+
+    assert set(line_zone.crossing_state_history) == {1}
+
+
+def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> None:
+    """Empty frames age out tracker crossing history."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
+    detections = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1])
+
+    line_zone.trigger(detections)
+    for _ in range(line_zone.max_absent_frames):
+        line_zone.trigger(Detections.empty())
+
+    assert not line_zone.crossing_state_history
+
+
+@pytest.mark.parametrize(
+    ("untracked_frames", "expected_crossing"), [(1, True), (2, False)]
+)
+def test_line_zone_ages_history_on_untracked_frames(
+    untracked_frames: int, expected_crossing: bool
+) -> None:
+    """Missing tracker IDs preserve short gaps but expire stale crossing state."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+    untracked = _create_detections(xyxy=[[4, 4, 6, 6]])
+
+    line_zone.trigger(below)
+    for _ in range(untracked_frames):
+        with pytest.warns(SupervisionWarnings, match="requires tracker_id"):
+            line_zone.trigger(untracked)
+    crossed_in, crossed_out = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [expected_crossing]
+    assert crossed_out.tolist() == [False]
+    assert line_zone.in_count == int(expected_crossing)
+
+
+@pytest.mark.parametrize(
+    ("occluded_frames", "expected_crossing"),
+    [(1, True), (2, True), (5, True), (29, True), (30, False)],
+)
+def test_line_zone_counts_crossing_through_occlusion(
+    occluded_frames: int, expected_crossing: bool
+) -> None:
+    """A tracker hidden while it crosses keeps its side for `max_absent_frames`."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+
+    line_zone.trigger(below)
+    for _ in range(occluded_frames):
+        line_zone.trigger(Detections.empty())
+    crossed_in, _ = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [expected_crossing]
+    assert line_zone.in_count == int(expected_crossing)
+
+
+def _count_crossing_after_high_threshold_occlusion(line_zone: LineZone) -> int:
+    """Count a crossing after a 30-frame gap and 30 opposite-side frames."""
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+    line_zone.trigger(below)
+    for _ in range(30):
+        line_zone.trigger(Detections.empty())
+    for _ in range(30):
+        line_zone.trigger(above)
+    return line_zone.in_count
+
+
+def test_line_zone_high_threshold_default_preserves_crossing_history() -> None:
+    """Default retention preserves a crossing after the prior 30-frame gap."""
+    line_zone = LineZone(
+        start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=30
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 1
+
+
+def test_line_zone_high_threshold_honors_explicit_retention() -> None:
+    """An explicit limit expires crossing history at its specified boundary."""
+    line_zone = LineZone(
+        start=Point(0, 0),
+        end=Point(10, 0),
+        minimum_crossing_threshold=30,
+        max_absent_frames=30,
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 0
+
+
+def test_line_zone_occlusion_with_other_trackers_visible() -> None:
+    """Another visible tracker does not shorten an occluded tracker's retention."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    other = _create_detections(xyxy=[[1, 4, 2, 6]], tracker_id=[8])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+
+    line_zone.trigger(below)
+    for _ in range(5):
+        line_zone.trigger(other)
+    crossed_in, _ = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [True]
+
+
+def test_line_zone_rejects_nonpositive_max_absent_frames() -> None:
+    """A retention below one frame has no meaning and is refused."""
+    with pytest.raises(ValueError, match="max_absent_frames"):
+        LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=0)
+
+
+def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
+    """Class changes must not split a tracker crossing history."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    first_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
+    )
+    second_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[2]
+    )
+
+    line_zone.trigger(first_detections)
+    for _ in range(line_zone.crossing_history_length):
+        line_zone.trigger(second_detections)
+
+    assert set(line_zone.crossing_state_history) == {0}
+
+
+def test_line_zone_class_flicker_keeps_crossing_counts_continuous() -> None:
+    """A tracker's class change must not suppress a real crossing."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    detections_sequence = [
+        _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[0]),
+        _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[0], class_id=[1]),
+        _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[0], class_id=[1]),
+        _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]),
+    ]
+
+    crossed_in = []
+    crossed_out = []
+    for detections in detections_sequence:
+        crossed_in_frame, crossed_out_frame = line_zone.trigger(detections)
+        crossed_in.append(bool(crossed_in_frame[0]))
+        crossed_out.append(bool(crossed_out_frame[0]))
+
+    assert crossed_in == [False, True, False, False]
+    assert crossed_out == [False, False, False, True]
+    assert line_zone.in_count_per_class == {1: 1}
+    assert line_zone.out_count_per_class == {1: 1}
+    assert set(line_zone.crossing_state_history) == {0}
+
+
+def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
+    line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
+    for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:
+        detections = _create_detections(xyxy=[xyxy], tracker_id=[0])
+        line_zone.trigger(detections)
+
+    assert line_zone.out_count_per_class == {None: 1}
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    annotator = LineZoneAnnotatorMulticlass(force_draw_class_ids=False)
+    annotated_frame = annotator.annotate(frame=frame.copy(), line_zones=[line_zone])
+
+    assert annotated_frame.shape == frame.shape
+    assert not np.array_equal(annotated_frame, frame)
+
+
+class TestLineZoneInit:
+    @pytest.mark.parametrize(
+        ("triggering_anchors", "exception"),
+        [
+            pytest.param([Position.CENTER], DoesNotRaise(), id="non-empty-list"),
+            pytest.param(
+                [],
+                pytest.raises(ValueError, match="Triggering anchors cannot be empty"),
+                id="empty-list",
+            ),
+            pytest.param(
+                (anchor for anchor in list[Position]()),
+                pytest.raises(ValueError, match="Triggering anchors cannot be empty"),
+                id="empty-generator",
+            ),
+        ],
+    )
+    def test_empty_anchors_raises(
+        self,
+        triggering_anchors: Iterable[Position],
+        exception: AbstractContextManager[object],
+    ) -> None:
+        """LineZone rejects an anchors iterable that is empty, generator included.
+
+        Mirrors `TestPolygonZoneInit::test_empty_anchors_raises`. The empty-generator
+        case is the regression guard for #2561: the constructor must materialize a
+        single-pass iterable before checking it, or an empty generator would reach
+        the check unconsumed and slip past it.
+        """
+        with exception:
+            LineZone(
+                start=Point(0, 0),
+                end=Point(10, 0),
+                triggering_anchors=triggering_anchors,
+            )
+
+
+def test_line_zone_label_rotation_uses_pillow_canvas() -> None:
+    """Render a rotated BGRA count label through the domain-specific Pillow path."""
+    upright = LineZoneAnnotator._make_label_image(
+        "out: 7",
+        text_scale=0.75,
+        text_thickness=1,
+        text_padding=4,
+        text_color=Color.WHITE,
+        text_box_show=True,
+        text_box_color=Color.BLACK,
+        line_angle_degrees=0,
+    )
+    label = LineZoneAnnotator._make_label_image(
+        "out: 7",
+        text_scale=0.75,
+        text_thickness=1,
+        text_padding=4,
+        text_color=Color.WHITE,
+        text_box_show=True,
+        text_box_color=Color.BLACK,
+        line_angle_degrees=37,
+    )
+
+    assert label.ndim == 3
+    assert label.shape[2] == 4
+    assert np.any(label[..., 3])
+    assert not np.array_equal(label[..., 3], upright[..., 3])
+
+
+class TestLineZoneAnnotatorOrientedLabel:
+    """Oriented count labels on lines whose text would otherwise be upside down."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_label_cache(self) -> None:
+        """Drop cached label images so every test renders and flips its own."""
+        LineZoneAnnotator._make_label_image.cache_clear()
+
+    @staticmethod
+    def _make_label(line_angle_degrees: float) -> np.ndarray:
+        """Render the "out: 7" count label for a line at the given angle."""
+        return LineZoneAnnotator._make_label_image(
+            "out: 7",
+            text_scale=0.75,
+            text_thickness=1,
+            text_padding=4,
+            text_color=Color.WHITE,
+            text_box_show=True,
+            text_box_color=Color.BLACK,
+            line_angle_degrees=line_angle_degrees,
+        )
+
+    def test_annotate_draws_labels_for_right_to_left_line(self) -> None:
+        """Draw both counts on a line drawn right to left without raising."""
+        line_zone = LineZone(start=Point(170, 100), end=Point(30, 100))
+        frame = np.zeros((200, 200, 3), dtype=np.uint8)
+        line_only = LineZoneAnnotator(
+            display_in_count=False, display_out_count=False
+        ).annotate(frame=frame.copy(), line_counter=line_zone)
+        annotator = LineZoneAnnotator(text_orient_to_line=True)
+
+        annotated_frame = annotator.annotate(frame=frame.copy(), line_counter=line_zone)
+
+        assert not np.array_equal(annotated_frame, line_only)
+
+    def test_label_at_180_degrees_reads_upright(self) -> None:
+        """Render the label of a right-to-left line the way an upright label reads.
+
+        A 180 degree rotation alone leaves the text upside down; the flip ahead of it
+        cancels that, so the result equals the 0 degree label. For an odd-sized label it
+        sits one pixel up and left, because PIL rotates about a pixel corner while the
+        flip mirrors about pixel centres. A missing or single-axis flip breaks this
+        equality.
+        """
+        upright = self._make_label(0.0)
+        size = upright.shape[0]
+        offset = size % 2
+
+        flipped = self._make_label(180.0)
+
+        np.testing.assert_array_equal(
+            flipped[: size - offset, : size - offset], upright[offset:, offset:]
+        )
+
+    @pytest.mark.parametrize(
+        ("line_angle_degrees", "expected_flips"),
+        [
+            pytest.param(0.0, 0, id="0-degrees-upright"),
+            pytest.param(45.0, 0, id="45-degrees-upright"),
+            pytest.param(90.0, 0, id="90-degrees-upright-boundary"),
+            pytest.param(90.0001, 1, id="just-past-90-flipped"),
+            pytest.param(135.0, 1, id="135-degrees-flipped"),
+            pytest.param(225.0, 1, id="225-degrees-flipped"),
+            pytest.param(269.9, 1, id="just-before-270-flipped"),
+            pytest.param(270.0, 0, id="270-degrees-upright-boundary"),
+            pytest.param(315.0, 0, id="315-degrees-upright"),
+        ],
+    )
+    def test_label_is_flipped_only_between_90_and_270_degrees(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        line_angle_degrees: float,
+        expected_flips: int,
+    ) -> None:
+        """Flip the label only for lines pointing left, strictly past 90 and below 270.
+
+        Lines pointing left would otherwise show upside-down text. The bounds are
+        exclusive, so exactly 90 and 270 degrees stay unflipped.
+        """
+        flip_spy = mock.Mock(wraps=_cv2.flip)
+        monkeypatch.setattr(_cv2, "flip", flip_spy)
+
+        self._make_label(line_angle_degrees)
+
+        assert flip_spy.call_count == expected_flips
+
+
+class TestLineZoneUnconfirmedTracks:
+    """Detections with a negative `tracker_id` are unconfirmed and must not count.
+
+    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is confirmed,
+    so several distinct objects can share that placeholder id in the same frame.
+    Regression tests for #2578.
+    """
+
+    def test_ignores_unconfirmed_objects_that_trade_sides(self) -> None:
+        """Two -1 objects swapping sides every frame produce no crossings."""
+        line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+        below, above = [4, 4, 6, 6], [4, -6, 6, -4]
+        detections_sequence = [
+            _create_detections(xyxy=[below, above], tracker_id=[-1, -1]),
+            _create_detections(xyxy=[above, below], tracker_id=[-1, -1]),
+        ] * 3
+
+        results = [line_zone.trigger(detections) for detections in detections_sequence]
+
+        assert not any(crossed_in.any() for crossed_in, _ in results)
+        assert not any(crossed_out.any() for _, crossed_out in results)
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+    def test_counts_confirmed_track_despite_unconfirmed_flicker(self) -> None:
+        """A confirmed track crossing once is counted once beside a -1 flicker."""
+        line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+        below, above = [4, 4, 6, 6], [4, -6, 6, -4]
+        detections_sequence = [
+            _create_detections(xyxy=[below, below], tracker_id=[7, -1]),
+            _create_detections(xyxy=[above, above], tracker_id=[7, -1]),
+            _create_detections(xyxy=[above, below], tracker_id=[7, -1]),
+            _create_detections(xyxy=[above, above], tracker_id=[7, -1]),
+        ]
+
+        results = [line_zone.trigger(detections) for detections in detections_sequence]
+
+        crossed_in = [list(frame_in) for frame_in, _ in results]
+        assert crossed_in == [
+            [False, False],
+            [True, False],
+            [False, False],
+            [False, False],
+        ]
+        assert not any(crossed_out.any() for _, crossed_out in results)
+        assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+    def test_keeps_no_crossing_state_for_unconfirmed_ids(self) -> None:
+        """Only confirmed ids get a crossing history; -1 never does."""
+        line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+        detections = _create_detections(
+            xyxy=[[4, 4, 6, 6], [4, -6, 6, -4]], tracker_id=[3, -1]
+        )
+
+        for _ in range(line_zone.crossing_history_length):
+            line_zone.trigger(detections)
+
+        assert set(line_zone.crossing_state_history) == {3}
+
+    def test_counts_once_when_object_is_confirmed_after_unconfirmed_frames(
+        self,
+    ) -> None:
+        """An object tracked as -1 before it gets an id counts once, when it crosses."""
+        line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+        below, above = [4, 4, 6, 6], [4, -6, 6, -4]
+        detections_sequence = [
+            _create_detections(xyxy=[below, above], tracker_id=[-1, -1]),
+            _create_detections(xyxy=[below, above], tracker_id=[-1, -1]),
+            _create_detections(xyxy=[below], tracker_id=[5]),
+            _create_detections(xyxy=[above], tracker_id=[5]),
+            _create_detections(xyxy=[above], tracker_id=[5]),
+        ]
+
+        crossed_in = [
+            bool(line_zone.trigger(detections)[0][0])
+            for detections in detections_sequence
+        ]
+
+        assert crossed_in == [False, False, False, True, False]
+        assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+
+# Bottom centre y = 80, 95, 150, 165, 180: crosses y = 100 downwards at frame 2.
+TRACK_CROSSING_DOWN = [
+    [140.0, 40.0, 160.0, 80.0],
+    [140.0, 55.0, 160.0, 95.0],
+    [140.0, 110.0, 160.0, 150.0],
+    [140.0, 125.0, 160.0, 165.0],
+    [140.0, 140.0, 160.0, 180.0],
+]
+
+
+class TestLineZoneTriggerWithCoordTransform:
+    """`LineZone.trigger` with a per-frame `coord_transform`."""
+
+    def test_counts_crossing_in_reference_coordinates(self) -> None:
+        """A track the camera follows still crosses the line in the reference frame."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100), (Position.BOTTOM_CENTER,))
+        # The camera tilts with the object, so its box never moves in the frame,
+        # while it moves as TRACK_CROSSING_DOWN in the line's reference frame.
+        box_in_frame = _create_detections(
+            xyxy=[[140.0, 40.0, 160.0, 80.0]], tracker_id=[1]
+        )
+        camera_shifts = [_ShiftTransform(0, dy) for dy in (0, -15, -70, -85, -100)]
+
+        results = [
+            line_zone.trigger(box_in_frame, coord_transform=shift)
+            for shift in camera_shifts
+        ]
+
+        assert [bool(crossed_in[0]) for crossed_in, _ in results] == [False] * 5
+        assert [bool(crossed_out[0]) for _, crossed_out in results] == [
+            False,
+            False,
+            True,
+            False,
+            False,
+        ]
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    @pytest.mark.parametrize(
+        ("use_transform", "expected_counts"),
+        [
+            pytest.param(True, (0, 0), id="camera-motion-removed"),
+            pytest.param(False, (0, 1), id="camera-motion-ignored"),
+        ],
+    )
+    def test_stationary_object_under_moving_line(
+        self, use_transform: bool, expected_counts: tuple[int, int]
+    ) -> None:
+        """A parked object is counted only when the camera motion is ignored."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100))
+        # The camera tilts, so the parked object appears 0, 20, 40 and 60 px
+        # lower in each frame and ends below the line drawn on the first frame.
+        # Its top and bottom (y = 61 + dy and 91 + dy) never lie exactly on y = 100.
+        camera_tilts = (0, 20, 40, 60)
+        frames = [
+            _create_detections(
+                xyxy=[[140.0, 61.0 + dy, 160.0, 91.0 + dy]], tracker_id=[7]
+            )
+            for dy in camera_tilts
+        ]
+        transforms = [
+            _ShiftTransform(0, dy) if use_transform else None for dy in camera_tilts
+        ]
+
+        for frame, transform in zip(frames, transforms):
+            line_zone.trigger(frame, coord_transform=transform)
+
+        assert (line_zone.in_count, line_zone.out_count) == expected_counts
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        "invalid_point",
+        [
+            pytest.param((np.nan, np.nan), id="nan"),
+            pytest.param((np.inf, 150.0), id="inf"),
+            pytest.param((1e30, 150.0), id="far-beyond-line-end"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("invalid_frames", "expected_crossed_out", "expected_has_history"),
+        [
+            pytest.param({0, 1, 2, 3, 4}, [False] * 5, False, id="all-frames"),
+            pytest.param({0, 1}, [False] * 5, True, id="frames-above-line"),
+            pytest.param(
+                {2}, [False, False, False, True, False], True, id="first-below"
+            ),
+        ],
+    )
+    def test_frames_mapped_outside_limits_are_skipped(
+        self,
+        invalid_point: tuple[float, float],
+        invalid_frames: set[int],
+        expected_crossed_out: list[bool],
+        expected_has_history: bool,
+    ) -> None:
+        """Frames whose anchors map to non-finite or far points leave no state."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100), (Position.BOTTOM_CENTER,))
+        invalid = _ConstantTransform(*invalid_point)
+        identity = _ShiftTransform(0, 0)
+
+        crossed_out = []
+        for index, box in enumerate(TRACK_CROSSING_DOWN):
+            transform = invalid if index in invalid_frames else identity
+            _, frame_crossed_out = line_zone.trigger(
+                _create_detections(xyxy=[box], tracker_id=[1]),
+                coord_transform=transform,
+            )
+            crossed_out.append(bool(frame_crossed_out[0]))
+
+        assert crossed_out == expected_crossed_out
+        assert line_zone.out_count == sum(expected_crossed_out)
+        assert line_zone.in_count == 0
+        assert (1 in line_zone.crossing_state_history) == expected_has_history
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    def test_detection_with_one_non_finite_anchor_is_skipped(self) -> None:
+        """One non-finite mapped anchor skips the detection even if others are fine."""
+        line_zone = LineZone(
+            Point(0, 100),
+            Point(300, 100),
+            (Position.BOTTOM_LEFT, Position.BOTTOM_RIGHT),
+        )
+        # Track 1 has both bottom corners at x <= 150; track 2 has its bottom-left
+        # corner at x = 140 and its bottom-right corner at x = 170, which maps to NaN.
+        frames = [
+            _create_detections(
+                xyxy=[
+                    [10.0, y_min, 30.0, y_min + 40.0],
+                    [140.0, y_min, 170.0, y_min + 40.0],
+                ],
+                tracker_id=[1, 2],
+            )
+            for y_min in (40.0, 55.0, 110.0, 125.0, 140.0)
+        ]
+
+        results = [
+            line_zone.trigger(frame, coord_transform=_NanBeyondX(150.0))
+            for frame in frames
+        ]
+
+        assert [crossed_out.tolist() for _, crossed_out in results] == [
+            [False, False],
+            [False, False],
+            [True, False],
+            [False, False],
+            [False, False],
+        ]
+        assert all(not crossed_in.any() for crossed_in, _ in results)
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+        assert 2 not in line_zone.crossing_state_history
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100))
+        detections = _create_detections(
+            xyxy=[[140.0, 40.0, 160.0, 80.0]], tracker_id=[1]
+        )
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            line_zone.trigger(detections, coord_transform=_WrongShapeTransform())
+
+
+class TestLineZoneAnnotatorWithCoordTransform:
+    """`LineZoneAnnotator.annotate` with a per-frame `coord_transform`."""
+
+    def test_draws_line_at_mapped_position(self) -> None:
+        """The line is drawn where the camera shift moved it, not where defined."""
+        line_zone = LineZone(Point(10, 20), Point(190, 20))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((120, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(0, 60)
+        )
+
+        assert annotated[80, 100].tolist() == WHITE
+        assert annotated[20, 100].tolist() == BLACK
+
+    @pytest.mark.parametrize(
+        ("text_orient_to_line", "text_centered"),
+        [
+            pytest.param(False, True, id="level-label-at-center"),
+            pytest.param(True, True, id="oriented-label-at-center"),
+            pytest.param(True, False, id="oriented-label-near-end"),
+        ],
+    )
+    def test_count_labels_follow_mapped_line(
+        self, text_orient_to_line: bool, text_centered: bool
+    ) -> None:
+        """Count labels are drawn next to the mapped line, not the defined one.
+
+        The frame must match drawing the line, already at its mapped position, with no
+        transform, whatever size the text backend gives the labels.
+        """
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+        annotator = LineZoneAnnotator(
+            text_orient_to_line=text_orient_to_line, text_centered=text_centered
+        )
+        frame = np.zeros((300, 200, 3), dtype=np.uint8)
+        expected = annotator.annotate(
+            frame.copy(), LineZone(Point(20, 230), Point(180, 250))
+        )
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(0, 200)
+        )
+
+        assert not annotated[:150].any()
+        np.testing.assert_array_equal(annotated, expected)
+
+    @pytest.mark.parametrize("text_orient_to_line", [False, True])
+    @pytest.mark.parametrize(
+        "shift",
+        [
+            pytest.param((-400, 0), id="off-left"),
+            pytest.param((0, -400), id="off-top"),
+        ],
+    )
+    def test_line_mapped_off_frame_draws_nothing(
+        self, shift: tuple[int, int], text_orient_to_line: bool
+    ) -> None:
+        """A line mapped wholly off the frame leaves no labels on its edge."""
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+        annotator = LineZoneAnnotator(text_orient_to_line=text_orient_to_line)
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(*shift)
+        )
+
+        assert not annotated.any()
+
+    @pytest.mark.parametrize(
+        ("start", "end", "text_centered", "shift", "offset"),
+        [
+            pytest.param(
+                Point(20, 30),
+                Point(180, 50),
+                True,
+                (-120, 0),
+                (20, 0),
+                id="center-x-20",
+            ),
+            pytest.param(
+                Point(20, 30),
+                Point(181, 50),
+                True,
+                (-101, 0),
+                (1, 0),
+                id="center-x-half-pixel",
+            ),
+            pytest.param(
+                Point(20, 30),
+                Point(180, 50),
+                True,
+                (0, -50),
+                (0, 10),
+                id="center-y-10",
+            ),
+            pytest.param(
+                Point(180, 50),
+                Point(5, 40),
+                False,
+                (-10, 0),
+                (5, 0),
+                id="uncentered-end-x-5",
+            ),
+        ],
+    )
+    def test_labels_anchored_off_frame_are_cut_not_pushed_into_frame(
+        self,
+        start: Point,
+        end: Point,
+        text_centered: bool,
+        shift: tuple[int, int],
+        offset: tuple[int, int],
+    ) -> None:
+        """A label whose line point is off-frame is cut by the edge, not pulled in.
+
+        Drawn without a transform at its mapped endpoints, the same line has its label
+        pulled to the frame edge. With the transform the label sits `offset` pixels
+        further out, where its line point is, so it is that label moved back by `offset`
+        and cut by the edge.
+        """
+        mapped_start = Point(start.x + shift[0], start.y + shift[1])
+        mapped_end = Point(end.x + shift[0], end.y + shift[1])
+        offset_x, offset_y = offset
+
+        mapped = _oriented_label_pixels(
+            LineZone(start, end), _ShiftTransform(*shift), text_centered
+        )
+        pulled_in = _oriented_label_pixels(
+            LineZone(mapped_start, mapped_end), None, text_centered
+        )
+
+        mapped_right = np.flatnonzero(mapped.any(axis=0))[-1]
+        mapped_bottom = np.flatnonzero(mapped.any(axis=1))[-1]
+        pulled_in_right = np.flatnonzero(pulled_in.any(axis=0))[-1]
+        pulled_in_bottom = np.flatnonzero(pulled_in.any(axis=1))[-1]
+        assert (mapped_right, mapped_bottom) == (
+            pulled_in_right - offset_x,
+            pulled_in_bottom - offset_y,
+        )
+
+    @pytest.mark.parametrize(
+        ("shift_before", "shift_after"),
+        [
+            pytest.param(-100.1, -100.3, id="inside-to-inside"),
+            pytest.param(-100.3, -100.7, id="inside-to-outside"),
+            pytest.param(-100.7, -100.9, id="outside-to-outside"),
+            pytest.param(-100.1, -100.9, id="inside-to-outside-sub-pixel"),
+        ],
+    )
+    def test_label_moves_continuously_as_line_point_crosses_left_edge(
+        self, shift_before: float, shift_after: float
+    ) -> None:
+        """Sub-pixel camera motion across the left edge shifts a label by a pixel.
+
+        The line's midpoint crosses x = 0 between the two shifts. A label that is
+        pulled into view only while its anchor is on-screen would jump by about a
+        label width there, which is what a nearly static camera must not cause.
+        """
+        line_zone = LineZone(Point(20, 30), Point(181, 50))
+
+        before = _oriented_label_pixels(line_zone, _ShiftTransform(shift_before, 0))
+        after = _oriented_label_pixels(line_zone, _ShiftTransform(shift_after, 0))
+
+        right_edge_before = np.flatnonzero(before.any(axis=0))[-1]
+        right_edge_after = np.flatnonzero(after.any(axis=0))[-1]
+        assert abs(right_edge_before - right_edge_after) <= 1
+
+    @pytest.mark.parametrize(
+        ("start", "end", "text_centered"),
+        [
+            pytest.param(Point(10, 10), Point(10, 90), True, id="vertical-near-left"),
+            pytest.param(Point(20, 5), Point(180, 8), True, id="horizontal-near-top"),
+            pytest.param(
+                Point(180, 50), Point(5, 40), False, id="uncentered-end-near-left"
+            ),
+        ],
+    )
+    def test_identity_keeps_labels_of_on_screen_line_in_view(
+        self, start: Point, end: Point, text_centered: bool
+    ) -> None:
+        """Labels of an on-screen line are pushed into view as without a transform."""
+        annotator = LineZoneAnnotator(
+            text_orient_to_line=True, text_centered=text_centered
+        )
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+        expected = annotator.annotate(frame.copy(), LineZone(start, end))
+
+        annotated = annotator.annotate(
+            frame, LineZone(start, end), coord_transform=_ShiftTransform(0, 0)
+        )
+
+        np.testing.assert_array_equal(annotated, expected)
+
+    @pytest.mark.parametrize("shear", [1e-6, -1e-6])
+    def test_sub_pixel_jitter_does_not_flip_vertical_line_label(
+        self, shear: float
+    ) -> None:
+        """Jitter that tips a vertical line either way draws it as without jitter."""
+        line_zone = LineZone(Point(150, 10), Point(150, 190))
+        annotator = LineZoneAnnotator(text_orient_to_line=True, display_out_count=False)
+        frame = np.zeros((200, 300, 3), dtype=np.uint8)
+        expected = annotator.annotate(
+            frame.copy(), line_zone, coord_transform=_ShiftTransform(0, 0)
+        )
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShearXTransform(shear)
+        )
+
+        np.testing.assert_array_equal(annotated, expected)
+
+    def test_zero_length_mapped_line_draws_labels_vertically(self) -> None:
+        """Both endpoints mapped to one point draw labels as for a vertical line.
+
+        A label turned to a vertical line is taller than wide, the other way round from
+        a level one.
+        """
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+
+        label = _oriented_label_pixels(line_zone, _ConstantTransform(50, 50))
+
+        rows = np.flatnonzero(label.any(axis=1))
+        columns = np.flatnonzero(label.any(axis=0))
+        assert rows[-1] - rows[0] > columns[-1] - columns[0]
+
+    @pytest.mark.parametrize(
+        "new_x",
+        [
+            pytest.param(50.0, id="drawn"),
+            pytest.param(np.nan, id="skipped"),
+        ],
+    )
+    def test_draws_on_input_frame(self, new_x: float) -> None:
+        """Drawn or skipped, the input frame itself is returned."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = LineZoneAnnotator().annotate(
+            frame, line_zone, coord_transform=_MoveBeyondX(80, new_x)
+        )
+
+        assert annotated is frame
+
+    def test_partially_off_screen_line_draws_visible_part(self) -> None:
+        """A line mapped partly beyond the frame edge draws its visible part."""
+        line_zone = LineZone(Point(10, 50), Point(190, 50))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(-50, 0)
+        )
+
+        assert annotated[50, [0, 50, 99]].tolist() == [WHITE, WHITE, WHITE]
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        "new_x",
+        [
+            pytest.param(np.nan, id="nan"),
+            pytest.param(np.inf, id="inf"),
+            pytest.param(-np.inf, id="negative-inf"),
+            pytest.param(2**20 + 1, id="just-beyond-limit"),
+            pytest.param(-(2**20) - 1, id="just-beyond-negative-limit"),
+        ],
+    )
+    def test_line_with_undrawable_endpoint_is_skipped(self, new_x: float) -> None:
+        """One endpoint that is non-finite or beyond 2**20 px skips line and labels."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        annotator = LineZoneAnnotator()
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_MoveBeyondX(80, new_x)
+        )
+
+        assert not annotated.any()
+
+    @pytest.mark.parametrize(
+        ("new_x", "column"),
+        [
+            pytest.param(2**20, 50, id="at-limit"),
+            pytest.param(-(2**20), 2, id="at-negative-limit"),
+        ],
+    )
+    def test_line_with_endpoint_at_drawing_limit_is_drawn(
+        self, new_x: float, column: int
+    ) -> None:
+        """An endpoint mapped exactly to 2**20 px is still drawn, not skipped."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_MoveBeyondX(80, new_x)
+        )
+
+        assert annotated[50, column].tolist() == WHITE
+
+    @pytest.mark.parametrize(
+        "coord_transform",
+        [
+            pytest.param(None, id="none"),
+            pytest.param(_ShiftTransform(0, 0), id="identity"),
+        ],
+    )
+    def test_unmapped_or_identity_drawing_stays_in_place(
+        self, coord_transform: _ShiftTransform | None
+    ) -> None:
+        """No transform, or an identity one, draws the line where it was defined."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.full((100, 100, 3), 128, dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=coord_transform
+        )
+
+        assert annotated[50, 50].tolist() == WHITE
+        assert annotated[50, 10].tolist() == BLACK
+        assert annotated[50, 90].tolist() == BLACK
+        assert annotated[10, 50].tolist() == [128, 128, 128]
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            LineZoneAnnotator().annotate(
+                frame, line_zone, coord_transform=_WrongShapeTransform()
+            )

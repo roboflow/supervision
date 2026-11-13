@@ -3,16 +3,34 @@ name: Publish Supervision Pre-Releases to PyPI
 on:
   push:
     tags:
-      - "[0-9]+.[0-9]+[0-9]+.[0-9]+a[0-9]"
-      - "[0-9]+.[0-9]+[0-9]+.[0-9]+b[0-9]"
-      - "[0-9]+.[0-9]+[0-9]+.[0-9]+rc[0-9]"
+      - "[0-9]+.[0-9]+.[0-9]+a[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+b[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+rc[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+.a[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+.b[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+.rc[0-9]+"
   workflow_dispatch:
+  pull_request:
+    branches: ["main", "develop", "release/*"]
+    paths:
+      - ".github/workflows/build-package.yml"
+      - ".github/workflows/publish-pre-release.yml"
 
 permissions: {} # Explicitly remove all permissions by default
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  build:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build-package.yml # zizmor: ignore[self-repository] -- Local calls already use the workflow commit.
+
   publish-pre-release:
     name: Publish Pre-release Package
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: test
@@ -21,25 +39,17 @@ jobs:
     permissions:
       id-token: write # Required for PyPI publishing
       contents: read # Required for checkout
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     steps:
-      - name: 📥 Checkout the repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+      - name: 📥 Download distribution artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: 🏗️ Build source and wheel distributions
-        run: |
-          uv pip install -r pyproject.toml --extra build
-          uv build
-          uv run twine check --strict dist/*
+          name: dist
+          path: dist/
+      - name: List distribution artifacts
+        run: ls -lh dist/
 
       - name: 🚀 Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
+        if: github.event_name != 'pull_request'
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           attestations: true
