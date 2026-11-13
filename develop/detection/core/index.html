@@ -2226,6 +2226,45 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
         
           <li class="md-nav__item">
+  <a href="#supervision.detection.core.Detections.remap_classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;remap_classes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" remap_classes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.core.Detections.remap_classes(classes)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.core.Detections.remap_classes(class_name_mapping)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;class_name_mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#supervision.detection.core.Detections.select" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4997,6 +5036,45 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;detections_list
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.core.Detections.remap_classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;remap_classes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" remap_classes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.core.Detections.remap_classes(classes)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.core.Detections.remap_classes(class_name_mapping)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;class_name_mapping
       
     </span>
   </a>
@@ -8410,7 +8488,121 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <span class="normal"><a href="#__codelineno-0-3080">3080</a></span>
 <span class="normal"><a href="#__codelineno-0-3081">3081</a></span>
 <span class="normal"><a href="#__codelineno-0-3082">3082</a></span>
-<span class="normal"><a href="#__codelineno-0-3083">3083</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-3083">3083</a></span>
+<span class="normal"><a href="#__codelineno-0-3084">3084</a></span>
+<span class="normal"><a href="#__codelineno-0-3085">3085</a></span>
+<span class="normal"><a href="#__codelineno-0-3086">3086</a></span>
+<span class="normal"><a href="#__codelineno-0-3087">3087</a></span>
+<span class="normal"><a href="#__codelineno-0-3088">3088</a></span>
+<span class="normal"><a href="#__codelineno-0-3089">3089</a></span>
+<span class="normal"><a href="#__codelineno-0-3090">3090</a></span>
+<span class="normal"><a href="#__codelineno-0-3091">3091</a></span>
+<span class="normal"><a href="#__codelineno-0-3092">3092</a></span>
+<span class="normal"><a href="#__codelineno-0-3093">3093</a></span>
+<span class="normal"><a href="#__codelineno-0-3094">3094</a></span>
+<span class="normal"><a href="#__codelineno-0-3095">3095</a></span>
+<span class="normal"><a href="#__codelineno-0-3096">3096</a></span>
+<span class="normal"><a href="#__codelineno-0-3097">3097</a></span>
+<span class="normal"><a href="#__codelineno-0-3098">3098</a></span>
+<span class="normal"><a href="#__codelineno-0-3099">3099</a></span>
+<span class="normal"><a href="#__codelineno-0-3100">3100</a></span>
+<span class="normal"><a href="#__codelineno-0-3101">3101</a></span>
+<span class="normal"><a href="#__codelineno-0-3102">3102</a></span>
+<span class="normal"><a href="#__codelineno-0-3103">3103</a></span>
+<span class="normal"><a href="#__codelineno-0-3104">3104</a></span>
+<span class="normal"><a href="#__codelineno-0-3105">3105</a></span>
+<span class="normal"><a href="#__codelineno-0-3106">3106</a></span>
+<span class="normal"><a href="#__codelineno-0-3107">3107</a></span>
+<span class="normal"><a href="#__codelineno-0-3108">3108</a></span>
+<span class="normal"><a href="#__codelineno-0-3109">3109</a></span>
+<span class="normal"><a href="#__codelineno-0-3110">3110</a></span>
+<span class="normal"><a href="#__codelineno-0-3111">3111</a></span>
+<span class="normal"><a href="#__codelineno-0-3112">3112</a></span>
+<span class="normal"><a href="#__codelineno-0-3113">3113</a></span>
+<span class="normal"><a href="#__codelineno-0-3114">3114</a></span>
+<span class="normal"><a href="#__codelineno-0-3115">3115</a></span>
+<span class="normal"><a href="#__codelineno-0-3116">3116</a></span>
+<span class="normal"><a href="#__codelineno-0-3117">3117</a></span>
+<span class="normal"><a href="#__codelineno-0-3118">3118</a></span>
+<span class="normal"><a href="#__codelineno-0-3119">3119</a></span>
+<span class="normal"><a href="#__codelineno-0-3120">3120</a></span>
+<span class="normal"><a href="#__codelineno-0-3121">3121</a></span>
+<span class="normal"><a href="#__codelineno-0-3122">3122</a></span>
+<span class="normal"><a href="#__codelineno-0-3123">3123</a></span>
+<span class="normal"><a href="#__codelineno-0-3124">3124</a></span>
+<span class="normal"><a href="#__codelineno-0-3125">3125</a></span>
+<span class="normal"><a href="#__codelineno-0-3126">3126</a></span>
+<span class="normal"><a href="#__codelineno-0-3127">3127</a></span>
+<span class="normal"><a href="#__codelineno-0-3128">3128</a></span>
+<span class="normal"><a href="#__codelineno-0-3129">3129</a></span>
+<span class="normal"><a href="#__codelineno-0-3130">3130</a></span>
+<span class="normal"><a href="#__codelineno-0-3131">3131</a></span>
+<span class="normal"><a href="#__codelineno-0-3132">3132</a></span>
+<span class="normal"><a href="#__codelineno-0-3133">3133</a></span>
+<span class="normal"><a href="#__codelineno-0-3134">3134</a></span>
+<span class="normal"><a href="#__codelineno-0-3135">3135</a></span>
+<span class="normal"><a href="#__codelineno-0-3136">3136</a></span>
+<span class="normal"><a href="#__codelineno-0-3137">3137</a></span>
+<span class="normal"><a href="#__codelineno-0-3138">3138</a></span>
+<span class="normal"><a href="#__codelineno-0-3139">3139</a></span>
+<span class="normal"><a href="#__codelineno-0-3140">3140</a></span>
+<span class="normal"><a href="#__codelineno-0-3141">3141</a></span>
+<span class="normal"><a href="#__codelineno-0-3142">3142</a></span>
+<span class="normal"><a href="#__codelineno-0-3143">3143</a></span>
+<span class="normal"><a href="#__codelineno-0-3144">3144</a></span>
+<span class="normal"><a href="#__codelineno-0-3145">3145</a></span>
+<span class="normal"><a href="#__codelineno-0-3146">3146</a></span>
+<span class="normal"><a href="#__codelineno-0-3147">3147</a></span>
+<span class="normal"><a href="#__codelineno-0-3148">3148</a></span>
+<span class="normal"><a href="#__codelineno-0-3149">3149</a></span>
+<span class="normal"><a href="#__codelineno-0-3150">3150</a></span>
+<span class="normal"><a href="#__codelineno-0-3151">3151</a></span>
+<span class="normal"><a href="#__codelineno-0-3152">3152</a></span>
+<span class="normal"><a href="#__codelineno-0-3153">3153</a></span>
+<span class="normal"><a href="#__codelineno-0-3154">3154</a></span>
+<span class="normal"><a href="#__codelineno-0-3155">3155</a></span>
+<span class="normal"><a href="#__codelineno-0-3156">3156</a></span>
+<span class="normal"><a href="#__codelineno-0-3157">3157</a></span>
+<span class="normal"><a href="#__codelineno-0-3158">3158</a></span>
+<span class="normal"><a href="#__codelineno-0-3159">3159</a></span>
+<span class="normal"><a href="#__codelineno-0-3160">3160</a></span>
+<span class="normal"><a href="#__codelineno-0-3161">3161</a></span>
+<span class="normal"><a href="#__codelineno-0-3162">3162</a></span>
+<span class="normal"><a href="#__codelineno-0-3163">3163</a></span>
+<span class="normal"><a href="#__codelineno-0-3164">3164</a></span>
+<span class="normal"><a href="#__codelineno-0-3165">3165</a></span>
+<span class="normal"><a href="#__codelineno-0-3166">3166</a></span>
+<span class="normal"><a href="#__codelineno-0-3167">3167</a></span>
+<span class="normal"><a href="#__codelineno-0-3168">3168</a></span>
+<span class="normal"><a href="#__codelineno-0-3169">3169</a></span>
+<span class="normal"><a href="#__codelineno-0-3170">3170</a></span>
+<span class="normal"><a href="#__codelineno-0-3171">3171</a></span>
+<span class="normal"><a href="#__codelineno-0-3172">3172</a></span>
+<span class="normal"><a href="#__codelineno-0-3173">3173</a></span>
+<span class="normal"><a href="#__codelineno-0-3174">3174</a></span>
+<span class="normal"><a href="#__codelineno-0-3175">3175</a></span>
+<span class="normal"><a href="#__codelineno-0-3176">3176</a></span>
+<span class="normal"><a href="#__codelineno-0-3177">3177</a></span>
+<span class="normal"><a href="#__codelineno-0-3178">3178</a></span>
+<span class="normal"><a href="#__codelineno-0-3179">3179</a></span>
+<span class="normal"><a href="#__codelineno-0-3180">3180</a></span>
+<span class="normal"><a href="#__codelineno-0-3181">3181</a></span>
+<span class="normal"><a href="#__codelineno-0-3182">3182</a></span>
+<span class="normal"><a href="#__codelineno-0-3183">3183</a></span>
+<span class="normal"><a href="#__codelineno-0-3184">3184</a></span>
+<span class="normal"><a href="#__codelineno-0-3185">3185</a></span>
+<span class="normal"><a href="#__codelineno-0-3186">3186</a></span>
+<span class="normal"><a href="#__codelineno-0-3187">3187</a></span>
+<span class="normal"><a href="#__codelineno-0-3188">3188</a></span>
+<span class="normal"><a href="#__codelineno-0-3189">3189</a></span>
+<span class="normal"><a href="#__codelineno-0-3190">3190</a></span>
+<span class="normal"><a href="#__codelineno-0-3191">3191</a></span>
+<span class="normal"><a href="#__codelineno-0-3192">3192</a></span>
+<span class="normal"><a href="#__codelineno-0-3193">3193</a></span>
+<span class="normal"><a href="#__codelineno-0-3194">3194</a></span>
+<span class="normal"><a href="#__codelineno-0-3195">3195</a></span>
+<span class="normal"><a href="#__codelineno-0-3196">3196</a></span>
+<span class="normal"><a href="#__codelineno-0-3197">3197</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a><span class="nd">@dataclass</span>
 </span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a><span class="k">class</span><span class="w"> </span><span class="nc">Detections</span><span class="p">:</span>
 </span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The :class:`~supervision.detection.core.Detections` class standardizes</span>
 </span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">    results from</span>
@@ -11378,6 +11570,120 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-3081"><a id="__codelineno-0-3081" name="__codelineno-0-3081"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_merge_detection_group</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
 </span><span id="__span-0-3082"><a id="__codelineno-0-3082" name="__codelineno-0-3082"></a>
 </span><span id="__span-0-3083"><a id="__codelineno-0-3083" name="__codelineno-0-3083"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span id="__span-0-3084"><a id="__codelineno-0-3084" name="__codelineno-0-3084"></a>
+</span><span id="__span-0-3085"><a id="__codelineno-0-3085" name="__codelineno-0-3085"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">remap_classes</span><span class="p">(</span>
+</span><span id="__span-0-3086"><a id="__codelineno-0-3086" name="__codelineno-0-3086"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-3087"><a id="__codelineno-0-3087" name="__codelineno-0-3087"></a>        <span class="n">classes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span id="__span-0-3088"><a id="__codelineno-0-3088" name="__codelineno-0-3088"></a>        <span class="n">class_name_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3089"><a id="__codelineno-0-3089" name="__codelineno-0-3089"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-3090"><a id="__codelineno-0-3090" name="__codelineno-0-3090"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Remap class names and keep only the detections of a target class list.</span>
+</span><span id="__span-0-3091"><a id="__codelineno-0-3091" name="__codelineno-0-3091"></a>
+</span><span id="__span-0-3092"><a id="__codelineno-0-3092" name="__codelineno-0-3092"></a><span class="sd">        Use this to line model predictions up with a dataset: class names are</span>
+</span><span id="__span-0-3093"><a id="__codelineno-0-3093" name="__codelineno-0-3093"></a><span class="sd">        optionally renamed, detections whose name is not in ``classes`` are</span>
+</span><span id="__span-0-3094"><a id="__codelineno-0-3094" name="__codelineno-0-3094"></a><span class="sd">        dropped, and ``class_id`` becomes the index of each name in ``classes``.</span>
+</span><span id="__span-0-3095"><a id="__codelineno-0-3095" name="__codelineno-0-3095"></a><span class="sd">        For a different filter, chain :meth:`select` or boolean indexing.</span>
+</span><span id="__span-0-3096"><a id="__codelineno-0-3096" name="__codelineno-0-3096"></a>
+</span><span id="__span-0-3097"><a id="__codelineno-0-3097" name="__codelineno-0-3097"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-3098"><a id="__codelineno-0-3098" name="__codelineno-0-3098"></a><span class="sd">            classes: Target class names, for example ``dataset.classes``. Each kept</span>
+</span><span id="__span-0-3099"><a id="__codelineno-0-3099" name="__codelineno-0-3099"></a><span class="sd">                detection&#39;s ``class_id`` is the index of its name in this sequence,</span>
+</span><span id="__span-0-3100"><a id="__codelineno-0-3100" name="__codelineno-0-3100"></a><span class="sd">                so the names must be unique.</span>
+</span><span id="__span-0-3101"><a id="__codelineno-0-3101" name="__codelineno-0-3101"></a><span class="sd">            class_name_mapping: Optional mapping from model class names to names</span>
+</span><span id="__span-0-3102"><a id="__codelineno-0-3102" name="__codelineno-0-3102"></a><span class="sd">                in ``classes``, for example ``{&quot;dog&quot;: &quot;animal&quot;}``. Keys are class</span>
+</span><span id="__span-0-3103"><a id="__codelineno-0-3103" name="__codelineno-0-3103"></a><span class="sd">                names, not class ids, and every target must be in ``classes``.</span>
+</span><span id="__span-0-3104"><a id="__codelineno-0-3104" name="__codelineno-0-3104"></a>
+</span><span id="__span-0-3105"><a id="__codelineno-0-3105" name="__codelineno-0-3105"></a><span class="sd">        Returns:</span>
+</span><span id="__span-0-3106"><a id="__codelineno-0-3106" name="__codelineno-0-3106"></a><span class="sd">            A new :class:`~supervision.detection.core.Detections` holding the</span>
+</span><span id="__span-0-3107"><a id="__codelineno-0-3107" name="__codelineno-0-3107"></a><span class="sd">            detections whose remapped class name is in ``classes``, with</span>
+</span><span id="__span-0-3108"><a id="__codelineno-0-3108" name="__codelineno-0-3108"></a><span class="sd">            ``class_id`` and ``data[&quot;class_name&quot;]`` rewritten to match. The input</span>
+</span><span id="__span-0-3109"><a id="__codelineno-0-3109" name="__codelineno-0-3109"></a><span class="sd">            is not modified.</span>
+</span><span id="__span-0-3110"><a id="__codelineno-0-3110" name="__codelineno-0-3110"></a>
+</span><span id="__span-0-3111"><a id="__codelineno-0-3111" name="__codelineno-0-3111"></a><span class="sd">        Raises:</span>
+</span><span id="__span-0-3112"><a id="__codelineno-0-3112" name="__codelineno-0-3112"></a><span class="sd">            ValueError: If ``data`` has no ``class_name`` entry, ``classes`` holds</span>
+</span><span id="__span-0-3113"><a id="__codelineno-0-3113" name="__codelineno-0-3113"></a><span class="sd">                duplicate names, or ``class_name_mapping`` maps to a name that is</span>
+</span><span id="__span-0-3114"><a id="__codelineno-0-3114" name="__codelineno-0-3114"></a><span class="sd">                not in ``classes``. Class names must have shape ``(N,)`` or</span>
+</span><span id="__span-0-3115"><a id="__codelineno-0-3115" name="__codelineno-0-3115"></a><span class="sd">                ``(N, 1)`` for ``N`` detections.</span>
+</span><span id="__span-0-3116"><a id="__codelineno-0-3116" name="__codelineno-0-3116"></a><span class="sd">            TypeError: If ``class_name_mapping`` is not a mapping or has keys that</span>
+</span><span id="__span-0-3117"><a id="__codelineno-0-3117" name="__codelineno-0-3117"></a><span class="sd">                are not strings.</span>
+</span><span id="__span-0-3118"><a id="__codelineno-0-3118" name="__codelineno-0-3118"></a>
+</span><span id="__span-0-3119"><a id="__codelineno-0-3119" name="__codelineno-0-3119"></a><span class="sd">        Example:</span>
+</span><span id="__span-0-3120"><a id="__codelineno-0-3120" name="__codelineno-0-3120"></a><span class="sd">            ```pycon</span>
+</span><span id="__span-0-3121"><a id="__codelineno-0-3121" name="__codelineno-0-3121"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-3122"><a id="__codelineno-0-3122" name="__codelineno-0-3122"></a><span class="sd">            &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-3123"><a id="__codelineno-0-3123" name="__codelineno-0-3123"></a><span class="sd">            &gt;&gt;&gt; detections = sv.Detections(</span>
+</span><span id="__span-0-3124"><a id="__codelineno-0-3124" name="__codelineno-0-3124"></a><span class="sd">            ...     xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]]),</span>
+</span><span id="__span-0-3125"><a id="__codelineno-0-3125" name="__codelineno-0-3125"></a><span class="sd">            ...     class_id=np.array([0, 1, 2]),</span>
+</span><span id="__span-0-3126"><a id="__codelineno-0-3126" name="__codelineno-0-3126"></a><span class="sd">            ...     data={&quot;class_name&quot;: np.array([&quot;dog&quot;, &quot;cat&quot;, &quot;car&quot;])},</span>
+</span><span id="__span-0-3127"><a id="__codelineno-0-3127" name="__codelineno-0-3127"></a><span class="sd">            ... )</span>
+</span><span id="__span-0-3128"><a id="__codelineno-0-3128" name="__codelineno-0-3128"></a><span class="sd">            &gt;&gt;&gt; mapping = {&quot;dog&quot;: &quot;animal&quot;, &quot;cat&quot;: &quot;animal&quot;}</span>
+</span><span id="__span-0-3129"><a id="__codelineno-0-3129" name="__codelineno-0-3129"></a><span class="sd">            &gt;&gt;&gt; remapped = detections.remap_classes([&quot;animal&quot;, &quot;car&quot;], mapping)</span>
+</span><span id="__span-0-3130"><a id="__codelineno-0-3130" name="__codelineno-0-3130"></a><span class="sd">            &gt;&gt;&gt; remapped.class_id.tolist()</span>
+</span><span id="__span-0-3131"><a id="__codelineno-0-3131" name="__codelineno-0-3131"></a><span class="sd">            [0, 0, 1]</span>
+</span><span id="__span-0-3132"><a id="__codelineno-0-3132" name="__codelineno-0-3132"></a><span class="sd">            &gt;&gt;&gt; remapped[&quot;class_name&quot;].tolist()</span>
+</span><span id="__span-0-3133"><a id="__codelineno-0-3133" name="__codelineno-0-3133"></a><span class="sd">            [&#39;animal&#39;, &#39;animal&#39;, &#39;car&#39;]</span>
+</span><span id="__span-0-3134"><a id="__codelineno-0-3134" name="__codelineno-0-3134"></a>
+</span><span id="__span-0-3135"><a id="__codelineno-0-3135" name="__codelineno-0-3135"></a><span class="sd">            ```</span>
+</span><span id="__span-0-3136"><a id="__codelineno-0-3136" name="__codelineno-0-3136"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-3137"><a id="__codelineno-0-3137" name="__codelineno-0-3137"></a>        <span class="c1"># Get class names for each detection</span>
+</span><span id="__span-0-3138"><a id="__codelineno-0-3138" name="__codelineno-0-3138"></a>        <span class="n">class_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">CLASS_NAME_DATA_FIELD</span><span class="p">)</span>
+</span><span id="__span-0-3139"><a id="__codelineno-0-3139" name="__codelineno-0-3139"></a>        <span class="k">if</span> <span class="n">class_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3140"><a id="__codelineno-0-3140" name="__codelineno-0-3140"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-3141"><a id="__codelineno-0-3141" name="__codelineno-0-3141"></a>                <span class="sa">f</span><span class="s2">&quot;Detections must have </span><span class="si">{</span><span class="n">CLASS_NAME_DATA_FIELD</span><span class="si">!r}</span><span class="s2"> in .data &quot;</span>
+</span><span id="__span-0-3142"><a id="__codelineno-0-3142" name="__codelineno-0-3142"></a>                <span class="s2">&quot;to use remap_classes().&quot;</span>
+</span><span id="__span-0-3143"><a id="__codelineno-0-3143" name="__codelineno-0-3143"></a>            <span class="p">)</span>
+</span><span id="__span-0-3144"><a id="__codelineno-0-3144" name="__codelineno-0-3144"></a>        <span class="c1"># A repeated name would silently resolve to its first index</span>
+</span><span id="__span-0-3145"><a id="__codelineno-0-3145" name="__codelineno-0-3145"></a>        <span class="n">class_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+</span><span id="__span-0-3146"><a id="__codelineno-0-3146" name="__codelineno-0-3146"></a>        <span class="n">duplicates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">class_list</span> <span class="k">if</span> <span class="n">class_list</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">})</span>
+</span><span id="__span-0-3147"><a id="__codelineno-0-3147" name="__codelineno-0-3147"></a>        <span class="k">if</span> <span class="n">duplicates</span><span class="p">:</span>
+</span><span id="__span-0-3148"><a id="__codelineno-0-3148" name="__codelineno-0-3148"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;classes holds duplicate names: </span><span class="si">{</span><span class="n">duplicates</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-0-3149"><a id="__codelineno-0-3149" name="__codelineno-0-3149"></a>        <span class="n">class_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">index</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">class_list</span><span class="p">)}</span>
+</span><span id="__span-0-3150"><a id="__codelineno-0-3150" name="__codelineno-0-3150"></a>        <span class="k">if</span> <span class="n">class_name_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3151"><a id="__codelineno-0-3151" name="__codelineno-0-3151"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">class_name_mapping</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+</span><span id="__span-0-3152"><a id="__codelineno-0-3152" name="__codelineno-0-3152"></a>                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span id="__span-0-3153"><a id="__codelineno-0-3153" name="__codelineno-0-3153"></a>                    <span class="s2">&quot;class_name_mapping must be a mapping of class names, &quot;</span>
+</span><span id="__span-0-3154"><a id="__codelineno-0-3154" name="__codelineno-0-3154"></a>                    <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">class_name_mapping</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span id="__span-0-3155"><a id="__codelineno-0-3155" name="__codelineno-0-3155"></a>                <span class="p">)</span>
+</span><span id="__span-0-3156"><a id="__codelineno-0-3156" name="__codelineno-0-3156"></a>            <span class="c1"># An id mapping such as {0: 1} would otherwise be ignored silently</span>
+</span><span id="__span-0-3157"><a id="__codelineno-0-3157" name="__codelineno-0-3157"></a>            <span class="n">bad_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">class_name_mapping</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)]</span>
+</span><span id="__span-0-3158"><a id="__codelineno-0-3158" name="__codelineno-0-3158"></a>            <span class="k">if</span> <span class="n">bad_keys</span><span class="p">:</span>
+</span><span id="__span-0-3159"><a id="__codelineno-0-3159" name="__codelineno-0-3159"></a>                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span id="__span-0-3160"><a id="__codelineno-0-3160" name="__codelineno-0-3160"></a>                    <span class="s2">&quot;class_name_mapping keys must be class names (str), &quot;</span>
+</span><span id="__span-0-3161"><a id="__codelineno-0-3161" name="__codelineno-0-3161"></a>                    <span class="sa">f</span><span class="s2">&quot;class ids are not supported; got </span><span class="si">{</span><span class="n">bad_keys</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span id="__span-0-3162"><a id="__codelineno-0-3162" name="__codelineno-0-3162"></a>                <span class="p">)</span>
+</span><span id="__span-0-3163"><a id="__codelineno-0-3163" name="__codelineno-0-3163"></a>            <span class="c1"># A misspelled target would otherwise drop its detections without a trace</span>
+</span><span id="__span-0-3164"><a id="__codelineno-0-3164" name="__codelineno-0-3164"></a>            <span class="n">unknown_targets</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+</span><span id="__span-0-3165"><a id="__codelineno-0-3165" name="__codelineno-0-3165"></a>                <span class="p">{</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">class_name_mapping</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">class_index</span><span class="p">},</span>
+</span><span id="__span-0-3166"><a id="__codelineno-0-3166" name="__codelineno-0-3166"></a>                <span class="n">key</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-3167"><a id="__codelineno-0-3167" name="__codelineno-0-3167"></a>            <span class="p">)</span>
+</span><span id="__span-0-3168"><a id="__codelineno-0-3168" name="__codelineno-0-3168"></a>            <span class="k">if</span> <span class="n">unknown_targets</span><span class="p">:</span>
+</span><span id="__span-0-3169"><a id="__codelineno-0-3169" name="__codelineno-0-3169"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-3170"><a id="__codelineno-0-3170" name="__codelineno-0-3170"></a>                    <span class="s2">&quot;class_name_mapping maps to names missing from classes: &quot;</span>
+</span><span id="__span-0-3171"><a id="__codelineno-0-3171" name="__codelineno-0-3171"></a>                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">unknown_targets</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="__span-0-3172"><a id="__codelineno-0-3172" name="__codelineno-0-3172"></a>                <span class="p">)</span>
+</span><span id="__span-0-3173"><a id="__codelineno-0-3173" name="__codelineno-0-3173"></a>        <span class="n">class_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">class_names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+</span><span id="__span-0-3174"><a id="__codelineno-0-3174" name="__codelineno-0-3174"></a>        <span class="k">if</span> <span class="n">class_names</span><span class="o">.</span><span class="n">shape</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="mi">1</span><span class="p">)):</span>
+</span><span id="__span-0-3175"><a id="__codelineno-0-3175" name="__codelineno-0-3175"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;class_name must have shape (N,) or (N, 1).&quot;</span><span class="p">)</span>
+</span><span id="__span-0-3176"><a id="__codelineno-0-3176" name="__codelineno-0-3176"></a>        <span class="n">class_names</span> <span class="o">=</span> <span class="n">class_names</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+</span><span id="__span-0-3177"><a id="__codelineno-0-3177" name="__codelineno-0-3177"></a>        <span class="c1"># Remap and look up the distinct names only, so the Python-level work</span>
+</span><span id="__span-0-3178"><a id="__codelineno-0-3178" name="__codelineno-0-3178"></a>        <span class="c1"># scales with the number of classes, not with the number of detections</span>
+</span><span id="__span-0-3179"><a id="__codelineno-0-3179" name="__codelineno-0-3179"></a>        <span class="n">unique_names</span><span class="p">,</span> <span class="n">inverse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">class_names</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-3180"><a id="__codelineno-0-3180" name="__codelineno-0-3180"></a>        <span class="k">if</span> <span class="n">class_name_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3181"><a id="__codelineno-0-3181" name="__codelineno-0-3181"></a>            <span class="n">unique_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+</span><span id="__span-0-3182"><a id="__codelineno-0-3182" name="__codelineno-0-3182"></a>                <span class="p">[</span><span class="n">class_name_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">unique_names</span><span class="p">],</span>
+</span><span id="__span-0-3183"><a id="__codelineno-0-3183" name="__codelineno-0-3183"></a>                <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-3184"><a id="__codelineno-0-3184" name="__codelineno-0-3184"></a>            <span class="p">)</span>
+</span><span id="__span-0-3185"><a id="__codelineno-0-3185" name="__codelineno-0-3185"></a>        <span class="c1"># -1 marks names outside classes; those detections are filtered out</span>
+</span><span id="__span-0-3186"><a id="__codelineno-0-3186" name="__codelineno-0-3186"></a>        <span class="c1"># Explicit dtype: an empty result would otherwise get float64 ids</span>
+</span><span id="__span-0-3187"><a id="__codelineno-0-3187" name="__codelineno-0-3187"></a>        <span class="n">unique_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+</span><span id="__span-0-3188"><a id="__codelineno-0-3188" name="__codelineno-0-3188"></a>            <span class="p">[</span><span class="n">class_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">unique_names</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span>
+</span><span id="__span-0-3189"><a id="__codelineno-0-3189" name="__codelineno-0-3189"></a>        <span class="p">)</span>
+</span><span id="__span-0-3190"><a id="__codelineno-0-3190" name="__codelineno-0-3190"></a>        <span class="n">class_id</span> <span class="o">=</span> <span class="n">unique_ids</span><span class="p">[</span><span class="n">inverse</span><span class="p">]</span>
+</span><span id="__span-0-3191"><a id="__codelineno-0-3191" name="__codelineno-0-3191"></a>        <span class="n">keep</span> <span class="o">=</span> <span class="n">class_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+</span><span id="__span-0-3192"><a id="__codelineno-0-3192" name="__codelineno-0-3192"></a>        <span class="c1"># select() copies every field, including data of any shape, and handles</span>
+</span><span id="__span-0-3193"><a id="__codelineno-0-3193" name="__codelineno-0-3193"></a>        <span class="c1"># empty and fully filtered results</span>
+</span><span id="__span-0-3194"><a id="__codelineno-0-3194" name="__codelineno-0-3194"></a>        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span>
+</span><span id="__span-0-3195"><a id="__codelineno-0-3195" name="__codelineno-0-3195"></a>        <span class="n">result</span><span class="o">.</span><span class="n">class_id</span> <span class="o">=</span> <span class="n">class_id</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+</span><span id="__span-0-3196"><a id="__codelineno-0-3196" name="__codelineno-0-3196"></a>        <span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">CLASS_NAME_DATA_FIELD</span><span class="p">]</span> <span class="o">=</span> <span class="n">unique_names</span><span class="p">[</span><span class="n">inverse</span><span class="p">][</span><span class="n">keep</span><span class="p">]</span>
+</span><span id="__span-0-3197"><a id="__codelineno-0-3197" name="__codelineno-0-3197"></a>        <span class="k">return</span> <span class="n">result</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -19103,6 +19409,436 @@ assert len(merged) == 3
 </span><span id="__span-0-2254"><a id="__codelineno-0-2254" name="__codelineno-0-2254"></a>        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
 </span><span id="__span-0-2255"><a id="__codelineno-0-2255" name="__codelineno-0-2255"></a>        <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
 </span><span id="__span-0-2256"><a id="__codelineno-0-2256" name="__codelineno-0-2256"></a>    <span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="supervision.detection.core.Detections.remap_classes" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">remap_classes</span><span class="p">(</span><span class="n">classes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">class_name_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
+
+<a href="#supervision.detection.core.Detections.remap_classes" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Remap class names and keep only the detections of a target class list.</p>
+<p>Use this to line model predictions up with a dataset: class names are
+optionally renamed, detections whose name is not in <code>classes</code> are
+dropped, and <code>class_id</code> becomes the index of each name in <code>classes</code>.
+For a different filter, chain :meth:<code>select</code> or boolean indexing.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+<h5 id="supervision.detection.core.Detections.remap_classes(classes)" class="doc doc-heading doc-heading-parameter">                  <code>classes</code>
+<a href="#supervision.detection.core.Detections.remap_classes(classes)" class="headerlink" title="Permanent link">&para;</a></h5>            </td>
+            <td>
+                  <code><span title="collections.abc.Sequence">Sequence</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target class names, for example <code>dataset.classes</code>. Each kept
+detection's <code>class_id</code> is the index of its name in this sequence,
+so the names must be unique.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+<h5 id="supervision.detection.core.Detections.remap_classes(class_name_mapping)" class="doc doc-heading doc-heading-parameter">                  <code>class_name_mapping</code>
+<a href="#supervision.detection.core.Detections.remap_classes(class_name_mapping)" class="headerlink" title="Permanent link">&para;</a></h5>            </td>
+            <td>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="str">str</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional mapping from model class names to names
+in <code>classes</code>, for example <code>{"dog": "animal"}</code>. Keys are class
+names, not class ids, and every target must be in <code>classes</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new :class:<code>~supervision.detection.core.Detections</code> holding the</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>detections whose remapped class name is in <code>classes</code>, with</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>class_id</code> and <code>data["class_name"]</code> rewritten to match. The input</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt;" href="#supervision.detection.core.Detections">Detections</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>is not modified.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>data</code> has no <code>class_name</code> entry, <code>classes</code> holds
+duplicate names, or <code>class_name_mapping</code> maps to a name that is
+not in <code>classes</code>. Class names must have shape <code>(N,)</code> or
+<code>(N, 1)</code> for <code>N</code> detections.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>class_name_mapping</code> is not a mapping or has keys that
+are not strings.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <pre class="pycon"><code>&gt;&gt;&gt; import numpy as np
+&gt;&gt;&gt; import supervision as sv
+&gt;&gt;&gt; detections = sv.Detections(
+...     xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]]),
+...     class_id=np.array([0, 1, 2]),
+...     data={"class_name": np.array(["dog", "cat", "car"])},
+... )
+&gt;&gt;&gt; mapping = {"dog": "animal", "cat": "animal"}
+&gt;&gt;&gt; remapped = detections.remap_classes(["animal", "car"], mapping)
+&gt;&gt;&gt; remapped.class_id.tolist()
+[0, 0, 1]
+&gt;&gt;&gt; remapped["class_name"].tolist()
+['animal', 'animal', 'car']
+</code></pre>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/supervision/detection/core.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3085">3085</a></span>
+<span class="normal"><a href="#__codelineno-0-3086">3086</a></span>
+<span class="normal"><a href="#__codelineno-0-3087">3087</a></span>
+<span class="normal"><a href="#__codelineno-0-3088">3088</a></span>
+<span class="normal"><a href="#__codelineno-0-3089">3089</a></span>
+<span class="normal"><a href="#__codelineno-0-3090">3090</a></span>
+<span class="normal"><a href="#__codelineno-0-3091">3091</a></span>
+<span class="normal"><a href="#__codelineno-0-3092">3092</a></span>
+<span class="normal"><a href="#__codelineno-0-3093">3093</a></span>
+<span class="normal"><a href="#__codelineno-0-3094">3094</a></span>
+<span class="normal"><a href="#__codelineno-0-3095">3095</a></span>
+<span class="normal"><a href="#__codelineno-0-3096">3096</a></span>
+<span class="normal"><a href="#__codelineno-0-3097">3097</a></span>
+<span class="normal"><a href="#__codelineno-0-3098">3098</a></span>
+<span class="normal"><a href="#__codelineno-0-3099">3099</a></span>
+<span class="normal"><a href="#__codelineno-0-3100">3100</a></span>
+<span class="normal"><a href="#__codelineno-0-3101">3101</a></span>
+<span class="normal"><a href="#__codelineno-0-3102">3102</a></span>
+<span class="normal"><a href="#__codelineno-0-3103">3103</a></span>
+<span class="normal"><a href="#__codelineno-0-3104">3104</a></span>
+<span class="normal"><a href="#__codelineno-0-3105">3105</a></span>
+<span class="normal"><a href="#__codelineno-0-3106">3106</a></span>
+<span class="normal"><a href="#__codelineno-0-3107">3107</a></span>
+<span class="normal"><a href="#__codelineno-0-3108">3108</a></span>
+<span class="normal"><a href="#__codelineno-0-3109">3109</a></span>
+<span class="normal"><a href="#__codelineno-0-3110">3110</a></span>
+<span class="normal"><a href="#__codelineno-0-3111">3111</a></span>
+<span class="normal"><a href="#__codelineno-0-3112">3112</a></span>
+<span class="normal"><a href="#__codelineno-0-3113">3113</a></span>
+<span class="normal"><a href="#__codelineno-0-3114">3114</a></span>
+<span class="normal"><a href="#__codelineno-0-3115">3115</a></span>
+<span class="normal"><a href="#__codelineno-0-3116">3116</a></span>
+<span class="normal"><a href="#__codelineno-0-3117">3117</a></span>
+<span class="normal"><a href="#__codelineno-0-3118">3118</a></span>
+<span class="normal"><a href="#__codelineno-0-3119">3119</a></span>
+<span class="normal"><a href="#__codelineno-0-3120">3120</a></span>
+<span class="normal"><a href="#__codelineno-0-3121">3121</a></span>
+<span class="normal"><a href="#__codelineno-0-3122">3122</a></span>
+<span class="normal"><a href="#__codelineno-0-3123">3123</a></span>
+<span class="normal"><a href="#__codelineno-0-3124">3124</a></span>
+<span class="normal"><a href="#__codelineno-0-3125">3125</a></span>
+<span class="normal"><a href="#__codelineno-0-3126">3126</a></span>
+<span class="normal"><a href="#__codelineno-0-3127">3127</a></span>
+<span class="normal"><a href="#__codelineno-0-3128">3128</a></span>
+<span class="normal"><a href="#__codelineno-0-3129">3129</a></span>
+<span class="normal"><a href="#__codelineno-0-3130">3130</a></span>
+<span class="normal"><a href="#__codelineno-0-3131">3131</a></span>
+<span class="normal"><a href="#__codelineno-0-3132">3132</a></span>
+<span class="normal"><a href="#__codelineno-0-3133">3133</a></span>
+<span class="normal"><a href="#__codelineno-0-3134">3134</a></span>
+<span class="normal"><a href="#__codelineno-0-3135">3135</a></span>
+<span class="normal"><a href="#__codelineno-0-3136">3136</a></span>
+<span class="normal"><a href="#__codelineno-0-3137">3137</a></span>
+<span class="normal"><a href="#__codelineno-0-3138">3138</a></span>
+<span class="normal"><a href="#__codelineno-0-3139">3139</a></span>
+<span class="normal"><a href="#__codelineno-0-3140">3140</a></span>
+<span class="normal"><a href="#__codelineno-0-3141">3141</a></span>
+<span class="normal"><a href="#__codelineno-0-3142">3142</a></span>
+<span class="normal"><a href="#__codelineno-0-3143">3143</a></span>
+<span class="normal"><a href="#__codelineno-0-3144">3144</a></span>
+<span class="normal"><a href="#__codelineno-0-3145">3145</a></span>
+<span class="normal"><a href="#__codelineno-0-3146">3146</a></span>
+<span class="normal"><a href="#__codelineno-0-3147">3147</a></span>
+<span class="normal"><a href="#__codelineno-0-3148">3148</a></span>
+<span class="normal"><a href="#__codelineno-0-3149">3149</a></span>
+<span class="normal"><a href="#__codelineno-0-3150">3150</a></span>
+<span class="normal"><a href="#__codelineno-0-3151">3151</a></span>
+<span class="normal"><a href="#__codelineno-0-3152">3152</a></span>
+<span class="normal"><a href="#__codelineno-0-3153">3153</a></span>
+<span class="normal"><a href="#__codelineno-0-3154">3154</a></span>
+<span class="normal"><a href="#__codelineno-0-3155">3155</a></span>
+<span class="normal"><a href="#__codelineno-0-3156">3156</a></span>
+<span class="normal"><a href="#__codelineno-0-3157">3157</a></span>
+<span class="normal"><a href="#__codelineno-0-3158">3158</a></span>
+<span class="normal"><a href="#__codelineno-0-3159">3159</a></span>
+<span class="normal"><a href="#__codelineno-0-3160">3160</a></span>
+<span class="normal"><a href="#__codelineno-0-3161">3161</a></span>
+<span class="normal"><a href="#__codelineno-0-3162">3162</a></span>
+<span class="normal"><a href="#__codelineno-0-3163">3163</a></span>
+<span class="normal"><a href="#__codelineno-0-3164">3164</a></span>
+<span class="normal"><a href="#__codelineno-0-3165">3165</a></span>
+<span class="normal"><a href="#__codelineno-0-3166">3166</a></span>
+<span class="normal"><a href="#__codelineno-0-3167">3167</a></span>
+<span class="normal"><a href="#__codelineno-0-3168">3168</a></span>
+<span class="normal"><a href="#__codelineno-0-3169">3169</a></span>
+<span class="normal"><a href="#__codelineno-0-3170">3170</a></span>
+<span class="normal"><a href="#__codelineno-0-3171">3171</a></span>
+<span class="normal"><a href="#__codelineno-0-3172">3172</a></span>
+<span class="normal"><a href="#__codelineno-0-3173">3173</a></span>
+<span class="normal"><a href="#__codelineno-0-3174">3174</a></span>
+<span class="normal"><a href="#__codelineno-0-3175">3175</a></span>
+<span class="normal"><a href="#__codelineno-0-3176">3176</a></span>
+<span class="normal"><a href="#__codelineno-0-3177">3177</a></span>
+<span class="normal"><a href="#__codelineno-0-3178">3178</a></span>
+<span class="normal"><a href="#__codelineno-0-3179">3179</a></span>
+<span class="normal"><a href="#__codelineno-0-3180">3180</a></span>
+<span class="normal"><a href="#__codelineno-0-3181">3181</a></span>
+<span class="normal"><a href="#__codelineno-0-3182">3182</a></span>
+<span class="normal"><a href="#__codelineno-0-3183">3183</a></span>
+<span class="normal"><a href="#__codelineno-0-3184">3184</a></span>
+<span class="normal"><a href="#__codelineno-0-3185">3185</a></span>
+<span class="normal"><a href="#__codelineno-0-3186">3186</a></span>
+<span class="normal"><a href="#__codelineno-0-3187">3187</a></span>
+<span class="normal"><a href="#__codelineno-0-3188">3188</a></span>
+<span class="normal"><a href="#__codelineno-0-3189">3189</a></span>
+<span class="normal"><a href="#__codelineno-0-3190">3190</a></span>
+<span class="normal"><a href="#__codelineno-0-3191">3191</a></span>
+<span class="normal"><a href="#__codelineno-0-3192">3192</a></span>
+<span class="normal"><a href="#__codelineno-0-3193">3193</a></span>
+<span class="normal"><a href="#__codelineno-0-3194">3194</a></span>
+<span class="normal"><a href="#__codelineno-0-3195">3195</a></span>
+<span class="normal"><a href="#__codelineno-0-3196">3196</a></span>
+<span class="normal"><a href="#__codelineno-0-3197">3197</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3085"><a id="__codelineno-0-3085" name="__codelineno-0-3085"></a><span class="k">def</span><span class="w"> </span><span class="nf">remap_classes</span><span class="p">(</span>
+</span><span id="__span-0-3086"><a id="__codelineno-0-3086" name="__codelineno-0-3086"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-3087"><a id="__codelineno-0-3087" name="__codelineno-0-3087"></a>    <span class="n">classes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span id="__span-0-3088"><a id="__codelineno-0-3088" name="__codelineno-0-3088"></a>    <span class="n">class_name_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3089"><a id="__codelineno-0-3089" name="__codelineno-0-3089"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-3090"><a id="__codelineno-0-3090" name="__codelineno-0-3090"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Remap class names and keep only the detections of a target class list.</span>
+</span><span id="__span-0-3091"><a id="__codelineno-0-3091" name="__codelineno-0-3091"></a>
+</span><span id="__span-0-3092"><a id="__codelineno-0-3092" name="__codelineno-0-3092"></a><span class="sd">    Use this to line model predictions up with a dataset: class names are</span>
+</span><span id="__span-0-3093"><a id="__codelineno-0-3093" name="__codelineno-0-3093"></a><span class="sd">    optionally renamed, detections whose name is not in ``classes`` are</span>
+</span><span id="__span-0-3094"><a id="__codelineno-0-3094" name="__codelineno-0-3094"></a><span class="sd">    dropped, and ``class_id`` becomes the index of each name in ``classes``.</span>
+</span><span id="__span-0-3095"><a id="__codelineno-0-3095" name="__codelineno-0-3095"></a><span class="sd">    For a different filter, chain :meth:`select` or boolean indexing.</span>
+</span><span id="__span-0-3096"><a id="__codelineno-0-3096" name="__codelineno-0-3096"></a>
+</span><span id="__span-0-3097"><a id="__codelineno-0-3097" name="__codelineno-0-3097"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-3098"><a id="__codelineno-0-3098" name="__codelineno-0-3098"></a><span class="sd">        classes: Target class names, for example ``dataset.classes``. Each kept</span>
+</span><span id="__span-0-3099"><a id="__codelineno-0-3099" name="__codelineno-0-3099"></a><span class="sd">            detection&#39;s ``class_id`` is the index of its name in this sequence,</span>
+</span><span id="__span-0-3100"><a id="__codelineno-0-3100" name="__codelineno-0-3100"></a><span class="sd">            so the names must be unique.</span>
+</span><span id="__span-0-3101"><a id="__codelineno-0-3101" name="__codelineno-0-3101"></a><span class="sd">        class_name_mapping: Optional mapping from model class names to names</span>
+</span><span id="__span-0-3102"><a id="__codelineno-0-3102" name="__codelineno-0-3102"></a><span class="sd">            in ``classes``, for example ``{&quot;dog&quot;: &quot;animal&quot;}``. Keys are class</span>
+</span><span id="__span-0-3103"><a id="__codelineno-0-3103" name="__codelineno-0-3103"></a><span class="sd">            names, not class ids, and every target must be in ``classes``.</span>
+</span><span id="__span-0-3104"><a id="__codelineno-0-3104" name="__codelineno-0-3104"></a>
+</span><span id="__span-0-3105"><a id="__codelineno-0-3105" name="__codelineno-0-3105"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-3106"><a id="__codelineno-0-3106" name="__codelineno-0-3106"></a><span class="sd">        A new :class:`~supervision.detection.core.Detections` holding the</span>
+</span><span id="__span-0-3107"><a id="__codelineno-0-3107" name="__codelineno-0-3107"></a><span class="sd">        detections whose remapped class name is in ``classes``, with</span>
+</span><span id="__span-0-3108"><a id="__codelineno-0-3108" name="__codelineno-0-3108"></a><span class="sd">        ``class_id`` and ``data[&quot;class_name&quot;]`` rewritten to match. The input</span>
+</span><span id="__span-0-3109"><a id="__codelineno-0-3109" name="__codelineno-0-3109"></a><span class="sd">        is not modified.</span>
+</span><span id="__span-0-3110"><a id="__codelineno-0-3110" name="__codelineno-0-3110"></a>
+</span><span id="__span-0-3111"><a id="__codelineno-0-3111" name="__codelineno-0-3111"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-3112"><a id="__codelineno-0-3112" name="__codelineno-0-3112"></a><span class="sd">        ValueError: If ``data`` has no ``class_name`` entry, ``classes`` holds</span>
+</span><span id="__span-0-3113"><a id="__codelineno-0-3113" name="__codelineno-0-3113"></a><span class="sd">            duplicate names, or ``class_name_mapping`` maps to a name that is</span>
+</span><span id="__span-0-3114"><a id="__codelineno-0-3114" name="__codelineno-0-3114"></a><span class="sd">            not in ``classes``. Class names must have shape ``(N,)`` or</span>
+</span><span id="__span-0-3115"><a id="__codelineno-0-3115" name="__codelineno-0-3115"></a><span class="sd">            ``(N, 1)`` for ``N`` detections.</span>
+</span><span id="__span-0-3116"><a id="__codelineno-0-3116" name="__codelineno-0-3116"></a><span class="sd">        TypeError: If ``class_name_mapping`` is not a mapping or has keys that</span>
+</span><span id="__span-0-3117"><a id="__codelineno-0-3117" name="__codelineno-0-3117"></a><span class="sd">            are not strings.</span>
+</span><span id="__span-0-3118"><a id="__codelineno-0-3118" name="__codelineno-0-3118"></a>
+</span><span id="__span-0-3119"><a id="__codelineno-0-3119" name="__codelineno-0-3119"></a><span class="sd">    Example:</span>
+</span><span id="__span-0-3120"><a id="__codelineno-0-3120" name="__codelineno-0-3120"></a><span class="sd">        ```pycon</span>
+</span><span id="__span-0-3121"><a id="__codelineno-0-3121" name="__codelineno-0-3121"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-3122"><a id="__codelineno-0-3122" name="__codelineno-0-3122"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-3123"><a id="__codelineno-0-3123" name="__codelineno-0-3123"></a><span class="sd">        &gt;&gt;&gt; detections = sv.Detections(</span>
+</span><span id="__span-0-3124"><a id="__codelineno-0-3124" name="__codelineno-0-3124"></a><span class="sd">        ...     xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]]),</span>
+</span><span id="__span-0-3125"><a id="__codelineno-0-3125" name="__codelineno-0-3125"></a><span class="sd">        ...     class_id=np.array([0, 1, 2]),</span>
+</span><span id="__span-0-3126"><a id="__codelineno-0-3126" name="__codelineno-0-3126"></a><span class="sd">        ...     data={&quot;class_name&quot;: np.array([&quot;dog&quot;, &quot;cat&quot;, &quot;car&quot;])},</span>
+</span><span id="__span-0-3127"><a id="__codelineno-0-3127" name="__codelineno-0-3127"></a><span class="sd">        ... )</span>
+</span><span id="__span-0-3128"><a id="__codelineno-0-3128" name="__codelineno-0-3128"></a><span class="sd">        &gt;&gt;&gt; mapping = {&quot;dog&quot;: &quot;animal&quot;, &quot;cat&quot;: &quot;animal&quot;}</span>
+</span><span id="__span-0-3129"><a id="__codelineno-0-3129" name="__codelineno-0-3129"></a><span class="sd">        &gt;&gt;&gt; remapped = detections.remap_classes([&quot;animal&quot;, &quot;car&quot;], mapping)</span>
+</span><span id="__span-0-3130"><a id="__codelineno-0-3130" name="__codelineno-0-3130"></a><span class="sd">        &gt;&gt;&gt; remapped.class_id.tolist()</span>
+</span><span id="__span-0-3131"><a id="__codelineno-0-3131" name="__codelineno-0-3131"></a><span class="sd">        [0, 0, 1]</span>
+</span><span id="__span-0-3132"><a id="__codelineno-0-3132" name="__codelineno-0-3132"></a><span class="sd">        &gt;&gt;&gt; remapped[&quot;class_name&quot;].tolist()</span>
+</span><span id="__span-0-3133"><a id="__codelineno-0-3133" name="__codelineno-0-3133"></a><span class="sd">        [&#39;animal&#39;, &#39;animal&#39;, &#39;car&#39;]</span>
+</span><span id="__span-0-3134"><a id="__codelineno-0-3134" name="__codelineno-0-3134"></a>
+</span><span id="__span-0-3135"><a id="__codelineno-0-3135" name="__codelineno-0-3135"></a><span class="sd">        ```</span>
+</span><span id="__span-0-3136"><a id="__codelineno-0-3136" name="__codelineno-0-3136"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-3137"><a id="__codelineno-0-3137" name="__codelineno-0-3137"></a>    <span class="c1"># Get class names for each detection</span>
+</span><span id="__span-0-3138"><a id="__codelineno-0-3138" name="__codelineno-0-3138"></a>    <span class="n">class_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">CLASS_NAME_DATA_FIELD</span><span class="p">)</span>
+</span><span id="__span-0-3139"><a id="__codelineno-0-3139" name="__codelineno-0-3139"></a>    <span class="k">if</span> <span class="n">class_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3140"><a id="__codelineno-0-3140" name="__codelineno-0-3140"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-3141"><a id="__codelineno-0-3141" name="__codelineno-0-3141"></a>            <span class="sa">f</span><span class="s2">&quot;Detections must have </span><span class="si">{</span><span class="n">CLASS_NAME_DATA_FIELD</span><span class="si">!r}</span><span class="s2"> in .data &quot;</span>
+</span><span id="__span-0-3142"><a id="__codelineno-0-3142" name="__codelineno-0-3142"></a>            <span class="s2">&quot;to use remap_classes().&quot;</span>
+</span><span id="__span-0-3143"><a id="__codelineno-0-3143" name="__codelineno-0-3143"></a>        <span class="p">)</span>
+</span><span id="__span-0-3144"><a id="__codelineno-0-3144" name="__codelineno-0-3144"></a>    <span class="c1"># A repeated name would silently resolve to its first index</span>
+</span><span id="__span-0-3145"><a id="__codelineno-0-3145" name="__codelineno-0-3145"></a>    <span class="n">class_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+</span><span id="__span-0-3146"><a id="__codelineno-0-3146" name="__codelineno-0-3146"></a>    <span class="n">duplicates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">class_list</span> <span class="k">if</span> <span class="n">class_list</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">})</span>
+</span><span id="__span-0-3147"><a id="__codelineno-0-3147" name="__codelineno-0-3147"></a>    <span class="k">if</span> <span class="n">duplicates</span><span class="p">:</span>
+</span><span id="__span-0-3148"><a id="__codelineno-0-3148" name="__codelineno-0-3148"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;classes holds duplicate names: </span><span class="si">{</span><span class="n">duplicates</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-0-3149"><a id="__codelineno-0-3149" name="__codelineno-0-3149"></a>    <span class="n">class_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">index</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">class_list</span><span class="p">)}</span>
+</span><span id="__span-0-3150"><a id="__codelineno-0-3150" name="__codelineno-0-3150"></a>    <span class="k">if</span> <span class="n">class_name_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3151"><a id="__codelineno-0-3151" name="__codelineno-0-3151"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">class_name_mapping</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+</span><span id="__span-0-3152"><a id="__codelineno-0-3152" name="__codelineno-0-3152"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span id="__span-0-3153"><a id="__codelineno-0-3153" name="__codelineno-0-3153"></a>                <span class="s2">&quot;class_name_mapping must be a mapping of class names, &quot;</span>
+</span><span id="__span-0-3154"><a id="__codelineno-0-3154" name="__codelineno-0-3154"></a>                <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">class_name_mapping</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span id="__span-0-3155"><a id="__codelineno-0-3155" name="__codelineno-0-3155"></a>            <span class="p">)</span>
+</span><span id="__span-0-3156"><a id="__codelineno-0-3156" name="__codelineno-0-3156"></a>        <span class="c1"># An id mapping such as {0: 1} would otherwise be ignored silently</span>
+</span><span id="__span-0-3157"><a id="__codelineno-0-3157" name="__codelineno-0-3157"></a>        <span class="n">bad_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">class_name_mapping</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)]</span>
+</span><span id="__span-0-3158"><a id="__codelineno-0-3158" name="__codelineno-0-3158"></a>        <span class="k">if</span> <span class="n">bad_keys</span><span class="p">:</span>
+</span><span id="__span-0-3159"><a id="__codelineno-0-3159" name="__codelineno-0-3159"></a>            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span id="__span-0-3160"><a id="__codelineno-0-3160" name="__codelineno-0-3160"></a>                <span class="s2">&quot;class_name_mapping keys must be class names (str), &quot;</span>
+</span><span id="__span-0-3161"><a id="__codelineno-0-3161" name="__codelineno-0-3161"></a>                <span class="sa">f</span><span class="s2">&quot;class ids are not supported; got </span><span class="si">{</span><span class="n">bad_keys</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span id="__span-0-3162"><a id="__codelineno-0-3162" name="__codelineno-0-3162"></a>            <span class="p">)</span>
+</span><span id="__span-0-3163"><a id="__codelineno-0-3163" name="__codelineno-0-3163"></a>        <span class="c1"># A misspelled target would otherwise drop its detections without a trace</span>
+</span><span id="__span-0-3164"><a id="__codelineno-0-3164" name="__codelineno-0-3164"></a>        <span class="n">unknown_targets</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+</span><span id="__span-0-3165"><a id="__codelineno-0-3165" name="__codelineno-0-3165"></a>            <span class="p">{</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">class_name_mapping</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">class_index</span><span class="p">},</span>
+</span><span id="__span-0-3166"><a id="__codelineno-0-3166" name="__codelineno-0-3166"></a>            <span class="n">key</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-3167"><a id="__codelineno-0-3167" name="__codelineno-0-3167"></a>        <span class="p">)</span>
+</span><span id="__span-0-3168"><a id="__codelineno-0-3168" name="__codelineno-0-3168"></a>        <span class="k">if</span> <span class="n">unknown_targets</span><span class="p">:</span>
+</span><span id="__span-0-3169"><a id="__codelineno-0-3169" name="__codelineno-0-3169"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-3170"><a id="__codelineno-0-3170" name="__codelineno-0-3170"></a>                <span class="s2">&quot;class_name_mapping maps to names missing from classes: &quot;</span>
+</span><span id="__span-0-3171"><a id="__codelineno-0-3171" name="__codelineno-0-3171"></a>                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">unknown_targets</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="__span-0-3172"><a id="__codelineno-0-3172" name="__codelineno-0-3172"></a>            <span class="p">)</span>
+</span><span id="__span-0-3173"><a id="__codelineno-0-3173" name="__codelineno-0-3173"></a>    <span class="n">class_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">class_names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+</span><span id="__span-0-3174"><a id="__codelineno-0-3174" name="__codelineno-0-3174"></a>    <span class="k">if</span> <span class="n">class_names</span><span class="o">.</span><span class="n">shape</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="mi">1</span><span class="p">)):</span>
+</span><span id="__span-0-3175"><a id="__codelineno-0-3175" name="__codelineno-0-3175"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;class_name must have shape (N,) or (N, 1).&quot;</span><span class="p">)</span>
+</span><span id="__span-0-3176"><a id="__codelineno-0-3176" name="__codelineno-0-3176"></a>    <span class="n">class_names</span> <span class="o">=</span> <span class="n">class_names</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+</span><span id="__span-0-3177"><a id="__codelineno-0-3177" name="__codelineno-0-3177"></a>    <span class="c1"># Remap and look up the distinct names only, so the Python-level work</span>
+</span><span id="__span-0-3178"><a id="__codelineno-0-3178" name="__codelineno-0-3178"></a>    <span class="c1"># scales with the number of classes, not with the number of detections</span>
+</span><span id="__span-0-3179"><a id="__codelineno-0-3179" name="__codelineno-0-3179"></a>    <span class="n">unique_names</span><span class="p">,</span> <span class="n">inverse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">class_names</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-3180"><a id="__codelineno-0-3180" name="__codelineno-0-3180"></a>    <span class="k">if</span> <span class="n">class_name_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3181"><a id="__codelineno-0-3181" name="__codelineno-0-3181"></a>        <span class="n">unique_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+</span><span id="__span-0-3182"><a id="__codelineno-0-3182" name="__codelineno-0-3182"></a>            <span class="p">[</span><span class="n">class_name_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">unique_names</span><span class="p">],</span>
+</span><span id="__span-0-3183"><a id="__codelineno-0-3183" name="__codelineno-0-3183"></a>            <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-3184"><a id="__codelineno-0-3184" name="__codelineno-0-3184"></a>        <span class="p">)</span>
+</span><span id="__span-0-3185"><a id="__codelineno-0-3185" name="__codelineno-0-3185"></a>    <span class="c1"># -1 marks names outside classes; those detections are filtered out</span>
+</span><span id="__span-0-3186"><a id="__codelineno-0-3186" name="__codelineno-0-3186"></a>    <span class="c1"># Explicit dtype: an empty result would otherwise get float64 ids</span>
+</span><span id="__span-0-3187"><a id="__codelineno-0-3187" name="__codelineno-0-3187"></a>    <span class="n">unique_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+</span><span id="__span-0-3188"><a id="__codelineno-0-3188" name="__codelineno-0-3188"></a>        <span class="p">[</span><span class="n">class_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">unique_names</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span>
+</span><span id="__span-0-3189"><a id="__codelineno-0-3189" name="__codelineno-0-3189"></a>    <span class="p">)</span>
+</span><span id="__span-0-3190"><a id="__codelineno-0-3190" name="__codelineno-0-3190"></a>    <span class="n">class_id</span> <span class="o">=</span> <span class="n">unique_ids</span><span class="p">[</span><span class="n">inverse</span><span class="p">]</span>
+</span><span id="__span-0-3191"><a id="__codelineno-0-3191" name="__codelineno-0-3191"></a>    <span class="n">keep</span> <span class="o">=</span> <span class="n">class_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+</span><span id="__span-0-3192"><a id="__codelineno-0-3192" name="__codelineno-0-3192"></a>    <span class="c1"># select() copies every field, including data of any shape, and handles</span>
+</span><span id="__span-0-3193"><a id="__codelineno-0-3193" name="__codelineno-0-3193"></a>    <span class="c1"># empty and fully filtered results</span>
+</span><span id="__span-0-3194"><a id="__codelineno-0-3194" name="__codelineno-0-3194"></a>    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span>
+</span><span id="__span-0-3195"><a id="__codelineno-0-3195" name="__codelineno-0-3195"></a>    <span class="n">result</span><span class="o">.</span><span class="n">class_id</span> <span class="o">=</span> <span class="n">class_id</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+</span><span id="__span-0-3196"><a id="__codelineno-0-3196" name="__codelineno-0-3196"></a>    <span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">CLASS_NAME_DATA_FIELD</span><span class="p">]</span> <span class="o">=</span> <span class="n">unique_names</span><span class="p">[</span><span class="n">inverse</span><span class="p">][</span><span class="n">keep</span><span class="p">]</span>
+</span><span id="__span-0-3197"><a id="__codelineno-0-3197" name="__codelineno-0-3197"></a>    <span class="k">return</span> <span class="n">result</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
