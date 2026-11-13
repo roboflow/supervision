@@ -4780,6 +4780,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+coco = [
+    { name = "pycocotools" },
+]
 geotiff = [
     { name = "rasterio", version = "1.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "rasterio", version = "1.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -4841,6 +4844,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.21.2" },
     { name = "pandas", marker = "extra == 'metrics'", specifier = ">=2" },
     { name = "pillow", specifier = ">=9.4" },
+    { name = "pycocotools", marker = "extra == 'coco'", specifier = ">=2.0.11" },
     { name = "pydeprecate", specifier = ">=0.9,<0.15" },
     { name = "pyyaml", specifier = ">=5.3" },
     { name = "rasterio", marker = "extra == 'geotiff'", specifier = ">=1.3" },
@@ -4848,7 +4852,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.10" },
     { name = "tqdm", specifier = ">=4.62.3" },
 ]
-provides-extras = ["geotiff", "metrics", "rtl"]
+provides-extras = ["coco", "geotiff", "metrics", "rtl"]
 
 [package.metadata.requires-dev]
 build = [

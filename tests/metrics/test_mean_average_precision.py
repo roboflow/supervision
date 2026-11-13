@@ -48,6 +48,7 @@ class TestMeanAveragePrecisionWithCocoMasks:
         dataset = DetectionDataset.from_coco(
             images_directory_path=str(tmp_path),
             annotations_path=str(annotation_path),
+            mask_rasterizer="supervision",
         )
         targets = next(iter(dataset.annotations.values()))
         predictions = targets.select(slice(None))
