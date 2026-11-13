@@ -60,6 +60,44 @@ def _color_for_scene(color: Color, scene: npt.NDArray[np.uint8]) -> tuple[int, .
     return color.as_bgr()
 
 
+def _has_transparency(scene: npt.NDArray[np.uint8]) -> bool:
+    """Return whether `scene` is BGRA with at least one pixel that is not opaque."""
+    return scene.ndim == 3 and scene.shape[2] == 4 and bool(scene[..., 3].min() < 255)
+
+
+def _fill_over_bgra(
+    scene: npt.NDArray[np.uint8],
+    coverage: npt.NDArray[np.uint8],
+    color: Color,
+    opacity: float,
+) -> None:
+    """Blend `color` into the pixels of a BGRA `scene` that `coverage` marks.
+
+    Blending the four channels like colors darkens a fill on a transparent pixel,
+    because the hidden color under it is mixed in. The fill is composited over the
+    scene's alpha instead, in place, and only inside the box the shape covers.
+
+    Args:
+        scene: BGRA scene of shape `(H, W, 4)`.
+        coverage: Mask of shape `(H, W)`, non-zero where the shape is.
+        color: The fill color.
+        opacity: The fill opacity in `[0, 1]`.
+    """
+    rows = np.flatnonzero(coverage.any(axis=1))
+    columns = np.flatnonzero(coverage.any(axis=0))
+    if rows.size == 0:
+        return
+    box = np.s_[rows[0] : rows[-1] + 1, columns[0] : columns[-1] + 1]
+    region = scene[box]
+    covered = coverage[box] > 0
+    composited = _composite_over_bgra(
+        region,
+        np.full((*covered.shape, 3), color.as_bgr(), dtype=np.float32),
+        np.where(covered[..., np.newaxis], np.float32(opacity), np.float32(0)),
+    )
+    region[covered] = composited[covered]
+
+
 def draw_line(
     scene: npt.NDArray[np.uint8],
     start: Point,
@@ -184,6 +222,16 @@ def draw_filled_rectangle(
             _color_for_scene(color, scene),
             -1,
         )
+    elif _has_transparency(scene):
+        coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+        cv2.rectangle(
+            coverage,
+            rect.top_left.as_xy_int_tuple(),
+            rect.bottom_right.as_xy_int_tuple(),
+            (255,),
+            -1,
+        )
+        _fill_over_bgra(scene, coverage, color, opacity)
     else:
         scene_with_annotations = scene.copy()
         cv2.rectangle(
@@ -353,6 +401,10 @@ def draw_filled_polygon(
     """
     if opacity == 1:
         cv2.fillPoly(scene, [polygon], color=_color_for_scene(color, scene))
+    elif _has_transparency(scene):
+        coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+        cv2.fillPoly(coverage, [polygon], color=(255,))
+        _fill_over_bgra(scene, coverage, color, opacity)
     else:
         scene_with_annotations = scene.copy()
         cv2.fillPoly(
@@ -437,23 +489,42 @@ def draw_text(
     text_origin = (text_anchor_x - text_width // 2, text_anchor_y + text_height // 2)
     if scene.ndim == 3 and scene.shape[2] == 4:
         # OpenCV 5 writes glyph coverage into the alpha channel even for an opaque
-        # color, so draw the colors and the alpha separately. A covered pixel gets
-        # the color it has on the BGR copy and its alpha only ever rises.
-        bgr = np.ascontiguousarray(scene[..., :3])
-        coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+        # color, so draw the colors and the coverage separately, and only on the
+        # part of the scene the glyphs can reach.
+        margin = text_height + text_thickness + 2
+        x_min = max(text_origin[0] - margin, 0)
+        y_min = max(text_origin[1] - text_height - margin, 0)
+        x_max = min(text_origin[0] + text_width + margin, scene.shape[1])
+        y_max = min(text_origin[1] + margin, scene.shape[0])
+        if x_min >= x_max or y_min >= y_max:
+            return scene
+        region = scene[y_min:y_max, x_min:x_max]
+        bgr = np.ascontiguousarray(region[..., :3])
+        coverage = np.zeros(region.shape[:2], dtype=np.uint8)
         for target, target_color in ((bgr, text_color.as_bgr()), (coverage, (255,))):
             cv2.putText(
                 img=target,
                 text=text,
-                org=text_origin,
+                org=(text_origin[0] - x_min, text_origin[1] - y_min),
                 fontFace=text_font,
                 fontScale=text_scale,
                 color=target_color,
                 thickness=text_thickness,
                 lineType=cv2.LINE_AA,
             )
-        scene[..., :3] = bgr
-        scene[..., 3] = np.maximum(scene[..., 3], coverage)
+        # An opaque pixel takes the color it has on the BGR copy. A pixel that
+        # lets the background through is composited, so the glyph edges keep the
+        # text color instead of fading toward the scene's hidden one.
+        opaque = region[..., 3] == 255
+        see_through = (coverage > 0) & ~opaque
+        if see_through.any():
+            composited = _composite_over_bgra(
+                region,
+                np.full(bgr.shape, text_color.as_bgr(), dtype=np.float32),
+                coverage[..., np.newaxis].astype(np.float32) / 255.0,
+            )
+            region[see_through] = composited[see_through]
+        region[opaque, :3] = bgr[opaque]
         return scene
 
     cv2.putText(

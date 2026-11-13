@@ -517,3 +517,67 @@ class TestDrawOnBgraScene:
         np.testing.assert_array_equal(result[..., :3], expected)
         assert not np.array_equal(result[..., :3], bgr)
         assert (result[..., 3] == 255).all()
+
+    @pytest.mark.parametrize(
+        ("scene_alpha", "expected_pixel"),
+        [
+            pytest.param(0, (0, 0, 255, 128), id="transparent-scene"),
+            pytest.param(128, (13, 13, 183, 192), id="translucent-scene"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED, 0.5),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED, 0.5),
+                id="filled-polygon",
+            ),
+        ],
+    )
+    def test_translucent_fill_is_composited_over_scene_alpha(
+        self,
+        draw: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]],
+        scene_alpha: int,
+        expected_pixel: tuple[int, int, int, int],
+    ) -> None:
+        """A translucent fill keeps its color on a scene that is not opaque."""
+        scene = np.full((50, 50, 4), 40, dtype=np.uint8)
+        scene[..., 3] = scene_alpha
+
+        result = draw(scene)
+
+        np.testing.assert_allclose(result[20, 20], expected_pixel, atol=1)
+        np.testing.assert_array_equal(result[45, 45], (40, 40, 40, scene_alpha))
+
+    @pytest.mark.parametrize("scene_alpha", [0, 128])
+    def test_text_keeps_its_color_on_see_through_scene(self, scene_alpha: int) -> None:
+        """Text on a scene that is not opaque keeps the text color at glyph edges."""
+        scene = np.full((60, 120, 4), 40, dtype=np.uint8)
+        scene[..., 3] = scene_alpha
+        before = scene.copy()
+
+        result = draw_text(scene, "Agy", Point(60, 30), Color.RED, text_scale=1.0)
+
+        drawn = (result != before).any(axis=-1)
+        assert drawn.any()
+        assert (result[drawn][:, 3] >= scene_alpha).all()
+        assert result[..., 3].max() == 255
+        if scene_alpha == 0:
+            np.testing.assert_allclose(
+                result[drawn][:, :3],
+                np.broadcast_to(Color.RED.as_bgr(), (int(drawn.sum()), 3)),
+                atol=1,
+            )
+
+    def test_text_outside_bgra_scene_leaves_it_unchanged(self) -> None:
+        """Text anchored far outside a BGRA scene draws nothing."""
+        scene = np.full((40, 40, 4), 40, dtype=np.uint8)
+        before = scene.copy()
+
+        result = draw_text(scene, "a", Point(500, 500), Color.RED)
+
+        np.testing.assert_array_equal(result, before)
