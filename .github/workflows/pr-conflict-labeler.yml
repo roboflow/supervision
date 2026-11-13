@@ -9,18 +9,25 @@ on:
   # So that the `dirtyLabel` is removed if conflicts are resolved
   # We recommend `pull_request_target` so that github secrets are available.
   # In `pull_request` we wouldn't be able to change labels of fork PRs
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] -- Pinned API-only action; no checkout or PR code execution.
     types: [synchronize]
 
 permissions:
-  pull-requests: write
-  issues: write
+  contents: read
+concurrency:
+  group: pr-conflict-labeler-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   main:
+    permissions:
+      pull-requests: read
+      issues: write
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: check if prs are dirty
-        uses: eps1lon/actions-label-merge-conflict@v3
+        uses: eps1lon/actions-label-merge-conflict@0273be72a0bbd58fcd71d0d6c02c209b50d1e5e1 # v3.1.0
         with:
           dirtyLabel: "has conflicts"
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
