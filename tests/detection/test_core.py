@@ -21,6 +21,7 @@ from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
     oriented_box_iou_batch,
 )
+from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
@@ -2318,6 +2319,120 @@ class TestGetAnchorsObbDispatch:
         result = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
 
         assert result.shape == (1, 2)
+
+
+_EMPTY_MASK_IMAGE_SHAPE = (60, 80)
+_EMPTY_MASK_XYXY = np.array(
+    [[20, 10, 29, 19], [40, 20, 60, 50], [50, 40, 55, 43]], dtype=np.float32
+)
+
+
+def _make_masks_with_one_empty() -> np.ndarray:
+    """Build three dense masks whose middle mask has no pixels."""
+    masks = np.zeros((3, *_EMPTY_MASK_IMAGE_SHAPE), dtype=bool)
+    masks[0, 10:20, 20:30] = True
+    masks[2, 40:44, 50:56] = True
+    return masks
+
+
+def _make_mask_container(masks: np.ndarray, xyxy: np.ndarray, compact: bool) -> Any:
+    """Return `masks` as a dense array or as a `CompactMask`."""
+    if compact:
+        return CompactMask.from_dense(masks, xyxy, _EMPTY_MASK_IMAGE_SHAPE)
+    return masks
+
+
+class TestGetAnchorsCenterOfMassEmptyMask:
+    """`get_anchors_coordinates(CENTER_OF_MASS)` for detections with empty masks."""
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_empty_mask_anchored_at_box_center(self, compact: bool) -> None:
+        """A single empty mask is anchored at its box center, not at (0, 0)."""
+        xyxy = np.array([[40, 20, 60, 50]], dtype=np.float32)
+        masks = np.zeros((1, *_EMPTY_MASK_IMAGE_SHAPE), dtype=bool)
+        detections = Detections(
+            xyxy=xyxy, mask=_make_mask_container(masks, xyxy, compact)
+        )
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[50, 35]])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_mixed_batch_only_replaces_empty_masks(self, compact: bool) -> None:
+        """Non-empty masks keep their centroids; only the empty one uses its box."""
+        masks = _make_masks_with_one_empty()
+        detections = Detections(
+            xyxy=_EMPTY_MASK_XYXY,
+            mask=_make_mask_container(masks, _EMPTY_MASK_XYXY, compact),
+        )
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[25, 15], [50, 35], [53, 42]])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_all_empty_batch_uses_box_centers(self, compact: bool) -> None:
+        """A batch where every mask is empty is anchored at all box centers."""
+        masks = np.zeros((3, *_EMPTY_MASK_IMAGE_SHAPE), dtype=bool)
+        detections = Detections(
+            xyxy=_EMPTY_MASK_XYXY,
+            mask=_make_mask_container(masks, _EMPTY_MASK_XYXY, compact),
+        )
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[24, 14], [50, 35], [52, 41]])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_anchors_keep_integer_dtype(self, compact: bool) -> None:
+        """The fallback keeps the integer dtype of the mask centroids."""
+        masks = _make_masks_with_one_empty()
+        detections = Detections(
+            xyxy=_EMPTY_MASK_XYXY,
+            mask=_make_mask_container(masks, _EMPTY_MASK_XYXY, compact),
+        )
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        assert np.issubdtype(anchors.dtype, np.integer)
+
+    def test_non_empty_masks_match_centroid_helper(self) -> None:
+        """Without empty masks the result is exactly the centroid helper output."""
+        masks = _make_masks_with_one_empty()[[0, 2]]
+        detections = Detections(xyxy=_EMPTY_MASK_XYXY[[0, 2]], mask=masks)
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, calculate_masks_centroids(masks))
+
+    def test_other_anchors_ignore_masks(self) -> None:
+        """Anchors other than `CENTER_OF_MASS` are still derived from `xyxy`."""
+        masks = _make_masks_with_one_empty()
+        detections = Detections(xyxy=_EMPTY_MASK_XYXY, mask=masks)
+
+        anchors = detections.get_anchors_coordinates(Position.BOTTOM_CENTER)
+
+        np.testing.assert_array_equal(
+            anchors, [[24.5, 19.0], [50.0, 50.0], [52.5, 43.0]]
+        )
+
+    def test_detections_without_mask_still_raise(self) -> None:
+        """A non-empty batch without a mask keeps raising for `CENTER_OF_MASS`."""
+        detections = Detections(xyxy=_EMPTY_MASK_XYXY)
+
+        with pytest.raises(ValueError, match="without a detection mask"):
+            detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+    def test_empty_mask_with_obb_data_uses_xyxy_center(self) -> None:
+        """An empty mask on an OBB detection falls back to the `xyxy` center."""
+        quad = _rotated_rect(50, 35, 20, 30, 0)
+        detections = _make_obb_detections([quad], [0.9], [0])
+        detections.mask = np.zeros((1, *_EMPTY_MASK_IMAGE_SHAPE), dtype=bool)
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[50, 35]])
 
 
 class TestMergeObbCorners:

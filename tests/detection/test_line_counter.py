@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from supervision import (
+    CompactMask,
     Detections,
     LineZone,
     LineZoneAnnotator,
@@ -2081,3 +2082,33 @@ class TestLineZoneAnnotatorWithCoordTransform:
             LineZoneAnnotator().annotate(
                 frame, line_zone, coord_transform=_WrongShapeTransform()
             )
+
+
+class TestLineZoneCenterOfMassEmptyMask:
+    """`LineZone` with `Position.CENTER_OF_MASS` and detections with empty masks."""
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_stationary_object_with_empty_mask_is_not_counted(
+        self, compact: bool
+    ) -> None:
+        """An object that never moves is not counted when one frame's mask is empty."""
+        line_zone = LineZone(
+            Point(0, 50), Point(160, 50), triggering_anchors=[Position.CENTER_OF_MASS]
+        )
+        xyxy = np.array([[90.0, 80.0, 110.0, 100.0]], dtype=np.float32)
+        full_mask = np.zeros((1, 120, 160), dtype=bool)
+        full_mask[0, 80:100, 90:110] = True
+        empty_mask = np.zeros((1, 120, 160), dtype=bool)
+        frames = []
+        for dense_mask in (full_mask, full_mask, empty_mask, full_mask, full_mask):
+            mask = (
+                CompactMask.from_dense(dense_mask, xyxy, (120, 160))
+                if compact
+                else dense_mask
+            )
+            frames.append(Detections(xyxy=xyxy, mask=mask, tracker_id=np.array([7])))
+
+        for frame in frames:
+            line_zone.trigger(frame)
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
