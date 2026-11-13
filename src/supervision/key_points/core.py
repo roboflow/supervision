@@ -28,7 +28,7 @@ from supervision.detection.utils.iou_and_nms import (
     box_non_max_suppression,
 )
 from supervision.utils.internal import _to_numpy, warn_deprecated
-from supervision.validators import _validate_keypoints_fields
+from supervision.validators import _validate_data, _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
@@ -1449,6 +1449,12 @@ class KeyPoints:
             array(['person', 'dog'], dtype='<U6')
 
             ```
+
+        Raises:
+            TypeError: If `value` is not a `np.ndarray` or `list`.
+            ValueError: If `value` has a length or shape incompatible with
+                the number of objects in the
+                :class:`~supervision.key_points.core.KeyPoints` object.
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")
@@ -1456,6 +1462,7 @@ class KeyPoints:
         if isinstance(value, list):
             value = np.array(value)
 
+        _validate_data({key: value}, len(self))
         self.data[key] = value
 
     @classmethod

@@ -554,6 +554,117 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
     assert result == expected_result
 
 
+class TestKeyPointsSetItem:
+    """Tests for assigning `data` values through `KeyPoints.__setitem__`."""
+
+    @staticmethod
+    def _two_skeletons() -> KeyPoints:
+        """Build a two-object KeyPoints with one `name` entry per object."""
+        xy = np.array(
+            [[[10, 10], [20, 20]], [[30, 30], [40, 40]]],
+            dtype=np.float32,
+        )
+        key_points = KeyPoints(xy=xy, class_id=np.array([0, 1]))
+        key_points["name"] = ["a", "b"]
+        return key_points
+
+    @pytest.mark.parametrize(
+        ("value", "message"),
+        [
+            pytest.param(
+                ["a", "b", "c"],
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="long-list",
+            ),
+            pytest.param(
+                ["a"],
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="short-list",
+            ),
+            pytest.param(
+                [],
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="empty-list",
+            ),
+            pytest.param(
+                np.array(["a", "b", "c"]),
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="long-1d-array",
+            ),
+            pytest.param(
+                np.array(["a"]),
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="short-1d-array",
+            ),
+            pytest.param(
+                np.zeros((3, 2)),
+                r"First dimension of np.ndarray for key 'new' must have size 2",
+                id="wrong-first-dimension-2d-array",
+            ),
+        ],
+    )
+    def test_rejects_value_with_wrong_length(self, value: Any, message: str) -> None:
+        """Assigning a value whose length differs from `len(key_points)` raises."""
+        key_points = self._two_skeletons()
+
+        with pytest.raises(ValueError, match=message):
+            key_points["new"] = value
+
+    def test_failed_assignment_leaves_data_unchanged(self) -> None:
+        """A rejected assignment neither adds a new key nor overwrites an old one."""
+        key_points = self._two_skeletons()
+
+        with pytest.raises(ValueError, match=r"key 'new' must be \(2,\)"):
+            key_points["new"] = ["a", "b", "c"]
+        with pytest.raises(ValueError, match=r"key 'name' must be \(2,\)"):
+            key_points["name"] = np.array(["x"])
+
+        assert list(key_points.data) == ["name"]
+        np.testing.assert_array_equal(key_points.data["name"], np.array(["a", "b"]))
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            pytest.param(["x", "y"], id="list"),
+            pytest.param(np.array(["x", "y"]), id="1d-array"),
+            pytest.param(np.zeros((2, 2)), id="per-keypoint-2d-array"),
+            pytest.param(np.zeros((2, 2, 3)), id="per-keypoint-3d-array"),
+        ],
+    )
+    def test_accepts_value_with_matching_length(self, value: Any) -> None:
+        """A list or array with one entry per object is stored as an array."""
+        key_points = self._two_skeletons()
+
+        key_points["name"] = value
+
+        np.testing.assert_array_equal(key_points.data["name"], np.asarray(value))
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            pytest.param(1, id="scalar"),
+            pytest.param("ab", id="string"),
+            pytest.param(("a", "b"), id="tuple"),
+        ],
+    )
+    def test_rejects_value_that_is_not_list_or_ndarray(self, value: Any) -> None:
+        """Values other than lists and arrays raise `TypeError`, as in Detections."""
+        key_points = self._two_skeletons()
+
+        with pytest.raises(TypeError, match=r"Value must be a np\.ndarray or a list"):
+            key_points["new"] = value
+
+    def test_empty_key_points_accepts_empty_list(self) -> None:
+        """An empty KeyPoints accepts a zero-length value and rejects a longer one."""
+        key_points = KeyPoints.empty()
+
+        key_points["name"] = []
+
+        assert len(key_points.data["name"]) == 0
+        with pytest.raises(ValueError, match=r"must be \(0,\)"):
+            key_points["other"] = ["a"]
+
+
 class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
