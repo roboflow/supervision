@@ -3111,7 +3111,8 @@ class Detections:
         Raises:
             ValueError: If ``data`` has no ``class_name`` entry, ``classes`` holds
                 duplicate names, or ``class_name_mapping`` maps to a name that is
-                not in ``classes``.
+                not in ``classes``. Class names must have shape ``(N,)`` or
+                ``(N, 1)`` for ``N`` detections.
             TypeError: If ``class_name_mapping`` is not a mapping or has keys that
                 are not strings.
 
@@ -3170,6 +3171,9 @@ class Detections:
                     f"{unknown_targets}"
                 )
         class_names = np.asarray(class_names, dtype=str)
+        if class_names.shape not in ((len(self),), (len(self), 1)):
+            raise ValueError("class_name must have shape (N,) or (N, 1).")
+        class_names = class_names.reshape(len(self))
         # Remap and look up the distinct names only, so the Python-level work
         # scales with the number of classes, not with the number of detections
         unique_names, inverse = np.unique(class_names, return_inverse=True)

@@ -23,6 +23,30 @@ def animals() -> Detections:
 class TestRemapClasses:
     """Remapping and filtering of detections onto a target class list."""
 
+    def test_remaps_column_shaped_class_names(self, animals: Detections) -> None:
+        """A column of class names maps one name per detection."""
+        # Arrange
+        animals.data["class_name"] = np.array([["dog"], ["cat"], ["eagle"], ["car"]])
+
+        # Act
+        result = animals.remap_classes(["animal", "car"], {"dog": "animal"})
+
+        # Assert
+        assert result.class_id.tolist() == [0, 1]
+        assert result.data["class_name"].tolist() == ["animal", "car"]
+        assert result.tracker_id.tolist() == [10, 13]
+
+    def test_rejects_multiple_class_names_per_detection(
+        self, animals: Detections
+    ) -> None:
+        """Multiple names per row cannot be assigned a single class ID."""
+        # Arrange
+        animals.data["class_name"] = np.full((4, 2), "dog")
+
+        # Act / Assert
+        with pytest.raises(ValueError, match="class_name must have shape"):
+            animals.remap_classes(["dog"])
+
     def test_remaps_names_and_ids(self, animals: Detections) -> None:
         """Mapped names replace the originals and ids index the target classes."""
         # Arrange
