@@ -3100,35 +3100,29 @@ class Detections:
             raise ValueError(
                 "Detections must have 'class_name' in .data to use transform()."
             )
-        class_names = np.array(class_names)
+        class_names = np.asarray(class_names, dtype=str)
         # Remap class names if mapping is provided
         if class_mapping is not None:
             class_names = np.array(
-                [class_mapping.get(name, name) for name in class_names]
+                [class_mapping.get(name, name) for name in class_names], dtype=str
             )
+        # A repeated name would silently resolve to its first index
+        classes = list(dataset.classes)
+        duplicates = sorted({name for name in classes if classes.count(name) > 1})
+        if duplicates:
+            raise ValueError(f"dataset.classes holds duplicate names: {duplicates}")
+        class_index = {name: index for index, name in enumerate(classes)}
         # Filter out detections whose class is not in dataset.classes
-        keep = np.isin(class_names, dataset.classes)
-        # Remap class_id to match dataset.classes
-        new_class_id = np.array(
-            [dataset.classes.index(name) for name in class_names[keep]]
+        keep = np.isin(class_names, classes)
+        # select() copies every field, including data of any shape, and handles
+        # empty and fully filtered results
+        result = self.select(keep)
+        # Explicit dtype: an empty result would otherwise get float64 ids
+        result.class_id = np.array(
+            [class_index[name] for name in class_names[keep]], dtype=int
         )
-        # Build new Detections object
-        return Detections(
-            xyxy=self.xyxy[keep],
-            mask=self.mask[keep] if self.mask is not None else None,
-            confidence=self.confidence[keep] if self.confidence is not None else None,
-            class_id=new_class_id,
-            tracker_id=self.tracker_id[keep] if self.tracker_id is not None else None,
-            data={
-                k: (
-                    np.array(v)[keep]
-                    if isinstance(v, (list, np.ndarray)) and len(v) == len(self)
-                    else v
-                )
-                for k, v in self.data.items()
-            },
-            metadata=self.metadata.copy(),
-        )
+        result.data["class_name"] = class_names[keep]
+        return result
 
 
 def _merge_obb_corners(
