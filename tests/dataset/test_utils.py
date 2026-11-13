@@ -733,6 +733,9 @@ class TestTrainTestSplitExactRatio:
             pytest.param(np.float64(0.7), id="numpy-float64"),
             pytest.param(np.float32(0.7), id="numpy-float32"),
             pytest.param(np.array(0.7), id="numpy-zero-dim-array"),
+            pytest.param(
+                np.array(0.7, dtype=np.float32), id="numpy-zero-dim-float32-array"
+            ),
         ],
     )
     def test_numpy_ratio_gives_same_size_as_python_ratio(

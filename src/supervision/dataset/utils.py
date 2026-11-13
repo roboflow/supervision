@@ -652,6 +652,10 @@ def _train_split_index(length: int, train_ratio: float) -> int:
     Returns:
         The number of leading items that go to the train part.
     """
+    # A zero-dimensional array is unwrapped to its NumPy scalar first, so that
+    # `np.array(0.7, dtype=np.float32)` reads like `np.float32(0.7)`.
+    if isinstance(train_ratio, np.ndarray) and train_ratio.ndim == 0:
+        train_ratio = train_ratio[()]
     # `str` of a NumPy float gives the shortest decimal for its own precision,
     # so `np.float32(0.7)` reads as 0.7 and not as its float64 widening.
     if isinstance(train_ratio, np.floating):

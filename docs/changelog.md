@@ -7,9 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.split` and `sv.ClassificationDataset.split` now keep the training image that floating-point rounding dropped when `split_ratio` times the number of images is a whole number. For example, 90 images at `split_ratio=0.7` gave 62 train and 28 test images instead of 63 and 27. The ratio is now read as the decimal you wrote and multiplied exactly, then rounded down as before. ([#PR_NUMBER](https://github.com/roboflow/supervision/pull/PR_NUMBER))
-
-- `sv.metrics.MeanAveragePrecision` with `MetricTarget.ORIENTED_BOUNDING_BOXES` now uses the COCO crowd IoU for targets with `data["iscrowd"]` set: the intersection over the prediction area, as for boxes and masks. It used the standard IoU, so a prediction inside a crowd region was a false positive instead of being ignored. Positive detection areas are used without an added epsilon, preserving exact threshold matches and small boxes. In one axis-aligned scene, oriented-box mAP@50 now matches box mAP at 1.0; it was 0.333. ([#2941](https://github.com/roboflow/supervision/pull/2941))
+- `sv.DetectionDataset.split` and `sv.ClassificationDataset.split` now keep the training image that floating-point rounding dropped when `split_ratio` times the number of images is a whole number. For example, 90 images at `split_ratio=0.7` gave 62 train and 28 test images instead of 63 and 27. The ratio is now read as the decimal you wrote and multiplied exactly, then rounded down as before. ([#2969](https://github.com/roboflow/supervision/pull/2969))
 
 - `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#2455](https://github.com/roboflow/supervision/pull/2455)).
 
