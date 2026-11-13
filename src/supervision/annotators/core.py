@@ -471,10 +471,13 @@ def _color_for_canvas(
 
     A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
     channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
-    polygons other annotators draw on the same scene.
+    polygons other annotators draw on the same scene. A BGRA canvas takes the color with
+    an opaque alpha, as :func:`~supervision.draw.utils.draw_image` does.
     """
     if canvas.ndim == 2 or canvas.shape[2] == 1:
         return color_bgr[:1]
+    if canvas.shape[2] == 4:
+        return (*color_bgr, 255)
     return color_bgr
 
 
@@ -1008,6 +1011,13 @@ class HaloAnnotator(BaseAnnotator):
             0,
             255,
         ).astype(np.uint8)
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            # The blurred canvas fades its own alpha toward the halo's edge. The halo
+            # covers the scene by `alpha`, so the result is at least that opaque.
+            covered_alpha = (
+                scene[..., 3] + (255 - scene[..., 3].astype(np.float32)) * alpha
+            )
+            blended_scene[..., 3] = np.clip(covered_alpha, 0, 255).astype(np.uint8)
         np.copyto(scene, blended_scene)
         return scene
 
