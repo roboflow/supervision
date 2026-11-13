@@ -18,11 +18,15 @@ on:
 
 permissions: {} # Explicitly remove all permissions by default
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     permissions:
       contents: read
-    uses: ./.github/workflows/build-package.yml
+    uses: ./.github/workflows/build-package.yml # zizmor: ignore[self-repository] -- Local calls already use the workflow commit.
 
   publish-pre-release:
     name: Publish Pre-release Package
@@ -37,7 +41,7 @@ jobs:
       contents: read # Required for checkout
     steps:
       - name: 📥 Download distribution artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/

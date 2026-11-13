@@ -157,3 +157,16 @@ diff /tmp/baseline.txt /tmp/after.txt
 ```
 
 Any test passing in baseline but failing after = blocker.
+
+## GitHub Actions
+
+- Keep public CI on standard GitHub-hosted runners.
+- Cancel superseded PR runs with a workflow-specific concurrency group. Preserve every push test run for regression tracing. Serialize documentation publishing without cancelling active pushes.
+- Apply path filters only to PR events. Filter PR link checks to Markdown and their configuration. Filter PR GitHub configuration tests to their scripts, fixtures, documentation, and dependency inputs. Keep required checks triggered for every PR so path filters cannot block merging.
+- Keep the full Python version matrix on Linux, and the oldest and newest matrix versions on macOS and Windows. This reduces repeated OS and Python combinations while retaining every Python minor and platform. Preserve OpenCV backend and isolated wheel coverage on every OS.
+- Set a timeout on every runner job, including reusable workflows and result guardians.
+- Cache dependencies in test workflows. Disable caching when building or publishing releases so publishing jobs cannot restore caches from test runs. Retain distribution artifacts for three days.
+- Pin actions to full commit SHAs with release-version comments. Keep the GitHub Actions Dependabot ecosystem enabled.
+- Default workflow permissions to read-only and elevate individual jobs only when needed. Disable checkout credential persistence unless that checkout must push.
+- Pass event values through environment variables and quote shell expansions. Never interpolate branch names, dispatch inputs, or release metadata into shell code.
+- Keep the conflict labeler API-only. A `pull_request_target` job must never check out or execute PR code.

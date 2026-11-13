@@ -7,6 +7,10 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.PolygonZone.occupancy_ratio` avoids decoding a potentially huge compact-mask union outside the zone and raises `ValueError` for oriented coordinates that cannot be represented as `int32`. ([#1667](https://github.com/roboflow/supervision/pull/1667))
+
+- `sv.PolygonZone.occupancy_ratio` measures how much of a zone the detections cover: the share of zone pixels, from `0.0` to `1.0`, inside the union of the detection footprints, so overlapping detections are counted once. Each footprint comes from the first geometry the detections carry: segmentation masks, dense or `sv.CompactMask`, then oriented boxes in `data["xyxyxyxy"]`, then axis-aligned boxes, which are half-open as in `sv.Detections.box_area`. Detections must use the pixel coordinates of the frame the zone was drawn on; masks of any frame size are cropped or zero-padded to the zone, empty detections give `0.0`, and `current_count` is left unchanged. A zone without pixels, or a detection mask or oriented-box array of the wrong shape, raises `ValueError`. ([#1667](https://github.com/roboflow/supervision/pull/1667))
+
 - `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). Cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#2970](https://github.com/roboflow/supervision/pull/2970))
 
 - `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#2455](https://github.com/roboflow/supervision/pull/2455)).

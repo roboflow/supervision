@@ -6,6 +6,11 @@ import numpy.typing as npt
 
 from supervision import Detections
 from supervision import _cv2 as cv2
+from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import (
+    CompactMask,
+    _rle_split_cols,
+)
 from supervision.detection.utils.converters import (
     MIN_POLYGON_POINT_COUNT,
     polygon_to_mask,
@@ -24,6 +29,178 @@ from supervision.geometry.core import (
     _transform_points,
 )
 from supervision.geometry.utils import get_polygon_center
+
+
+def _polygons_union_mask(
+    polygons: npt.NDArray[np.number], resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.bool_]:
+    """Rasterize the union of filled polygons onto one boolean canvas.
+
+    Args:
+        polygons: Polygon vertices of shape ``(N, K, 2)`` in ``x``, ``y`` pixels,
+            truncated to integers as
+            :func:`~supervision.detection.utils.converters.polygon_to_mask` does.
+            Polygons with non-finite vertices cover nothing.
+        resolution_wh: Canvas width and height in pixels.
+
+    Returns:
+        Boolean array of shape ``(height, width)`` marking covered pixels.
+    """
+    width, height = resolution_wh
+    canvas = np.zeros((height, width), dtype=np.uint8)
+    finite = np.isfinite(polygons).all(axis=(1, 2))
+    # One `fillPoly` call shares a single even-odd fill across all its contours,
+    # so overlapping polygons would cancel each other out. Painting each polygon
+    # separately onto the same canvas keeps their union.
+    valid = np.trunc(polygons[finite].astype(np.float64))
+    limits = np.iinfo(np.int32)
+    if np.any((valid < limits.min) | (valid > limits.max)):
+        raise ValueError("Oriented box coordinates must fit in int32.")
+    for polygon in valid.astype(np.int32):
+        cv2.fillPoly(canvas, [polygon], color=(1,))
+    return canvas.astype(bool)
+
+
+def _boxes_union_mask(
+    xyxy: npt.NDArray[np.number], resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.bool_]:
+    """Rasterize the union of half-open axis-aligned boxes onto one boolean canvas.
+
+    Covers the same pixels as
+    :func:`~supervision.detection.utils.converters.xyxy_to_mask` with
+    ``coordinate_convention="exclusive"`` reduced over the boxes, but allocates
+    only the canvas, never one mask per box: box corners are accumulated in a
+    2D difference array whose prefix sums count how many boxes cover each pixel.
+
+    Args:
+        xyxy: Boxes of shape ``(N, 4)`` as ``x_min``, ``y_min``, ``x_max``,
+            ``y_max`` pixels, truncated toward zero. Boxes with a non-finite
+            coordinate cover nothing.
+        resolution_wh: Canvas width and height in pixels.
+
+    Returns:
+        Boolean array of shape ``(height, width)`` marking covered pixels.
+    """
+    width, height = resolution_wh
+    boxes = np.asarray(xyxy, dtype=np.float64)
+    boxes = boxes[np.isfinite(boxes).all(axis=1)]
+    # Truncate like `int()` in `xyxy_to_mask`, then clip every edge into the
+    # canvas so each half-open span [min, max) indexes inside the counter below.
+    limits = np.array([width, height, width, height], dtype=np.float64)
+    edges = np.clip(np.trunc(boxes), 0, limits).astype(np.intp)
+    edges = edges[(edges[:, 2] > edges[:, 0]) & (edges[:, 3] > edges[:, 1])]
+    x_min, y_min, x_max, y_max = edges.T
+    # +1 at the top-left and bottom-right corners, -1 at the other two; the
+    # prefix sums along both axes turn this into a per-pixel coverage count.
+    # `np.add.at` accumulates corners shared by duplicate or adjacent boxes.
+    coverage = np.zeros((height + 1, width + 1), dtype=np.int32)
+    np.add.at(coverage, (y_min, x_min), 1)
+    np.add.at(coverage, (y_min, x_max), -1)
+    np.add.at(coverage, (y_max, x_min), -1)
+    np.add.at(coverage, (y_max, x_max), 1)
+    np.cumsum(coverage, axis=0, out=coverage)
+    np.cumsum(coverage, axis=1, out=coverage)
+    return coverage[:height, :width] > 0
+
+
+def _validate_shape(
+    actual: tuple[int, ...], expected: tuple[int | str, ...], name: str
+) -> None:
+    """Reject an array whose shape differs from ``expected`` before it is reduced.
+
+    Args:
+        actual: Shape of the array to check.
+        expected: Required shape; a string entry names a free dimension of any size.
+        name: How the array is called in the error message.
+
+    Raises:
+        ValueError: If the dimension count differs or a fixed dimension mismatches.
+    """
+    fixed_match = all(
+        isinstance(want, str) or want == got
+        for want, got in zip(expected, actual, strict=False)
+    )
+    if len(actual) != len(expected) or not fixed_match:
+        expected_text = "(" + ", ".join(str(dim) for dim in expected) + ")"
+        raise ValueError(
+            f"{name} must have shape {expected_text}; got shape {tuple(actual)}."
+        )
+
+
+def _detections_to_union_mask(
+    detections: Detections, resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.bool_]:
+    """Rasterize the union of all detection footprints onto one boolean canvas.
+
+    The footprint source follows the order
+    :attr:`~supervision.detection.core.Detections.area` uses: segmentation masks
+    (dense or :class:`~supervision.detection.compact_mask.CompactMask`, which is
+    never densified), then oriented boxes stored in
+    ``data[ORIENTED_BOX_COORDINATES]``, then axis-aligned boxes. Axis-aligned
+    boxes use the exclusive convention of
+    :attr:`~supervision.detection.core.Detections.box_area`, so a box
+    ``[0, 0, 10, 10]`` covers 100 pixels.
+
+    The canvas shares its origin with the frame the detections come from, but
+    need not share its size: masks are cropped to the canvas when the frame is
+    larger and zero-padded when it is smaller, and boxes are clipped to it.
+
+    Args:
+        detections: Detections whose footprints are unioned.
+        resolution_wh: Canvas width and height in pixels.
+
+    Returns:
+        Boolean array of shape ``(height, width)`` marking covered pixels; all
+            `False` for empty `detections`.
+
+    Raises:
+        ValueError: If a dense mask is not of shape ``(N, H, W)`` or the oriented
+            box corners are not of shape ``(N, K, 2)``, with ``N`` detections.
+    """
+    width, height = resolution_wh
+    if len(detections) == 0:
+        return np.zeros((height, width), dtype=bool)
+    mask = detections.mask
+    if mask is not None:
+        if not isinstance(mask, CompactMask):
+            _validate_shape(np.shape(mask), (len(detections), "H", "W"), "mask")
+        canvas = np.zeros((height, width), dtype=bool)
+        if isinstance(mask, CompactMask):
+            # Read only columns intersecting the zone; even a single foreground
+            # run can span a crop too large to decode or expand into intervals.
+            for rle, shape, offset in zip(mask._rles, mask._crop_shapes, mask.offsets):
+                crop_h, crop_w = (int(value) for value in shape)
+                offset_x, offset_y = (int(value) for value in offset)
+                x_start = max(0, -offset_x)
+                x_stop = min(crop_w, width - offset_x)
+                if x_stop <= x_start or offset_y >= height or offset_y + crop_h <= 0:
+                    continue
+                columns = _rle_split_cols(rle, crop_h, crop_w, x_start, x_stop - 1)
+                for x, runs in enumerate(columns, start=x_start + offset_x):
+                    y = offset_y
+                    for index, length in enumerate(runs):
+                        end = y + length
+                        if index % 2 and end > 0 and y < height:
+                            canvas[max(y, 0) : min(end, height), x] = True
+                        y = end
+        else:
+            # Reduce only the overlapping window: pixels beyond the canvas are
+            # outside the zone, and canvas pixels beyond the frame stay empty.
+            overlap_h = min(int(mask.shape[1]), height)
+            overlap_w = min(int(mask.shape[2]), width)
+            canvas[:overlap_h, :overlap_w] = np.any(
+                mask[:, :overlap_h, :overlap_w], axis=0
+            )
+        return canvas
+    if ORIENTED_BOX_COORDINATES in detections.data:
+        polygons = np.asarray(detections.data[ORIENTED_BOX_COORDINATES])
+        _validate_shape(
+            polygons.shape,
+            (len(detections), "K", 2),
+            f"data[{ORIENTED_BOX_COORDINATES!r}]",
+        )
+        return _polygons_union_mask(polygons, resolution_wh)
+    return _boxes_union_mask(detections.xyxy, resolution_wh)
 
 
 class PolygonZone:
@@ -208,6 +385,89 @@ class PolygonZone:
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
         return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
+
+    def occupancy_ratio(self, detections: Detections) -> float:
+        """Measure which fraction of the zone's pixels the detections cover.
+
+        Every detection footprint is rasterized onto one boolean canvas and the
+        union is intersected with the zone, so overlapping detections are counted
+        once. The footprint comes from the first geometry the detections carry,
+        in the order
+        :attr:`~supervision.detection.core.Detections.area` uses: segmentation
+        masks, then oriented boxes stored in
+        ``data[ORIENTED_BOX_COORDINATES]``, then axis-aligned boxes. Axis-aligned
+        boxes are half-open, matching
+        :attr:`~supervision.detection.core.Detections.box_area`, while the zone
+        includes the pixels on its vertices, so a box ``[0, 0, 100, 100]`` covers
+        exactly a zone with vertices from ``0`` to ``99``.
+
+        The detections must be in the pixel coordinates of the frame the zone's
+        polygon was drawn on. No frame size is needed: the union is computed over
+        the zone's own
+        :attr:`~supervision.detection.tools.polygon_zone.PolygonZone.mask`
+        extent, so frame-sized masks are cropped to it, masks of a smaller frame
+        are zero-padded, and anything outside the zone is ignored. Camera motion
+        compensation is not supported yet: unlike
+        :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`,
+        this method takes no ``coord_transform``, so map the detections into the
+        zone's reference frame before calling it.
+
+        The ratio divides pixel counts, never sums of mask values: a pixel is
+        covered when any detection mask is nonzero there, so non-boolean masks, which
+        :class:`~supervision.detection.core.Detections` deprecates, treat every
+        nonzero value, soft scores included, as foreground. The method leaves
+        :attr:`~supervision.detection.tools.polygon_zone.PolygonZone.current_count`
+        unchanged.
+
+        Args:
+            detections: The detections whose combined footprint is measured.
+
+        Returns:
+            The covered share of the zone's pixels, between `0.0` and `1.0`;
+                `0.0` for empty `detections`.
+
+        Raises:
+            ValueError: If the zone mask is not 2D or has no nonzero pixels, for
+                example because the polygon lies entirely at negative coordinates,
+                even when `detections` is empty; or if a dense detection mask is
+                not of shape `(N, H, W)` or the oriented box corners are not of
+                shape `(N, K, 2)`, with `N` detections, or their finite coordinates
+                cannot be represented as `int32` after truncation.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [99, 0], [99, 99], [0, 99]])
+            ... )
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 50, 100], [25, 0, 75, 100]], dtype=float)
+            ... )
+            >>> zone.occupancy_ratio(detections)
+            0.75
+            >>> zone.occupancy_ratio(sv.Detections.empty())
+            0.0
+
+            ```
+        """
+        _validate_shape(np.shape(self.mask), ("H", "W"), "zone mask")
+        zone = self.mask.astype(bool)
+        zone_pixels = int(np.count_nonzero(zone))
+        # Checked before the empty-detections shortcut so that frames without
+        # detections cannot hide a zone that has no pixels to cover.
+        if zone_pixels == 0:
+            raise ValueError(
+                "Zone mask covers no pixels, so its occupancy ratio is undefined. "
+                "Use a polygon that encloses at least one pixel at non-negative "
+                f"coordinates; got a zone mask of shape {zone.shape} with no "
+                "nonzero pixels."
+            )
+        if len(detections) == 0:
+            return 0.0
+        mask_h, mask_w = zone.shape
+        occupied = _detections_to_union_mask(detections, resolution_wh=(mask_w, mask_h))
+        return int(np.count_nonzero(occupied & zone)) / zone_pixels
 
 
 class PolygonZoneAnnotator:
