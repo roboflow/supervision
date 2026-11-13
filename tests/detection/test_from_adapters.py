@@ -227,6 +227,54 @@ class TestFromTransformers:
 
         np.testing.assert_array_equal(det.data[CLASS_NAME_DATA_FIELD], ["cat", "dog"])
 
+    @pytest.mark.parametrize("dtype_name", ["bfloat16", "float16", "float32"])
+    @pytest.mark.parametrize("requires_grad", [False, True])
+    def test_detection_path_accepts_tensor_precisions(
+        self, dtype_name: str, requires_grad: bool
+    ) -> None:
+        """Half-precision model outputs load, with bfloat16 widened to float32."""
+        torch = pytest.importorskip("torch")
+        dtype = getattr(torch, dtype_name)
+        boxes = torch.tensor([[10.0, 20.0, 30.0, 40.0]], dtype=dtype)
+        scores = torch.tensor([0.5], dtype=dtype)
+        boxes.requires_grad_(requires_grad)
+        scores.requires_grad_(requires_grad)
+        result = {"boxes": boxes, "labels": torch.tensor([1]), "scores": scores}
+        expected_dtype = np.float32 if dtype_name == "bfloat16" else dtype_name
+
+        det = Detections.from_transformers(result)
+
+        np.testing.assert_array_equal(det.xyxy, [[10.0, 20.0, 30.0, 40.0]])
+        assert det.xyxy.dtype == expected_dtype
+        assert det.confidence is not None
+        np.testing.assert_array_equal(det.confidence, [0.5])
+        assert det.confidence.dtype == expected_dtype
+        np.testing.assert_array_equal(det.class_id, [1])
+
+    def test_v4_segmentation_path_accepts_bfloat16_outputs(self) -> None:
+        """V4 instance results with bfloat16 boxes and scores load as float32."""
+        torch = pytest.importorskip("torch")
+        masks = torch.zeros((1, 1, 4, 4), dtype=torch.bfloat16)
+        masks[0, 0, :2, :2] = 1
+        result = {
+            "boxes": torch.tensor([[0.0, 0.0, 2.0, 2.0]], dtype=torch.bfloat16),
+            "masks": masks,
+            "labels": torch.tensor([3]),
+            "scores": torch.tensor([0.75], dtype=torch.bfloat16),
+        }
+
+        det = Detections.from_transformers(result)
+
+        assert det.mask is not None
+        assert det.mask.shape == (1, 4, 4)
+        np.testing.assert_array_equal(det.mask[0][:2, :2], np.ones((2, 2), dtype=bool))
+        np.testing.assert_array_equal(det.area, [4])
+        np.testing.assert_array_equal(det.xyxy, [[0.0, 0.0, 2.0, 2.0]])
+        assert det.confidence is not None
+        np.testing.assert_array_equal(det.confidence, [0.75])
+        assert det.xyxy.dtype == np.float32
+        assert det.confidence.dtype == np.float32
+
     def test_v4_segmentation_masks_without_boxes_yield_correct_shape(self) -> None:
         """V4 segmentation with masks-only produces mask of shape (N, H, W)."""
         masks_bool = np.zeros((2, 4, 4), dtype=bool)
