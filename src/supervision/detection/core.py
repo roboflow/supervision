@@ -3087,24 +3087,58 @@ class Detections:
         classes: Sequence[str],
         class_name_mapping: Mapping[str, str] | None = None,
     ) -> Detections:
-        """Remap and filter detections to match a target dataset's class set.
+        """Remap class names and keep only the detections of a target class list.
+
+        Use this to line model predictions up with a dataset: class names are
+        optionally renamed, detections whose name is not in ``classes`` are
+        dropped, and ``class_id`` becomes the index of each name in ``classes``.
+        For a different filter, chain :meth:`select` or boolean indexing.
 
         Args:
             classes: Target class names, for example ``dataset.classes``. Each kept
-                detection's ``class_id`` is the index of its name in this sequence.
+                detection's ``class_id`` is the index of its name in this sequence,
+                so the names must be unique.
             class_name_mapping: Optional mapping from model class names to names
-                in ``classes``.
+                in ``classes``, for example ``{"dog": "animal"}``. Keys are class
+                names, not class ids, and every target must be in ``classes``.
 
         Returns:
-            A new Detections object holding only the detections whose class name
-            is in ``classes`` after remapping, with ``class_id`` and
-            ``data["class_name"]`` rewritten to match.
+            A new :class:`~supervision.detection.core.Detections` holding the
+            detections whose remapped class name is in ``classes``, with
+            ``class_id`` and ``data["class_name"]`` rewritten to match. The input
+            is not modified.
+
+        Raises:
+            ValueError: If ``data`` has no ``class_name`` entry, ``classes`` holds
+                duplicate names, or ``class_name_mapping`` maps to a name that is
+                not in ``classes``.
+            TypeError: If ``class_name_mapping`` is not a mapping or has keys that
+                are not strings.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]]),
+            ...     class_id=np.array([0, 1, 2]),
+            ...     data={"class_name": np.array(["dog", "cat", "car"])},
+            ... )
+            >>> mapping = {"dog": "animal", "cat": "animal"}
+            >>> remapped = detections.remap_classes(["animal", "car"], mapping)
+            >>> remapped.class_id.tolist()
+            [0, 0, 1]
+            >>> remapped["class_name"].tolist()
+            ['animal', 'animal', 'car']
+
+            ```
         """
         # Get class names for each detection
-        class_names = self.data.get("class_name")
+        class_names = self.data.get(CLASS_NAME_DATA_FIELD)
         if class_names is None:
             raise ValueError(
-                "Detections must have 'class_name' in .data to use remap_classes()."
+                f"Detections must have {CLASS_NAME_DATA_FIELD!r} in .data "
+                "to use remap_classes()."
             )
         # A repeated name would silently resolve to its first index
         class_list = list(classes)
@@ -3155,7 +3189,7 @@ class Detections:
         # empty and fully filtered results
         result = self.select(keep)
         result.class_id = class_id[keep]
-        result.data["class_name"] = unique_names[inverse][keep]
+        result.data[CLASS_NAME_DATA_FIELD] = unique_names[inverse][keep]
         return result
 
 
