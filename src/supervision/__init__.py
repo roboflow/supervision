@@ -42,6 +42,7 @@ from supervision.dataset.core import (
     BaseDataset,
     ClassificationDataset,
     DetectionDataset,
+    KeyPointsDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
 from supervision.depth.annotators import DepthAnnotator, DepthClipRange
@@ -100,6 +101,7 @@ from supervision.detection.utils.iou_and_nms import (
     box_non_max_merge,
     box_non_max_suppression,
     box_soft_non_max_suppression,
+    box_weighted_box_fusion,
     mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
@@ -215,6 +217,7 @@ __all__ = [
     "InferenceSlicer",
     "JSONSink",
     "KeyPoints",
+    "KeyPointsDataset",
     "LabelAnnotator",
     "LineZone",
     "LineZoneAnnotator",
@@ -251,6 +254,7 @@ __all__ = [
     "box_non_max_merge",
     "box_non_max_suppression",
     "box_soft_non_max_suppression",
+    "box_weighted_box_fusion",
     "calculate_masks_centroids",
     "calculate_optimal_line_thickness",
     "calculate_optimal_text_scale",
