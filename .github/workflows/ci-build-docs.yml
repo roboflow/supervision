@@ -7,7 +7,7 @@ on:
     branches: ["main", "develop", "release/*"]
 
 concurrency:
-  group: docs-test-${{ github.ref }}
+  group: docs-test-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Restrict permissions by default

@@ -16,7 +16,7 @@ on:
     - cron: "0 9 * * 0"
 
 concurrency:
-  group: ci-check-links-${{ github.ref }}
+  group: ci-check-links-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   links-check:
