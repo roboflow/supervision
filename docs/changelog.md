@@ -79,6 +79,8 @@ date_modified: 2026-10-31
     - `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. ([#2900](https://github.com/roboflow/supervision/pull/2900))
     - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
 
+- `sv.mask_iou_batch`, `sv.mask_non_max_suppression`, `sv.mask_soft_non_max_suppression`, `sv.mask_non_max_merge`, `sv.Detections.with_nms` and `sv.Detections.with_nmm` now count overlaps of dense boolean masks on bit-packed copies with NumPy >= 2.0, instead of float32 copies. Results are identical. Peak memory for mask IoU drops about 16-20x, and mask non-max merging runs 20-40x faster. Older NumPy and non-bool masks keep the previous float path. ([#2886](https://github.com/roboflow/supervision/pull/2886))
+
 ### 0.31.5 <small>Nov 5, 2026</small>
 
 - **Annotators**: annotating more image types and right-to-left labels.
