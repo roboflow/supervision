@@ -4456,6 +4456,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>The <code>examples/time_in_zone</code> file example <code>ultralytics_file_example.py</code> accepts <code>--output_video_path</code> to save the annotated video with <code>sv.VideoSink</code>. It tries the <code>H264</code> codec, then <code>XVID</code>, writes at the frame rate of the source video, and raises <code>RuntimeError</code> when no codec opens. A path that is the same file as the source video raises <code>ValueError</code> before the model loads, so the source is never overwritten. (<a href="https://github.com/roboflow/supervision/pull/1964">#1964</a>)</p>
+</li>
+<li>
 <p>Added <code>sv.Detections.remap_classes</code> to line model predictions up with a dataset's class list. It optionally renames class names with <code>class_name_mapping</code>, drops the detections whose name is not in <code>classes</code>, and rewrites <code>class_id</code> to the index of each name in <code>classes</code> and <code>data["class_name"]</code> to the remapped names. Class names can be a one-dimensional array or a single-column array. Boxes, masks, tracker ids and per-detection <code>data</code> of any shape follow the kept rows, and a result with no detections keeps integer class ids. Duplicate names in <code>classes</code>, mapping targets missing from <code>classes</code>, and class-id keys in <code>class_name_mapping</code> raise an error instead of silently dropping or misassigning detections. For a different filter, chain <code>sv.Detections.select</code> or boolean indexing on the result. (<a href="https://github.com/roboflow/supervision/pull/1846">#1846</a>)</p>
 </li>
 <li>
@@ -6874,7 +6877,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 13, 2026 18:05:43 UTC">November 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 13, 2026 20:29:18 UTC">November 13, 2026</span>
   </span>
 
     
@@ -6902,9 +6905,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/AshAnand34" class="md-author" title="@AshAnand34">
+        <a href="https://github.com/eminaruk" class="md-author" title="@eminaruk">
           
-          <img src="https://avatars.githubusercontent.com/u/84689683?v=4&size=72" alt="AshAnand34">
+          <img src="https://avatars.githubusercontent.com/u/74098276?v=4&size=72" alt="eminaruk">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6912,21 +6915,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/AshAnand34" class="md-author" title="@AshAnand34">
+          
+          <img src="https://avatars.githubusercontent.com/u/84689683?v=4&size=72" alt="AshAnand34">
+        </a>
+      
         <a href="https://github.com/AHB102" class="md-author" title="@AHB102">
           
           <img src="https://avatars.githubusercontent.com/u/111697568?v=4&size=72" alt="AHB102">
-        </a>
-      
-        <a href="https://github.com/rs-03" class="md-author" title="@rs-03">
-          
-          <img src="https://avatars.githubusercontent.com/u/69567756?v=4&size=72" alt="rs-03">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +28
+            +29
           </a>
         
       
