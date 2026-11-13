@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import reduce
 from typing import Any, cast
@@ -622,6 +622,20 @@ class Detections:
         To load a Roboflow Inference result or build compact masks, use
         :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`.
 
+        !!! tip "RF-DETR"
+
+            For RF-DETR, prefer the official
+            [`rfdetr`](https://github.com/roboflow/rf-detr) package maintained by
+            Roboflow: its `predict()` returns
+            :class:`~supervision.detection.core.Detections` directly. RF-DETR
+            results from Transformers can also be converted here.
+
+        For zero-shot object detection, pass the result of
+        `post_process_grounded_object_detection`. Class names come from its
+        `text_labels` rather than `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo set
+        `class_id` to the index of the matched text query; Grounding DINO reports
+        the matched phrases instead of indices, so its `class_id` is `None`.
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
@@ -662,7 +676,6 @@ class Detections:
             )
             ```
         """
-
         if (
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
@@ -689,7 +702,8 @@ class Detections:
             raise ValueError(
                 "The provided Transformers results do not contain any valid fields."
                 " Expected fields are 'boxes', 'masks', 'segments_info' or"
-                " 'segmentation'."
+                " 'segmentation'. If you are using RF-DETR, consider the official"
+                " `rfdetr` package, whose predict() returns Detections directly."
             )
 
     @classmethod
@@ -3178,6 +3192,120 @@ class Detections:
             result.append(_merge_detection_group(group))
 
         return Detections.merge(result)
+
+    def remap_classes(
+        self,
+        classes: Sequence[str],
+        class_name_mapping: Mapping[str, str] | None = None,
+    ) -> Detections:
+        """Remap class names and keep only the detections of a target class list.
+
+        Use this to line model predictions up with a dataset: class names are
+        optionally renamed, detections whose name is not in ``classes`` are
+        dropped, and ``class_id`` becomes the index of each name in ``classes``.
+        For a different filter, chain :meth:`select` or boolean indexing.
+
+        Args:
+            classes: Target class names, for example ``dataset.classes``. Each kept
+                detection's ``class_id`` is the index of its name in this sequence,
+                so the names must be unique.
+            class_name_mapping: Optional mapping from model class names to names
+                in ``classes``, for example ``{"dog": "animal"}``. Keys are class
+                names, not class ids, and every target must be in ``classes``.
+
+        Returns:
+            A new :class:`~supervision.detection.core.Detections` holding the
+            detections whose remapped class name is in ``classes``, with
+            ``class_id`` and ``data["class_name"]`` rewritten to match. The input
+            is not modified.
+
+        Raises:
+            ValueError: If ``data`` has no ``class_name`` entry, ``classes`` holds
+                duplicate names, or ``class_name_mapping`` maps to a name that is
+                not in ``classes``. Class names must have shape ``(N,)`` or
+                ``(N, 1)`` for ``N`` detections.
+            TypeError: If ``class_name_mapping`` is not a mapping or has keys that
+                are not strings.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]]),
+            ...     class_id=np.array([0, 1, 2]),
+            ...     data={"class_name": np.array(["dog", "cat", "car"])},
+            ... )
+            >>> mapping = {"dog": "animal", "cat": "animal"}
+            >>> remapped = detections.remap_classes(["animal", "car"], mapping)
+            >>> remapped.class_id.tolist()
+            [0, 0, 1]
+            >>> remapped["class_name"].tolist()
+            ['animal', 'animal', 'car']
+
+            ```
+        """
+        # Get class names for each detection
+        class_names = self.data.get(CLASS_NAME_DATA_FIELD)
+        if class_names is None:
+            raise ValueError(
+                f"Detections must have {CLASS_NAME_DATA_FIELD!r} in .data "
+                "to use remap_classes()."
+            )
+        # A repeated name would silently resolve to its first index
+        class_list = list(classes)
+        duplicates = sorted({name for name in class_list if class_list.count(name) > 1})
+        if duplicates:
+            raise ValueError(f"classes holds duplicate names: {duplicates}")
+        class_index = {name: index for index, name in enumerate(class_list)}
+        if class_name_mapping is not None:
+            if not isinstance(class_name_mapping, Mapping):
+                raise TypeError(
+                    "class_name_mapping must be a mapping of class names, "
+                    f"got {type(class_name_mapping).__name__}."
+                )
+            # An id mapping such as {0: 1} would otherwise be ignored silently
+            bad_keys = [key for key in class_name_mapping if not isinstance(key, str)]
+            if bad_keys:
+                raise TypeError(
+                    "class_name_mapping keys must be class names (str), "
+                    f"class ids are not supported; got {bad_keys}."
+                )
+            # A misspelled target would otherwise drop its detections without a trace
+            unknown_targets = sorted(
+                {t for t in class_name_mapping.values() if t not in class_index},
+                key=str,
+            )
+            if unknown_targets:
+                raise ValueError(
+                    "class_name_mapping maps to names missing from classes: "
+                    f"{unknown_targets}"
+                )
+        class_names = np.asarray(class_names, dtype=str)
+        if class_names.shape not in ((len(self),), (len(self), 1)):
+            raise ValueError("class_name must have shape (N,) or (N, 1).")
+        class_names = class_names.reshape(len(self))
+        # Remap and look up the distinct names only, so the Python-level work
+        # scales with the number of classes, not with the number of detections
+        unique_names, inverse = np.unique(class_names, return_inverse=True)
+        if class_name_mapping is not None:
+            unique_names = np.array(
+                [class_name_mapping.get(name, name) for name in unique_names],
+                dtype=str,
+            )
+        # -1 marks names outside classes; those detections are filtered out
+        # Explicit dtype: an empty result would otherwise get float64 ids
+        unique_ids = np.array(
+            [class_index.get(name, -1) for name in unique_names], dtype=int
+        )
+        class_id = unique_ids[inverse]
+        keep = class_id >= 0
+        # select() copies every field, including data of any shape, and handles
+        # empty and fully filtered results
+        result = self.select(keep)
+        result.class_id = class_id[keep]
+        result.data[CLASS_NAME_DATA_FIELD] = unique_names[inverse][keep]
+        return result
 
 
 def _merge_obb_corners(

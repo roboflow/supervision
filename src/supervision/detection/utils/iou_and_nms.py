@@ -236,6 +236,17 @@ def box_iou_batch(
 
         ```
     """
+    return _box_overlap_float64(boxes_true, boxes_detection, overlap_metric).astype(
+        np.float32
+    )
+
+
+def _box_overlap_float64(
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+) -> npt.NDArray[np.float64]:
+    """Compute pairwise IOU or IOS without rounding overlaps to float32."""
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     # Upcast the corners to float64 right after unpacking so every subtraction
     # and multiplication below runs in float64. This prevents integer-dtype
@@ -244,15 +255,14 @@ def box_iou_batch(
     # (often zero) IoU. Upcasting here also gives full float64 precision to
     # float64/int64 callers. It does NOT recover precision already lost when a
     # caller stores coordinates as float32 upstream, because that float32
-    # rounding happens before this function is ever called. The final matrix is
-    # cast back to float32 to preserve the public return-type contract.
+    # rounding happens before this function is ever called.
     x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T.astype(np.float64)
     x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T.astype(np.float64)
     count_true, count_det = boxes_true.shape[0], boxes_detection.shape[0]
 
     if count_true == 0 or count_det == 0:
         return cast(
-            npt.NDArray[np.float32], np.empty((count_true, count_det), dtype=np.float32)
+            npt.NDArray[np.float64], np.empty((count_true, count_det), dtype=np.float64)
         )
 
     x_min_inter = np.empty((count_true, count_det), dtype=np.float64)
@@ -286,7 +296,7 @@ def box_iou_batch(
             "only 'IOU' and 'IOS' are supported"
         )
 
-    out: npt.NDArray[np.float32] = np.zeros_like(area_inter, dtype=np.float32)
+    out: npt.NDArray[np.float64] = np.zeros_like(area_inter, dtype=np.float64)
     np.divide(area_inter, area_norm, out=out, where=area_norm > 0)
     return out
 
@@ -470,6 +480,92 @@ def _overlapping_envelope_pairs(
     return cast(tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]], np.nonzero(overlap))
 
 
+def _oriented_box_pair_intersections(
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    is_self_comparison: bool = False,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], npt.NDArray[np.float64]]:
+    """Compute exact intersection areas of the oriented box pairs that may overlap.
+
+    Only pairs whose axis-aligned envelopes overlap are returned; every other
+    pair has no intersection. For a self comparison only pairs with
+    `row <= col` are returned, since the result is symmetric.
+
+    Args:
+        boxes_true: Convex quads shaped `(N, 4, 2)`.
+        boxes_detection: Convex quads shaped `(M, 4, 2)`.
+        is_self_comparison: Whether both arguments are the same boxes.
+
+    Returns:
+        Row indices into `boxes_true`, column indices into `boxes_detection`,
+        and the intersection area of each such pair.
+    """
+    envelopes_true = _aabb_envelopes(boxes_true)
+    envelopes_detection = (
+        envelopes_true if is_self_comparison else _aabb_envelopes(boxes_detection)
+    )
+    rows, cols = _overlapping_envelope_pairs(envelopes_true, envelopes_detection)
+    if is_self_comparison:
+        upper = rows <= cols
+        rows, cols = rows[upper], cols[upper]
+
+    local_origins_true = envelopes_true[:, :2]
+    local_origins_detection = envelopes_detection[:, :2]
+    if np.issubdtype(boxes_true.dtype, np.integer):
+        local_polygons_true = np.asarray(
+            boxes_true.astype(object) - local_origins_true[:, None, :].astype(object),
+            dtype=np.float32,
+        )
+    else:
+        local_polygons_true = (boxes_true - local_origins_true[:, None, :]).astype(
+            np.float32
+        )
+    if np.issubdtype(boxes_detection.dtype, np.integer):
+        local_polygons_detection = np.asarray(
+            boxes_detection.astype(object)
+            - local_origins_detection[:, None, :].astype(object),
+            dtype=np.float32,
+        )
+    else:
+        local_polygons_detection = (
+            boxes_detection - local_origins_detection[:, None, :]
+        ).astype(np.float32)
+    # Float32 inputs already have quantized origins, so their envelope minima
+    # can be reused without loss. Float64 inputs may retain unit differences at
+    # large origins; keep their pair offsets in float64 until each pair's local
+    # cast instead of rounding absolute minima to float32 up front.
+    origins_true_float32 = (
+        local_origins_true if boxes_true.dtype == np.float32 else None
+    )
+    origins_detection_float32 = (
+        local_origins_detection if boxes_detection.dtype == np.float32 else None
+    )
+    polygon_i_buffer = np.empty((4, 2), dtype=np.float32)
+    polygon_j_buffer = np.empty((4, 2), dtype=np.float32)
+    intersections = np.zeros(len(rows), dtype=np.float64)
+    for index, (i, j) in enumerate(zip(rows, cols)):
+        # Rebase precomputed local polygons to the shared overlap origin. This
+        # preserves translation-invariant float32 geometry without repeating
+        # corner reductions and casts for every candidate pair.
+        if origins_true_float32 is not None and origins_detection_float32 is not None:
+            origin_i = origins_true_float32[i]
+            origin_j = origins_detection_float32[j]
+        else:
+            origin_i = local_origins_true[i]
+            origin_j = local_origins_detection[j]
+        pair_origin = np.minimum(origin_i, origin_j)
+        offset_i = (origin_i - pair_origin).astype(np.float32, copy=False)
+        offset_j = (origin_j - pair_origin).astype(np.float32, copy=False)
+        np.add(local_polygons_true[i], offset_i, out=polygon_i_buffer)
+        np.add(local_polygons_detection[j], offset_j, out=polygon_j_buffer)
+        # Not cv2.intersectConvexConvex: it returns wrong areas for nearly collinear
+        # overlapping edges and zero for polygons far below one coordinate unit.
+        intersections[index], _ = _intersect_convex_convex(
+            polygon_i_buffer, polygon_j_buffer
+        )
+    return rows, cols, intersections
+
+
 def oriented_box_iou_batch(
     boxes_true: npt.NDArray[np.number],
     boxes_detection: npt.NDArray[np.number],
@@ -575,80 +671,21 @@ def oriented_box_iou_batch(
 
     areas_true = _polygon_areas(boxes_true)
     areas_detection = _polygon_areas(boxes_detection)
-
-    envelopes_true = _aabb_envelopes(boxes_true)
-    envelopes_detection = (
-        envelopes_true if is_self_comparison else _aabb_envelopes(boxes_detection)
+    rows, cols, intersections = _oriented_box_pair_intersections(
+        boxes_true, boxes_detection, is_self_comparison
     )
-    rows, cols = _overlapping_envelope_pairs(envelopes_true, envelopes_detection)
-    if is_self_comparison:
-        upper = rows <= cols
-        rows, cols = rows[upper], cols[upper]
+    if normalize_by_union:
+        denominators = areas_true[rows] + areas_detection[cols] - intersections
+    else:
+        denominators = np.minimum(areas_true[rows], areas_detection[cols])
+    valid = (intersections > 0) & (denominators > 0)
+    rows, cols = rows[valid], cols[valid]
+    scores = intersections[valid] / denominators[valid]
 
     ious: npt.NDArray[np.float64] = np.zeros((n, m), dtype=np.float64)
-    local_origins_true = envelopes_true[:, :2]
-    local_origins_detection = envelopes_detection[:, :2]
-    if np.issubdtype(boxes_true.dtype, np.integer):
-        local_polygons_true = np.asarray(
-            boxes_true.astype(object) - local_origins_true[:, None, :].astype(object),
-            dtype=np.float32,
-        )
-    else:
-        local_polygons_true = (boxes_true - local_origins_true[:, None, :]).astype(
-            np.float32
-        )
-    if np.issubdtype(boxes_detection.dtype, np.integer):
-        local_polygons_detection = np.asarray(
-            boxes_detection.astype(object)
-            - local_origins_detection[:, None, :].astype(object),
-            dtype=np.float32,
-        )
-    else:
-        local_polygons_detection = (
-            boxes_detection - local_origins_detection[:, None, :]
-        ).astype(np.float32)
-    # Float32 inputs already have quantized origins, so their envelope minima
-    # can be reused without loss. Float64 inputs may retain unit differences at
-    # large origins; keep their pair offsets in float64 until each pair's local
-    # cast instead of rounding absolute minima to float32 up front.
-    origins_true_float32 = (
-        local_origins_true if boxes_true.dtype == np.float32 else None
-    )
-    origins_detection_float32 = (
-        local_origins_detection if boxes_detection.dtype == np.float32 else None
-    )
-    polygon_i_buffer = np.empty((4, 2), dtype=np.float32)
-    polygon_j_buffer = np.empty((4, 2), dtype=np.float32)
-    for i, j in zip(rows, cols):
-        # Rebase precomputed local polygons to the shared overlap origin. This
-        # preserves translation-invariant float32 geometry without repeating
-        # corner reductions and casts for every candidate pair.
-        if origins_true_float32 is not None and origins_detection_float32 is not None:
-            origin_i = origins_true_float32[i]
-            origin_j = origins_detection_float32[j]
-        else:
-            origin_i = local_origins_true[i]
-            origin_j = local_origins_detection[j]
-        pair_origin = np.minimum(origin_i, origin_j)
-        offset_i = (origin_i - pair_origin).astype(np.float32, copy=False)
-        offset_j = (origin_j - pair_origin).astype(np.float32, copy=False)
-        np.add(local_polygons_true[i], offset_i, out=polygon_i_buffer)
-        np.add(local_polygons_detection[j], offset_j, out=polygon_j_buffer)
-        # Not cv2.intersectConvexConvex: it returns wrong areas for nearly collinear
-        # overlapping edges and zero for polygons far below one coordinate unit.
-        intersection, _ = _intersect_convex_convex(polygon_i_buffer, polygon_j_buffer)
-        if intersection <= 0:
-            continue
-        denominator = (
-            areas_true[i] + areas_detection[j] - intersection
-            if normalize_by_union
-            else min(areas_true[i], areas_detection[j])
-        )
-        if denominator > 0:
-            score = intersection / denominator
-            ious[i, j] = score
-            if is_self_comparison:
-                ious[j, i] = score
+    ious[rows, cols] = scores
+    if is_self_comparison:
+        ious[cols, rows] = scores
 
     # DO NOT remove this clip. Intersections are computed on float32-rounded
     # polygons while polygon areas use the original coordinates; the intersection
@@ -1837,6 +1874,369 @@ def box_non_max_merge(
         )
 
     return _non_max_merge_per_category(predictions, group_within)
+
+
+def _validate_num_models(num_models: int | None) -> None:
+    """Reject a Weighted Box Fusion model count that is not a positive integer.
+
+    ``None`` passes and means no rescaling. A ``bool`` is rejected even though it
+    is an ``int`` subclass, because ``True`` silently standing for one model
+    would hide a caller mistake.
+
+    Args:
+        num_models: The model count passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`.
+
+    Raises:
+        ValueError: If `num_models` is not `None` and not a positive integer.
+    """
+    if num_models is None:
+        return
+    is_integer = isinstance(num_models, (int, np.integer)) and not isinstance(
+        num_models, bool
+    )
+    if not is_integer or num_models < 1:
+        raise ValueError(
+            f"num_models must be a positive integer or None, got {num_models!r}. "
+            "Pass the number of models whose predictions were concatenated, "
+            "or leave it as None to keep the plain mean confidence."
+        )
+
+
+def _validate_fusion_predictions_shape(predictions: npt.NDArray[np.number]) -> None:
+    """Reject Weighted Box Fusion predictions not shaped `(n, 5)` or `(n, 6)`.
+
+    Without this check a `(n, 4)` array or a single 1-D row fails later with an
+    opaque ``IndexError``, and a `(n, 7)` array is silently cut down to six
+    columns. Empty input must carry five or six columns as well, so the empty
+    result keeps the same column count as a fused one.
+
+    Args:
+        predictions: The predictions passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`.
+
+    Raises:
+        ValueError: If `predictions` is not a 2-D array with 5 or 6 columns.
+    """
+    if predictions.ndim != 2 or predictions.shape[1] not in (5, 6):
+        raise ValueError(
+            "Predictions passed to box_weighted_box_fusion must have shape (n, 5) "
+            "or (n, 6), one [x1, y1, x2, y2, confidence] row per box with an "
+            f"optional class id column, got shape {predictions.shape}. Stack the "
+            "boxes, confidences and class ids into one 2-D array before fusing."
+        )
+
+
+def _validate_fusion_confidences(confidences: npt.NDArray[np.number]) -> None:
+    """Reject Weighted Box Fusion confidences that are negative or not finite.
+
+    Confidences weight the fused coordinates, so a negative score turns the
+    weighted mean into an extrapolation outside every member box, and a NaN or
+    infinite score makes the fused box or score NaN. Zero is allowed: a cluster
+    whose scores are all zero is fused with a plain average instead.
+
+    Args:
+        confidences: The confidence column of the predictions passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`,
+            shape `(n,)`.
+
+    Raises:
+        ValueError: If any confidence is negative, NaN, or infinite.
+    """
+    invalid = ~np.isfinite(confidences) | (confidences < 0)
+    if invalid.any():
+        invalid_rows = np.flatnonzero(invalid)
+        raise ValueError(
+            "Confidences passed to box_weighted_box_fusion must be finite and "
+            f"non-negative, got {confidences[invalid_rows[:5]].tolist()} at rows "
+            f"{invalid_rows[:5].tolist()}. Drop or clip those predictions before "
+            "fusing them."
+        )
+
+
+def _best_matching_cluster(
+    fused_boxes: npt.NDArray[np.float64],
+    box: npt.NDArray[np.float64],
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+) -> int:
+    """Pick the cluster a box should join during Weighted Box Fusion.
+
+    The box is compared with every cluster's current fused box in one batched
+    overlap call, and the cluster with the highest overlap wins (the first one
+    on ties). The box joins it only when that overlap is strictly greater than
+    ``iou_threshold``, as in the WBF paper and its reference implementation.
+
+    Args:
+        fused_boxes: Current fused boxes of the existing clusters, shape `(k, 4)`
+            in `[x1, y1, x2, y2]` format; `k` may be `0`.
+        box: The candidate box, shape `(4,)` in `[x1, y1, x2, y2]` format.
+        iou_threshold: Overlap that the best match must strictly exceed.
+        overlap_metric: Metric used to compute the overlap.
+
+    Returns:
+        Index of the cluster to join, or `-1` when there is no cluster yet or
+            no overlap exceeds `iou_threshold`.
+    """
+    if len(fused_boxes) == 0:
+        return -1
+    overlaps = _box_overlap_float64(fused_boxes, box[np.newaxis, :], overlap_metric)[
+        :, 0
+    ]
+    best_cluster = int(overlaps.argmax())
+    if overlaps[best_cluster] > iou_threshold:
+        return best_cluster
+    return -1
+
+
+def _fuse_single_class_boxes(
+    boxes: npt.NDArray[np.number],
+    scores: npt.NDArray[np.number],
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64]]:
+    """Cluster and fuse the boxes of one class with Weighted Box Fusion.
+
+    Boxes are visited in descending score order; a stable sort keeps equal
+    scores in input order. Each box joins the cluster chosen by
+    :func:`~supervision.detection.utils.iou_and_nms._best_matching_cluster` or
+    starts a new one. After every join, the cluster's fused box is recomputed
+    from running sums, so later boxes are matched against its updated position
+    rather than against the cluster's first box. The fused box is the
+    confidence-weighted average of the cluster's boxes, or their plain average
+    when the cluster's scores sum to zero.
+
+    Args:
+        boxes: Boxes of a single class, shape `(n, 4)` in `[x1, y1, x2, y2]`
+            format, with `n >= 1`.
+        scores: Confidence scores aligned with `boxes`, shape `(n,)`.
+        iou_threshold: Overlap that a box must strictly exceed to join a cluster.
+        overlap_metric: Metric used to compute the overlap.
+
+    Returns:
+        A tuple `(fused_boxes, mean_scores, cluster_sizes)` with shapes
+            `(k, 4)`, `(k,)` and `(k,)`, one entry per cluster in creation order.
+    """
+    boxes_float = boxes.astype(np.float64)
+    scores_float = scores.astype(np.float64)
+    box_count = len(boxes_float)
+    fused_boxes = np.empty((box_count, 4), dtype=np.float64)
+    cluster_origins = np.empty((box_count, 4), dtype=np.float64)
+    weighted_offset_sums = np.zeros((box_count, 4), dtype=np.float64)
+    offset_sums = np.zeros((box_count, 4), dtype=np.float64)
+    score_sums = np.zeros(box_count, dtype=np.float64)
+    cluster_sizes = np.zeros(box_count, dtype=np.int64)
+    cluster_count = 0
+
+    # WBF is order dependent: every box is matched against fused boxes that the
+    # higher-scoring boxes before it have already moved, so the visit itself is
+    # sequential; only the overlap against all current clusters is vectorized.
+    for box_index in np.argsort(-scores_float, kind="stable"):
+        box = boxes_float[box_index]
+        score = scores_float[box_index]
+        cluster = _best_matching_cluster(
+            fused_boxes[:cluster_count], box, iou_threshold, overlap_metric
+        )
+        if cluster < 0:
+            cluster = cluster_count
+            cluster_count += 1
+            # A new cluster starts exactly at its first box, so a later box
+            # whose overlap equals the threshold is not tipped over it by
+            # rounding in the weighted average.
+            fused_boxes[cluster] = box
+            cluster_origins[cluster] = box
+
+        # Sum offsets from the cluster's first box instead of absolute
+        # coordinates: with large coordinates the absolute sums lose low bits,
+        # which would shift a cluster of identical boxes and split it.
+        offset = box - cluster_origins[cluster]
+        weighted_offset_sums[cluster] += score * offset
+        offset_sums[cluster] += offset
+        score_sums[cluster] += score
+        cluster_sizes[cluster] += 1
+        if cluster_sizes[cluster] == 1:
+            continue
+
+        # Fall back to a plain average when the scores sum to zero (all-zero
+        # scores), so the weighted mean stays defined instead of dividing by 0.
+        if score_sums[cluster] > 0:
+            mean_offset = weighted_offset_sums[cluster] / score_sums[cluster]
+        else:
+            mean_offset = offset_sums[cluster] / cluster_sizes[cluster]
+        fused_boxes[cluster] = cluster_origins[cluster] + mean_offset
+
+    sizes = cluster_sizes[:cluster_count]
+    mean_scores = score_sums[:cluster_count] / sizes
+    return fused_boxes[:cluster_count], mean_scores, sizes
+
+
+def box_weighted_box_fusion(
+    predictions: npt.NDArray[np.floating],
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    num_models: int | None = None,
+) -> npt.NDArray[np.floating]:
+    """
+    Fuse overlapping object detection boxes with Weighted Box Fusion (WBF).
+
+    Unlike :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
+    which discards overlapping boxes, and
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge`, which only
+    returns groups of overlapping indices, WBF replaces each group of overlapping
+    boxes with a single box whose coordinates are the confidence-weighted average
+    of the group and whose score is the group's mean confidence. This keeps
+    information from every box in a cluster instead of dropping all but one, which
+    typically produces better localized boxes when combining predictions from
+    several models or augmentations. Based on Solovyev et al., "Weighted Boxes
+    Fusion: Ensembling boxes from different object detection models" (2019).
+
+    Boxes are clustered sequentially within each class (across all boxes when
+    there is no class column). They are visited in descending confidence order,
+    and each box is compared with the current fused box of every existing
+    cluster. The box joins the cluster with the highest overlap only when that
+    overlap is strictly greater than `iou_threshold`, and that cluster's fused
+    box is then recomputed; otherwise the box starts a new cluster. Because a
+    fused box moves as boxes join it, a box can join a cluster even when its
+    overlap with the cluster's highest-scoring box alone is too low, unlike the
+    seed-anchored grouping of
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge`.
+
+    !!! warning
+
+        The fused score is the mean confidence of the cluster, not its maximum,
+        so it can be lower than the score of the best box in the cluster. For
+        example, a `0.95` detection fused with an overlapping `0.15` box scores
+        `0.55`, where
+        :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`
+        would keep `0.95`. Revisit any downstream confidence filter tuned for
+        non-maximum suppression before switching to WBF.
+
+    Args:
+        predictions: An array of shape `(n, 5)` or `(n, 6)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2]`, the
+            confidence scores, and optionally the class ids. Omit the class_id
+            column to allow boxes of different classes to be fused together.
+            Confidences must be finite and non-negative; a cluster whose
+            confidences are all zero is fused with a plain, unweighted average.
+        iou_threshold: The overlap threshold used to decide whether a box joins
+            an existing cluster, measured against that cluster's current fused
+            box. The comparison is exclusive, as in the WBF paper: the overlap
+            must be strictly greater than this value, so an overlap exactly
+            equal to it keeps the box out of the cluster. Defaults to 0.5.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
+        num_models: Number of models (or test-time augmentations) whose
+            predictions were concatenated into `predictions`. When set, each
+            fused score is multiplied by `min(T, num_models) / num_models`, as in
+            the WBF paper, where `T` is the number of boxes in the cluster. A box
+            that only some of the models predicted is demoted, so a single-model
+            false positive no longer keeps its full score. `T` counts boxes, not
+            distinct models: a model that puts two boxes into one cluster counts
+            twice. Defaults to `None`, which keeps the plain mean confidence.
+
+    Returns:
+        An array of fused predictions with the same number of columns as the
+            input (`(m, 5)` or `(m, 6)`, with `m <= n`), ordered by descending
+            fused confidence. Fused boxes with equal confidence come back in a
+            deterministic order: ascending class id first, then, within a
+            class, the order in which their clusters were started (descending
+            score of the first box, input order among equal scores). The dtype
+            is `numpy.result_type(predictions.dtype, numpy.float32)` for empty
+            and non-empty input alike: float32 input stays float32, float64
+            input stays float64, and integer input becomes floating point
+            (float32 for 8- and 16-bit integers, float64 for wider ones).
+
+    Raises:
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`, if `num_models` is not `None` and not a
+            positive integer, if `overlap_metric` is not a valid overlap
+            metric (checked even when no overlap needs computing), if
+            `predictions` is not a 2-D array with 5 or 6 columns (empty input
+            included), or if any confidence is negative, NaN, or infinite.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0.0, 0.0, 10.0, 10.0, 0.9, 0],
+        ...     [1.0, 1.0, 11.0, 11.0, 0.8, 0],
+        ... ])
+        >>> fused = sv.box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        >>> fused[:, 4]
+        array([0.85])
+
+        ```
+
+        Rescale scores when fusing the predictions of two models. The second
+        box was predicted by only one model, so its score is halved:
+
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0.0, 0.0, 10.0, 10.0, 0.9, 0],
+        ...     [50.0, 50.0, 60.0, 60.0, 0.9, 0],
+        ...     [1.0, 1.0, 11.0, 11.0, 0.8, 0],
+        ... ])
+        >>> sv.box_weighted_box_fusion(predictions)[:, 4]
+        array([0.9 , 0.85])
+        >>> sv.box_weighted_box_fusion(predictions, num_models=2)[:, 4]
+        array([0.85, 0.45])
+
+        ```
+    """
+    _validate_iou_threshold(iou_threshold)
+    _validate_num_models(num_models)
+    # Resolve the metric before any early return: with empty input or one box
+    # per class no overlap is ever computed, so a bad value would pass silently.
+    overlap_metric = OverlapMetric.from_value(overlap_metric)
+    _validate_fusion_predictions_shape(predictions)
+    # One output dtype for the empty and the fused path: float inputs keep their
+    # precision, while integer inputs become floating point because fused
+    # coordinates and scores are averages.
+    output_dtype = np.result_type(predictions.dtype, np.float32)
+    if len(predictions) == 0:
+        empty_result: npt.NDArray[np.floating] = predictions.astype(output_dtype)
+        return empty_result
+    _validate_fusion_confidences(predictions[:, 4])
+
+    has_class_column = predictions.shape[1] > 5
+    if has_class_column:
+        class_ids = predictions[:, 5]
+    else:
+        class_ids = np.zeros(len(predictions))
+    unique_class_ids, class_positions = np.unique(class_ids, return_inverse=True)
+
+    fused_per_class: list[npt.NDArray[np.float64]] = []
+    for class_position, class_id in enumerate(unique_class_ids):
+        in_class = class_positions == class_position
+        fused_boxes, fused_scores, cluster_sizes = _fuse_single_class_boxes(
+            predictions[in_class, :4],
+            predictions[in_class, 4],
+            iou_threshold,
+            overlap_metric,
+        )
+        if num_models is not None:
+            # Paper rescale: a cluster backed by fewer boxes than there are
+            # models is demoted in proportion to the models that missed it.
+            rescale = np.minimum(cluster_sizes, num_models) / num_models
+            fused_scores = fused_scores * rescale
+        columns = [fused_boxes, fused_scores[:, np.newaxis]]
+        if has_class_column:
+            columns.append(np.full((len(fused_scores), 1), class_id, dtype=np.float64))
+        fused_per_class.append(np.hstack(columns))
+    # Fusion runs in float64 so the strict threshold comparison does not move.
+    # The cast to the output dtype comes before sorting, so scores that only
+    # become equal when rounded (e.g. to float32) still follow the tie order.
+    fused = np.concatenate(fused_per_class).astype(output_dtype, copy=False)
+
+    # A stable sort on the negated score keeps equal scores in matching order
+    # (class id ascending, then cluster creation order), so ties come back
+    # deterministic instead of reversed or scrambled by an unstable sort.
+    descending_score = np.argsort(-fused[:, 4], kind="stable")
+    result: npt.NDArray[np.floating] = fused[descending_score]
+    return result
 
 
 def oriented_box_non_max_suppression(

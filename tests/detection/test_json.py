@@ -493,6 +493,45 @@ def test_json_default_raises_for_unserializable_type() -> None:
 class TestJSONSinkLifecycle:
     """Tests for opening and reopening a JSON sink."""
 
+    def test_body_exception_survives_serialization_failure(
+        self,
+        tmp_path: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Preserve the body error while logging a failure to serialize on exit."""
+        sink = sv.JSONSink(str(tmp_path / "output.json"))
+        detections = sv.Detections(xyxy=np.array([[0, 0, 1, 1]]))
+        from supervision.detection.tools import json_sink as json_sink_module
+
+        monkeypatch.setattr(json_sink_module.logger, "handlers", [caplog.handler])
+        caplog.set_level("ERROR", logger=json_sink_module.logger.name)
+
+        with pytest.raises(RuntimeError, match="processing failed"):  # noqa: PT012
+            with sink:
+                sink.append(detections, custom_data={"invalid": object()})
+                raise RuntimeError("processing failed")
+
+        assert sink.file is not None
+        assert sink.file.closed
+        assert len(caplog.records) == 1
+        assert caplog.records[0].exc_info is not None
+        assert isinstance(caplog.records[0].exc_info[1], TypeError)
+
+    def test_serialization_failure_without_body_error_propagates(
+        self, tmp_path: Any
+    ) -> None:
+        """Report serialization failures when no body error is active."""
+        sink = sv.JSONSink(str(tmp_path / "output.json"))
+        detections = sv.Detections(xyxy=np.array([[0, 0, 1, 1]]))
+
+        with pytest.raises(TypeError, match="not JSON serializable"):
+            with sink:
+                sink.append(detections, custom_data={"invalid": object()})
+
+        assert sink.file is not None
+        assert sink.file.closed
+
     def test_reopening_starts_fresh_output_session(self, tmp_path: Any) -> None:
         """Reopening a sink excludes rows from the prior output session."""
         first_path = tmp_path / "first.json"
@@ -556,6 +595,77 @@ class TestJSONSinkLifecycle:
                 "confidence": "",
                 "tracker_id": "",
             }
+        ]
+
+
+class TestJSONSinkReservedFields:
+    """Tests protecting detection fields from additional data collisions."""
+
+    @pytest.mark.parametrize(
+        "field",
+        ["x_min", "y_min", "x_max", "y_max", "class_id", "confidence", "tracker_id"],
+    )
+    @pytest.mark.parametrize("source", ["detections", "custom"])
+    @pytest.mark.parametrize("empty", [False, True])
+    def test_rejects_collision_without_changing_saved_rows(
+        self, tmp_path: Any, field: str, source: str, empty: bool
+    ) -> None:
+        """A rejected batch cannot replace previously buffered detection data."""
+        path = tmp_path / "output.json"
+        valid = sv.Detections(xyxy=np.array([[10.0, 20.0, 30.0, 40.0]]))
+        incoming = sv.Detections.empty() if empty else valid
+        values = np.full(len(incoming), 999)
+        extra = {field: values}
+        if source == "detections":
+            incoming = sv.Detections(xyxy=incoming.xyxy.copy(), data={field: values})
+        custom_data = extra if source == "custom" else None
+
+        with sv.JSONSink(str(path)) as sink:
+            sink.append(valid, custom_data={"frame_id": 42})
+            with pytest.raises(ValueError, match=field):
+                sink.append(incoming, custom_data=custom_data)
+
+        assert json.loads(path.read_text()) == [
+            {
+                "x_min": 10.0,
+                "y_min": 20.0,
+                "x_max": 30.0,
+                "y_max": 40.0,
+                "class_id": "",
+                "confidence": "",
+                "tracker_id": "",
+                "frame_id": 42,
+            }
+        ]
+
+    @pytest.mark.parametrize("empty", [False, True])
+    def test_parser_reports_all_conflicting_names(self, empty: bool) -> None:
+        """The public parser rejects collisions across both extra-data sources."""
+        xyxy = np.zeros((0 if empty else 1, 4))
+        detections = sv.Detections(xyxy=xyxy, data={"confidence": np.zeros(len(xyxy))})
+
+        with pytest.raises(ValueError, match="confidence, x_min"):
+            sv.JSONSink.parse_detection_data(detections, {"x_min": 999})
+
+    def test_custom_data_can_override_an_ordinary_extra_field(
+        self, tmp_path: Any
+    ) -> None:
+        """Custom values retain precedence for non-reserved metadata fields."""
+        path = tmp_path / "metadata.json"
+        detections = sv.Detections(
+            xyxy=np.array([[10.0, 20.0, 30.0, 40.0]]), data={"frame_id": [1]}
+        )
+
+        with sv.JSONSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame_id": 42})
+
+        rows = json.loads(path.read_text())
+        assert rows[0]["frame_id"] == 42
+        assert [rows[0][key] for key in ("x_min", "y_min", "x_max", "y_max")] == [
+            10.0,
+            20.0,
+            30.0,
+            40.0,
         ]
 
 
