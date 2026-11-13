@@ -17,7 +17,7 @@ def test_transform_remap_and_filter():
     # Dataset expects 'animal', 'bird', 'car' (in that order)
     dataset = SimpleNamespace(classes=["animal", "bird", "car"])
     class_mapping = {"dog": "animal", "cat": "animal", "eagle": "bird"}
-    det2 = det.transform(dataset, class_mapping=class_mapping)
+    det2 = det.remap_classes(dataset.classes, class_name_mapping=class_mapping)
     # Only 'dog', 'cat', 'eagle', 'car' should remain,
     # but 'dog' and 'cat' become 'animal', 'eagle' becomes 'bird'
     assert set(det2.data["class_name"]) <= set([*dataset.classes, "car"])
@@ -37,7 +37,7 @@ def test_transform_no_class_mapping():
         data={"class_name": np.array(["car", "truck"])},
     )
     dataset = SimpleNamespace(classes=["car"])
-    det2 = det.transform(dataset)
+    det2 = det.remap_classes(dataset.classes)
     assert len(det2) == 1
     assert det2.data["class_name"][0] == "car"
     assert det2.class_id[0] == 0
@@ -52,4 +52,4 @@ def test_transform_raises_without_class_name():
     )
     dataset = SimpleNamespace(classes=["car"])
     with pytest.raises(ValueError):
-        det.transform(dataset)
+        det.remap_classes(dataset.classes)

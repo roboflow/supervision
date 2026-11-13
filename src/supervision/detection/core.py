@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import reduce
 from typing import Any, cast
@@ -3082,39 +3082,69 @@ class Detections:
 
         return Detections.merge(result)
 
-    def transform(self, dataset, class_mapping: dict | None = None) -> Detections:
+    def remap_classes(
+        self,
+        classes: Sequence[str],
+        class_name_mapping: Mapping[str, str] | None = None,
+    ) -> Detections:
         """Remap and filter detections to match a target dataset's class set.
 
         Args:
-            dataset: An object with a .classes attribute (list of class names).
-            class_mapping (dict, optional): Mapping from model class names to
-                dataset class names.
+            classes: Target class names, for example ``dataset.classes``. Each kept
+                detection's ``class_id`` is the index of its name in this sequence.
+            class_name_mapping: Optional mapping from model class names to names
+                in ``classes``.
 
         Returns:
-            Detections: A new Detections object with class names and IDs
-                remapped and filtered.
+            A new Detections object holding only the detections whose class name
+            is in ``classes`` after remapping, with ``class_id`` and
+            ``data["class_name"]`` rewritten to match.
         """
         # Get class names for each detection
         class_names = self.data.get("class_name")
         if class_names is None:
             raise ValueError(
-                "Detections must have 'class_name' in .data to use transform()."
+                "Detections must have 'class_name' in .data to use remap_classes()."
             )
+        # A repeated name would silently resolve to its first index
+        class_list = list(classes)
+        duplicates = sorted({name for name in class_list if class_list.count(name) > 1})
+        if duplicates:
+            raise ValueError(f"classes holds duplicate names: {duplicates}")
+        class_index = {name: index for index, name in enumerate(class_list)}
+        if class_name_mapping is not None:
+            if not isinstance(class_name_mapping, Mapping):
+                raise TypeError(
+                    "class_name_mapping must be a mapping of class names, "
+                    f"got {type(class_name_mapping).__name__}."
+                )
+            # An id mapping such as {0: 1} would otherwise be ignored silently
+            bad_keys = [key for key in class_name_mapping if not isinstance(key, str)]
+            if bad_keys:
+                raise TypeError(
+                    "class_name_mapping keys must be class names (str), "
+                    f"class ids are not supported; got {bad_keys}."
+                )
+            # A misspelled target would otherwise drop its detections without a trace
+            unknown_targets = sorted(
+                {t for t in class_name_mapping.values() if t not in class_index},
+                key=str,
+            )
+            if unknown_targets:
+                raise ValueError(
+                    "class_name_mapping maps to names missing from classes: "
+                    f"{unknown_targets}"
+                )
         class_names = np.asarray(class_names, dtype=str)
         # Remap and look up the distinct names only, so the Python-level work
         # scales with the number of classes, not with the number of detections
         unique_names, inverse = np.unique(class_names, return_inverse=True)
-        if class_mapping is not None:
+        if class_name_mapping is not None:
             unique_names = np.array(
-                [class_mapping.get(name, name) for name in unique_names], dtype=str
+                [class_name_mapping.get(name, name) for name in unique_names],
+                dtype=str,
             )
-        # A repeated name would silently resolve to its first index
-        classes = list(dataset.classes)
-        duplicates = sorted({name for name in classes if classes.count(name) > 1})
-        if duplicates:
-            raise ValueError(f"dataset.classes holds duplicate names: {duplicates}")
-        class_index = {name: index for index, name in enumerate(classes)}
-        # -1 marks names outside dataset.classes; those detections are filtered out
+        # -1 marks names outside classes; those detections are filtered out
         # Explicit dtype: an empty result would otherwise get float64 ids
         unique_ids = np.array(
             [class_index.get(name, -1) for name in unique_names], dtype=int
