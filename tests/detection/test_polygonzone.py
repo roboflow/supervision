@@ -155,7 +155,7 @@ class TestPolygonZoneInit:
         ],
     )
     def test_non_positive_tracking_parameter_raises(
-        self, kwargs: dict[str, int], match: str
+        self, kwargs: dict[str, Any], match: str
     ) -> None:
         """Debounce and absence windows must allow at least one frame."""
         with pytest.raises(ValueError, match=match):
@@ -715,7 +715,7 @@ class TestPolygonZoneEntryExit:
     def test_counts_confirmed_boundary_crossings(
         self,
         sequence: list[str | None],
-        zone_kwargs: dict[str, int],
+        zone_kwargs: dict[str, Any],
         expected_in_out: tuple[int, int],
     ) -> None:
         """A tracked object's entries and exits follow its confirmed side changes."""
@@ -1077,7 +1077,7 @@ class TestPolygonZoneTimeInZone:
     def test_counts_frames_of_current_stay(
         self,
         sequence: list[str | None],
-        zone_kwargs: dict[str, int],
+        zone_kwargs: dict[str, Any],
         expected: float,
     ) -> None:
         """Without timestamps, dwell is the frames since the current stay began."""
