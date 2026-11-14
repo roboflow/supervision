@@ -53,6 +53,27 @@ _MASK_RASTERIZER_DEFAULT_WARNING = (
 
 
 def coco_categories_to_classes(coco_categories: list[CocoDict]) -> list[str]:
+    """Extract and sort class names from COCO ``categories`` entries by category id.
+
+    Args:
+        coco_categories: List of COCO category dictionaries, each containing
+            at least ``id`` and ``name`` keys.
+
+    Returns:
+        A list of class names ordered by ascending category id.
+
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.coco import coco_categories_to_classes
+        >>> categories = [
+        ...     {"id": 2, "name": "dog"},
+        ...     {"id": 1, "name": "cat"}
+        ... ]
+        >>> coco_categories_to_classes(categories)
+        ['cat', 'dog']
+
+        ```
+    """
     return [
         category["name"]
         for category in sorted(coco_categories, key=lambda category: category["id"])
@@ -62,6 +83,34 @@ def coco_categories_to_classes(coco_categories: list[CocoDict]) -> list[str]:
 def build_coco_class_index_mapping(
     coco_categories: list[CocoDict], target_classes: list[str]
 ) -> dict[int, int]:
+    """Build a mapping from COCO category id to internal target class index.
+
+    Matches each category in ``coco_categories`` to the position of its class name
+    within ``target_classes``.
+
+    Args:
+        coco_categories: List of COCO category dictionaries, each containing
+            ``id`` and ``name`` keys.
+        target_classes: Ordered list of target class names representing internal
+            class indices (0-indexed).
+
+    Returns:
+        A dictionary mapping COCO ``category_id`` (source id) to the target
+        class index (0-indexed position in ``target_classes``).
+
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.coco import build_coco_class_index_mapping
+        >>> categories = [
+        ...     {"id": 1, "name": "cat"},
+        ...     {"id": 2, "name": "dog"}
+        ... ]
+        >>> target = ["dog", "cat"]
+        >>> build_coco_class_index_mapping(categories, target)
+        {2: 0, 1: 1}
+
+        ```
+    """
     source_class_to_index = {
         category["name"]: category["id"] for category in coco_categories
     }
@@ -108,6 +157,34 @@ def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
 def group_coco_annotations_by_image_id(
     coco_annotations: list[CocoDict],
 ) -> dict[int, list[CocoDict]]:
+    """Group COCO annotation dictionaries by their associated ``image_id``.
+
+    Args:
+        coco_annotations: List of COCO annotation dictionaries, each containing
+            an ``image_id`` key.
+
+    Returns:
+        A dictionary mapping each ``image_id`` to a list of annotations belonging
+        to that image.
+
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.coco import (
+        ...     group_coco_annotations_by_image_id,
+        ... )
+        >>> annotations = [
+        ...     {"id": 1, "image_id": 10, "bbox": [0, 0, 50, 50]},
+        ...     {"id": 2, "image_id": 20, "bbox": [10, 10, 30, 30]},
+        ...     {"id": 3, "image_id": 10, "bbox": [5, 5, 40, 40]},
+        ... ]
+        >>> groups = group_coco_annotations_by_image_id(annotations)
+        >>> list(groups.keys())
+        [10, 20]
+        >>> len(groups[10])
+        2
+
+        ```
+    """
     annotations: dict[int, list[CocoDict]] = {}
     for annotation in coco_annotations:
         image_id = annotation["image_id"]
