@@ -2093,10 +2093,10 @@ class Detections:
             rect = ncnn_result.rect
             xywh.append(
                 [
-                    rect.x.astype(np.float32),
-                    rect.y.astype(np.float32),
-                    rect.w.astype(np.float32),
-                    rect.h.astype(np.float32),
+                    rect.x,
+                    rect.y,
+                    rect.w,
+                    rect.h,
                 ]
             )
 
