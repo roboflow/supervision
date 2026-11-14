@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- Fixed `KeyPoints` selection to keep per-joint covariance matrices aligned when subsetting or reordering joints, preventing ellipse annotation errors and incorrect uncertainty ellipses. ([#2979](https://github.com/roboflow/supervision/pull/2979))
+
 - `sv.Detections.from_semantic_segmentation` now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the `int64` range instead of accepting invalid scores or failing with an indexing error. ([#2898](https://github.com/roboflow/supervision/pull/2898))
 
 - `sv.Detections.from_inference` now loads Roboflow Inference semantic segmentation results, such as RF-DETR semantic models, as one detection per class id, instead of failing with an opaque `TypeError`. The background id `0` is dropped, classes are named from `class_map`, and a `confidence_mask` gives each class's mean confidence. `compact_masks=True` builds a `sv.CompactMask` one class at a time.
