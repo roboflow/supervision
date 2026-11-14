@@ -1,4 +1,6 @@
 from collections import UserDict
+from collections.abc import Callable
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -730,6 +732,42 @@ class TestFromAzureAnalyzeImage:
 
 class TestFromNCNN:
     """from_ncnn converts ncnn rect objects (xywh) to xyxy Detections."""
+
+    @pytest.mark.parametrize(
+        "scalar_type",
+        [
+            pytest.param(float, id="python-float"),
+            pytest.param(int, id="python-int"),
+            pytest.param(np.float32, id="numpy-float32"),
+            pytest.param(np.float64, id="numpy-float64"),
+            pytest.param(np.int32, id="numpy-int32"),
+        ],
+    )
+    def test_accepts_python_and_numpy_coordinates(
+        self, scalar_type: Callable[[int], Any]
+    ) -> None:
+        """Convert numeric rect fields without requiring NumPy scalar methods."""
+        objects = [
+            SimpleNamespace(
+                rect=SimpleNamespace(
+                    x=scalar_type(10),
+                    y=scalar_type(-20),
+                    w=scalar_type(30),
+                    h=scalar_type(40),
+                ),
+                prob=0.9,
+                label=2,
+            )
+        ]
+
+        detections = Detections.from_ncnn(objects)
+
+        np.testing.assert_array_equal(detections.xyxy, [[10, -20, 40, 20]])
+        assert detections.xyxy.dtype == np.float32
+        assert detections.confidence is not None
+        assert detections.class_id is not None
+        np.testing.assert_allclose(detections.confidence, [0.9])
+        np.testing.assert_array_equal(detections.class_id, [2])
 
     def test_empty_objects_return_empty_detections(self) -> None:
         """Empty object list yields zero-length Detections."""
