@@ -64,8 +64,9 @@ class CustomSink:
 
             zone.trigger(detections, timestamp=time.monotonic())
             time_in_zone = zone.time_in_zone(detections)
-            # Dwell is NaN until an entry is confirmed, so only confirmed
-            # stays are drawn and labelled.
+            # Dwell is NaN until confirmed inside or first seen inside,
+            # so only objects confirmed inside, or first seen inside, are
+            # drawn and labelled.
             is_in_zone = ~np.isnan(time_in_zone)
             detections_in_zone = detections[is_in_zone]
             time_in_zone = time_in_zone[is_in_zone]
