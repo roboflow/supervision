@@ -1,3 +1,4 @@
+from collections import Counter
 from collections.abc import Iterable
 from typing import Any, cast
 
@@ -101,6 +102,45 @@ def _boxes_union_mask(
     np.cumsum(coverage, axis=0, out=coverage)
     np.cumsum(coverage, axis=1, out=coverage)
     return coverage[:height, :width] > 0
+
+
+def _integral_keys(
+    values: npt.ArrayLike | None, count: int, allow_negative: bool
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.bool_]]:
+    """Convert per-detection ids into integer dictionary keys without ever raising.
+
+    Integer ids are used as they are and integral floats such as `3.0` become
+    `3`. Ids that cannot name one object reliably are marked unusable instead:
+    non-numeric or boolean arrays, non-finite or fractional floats, values that
+    do not fit `int64`, and negative values unless `allow_negative` is set.
+
+    Args:
+        values: Per-detection ids, or `None` when the detections carry none.
+        count: Number of detections, used when `values` is `None`.
+        allow_negative: Whether negative ids are usable keys.
+
+    Returns:
+        A pair of arrays of length `count`: the `int64` keys, `0` where unusable,
+        and a mask marking which keys are usable.
+    """
+    if values is None:
+        return np.zeros(count, dtype=np.int64), np.zeros(count, dtype=bool)
+    ids = np.asarray(values)
+    kind = ids.dtype.kind
+    if kind not in "iuf":
+        return np.zeros(len(ids), dtype=np.int64), np.zeros(len(ids), dtype=bool)
+    if kind == "i":
+        usable = np.ones(len(ids), dtype=bool)
+    elif kind == "u":
+        usable = ids <= np.iinfo(np.int64).max
+    else:
+        # Fractional ids would collapse onto one key when truncated, and values
+        # beyond 2**63 cannot be cast to int64, so both are unusable.
+        usable = np.isfinite(ids) & (ids == np.trunc(ids)) & (np.abs(ids) < 2.0**63)
+    if not allow_negative:
+        usable &= ids >= 0
+    keys = np.where(usable, ids, 0).astype(np.int64)
+    return keys, usable
 
 
 def _validate_shape(
@@ -208,10 +248,37 @@ class PolygonZone:
 
     !!! warning
 
-        :class:`~supervision.detection.tools.polygon_zone.PolygonZone` uses the
-        `tracker_id`. Read
+        Entry and exit counts
+        (:attr:`~supervision.detection.tools.polygon_zone.PolygonZone.in_count`,
+        :attr:`~supervision.detection.tools.polygon_zone.PolygonZone.out_count`
+        and their per-class variants) and
+        :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.time_in_zone`
+        use the `tracker_id`. Read
         [here](https://trackers.roboflow.com/latest/) to learn how to plug
-        tracking into your inference pipeline.
+        tracking into your inference pipeline. Without a `tracker_id` the counts
+        stay at zero and dwell time is `NaN`, while `current_count` and
+        :attr:`~supervision.detection.tools.polygon_zone.PolygonZone.current_count_per_class`
+        still work. Detections with a negative `tracker_id`, which trackers
+        report for tracks they have not confirmed yet, or a non-finite,
+        fractional or non-numeric one never enter or exit, but still count in
+        `current_count`. A `class_id` that is not a finite integer counts under
+        the `None` class key.
+
+    Entry and exit counts share their names, their `class_id` keys and their
+    `minimum_crossing_threshold` debounce and `max_absent_frames` eviction with
+    :class:`~supervision.detection.line_zone.LineZone`, so the same side
+    sequence of a tracked object gives the same counts. They differ in that a
+    `tracker_id` repeated within one frame is a single observation, ids that are
+    not finite non-negative integers are skipped rather than used as keys, and
+    frames without a `tracker_id` emit no warning.
+
+    Call :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`
+    exactly once per frame for each zone; frame-mode dwell,
+    `minimum_crossing_threshold` and `max_absent_frames` count `trigger` calls,
+    and a tracked object missing from a call is counted absent. Use one
+    `PolygonZone` per stream (or
+    :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.reset` between
+    streams); tracker ids from different streams collide.
 
     Attributes:
         polygon: A polygon represented by a numpy array of shape
@@ -229,7 +296,23 @@ class PolygonZone:
             test: it fires only when a listed anchor point lands inside the mask.
             Use mask/IoU-based approaches instead when full-overlap semantics are
             required.
+        minimum_crossing_threshold: Number of consecutive observations, that is
+            `trigger` calls in which it is present, a tracked object must spend
+            on the other side of the zone boundary before an entry or exit is
+            counted.
+        max_absent_frames: Number of consecutive `trigger` calls missing a
+            tracked object at which its entry/exit state is dropped.
         current_count: The current count of detected objects within the zone
+        current_count_per_class: The current count of detected objects within
+            the zone, keyed by `class_id` (`int` for classified detections,
+            `None` for unclassified ones). Classes with no object in the zone
+            are left out.
+        in_count: The number of tracked objects that have entered the zone.
+        out_count: The number of tracked objects that have exited the zone.
+        in_count_per_class: The number of tracked objects of each class that
+            have entered the zone, keyed by `class_id`.
+        out_count_per_class: The number of tracked objects of each class that
+            have exited the zone, keyed by `class_id`.
         mask: The 2D bool mask for the polygon zone
 
     Example:
@@ -261,6 +344,33 @@ class PolygonZone:
         array([ True])
 
         ```
+
+        Count tracked objects entering and leaving the zone:
+
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> zone = sv.PolygonZone(
+        ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+        ... )
+        >>> outside = sv.Detections(
+        ...     xyxy=np.array([[140.0, 40.0, 160.0, 60.0]]),
+        ...     class_id=np.array([2]),
+        ...     tracker_id=np.array([7]),
+        ... )
+        >>> inside = sv.Detections(
+        ...     xyxy=np.array([[40.0, 40.0, 60.0, 60.0]]),
+        ...     class_id=np.array([2]),
+        ...     tracker_id=np.array([7]),
+        ... )
+        >>> for detections in [outside, inside, inside, outside]:
+        ...     _ = zone.trigger(detections)
+        >>> zone.in_count, zone.out_count
+        (1, 1)
+        >>> zone.in_count_per_class
+        {2: 1}
+
+        ```
     """
 
     def __init__(
@@ -268,6 +378,8 @@ class PolygonZone:
         polygon: npt.NDArray[np.int64],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
         require_all_anchors: bool = True,
+        minimum_crossing_threshold: int = 1,
+        max_absent_frames: int | None = None,
     ) -> None:
         """Build a zone from a polygon.
 
@@ -278,11 +390,31 @@ class PolygonZone:
                 decide whether it falls inside the zone.
             require_all_anchors: Whether every triggering anchor must be inside
                 for the detection to count, rather than any one of them.
+            minimum_crossing_threshold: A tracked object must be seen on the
+                other side of the zone boundary for this many consecutive
+                observations, that is `trigger` calls in which it is present,
+                before its entry or exit is counted. Calls in which the object
+                is missing are skipped: they neither extend nor reset the run.
+                Raise it to ignore anchors that flicker across the boundary.
+                The first side an object is seen on is taken as its starting
+                side with no count, so an object that first appears inside the
+                zone has not entered it.
+            max_absent_frames: Number of consecutive `trigger` calls missing a
+                tracked object at which its entry/exit state is dropped, as in
+                :class:`~supervision.detection.line_zone.LineZone`. An object
+                that returns sooner keeps its state, so a short occlusion does
+                not reset it, while dropping bounds memory on long streams. If
+                `None`, the limit is the larger of 30 and
+                `minimum_crossing_threshold + 1`. Match it to the tracker's
+                lost-track buffer. An object that is dropped while inside the
+                zone, for example because it left the frame through the zone,
+                is not counted as exiting.
 
         Raises:
             ValueError: If `polygon` is not of shape `(N, 2)`, has fewer than
-                `MIN_POLYGON_POINT_COUNT` vertices, or `triggering_anchors` is
-                empty.
+                `MIN_POLYGON_POINT_COUNT` vertices, `triggering_anchors` is
+                empty, or `minimum_crossing_threshold` or `max_absent_frames`
+                is less than 1.
         """
         polygon = np.asarray(polygon)
         if polygon.ndim != 2 or polygon.shape[-1] != 2:
@@ -303,8 +435,39 @@ class PolygonZone:
         if not self.triggering_anchors:
             raise ValueError("Triggering anchors cannot be empty.")
         self.require_all_anchors = require_all_anchors
+        if minimum_crossing_threshold < 1:
+            raise ValueError(
+                "minimum_crossing_threshold must be at least 1; "
+                f"got {minimum_crossing_threshold}."
+            )
+        if max_absent_frames is None:
+            max_absent_frames = max(30, minimum_crossing_threshold + 1)
+        if max_absent_frames < 1:
+            raise ValueError("max_absent_frames must be at least 1.")
+        self.minimum_crossing_threshold = minimum_crossing_threshold
+        self.max_absent_frames: int = max_absent_frames
 
         self.current_count = 0
+        self._current_count_per_class: Counter[int | None] = Counter()
+        self._in_count_per_class: Counter[int | None] = Counter()
+        self._out_count_per_class: Counter[int | None] = Counter()
+        # Side of the boundary (True = inside) each tracker was last confirmed on.
+        # Entries and exits are counted against it, never against the raw previous
+        # frame, so a sub-threshold flicker cannot become the reference side.
+        self._confirmed_inside: dict[int, bool] = {}
+        # Consecutive observations a tracker has spent away from its confirmed side.
+        self._observations_away: dict[int, int] = {}
+        self._frames_absent: dict[int, int] = {}
+        # Timestamp at which each track's current stay inside the zone began.
+        self._entered_at: dict[int, float] = {}
+        # Timestamp of the first observation in each track's current run away from
+        # its confirmed side, so a confirmed entry is dated when it really happened.
+        self._away_since: dict[int, float] = {}
+        self._frame_index = -1
+        self._last_timestamp: float | None = None
+        # Whether trigger calls pass explicit timestamps; fixed by the first call so
+        # seconds and frame counts never mix in one dwell measurement.
+        self._uses_explicit_timestamps: bool | None = None
 
         x_max, y_max = np.max(polygon, axis=0)
         if np.issubdtype(polygon.dtype, np.integer):
@@ -313,10 +476,131 @@ class PolygonZone:
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
 
+    @property
+    def current_count_per_class(self) -> dict[int | None, int]:
+        """Objects inside the zone on the last frame, keyed by `class_id`."""
+        return dict(self._current_count_per_class)
+
+    @property
+    def in_count(self) -> int:
+        """Tracked objects that have entered the zone since creation or reset."""
+        return sum(self._in_count_per_class.values())
+
+    @property
+    def out_count(self) -> int:
+        """Tracked objects that have exited the zone since creation or reset."""
+        return sum(self._out_count_per_class.values())
+
+    @property
+    def in_count_per_class(self) -> dict[int | None, int]:
+        """Tracked objects that have entered the zone, keyed by `class_id`."""
+        return dict(self._in_count_per_class)
+
+    @property
+    def out_count_per_class(self) -> dict[int | None, int]:
+        """Tracked objects that have exited the zone, keyed by `class_id`."""
+        return dict(self._out_count_per_class)
+
+    def reset(self) -> None:
+        """Clear all counts and per-track state so the zone can be reused across
+        independent streams. The polygon and configuration are preserved.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+            ... )
+            >>> detections = sv.Detections(xyxy=np.array([[40.0, 40.0, 60.0, 60.0]]))
+            >>> _ = zone.trigger(detections)
+            >>> zone.current_count
+            1
+            >>> zone.reset()
+            >>> zone.current_count, zone.in_count, zone.current_count_per_class
+            (0, 0, {})
+
+            ```
+        """
+        self.current_count = 0
+        self._current_count_per_class.clear()
+        self._in_count_per_class.clear()
+        self._out_count_per_class.clear()
+        self._confirmed_inside.clear()
+        self._observations_away.clear()
+        self._frames_absent.clear()
+        self._entered_at.clear()
+        self._away_since.clear()
+        self._frame_index = -1
+        self._last_timestamp = None
+        self._uses_explicit_timestamps = None
+
+    def time_in_zone(self, detections: Detections) -> npt.NDArray[np.float64]:
+        """Report how long each tracked detection has been inside the zone.
+
+        Dwell is measured from the start of each object's current stay to the
+        latest
+        :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`
+        call, in the units of the `timestamp` values passed to it, or in frames
+        counted as `trigger` calls when none are passed. A stay starts when an
+        entry is confirmed, dated to the first observation of the run that
+        confirmed it, or when an object is first seen already inside. It ends
+        when an exit is confirmed, so a re-entry starts a new stay, while
+        flicker shorter than `minimum_crossing_threshold` and absences shorter
+        than `max_absent_frames` do not interrupt it. Detections are matched to
+        the zone's state by
+        `tracker_id`, so pass the same frame's detections given to
+        :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`.
+
+        Args:
+            detections: Tracked detections to look up.
+
+        Returns:
+            An array aligned with `detections` holding each object's time in the
+            zone, or `NaN` for an object that is not confirmed inside (with
+            `minimum_crossing_threshold` above 1, an entry or exit takes effect
+            only once confirmed), has a missing, negative, non-finite,
+            fractional or non-numeric `tracker_id`, or when
+            :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`
+            was never called.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+            ... )
+            >>> def frame(x):
+            ...     return sv.Detections(
+            ...         xyxy=np.array([[x, 40.0, x + 20.0, 60.0]]),
+            ...         tracker_id=np.array([7]),
+            ...     )
+            >>> fps = 2
+            >>> for index, x in enumerate([140.0, 40.0, 40.0, 40.0]):
+            ...     _ = zone.trigger(frame(x), timestamp=index / fps)
+            >>> zone.time_in_zone(frame(40.0))
+            array([1.])
+
+            ```
+        """
+        entered_at = np.full(len(detections), np.nan)
+        if self._last_timestamp is None:
+            return entered_at
+        # Only ids `trigger` could have followed can have state; the rest stay NaN.
+        tracker_keys, tracked = _integral_keys(
+            detections.tracker_id, len(detections), allow_negative=False
+        )
+        entered_at[tracked] = [
+            self._entered_at.get(key, np.nan) for key in tracker_keys[tracked].tolist()
+        ]
+        return self._last_timestamp - entered_at
+
     def trigger(
         self,
         detections: Detections,
         coord_transform: CoordinatesTransformation | None = None,
+        timestamp: float | None = None,
     ) -> npt.NDArray[np.bool_]:
         """Determines if the detections are within the polygon zone.
 
@@ -326,6 +610,17 @@ class PolygonZone:
         clipping artifacts, although overlapping zones may still legitimately
         contain the same detection. Negative and non-finite anchors are outside.
 
+        Call this exactly once per frame for each zone; frame-mode dwell,
+        `minimum_crossing_threshold` and `max_absent_frames` count `trigger`
+        calls, and a tracked object missing from a call is counted absent. Use
+        one :class:`~supervision.detection.tools.polygon_zone.PolygonZone` per
+        stream (or
+        :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.reset`
+        between streams); tracker ids from different streams collide. A shared
+        zone is not reliably detected: with explicit timestamps it raises only
+        when a call's timestamp is earlier than the previous one, so streams
+        sharing a monotonic clock mix their ids silently.
+
         Args:
             detections: The detections to be checked against the polygon zone
             coord_transform: Optional per-frame camera motion. Anchors are mapped
@@ -333,10 +628,22 @@ class PolygonZone:
                 :meth:`~supervision.geometry.core.CoordinatesTransformation.rel_to_abs`
                 before the inside test; anchors mapped outside the zone's bounds
                 or to non-finite values are outside.
+            timestamp: Time of this frame, used by
+                :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.time_in_zone`.
+                Pass it on every call, for example `frame_index / fps` for
+                seconds in a video or `time.monotonic()` for a live stream, or
+                never, to measure time in frames. Equal consecutive timestamps
+                are allowed.
 
         Returns:
             A boolean numpy array indicating
                 if each detection is within the polygon zone
+
+        Raises:
+            ValueError: If `timestamp` is not finite, is earlier than the
+                previous frame's timestamp, or is given on some calls but not
+                others since construction or the last
+                :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.reset`.
 
         Example:
             ```pycon
@@ -356,10 +663,51 @@ class PolygonZone:
 
             ```
         """
-        if len(detections) == 0:
-            self.current_count = 0
-            return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
+        uses_explicit_timestamps = timestamp is not None
+        if self._uses_explicit_timestamps not in (None, uses_explicit_timestamps):
+            raise ValueError(
+                "timestamp must be passed on every trigger call or on none, so "
+                "dwell is not measured in mixed units. Call reset() to switch."
+            )
+        frame_timestamp = (
+            float(timestamp) if timestamp is not None else self._frame_index + 1.0
+        )
+        if not np.isfinite(frame_timestamp):
+            raise ValueError(f"timestamp must be finite; got {frame_timestamp}.")
+        if self._last_timestamp is not None and frame_timestamp < self._last_timestamp:
+            raise ValueError(
+                f"timestamp must not decrease; got {frame_timestamp} after "
+                f"{self._last_timestamp}. Call reset() before reusing the zone."
+            )
 
+        if len(detections) == 0:
+            is_in_zone = np.array([], dtype=bool)
+        else:
+            is_in_zone = self._is_in_zone(detections, coord_transform)
+        # Ids are normalized before any state changes, and never raise, so an
+        # unusual tracker or class id cannot leave a half-updated frame behind.
+        tracker_keys, tracked = _integral_keys(
+            detections.tracker_id, len(detections), allow_negative=False
+        )
+        class_keys, classified = _integral_keys(
+            detections.class_id, len(detections), allow_negative=True
+        )
+        # The frame is committed only once the inside test has succeeded, so a
+        # failing coord_transform leaves the clock where it was.
+        self._uses_explicit_timestamps = uses_explicit_timestamps
+        self._frame_index += 1
+        self._last_timestamp = frame_timestamp
+        self._update_counts(
+            is_in_zone, tracker_keys, tracked, class_keys, classified, frame_timestamp
+        )
+        return cast(npt.NDArray[np.bool_], is_in_zone)
+
+    def _is_in_zone(
+        self,
+        detections: Detections,
+        coord_transform: CoordinatesTransformation | None,
+    ) -> npt.NDArray[np.bool_]:
+        """Test each detection's triggering anchors against the zone mask."""
         anchor_coordinates = np.array(
             [
                 detections.get_anchors_coordinates(anchors)
@@ -383,8 +731,96 @@ class PolygonZone:
         anchor_hits = in_bounds & self.mask[safe_anchors[..., 1], safe_anchors[..., 0]]
         reduce = np.all if self.require_all_anchors else np.any
         is_in_zone = reduce(anchor_hits, axis=0)
-        self.current_count = int(np.sum(is_in_zone))
         return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
+
+    def _update_counts(
+        self,
+        is_in_zone: npt.NDArray[np.bool_],
+        tracker_keys: npt.NDArray[np.int64],
+        tracked: npt.NDArray[np.bool_],
+        class_keys: npt.NDArray[np.int64],
+        classified: npt.NDArray[np.bool_],
+        timestamp: float,
+    ) -> None:
+        """Refresh this frame's occupancy counts and advance each track's entry/exit
+        state, counting confirmed boundary crossings.
+
+        Takes keys built by
+        :func:`~supervision.detection.tools.polygon_zone._integral_keys`, so
+        nothing here can raise once the frame is committed. Detections with an
+        unusable `class_id` are counted under the `None` key, so the per-class
+        counts always add up to `current_count`.
+        """
+        self.current_count = int(np.sum(is_in_zone))
+        self._current_count_per_class.clear()
+        class_ids, counts = np.unique(
+            class_keys[is_in_zone & classified], return_counts=True
+        )
+        self._current_count_per_class.update(
+            {int(c): int(n) for c, n in zip(class_ids, counts)}
+        )
+        unclassified_count = int(np.count_nonzero(is_in_zone & ~classified))
+        if unclassified_count:
+            self._current_count_per_class[None] = unclassified_count
+
+        # Trackers report a negative id for tracks they have not confirmed yet, and
+        # several distinct objects can share it, so such detections get no state,
+        # nor do ids that are not finite integers.
+        confirmed = np.flatnonzero(tracked)
+        # An id repeated within one frame, for example after merging overlapping
+        # sources, is one observation; counting each copy would let a single frame
+        # satisfy minimum_crossing_threshold. The first copy is kept.
+        _, first_copies = np.unique(tracker_keys[confirmed], return_index=True)
+        confirmed = confirmed[np.sort(first_copies)]
+        self._age_absent_tracks(present=set(tracker_keys[confirmed].tolist()))
+        for i in confirmed:
+            key = int(tracker_keys[i])
+            inside = bool(is_in_zone[i])
+            # The first observed side seeds the reference; nothing was crossed yet,
+            # but an object first seen inside is already dwelling there.
+            if key not in self._confirmed_inside:
+                self._confirmed_inside[key] = inside
+                if inside:
+                    self._entered_at[key] = timestamp
+                continue
+            if inside == self._confirmed_inside[key]:
+                self._observations_away.pop(key, None)
+                self._away_since.pop(key, None)
+                continue
+
+            observations_away = self._observations_away.get(key, 0) + 1
+            self._away_since.setdefault(key, timestamp)
+            if observations_away < self.minimum_crossing_threshold:
+                self._observations_away[key] = observations_away
+                continue
+
+            self._observations_away.pop(key, None)
+            crossed_at = self._away_since.pop(key)
+            self._confirmed_inside[key] = inside
+            class_id = int(class_keys[i]) if classified[i] else None
+            if inside:
+                self._in_count_per_class[class_id] += 1
+                self._entered_at[key] = crossed_at
+            else:
+                self._out_count_per_class[class_id] += 1
+                self._entered_at.pop(key, None)
+
+    def _age_absent_tracks(self, present: set[int]) -> None:
+        """Advance the absence counter of every known track missing from this frame,
+        dropping the state of tracks absent for `max_absent_frames` calls."""
+        for key in list(self._confirmed_inside):
+            if key in present:
+                self._frames_absent.pop(key, None)
+                continue
+            frames_absent = self._frames_absent.get(key, 0) + 1
+            if frames_absent >= self.max_absent_frames:
+                del self._confirmed_inside[key]
+                self._observations_away.pop(key, None)
+                self._away_since.pop(key, None)
+                self._entered_at.pop(key, None)
+                self._frames_absent.pop(key, None)
+            else:
+                self._frames_absent[key] = frames_absent
 
     def occupancy_ratio(self, detections: Detections) -> float:
         """Measure which fraction of the zone's pixels the detections cover.

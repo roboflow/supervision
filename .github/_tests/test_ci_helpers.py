@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import augment_links
@@ -60,6 +61,26 @@ class TestAugmentLinksInFile:
             == "see [license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md)"
         )
 
+    def test_rewrites_against_the_given_repository(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A fork PR's links point at the fork, where its branch actually exists."""
+        repo_root = tmp_path / "repo"
+        repo_root.mkdir()
+        (repo_root / "examples").mkdir()
+        page = repo_root / "README.md"
+        page.write_text("see [examples](examples)", encoding="utf-8")
+        monkeypatch.setattr(augment_links, "get_repo_root", lambda: str(repo_root))
+
+        augment_links.augment_links_in_file(
+            str(page), branch="feat/zones", repo="someone/supervision"
+        )
+
+        assert (
+            page.read_text(encoding="utf-8")
+            == "see [examples](https://github.com/someone/supervision/tree/feat/zones/examples)"
+        )
+
     def test_leaves_absolute_urls_untouched(self, tmp_path: Path) -> None:
         """Links that already point at a host are passed through unchanged."""
         page = tmp_path / "page.md"
@@ -79,6 +100,48 @@ class TestAugmentLinksInFile:
         augment_links.augment_links_in_file(str(script), branch="develop")
 
         assert script.read_text(encoding="utf-8") == original
+
+
+class TestAugmentLinksMain:
+    """Command-line entry point that forwards `--branch` and `--repo`."""
+
+    @pytest.fixture
+    def readme(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        """Create a README linking a repo directory and point the repo root at it."""
+        repo_root = tmp_path / "repo"
+        (repo_root / "examples").mkdir(parents=True)
+        page = repo_root / "README.md"
+        page.write_text("see [examples](examples)", encoding="utf-8")
+        monkeypatch.setattr(augment_links, "get_repo_root", lambda: str(repo_root))
+        return page
+
+    @pytest.mark.parametrize(
+        ("repo_args", "expected_repo"),
+        [
+            pytest.param(
+                ["--repo", "someone/supervision"],
+                "someone/supervision",
+                id="forwards-the-given-repo",
+            ),
+            pytest.param([], "roboflow/supervision", id="defaults-to-upstream"),
+        ],
+    )
+    def test_links_to_the_repo_given_on_the_command_line(
+        self,
+        readme: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        repo_args: list[str],
+        expected_repo: str,
+    ) -> None:
+        """`--repo` reaches the rewritten URLs; omitting it keeps the upstream repo."""
+        argv = ["augment_links.py", "--branch", "feat/zones", *repo_args, str(readme)]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        augment_links.main()
+
+        assert readme.read_text(encoding="utf-8") == (
+            f"see [examples](https://github.com/{expected_repo}/tree/feat/zones/examples)"
+        )
 
 
 class TestValidateManifest:

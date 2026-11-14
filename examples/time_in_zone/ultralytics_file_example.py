@@ -5,7 +5,6 @@ import numpy as np
 from trackers import ByteTrackTracker
 from ultralytics import YOLO
 from utils.general import find_in_list, load_zones_config
-from utils.timers import FPSBasedTimer
 
 import supervision as sv
 
@@ -121,10 +120,11 @@ def main(
         sv.PolygonZone(
             polygon=polygon,
             triggering_anchors=(sv.Position.CENTER,),
+            # Ignore boxes flickering across the edge for under 3 frames.
+            minimum_crossing_threshold=3,
         )
         for polygon in polygons
     ]
-    timers = [FPSBasedTimer(video_info.fps) for _ in zones]
 
     video_sink: sv.VideoSink | None = None
     # The stack releases the writer and closes the window on normal end, on `q`, and
@@ -133,7 +133,7 @@ def main(
         if output_video_path:
             video_sink = _open_video_sink(stack, output_video_path, video_info)
         window = stack.enter_context(sv.ImageWindow("Processed Video"))
-        for frame in frames_generator:
+        for frame_index, frame in enumerate(frames_generator):
             results = model(
                 frame,
                 verbose=False,
@@ -155,8 +155,14 @@ def main(
                     color=COLORS.by_idx(idx),
                 )
 
-                detections_in_zone = detections[zone.trigger(detections)]
-                time_in_zone = timers[idx].tick(detections_in_zone)
+                zone.trigger(detections, timestamp=frame_index / video_info.fps)
+                time_in_zone = zone.time_in_zone(detections)
+                # Dwell is NaN until confirmed inside or first seen inside,
+                # so only objects confirmed inside, or first seen inside, are
+                # drawn and labelled.
+                is_in_zone = ~np.isnan(time_in_zone)
+                detections_in_zone = detections[is_in_zone]
+                time_in_zone = time_in_zone[is_in_zone]
                 custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
 
                 annotated_frame = COLOR_ANNOTATOR.annotate(
