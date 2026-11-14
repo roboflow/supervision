@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Fixed `Detections.from_ncnn` to accept Python integer and float rectangle coordinates alongside NumPy scalars without raising `AttributeError`.
+- Fixed `Detections.from_ncnn` to accept Python integer and float rectangle coordinates alongside NumPy scalars without raising `AttributeError`. ([#2982](https://github.com/roboflow/supervision/pull/2982))
 
 - `sv.Detections.from_semantic_segmentation` now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the `int64` range instead of accepting invalid scores or failing with an indexing error. ([#2898](https://github.com/roboflow/supervision/pull/2898))
 
