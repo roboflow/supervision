@@ -1,4 +1,7 @@
+from collections.abc import Callable, Iterable
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import NoReturn
 from unittest import mock
 
 import numpy as np
@@ -17,10 +20,46 @@ from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import (
     _ConstantTransform,
     _create_detections,
+    _MoveBeyondX,
     _NanBeyondX,
+    _ShearXTransform,
     _ShiftTransform,
     _WrongShapeTransform,
 )
+
+WHITE = [255, 255, 255]
+BLACK = [0, 0, 0]
+
+
+def _oriented_label_pixels(
+    line_zone: LineZone,
+    coord_transform: _ShiftTransform | _ConstantTransform | None,
+    text_centered: bool = True,
+) -> np.ndarray:
+    """Return a mask of the pixels the oriented "in" count label changes.
+
+    The same line is drawn with and without its label on a black frame, so the mask
+    holds the label box alone, whatever text backend sizes it.
+    """
+    frame = np.zeros((100, 200, 3), dtype=np.uint8)
+    with_label = LineZoneAnnotator(
+        text_orient_to_line=True, text_centered=text_centered, display_out_count=False
+    )
+    without_label = LineZoneAnnotator(
+        text_orient_to_line=True,
+        text_centered=text_centered,
+        display_in_count=False,
+        display_out_count=False,
+    )
+
+    labeled = with_label.annotate(
+        frame.copy(), line_zone, coord_transform=coord_transform
+    )
+    bare = without_label.annotate(
+        frame.copy(), line_zone, coord_transform=coord_transform
+    )
+
+    return np.asarray((labeled != bare).any(axis=2))
 
 
 @pytest.mark.parametrize(
@@ -81,8 +120,9 @@ from tests.helpers import (
 def test_calculate_region_of_interest_limits(
     vector: Vector,
     expected_result: tuple[Vector, Vector] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Region-of-interest limits are derived from the line vector, or raise."""
     with exception:
         result = LineZone._calculate_region_of_interest_limits(vector=vector)
         assert result == expected_result
@@ -497,8 +537,9 @@ def test_line_zone_multiple_detections(
     anchors: list[Position],
     expected_crossed_in: list[list[bool]],
     expected_crossed_out: list[list[bool]],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Line crossings and counts follow the tracked anchors frame by frame."""
     with exception:
         line_zone = LineZone(
             start=vector.start, end=vector.end, triggering_anchors=anchors
@@ -660,13 +701,16 @@ class TestLineZoneSubThresholdFlicker:
     """Sub-threshold side changes must not be counted as crossings (#2598)."""
 
     @staticmethod
-    def _line_zone(minimum_crossing_threshold: int) -> LineZone:
+    def _line_zone(
+        minimum_crossing_threshold: int, max_absent_frames: int = 30
+    ) -> LineZone:
         """Build a horizontal line zone driven by the TOP_LEFT anchor alone."""
         return LineZone(
             start=Point(0, 0),
             end=Point(10, 0),
             triggering_anchors=[Position.TOP_LEFT],
             minimum_crossing_threshold=minimum_crossing_threshold,
+            max_absent_frames=max_absent_frames,
         )
 
     @pytest.mark.parametrize(
@@ -705,8 +749,8 @@ class TestLineZoneSubThresholdFlicker:
         `_compute_anchor_sides` report both `has_any_left_trigger` and
         `has_any_right_trigger` as True for that frame, so it is skipped before ever
         reaching the crossing history (the ambiguous-straddle guard). A straddle
-        sandwiched inside a sustained crossing must therefore count exactly as if
-        that frame were omitted from the sequence.
+        sandwiched inside a sustained crossing must therefore count exactly as if that
+        frame were omitted from the sequence.
         """
         line_zone = LineZone(
             start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=2
@@ -760,9 +804,9 @@ class TestLineZoneSubThresholdFlicker:
 
         Companion to `test_flicker_does_not_leak_between_trackers`, which pairs a
         flicker with a real crossing; here both trackers are noisy at once, with
-        different flicker shapes (one single-frame excursion vs. two), to confirm
-        per-tracker isolation holds under concurrent noise, not only under a
-        concurrent real crossing.
+        different flicker shapes (one single-frame excursion vs. two), to confirm per-
+        tracker isolation holds under concurrent noise, not only under a concurrent real
+        crossing.
         """
         line_zone = self._line_zone(minimum_crossing_threshold=2)
         single_flicker_boxes = _boxes_from_sides("AAABAAA")
@@ -779,10 +823,10 @@ class TestLineZoneSubThresholdFlicker:
 
     def test_evicted_tracker_does_not_inherit_confirmed_side(self) -> None:
         """Eviction clears the reference side, so a reused tracker ID starts fresh."""
-        line_zone = self._line_zone(minimum_crossing_threshold=2)
+        line_zone = self._line_zone(minimum_crossing_threshold=2, max_absent_frames=3)
         for box in _boxes_from_sides("BBB"):
             line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
-        for _ in range(line_zone.crossing_history_length):
+        for _ in range(line_zone.max_absent_frames):
             line_zone.trigger(Detections.empty())
 
         for box in _boxes_from_sides("AAA"):
@@ -932,15 +976,16 @@ class TestLineZoneSubThresholdFlicker:
 )
 def test_line_zone_long_horizon_disappearing_detections(
     vector: Vector,
-    xyxy_sequence: list[list[list[float] | None]],
+    xyxy_sequence: list[list[list[float]]],
     anchors: list[Position],
     minimum_crossing_threshold: int,
     expected_crossed_in: list[list[bool]],
     expected_crossed_out: list[list[bool]],
     expected_count_in: list[int],
     expected_count_out: list[int],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Crossings and counts stay consistent when detections leave for many frames."""
     with exception:
         line_zone = LineZone(
             start=vector.start,
@@ -1050,7 +1095,7 @@ def test_line_zone_trigger_does_not_call_np_cross(
 ) -> None:
     """Guard against reintroducing np.cross, deprecated for 2-D input in NumPy 2.0."""
 
-    def _raise(*args, **kwargs):
+    def _raise(*args: object, **kwargs: object) -> NoReturn:
         raise AssertionError("np.cross must not be called on 2-D vectors")
 
     monkeypatch.setattr(np, "cross", _raise)
@@ -1102,13 +1147,13 @@ def test_line_zone_trigger_does_not_call_np_cross(
     ],
 )
 def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
-    make_anchors,
+    make_anchors: Callable[[], Iterable[Position]],
 ) -> None:
     """A single-pass anchors iterable survives construction and counts a crossing.
 
-    Covers the three single-pass iterable shapes named in the PR #2561 bug report
-    — generator expression, `map`, and `filter` — none of which must be exhausted
-    by the constructor's emptiness check before `trigger()` iterates them.
+    Covers the three single-pass iterable shapes named in the PR #2561 bug report —
+    generator expression, `map`, and `filter` — none of which must be exhausted by the
+    constructor's emptiness check before `trigger()` iterates them.
     """
     line_zone = LineZone(
         start=Point(0, 100), end=Point(200, 100), triggering_anchors=make_anchors()
@@ -1122,7 +1167,7 @@ def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
 
 def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
     """History for tracker IDs absent from the current frame is evicted."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     first_detections = _create_detections(
         xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
     )
@@ -1132,7 +1177,7 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
 
     line_zone.trigger(first_detections)
     # Trigger twice with second_detections so tracker_id=0 accumulates
-    # crossing_history_length absent frames (default=2) and is evicted.
+    # max_absent_frames absent frames and is evicted.
     line_zone.trigger(second_detections)
     line_zone.trigger(second_detections)
 
@@ -1141,11 +1186,11 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> None:
     """Empty frames age out tracker crossing history."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     detections = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1])
 
     line_zone.trigger(detections)
-    for _ in range(line_zone.crossing_history_length):
+    for _ in range(line_zone.max_absent_frames):
         line_zone.trigger(Detections.empty())
 
     assert not line_zone.crossing_state_history
@@ -1158,7 +1203,7 @@ def test_line_zone_ages_history_on_untracked_frames(
     untracked_frames: int, expected_crossing: bool
 ) -> None:
     """Missing tracker IDs preserve short gaps but expire stale crossing state."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
     above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
     untracked = _create_detections(xyxy=[[4, 4, 6, 6]])
@@ -1172,6 +1217,81 @@ def test_line_zone_ages_history_on_untracked_frames(
     assert crossed_in.tolist() == [expected_crossing]
     assert crossed_out.tolist() == [False]
     assert line_zone.in_count == int(expected_crossing)
+
+
+@pytest.mark.parametrize(
+    ("occluded_frames", "expected_crossing"),
+    [(1, True), (2, True), (5, True), (29, True), (30, False)],
+)
+def test_line_zone_counts_crossing_through_occlusion(
+    occluded_frames: int, expected_crossing: bool
+) -> None:
+    """A tracker hidden while it crosses keeps its side for `max_absent_frames`."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+
+    line_zone.trigger(below)
+    for _ in range(occluded_frames):
+        line_zone.trigger(Detections.empty())
+    crossed_in, _ = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [expected_crossing]
+    assert line_zone.in_count == int(expected_crossing)
+
+
+def _count_crossing_after_high_threshold_occlusion(line_zone: LineZone) -> int:
+    """Count a crossing after a 30-frame gap and 30 opposite-side frames."""
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+    line_zone.trigger(below)
+    for _ in range(30):
+        line_zone.trigger(Detections.empty())
+    for _ in range(30):
+        line_zone.trigger(above)
+    return line_zone.in_count
+
+
+def test_line_zone_high_threshold_default_preserves_crossing_history() -> None:
+    """Default retention preserves a crossing after the prior 30-frame gap."""
+    line_zone = LineZone(
+        start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=30
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 1
+
+
+def test_line_zone_high_threshold_honors_explicit_retention() -> None:
+    """An explicit limit expires crossing history at its specified boundary."""
+    line_zone = LineZone(
+        start=Point(0, 0),
+        end=Point(10, 0),
+        minimum_crossing_threshold=30,
+        max_absent_frames=30,
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 0
+
+
+def test_line_zone_occlusion_with_other_trackers_visible() -> None:
+    """Another visible tracker does not shorten an occluded tracker's retention."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    other = _create_detections(xyxy=[[1, 4, 2, 6]], tracker_id=[8])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+
+    line_zone.trigger(below)
+    for _ in range(5):
+        line_zone.trigger(other)
+    crossed_in, _ = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [True]
+
+
+def test_line_zone_rejects_nonpositive_max_absent_frames() -> None:
+    """A retention below one frame has no meaning and is refused."""
+    with pytest.raises(ValueError, match="max_absent_frames"):
+        LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=0)
 
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
@@ -1242,13 +1362,17 @@ class TestLineZoneInit:
                 id="empty-list",
             ),
             pytest.param(
-                (anchor for anchor in []),
+                (anchor for anchor in list[Position]()),
                 pytest.raises(ValueError, match="Triggering anchors cannot be empty"),
                 id="empty-generator",
             ),
         ],
     )
-    def test_empty_anchors_raises(self, triggering_anchors, exception) -> None:
+    def test_empty_anchors_raises(
+        self,
+        triggering_anchors: Iterable[Position],
+        exception: AbstractContextManager[object],
+    ) -> None:
         """LineZone rejects an anchors iterable that is empty, generator included.
 
         Mirrors `TestPolygonZoneInit::test_empty_anchors_raises`. The empty-generator
@@ -1383,9 +1507,9 @@ class TestLineZoneAnnotatorOrientedLabel:
 class TestLineZoneUnconfirmedTracks:
     """Detections with a negative `tracker_id` are unconfirmed and must not count.
 
-    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is
-    confirmed, so several distinct objects can share that placeholder id in the
-    same frame. Regression tests for #2578.
+    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is confirmed,
+    so several distinct objects can share that placeholder id in the same frame.
+    Regression tests for #2578.
     """
 
     def test_ignores_unconfirmed_objects_that_trade_sides(self) -> None:
@@ -1621,3 +1745,339 @@ class TestLineZoneTriggerWithCoordTransform:
 
         with pytest.raises(ValueError, match="coord_transform must return"):
             line_zone.trigger(detections, coord_transform=_WrongShapeTransform())
+
+
+class TestLineZoneAnnotatorWithCoordTransform:
+    """`LineZoneAnnotator.annotate` with a per-frame `coord_transform`."""
+
+    def test_draws_line_at_mapped_position(self) -> None:
+        """The line is drawn where the camera shift moved it, not where defined."""
+        line_zone = LineZone(Point(10, 20), Point(190, 20))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((120, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(0, 60)
+        )
+
+        assert annotated[80, 100].tolist() == WHITE
+        assert annotated[20, 100].tolist() == BLACK
+
+    @pytest.mark.parametrize(
+        ("text_orient_to_line", "text_centered"),
+        [
+            pytest.param(False, True, id="level-label-at-center"),
+            pytest.param(True, True, id="oriented-label-at-center"),
+            pytest.param(True, False, id="oriented-label-near-end"),
+        ],
+    )
+    def test_count_labels_follow_mapped_line(
+        self, text_orient_to_line: bool, text_centered: bool
+    ) -> None:
+        """Count labels are drawn next to the mapped line, not the defined one.
+
+        The frame must match drawing the line, already at its mapped position, with no
+        transform, whatever size the text backend gives the labels.
+        """
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+        annotator = LineZoneAnnotator(
+            text_orient_to_line=text_orient_to_line, text_centered=text_centered
+        )
+        frame = np.zeros((300, 200, 3), dtype=np.uint8)
+        expected = annotator.annotate(
+            frame.copy(), LineZone(Point(20, 230), Point(180, 250))
+        )
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(0, 200)
+        )
+
+        assert not annotated[:150].any()
+        np.testing.assert_array_equal(annotated, expected)
+
+    @pytest.mark.parametrize("text_orient_to_line", [False, True])
+    @pytest.mark.parametrize(
+        "shift",
+        [
+            pytest.param((-400, 0), id="off-left"),
+            pytest.param((0, -400), id="off-top"),
+        ],
+    )
+    def test_line_mapped_off_frame_draws_nothing(
+        self, shift: tuple[int, int], text_orient_to_line: bool
+    ) -> None:
+        """A line mapped wholly off the frame leaves no labels on its edge."""
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+        annotator = LineZoneAnnotator(text_orient_to_line=text_orient_to_line)
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(*shift)
+        )
+
+        assert not annotated.any()
+
+    @pytest.mark.parametrize(
+        ("start", "end", "text_centered", "shift", "offset"),
+        [
+            pytest.param(
+                Point(20, 30),
+                Point(180, 50),
+                True,
+                (-120, 0),
+                (20, 0),
+                id="center-x-20",
+            ),
+            pytest.param(
+                Point(20, 30),
+                Point(181, 50),
+                True,
+                (-101, 0),
+                (1, 0),
+                id="center-x-half-pixel",
+            ),
+            pytest.param(
+                Point(20, 30),
+                Point(180, 50),
+                True,
+                (0, -50),
+                (0, 10),
+                id="center-y-10",
+            ),
+            pytest.param(
+                Point(180, 50),
+                Point(5, 40),
+                False,
+                (-10, 0),
+                (5, 0),
+                id="uncentered-end-x-5",
+            ),
+        ],
+    )
+    def test_labels_anchored_off_frame_are_cut_not_pushed_into_frame(
+        self,
+        start: Point,
+        end: Point,
+        text_centered: bool,
+        shift: tuple[int, int],
+        offset: tuple[int, int],
+    ) -> None:
+        """A label whose line point is off-frame is cut by the edge, not pulled in.
+
+        Drawn without a transform at its mapped endpoints, the same line has its label
+        pulled to the frame edge. With the transform the label sits `offset` pixels
+        further out, where its line point is, so it is that label moved back by `offset`
+        and cut by the edge.
+        """
+        mapped_start = Point(start.x + shift[0], start.y + shift[1])
+        mapped_end = Point(end.x + shift[0], end.y + shift[1])
+        offset_x, offset_y = offset
+
+        mapped = _oriented_label_pixels(
+            LineZone(start, end), _ShiftTransform(*shift), text_centered
+        )
+        pulled_in = _oriented_label_pixels(
+            LineZone(mapped_start, mapped_end), None, text_centered
+        )
+
+        mapped_right = np.flatnonzero(mapped.any(axis=0))[-1]
+        mapped_bottom = np.flatnonzero(mapped.any(axis=1))[-1]
+        pulled_in_right = np.flatnonzero(pulled_in.any(axis=0))[-1]
+        pulled_in_bottom = np.flatnonzero(pulled_in.any(axis=1))[-1]
+        assert (mapped_right, mapped_bottom) == (
+            pulled_in_right - offset_x,
+            pulled_in_bottom - offset_y,
+        )
+
+    @pytest.mark.parametrize(
+        ("shift_before", "shift_after"),
+        [
+            pytest.param(-100.1, -100.3, id="inside-to-inside"),
+            pytest.param(-100.3, -100.7, id="inside-to-outside"),
+            pytest.param(-100.7, -100.9, id="outside-to-outside"),
+            pytest.param(-100.1, -100.9, id="inside-to-outside-sub-pixel"),
+        ],
+    )
+    def test_label_moves_continuously_as_line_point_crosses_left_edge(
+        self, shift_before: float, shift_after: float
+    ) -> None:
+        """Sub-pixel camera motion across the left edge shifts a label by a pixel.
+
+        The line's midpoint crosses x = 0 between the two shifts. A label that is
+        pulled into view only while its anchor is on-screen would jump by about a
+        label width there, which is what a nearly static camera must not cause.
+        """
+        line_zone = LineZone(Point(20, 30), Point(181, 50))
+
+        before = _oriented_label_pixels(line_zone, _ShiftTransform(shift_before, 0))
+        after = _oriented_label_pixels(line_zone, _ShiftTransform(shift_after, 0))
+
+        right_edge_before = np.flatnonzero(before.any(axis=0))[-1]
+        right_edge_after = np.flatnonzero(after.any(axis=0))[-1]
+        assert abs(right_edge_before - right_edge_after) <= 1
+
+    @pytest.mark.parametrize(
+        ("start", "end", "text_centered"),
+        [
+            pytest.param(Point(10, 10), Point(10, 90), True, id="vertical-near-left"),
+            pytest.param(Point(20, 5), Point(180, 8), True, id="horizontal-near-top"),
+            pytest.param(
+                Point(180, 50), Point(5, 40), False, id="uncentered-end-near-left"
+            ),
+        ],
+    )
+    def test_identity_keeps_labels_of_on_screen_line_in_view(
+        self, start: Point, end: Point, text_centered: bool
+    ) -> None:
+        """Labels of an on-screen line are pushed into view as without a transform."""
+        annotator = LineZoneAnnotator(
+            text_orient_to_line=True, text_centered=text_centered
+        )
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+        expected = annotator.annotate(frame.copy(), LineZone(start, end))
+
+        annotated = annotator.annotate(
+            frame, LineZone(start, end), coord_transform=_ShiftTransform(0, 0)
+        )
+
+        np.testing.assert_array_equal(annotated, expected)
+
+    @pytest.mark.parametrize("shear", [1e-6, -1e-6])
+    def test_sub_pixel_jitter_does_not_flip_vertical_line_label(
+        self, shear: float
+    ) -> None:
+        """Jitter that tips a vertical line either way draws it as without jitter."""
+        line_zone = LineZone(Point(150, 10), Point(150, 190))
+        annotator = LineZoneAnnotator(text_orient_to_line=True, display_out_count=False)
+        frame = np.zeros((200, 300, 3), dtype=np.uint8)
+        expected = annotator.annotate(
+            frame.copy(), line_zone, coord_transform=_ShiftTransform(0, 0)
+        )
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShearXTransform(shear)
+        )
+
+        np.testing.assert_array_equal(annotated, expected)
+
+    def test_zero_length_mapped_line_draws_labels_vertically(self) -> None:
+        """Both endpoints mapped to one point draw labels as for a vertical line.
+
+        A label turned to a vertical line is taller than wide, the other way round from
+        a level one.
+        """
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+
+        label = _oriented_label_pixels(line_zone, _ConstantTransform(50, 50))
+
+        rows = np.flatnonzero(label.any(axis=1))
+        columns = np.flatnonzero(label.any(axis=0))
+        assert rows[-1] - rows[0] > columns[-1] - columns[0]
+
+    @pytest.mark.parametrize(
+        "new_x",
+        [
+            pytest.param(50.0, id="drawn"),
+            pytest.param(np.nan, id="skipped"),
+        ],
+    )
+    def test_draws_on_input_frame(self, new_x: float) -> None:
+        """Drawn or skipped, the input frame itself is returned."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = LineZoneAnnotator().annotate(
+            frame, line_zone, coord_transform=_MoveBeyondX(80, new_x)
+        )
+
+        assert annotated is frame
+
+    def test_partially_off_screen_line_draws_visible_part(self) -> None:
+        """A line mapped partly beyond the frame edge draws its visible part."""
+        line_zone = LineZone(Point(10, 50), Point(190, 50))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(-50, 0)
+        )
+
+        assert annotated[50, [0, 50, 99]].tolist() == [WHITE, WHITE, WHITE]
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        "new_x",
+        [
+            pytest.param(np.nan, id="nan"),
+            pytest.param(np.inf, id="inf"),
+            pytest.param(-np.inf, id="negative-inf"),
+            pytest.param(2**20 + 1, id="just-beyond-limit"),
+            pytest.param(-(2**20) - 1, id="just-beyond-negative-limit"),
+        ],
+    )
+    def test_line_with_undrawable_endpoint_is_skipped(self, new_x: float) -> None:
+        """One endpoint that is non-finite or beyond 2**20 px skips line and labels."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        annotator = LineZoneAnnotator()
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_MoveBeyondX(80, new_x)
+        )
+
+        assert not annotated.any()
+
+    @pytest.mark.parametrize(
+        ("new_x", "column"),
+        [
+            pytest.param(2**20, 50, id="at-limit"),
+            pytest.param(-(2**20), 2, id="at-negative-limit"),
+        ],
+    )
+    def test_line_with_endpoint_at_drawing_limit_is_drawn(
+        self, new_x: float, column: int
+    ) -> None:
+        """An endpoint mapped exactly to 2**20 px is still drawn, not skipped."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_MoveBeyondX(80, new_x)
+        )
+
+        assert annotated[50, column].tolist() == WHITE
+
+    @pytest.mark.parametrize(
+        "coord_transform",
+        [
+            pytest.param(None, id="none"),
+            pytest.param(_ShiftTransform(0, 0), id="identity"),
+        ],
+    )
+    def test_unmapped_or_identity_drawing_stays_in_place(
+        self, coord_transform: _ShiftTransform | None
+    ) -> None:
+        """No transform, or an identity one, draws the line where it was defined."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.full((100, 100, 3), 128, dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=coord_transform
+        )
+
+        assert annotated[50, 50].tolist() == WHITE
+        assert annotated[50, 10].tolist() == BLACK
+        assert annotated[50, 90].tolist() == BLACK
+        assert annotated[10, 50].tolist() == [128, 128, 128]
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            LineZoneAnnotator().annotate(
+                frame, line_zone, coord_transform=_WrongShapeTransform()
+            )

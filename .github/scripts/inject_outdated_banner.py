@@ -58,11 +58,21 @@ LATEST_URL = "https://supervision.roboflow.com/latest"
 _MARKER_START = "<!-- sv:outdated-banner:start -->"
 _MARKER_END = "<!-- sv:outdated-banner:end -->"
 
-# Two interiors match: whitespace-only (a page built before the banner block existed)
-# or a previously injected banner (bounded by our marker, so a re-run can update it).
+# Three interiors match: whitespace-only (a page built before the banner block
+# existed), a previously injected banner (bounded by our marker, so a re-run can update
+# it), or Material's aside with an empty text block (a tree built while it was the
+# latest release, which the theme exempts from the warning). An aside holding any text
+# is a genuine build's own banner and is never matched.
+_LATEST_BUILD_ASIDE = (
+    r'\s*<aside class="md-banner md-banner--warning">'
+    r'\s*<div class="md-banner__inner[^"]*">\s*</div>'
+    r"\s*<script>[^<]*</script>"
+    r"\s*</aside>\s*"
+)
 BANNER_DIV_RE = re.compile(
     r'(<div[^>]*data-md-component="outdated"[^>]*)>'
-    rf"(?:\s*|\s*{re.escape(_MARKER_START)}.*?{re.escape(_MARKER_END)}\s*)"
+    rf"(?:\s*|\s*{re.escape(_MARKER_START)}.*?{re.escape(_MARKER_END)}\s*"
+    rf"|{_LATEST_BUILD_ASIDE})"
     r"</div>",
     re.DOTALL,
 )

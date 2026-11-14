@@ -222,7 +222,7 @@ def _sort_box_corners(
 
 
 def _add_integer_offset(
-    coordinates: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+    coordinates: npt.NDArray[np.number], offset: npt.NDArray[np.number]
 ) -> npt.NDArray[np.number]:
     """Add an offset to coordinates without wrapping integer values.
 
@@ -233,7 +233,7 @@ def _add_integer_offset(
 
     Args:
         coordinates: Coordinate array to translate.
-        offset: Integer offset, broadcastable to the shape of `coordinates`.
+        offset: Numeric offset, broadcastable to the shape of `coordinates`.
 
     Returns:
         Translated coordinates.
@@ -554,7 +554,10 @@ def _box_midpoint(
     Integer inputs produce `float64` midpoints; floating-point inputs keep their
     dtype. Integers of 32 bits or fewer are widened to `float64`, which is exact.
     For 64-bit integers a corner sum that overflows is recomputed exactly and
-    rounded once to `float64`.
+    rounded once to `float64`. Floating-point midpoints sum the corners before
+    dividing, so a subnormal result keeps its exact value; a sum that overflows
+    the coordinate dtype falls back to halving each corner, so a finite midpoint
+    stays finite.
 
     Args:
         first: Lower corner coordinates, an integer or floating-point array.
@@ -575,7 +578,15 @@ def _box_midpoint(
         ```
     """
     if not np.issubdtype(first.dtype, np.integer):
-        return (first + second) / 2
+        # Sum before dividing so a subnormal midpoint keeps its exact value; halve
+        # each corner only when the sum overflows, which keeps it finite.
+        with np.errstate(over="ignore"):
+            summed = first + second
+        midpoints = summed / 2
+        overflow = ~np.isfinite(midpoints)
+        if np.any(overflow):
+            midpoints = np.where(overflow, first / 2 + second / 2, midpoints)
+        return midpoints
     if first.dtype.itemsize <= 4:
         return (first.astype(np.float64) + second.astype(np.float64)) / 2
 
@@ -613,6 +624,11 @@ def scale_boxes(
     Returns:
         Scaled bounding boxes. Integer input arrays produce `float64` output;
         floating-point inputs preserve their existing dtype.
+
+    Note:
+        Finite corners whose full span overflows the coordinate dtype are scaled
+        corner by corner, which keeps representable corners finite unless the
+        scaling also overflows float64.
 
     Examples:
         ```pycon
@@ -668,12 +684,35 @@ def scale_boxes(
         else:
             xyxy = xyxy.astype(np.float64)
 
-    centers = cast(npt.NDArray[np.floating], (xyxy[:, :2] + xyxy[:, 2:]) / 2)
-    new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
-    return cast(
-        npt.NDArray[np.floating],
-        np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1),
+    centers = cast(npt.NDArray[np.floating], _box_midpoint(xyxy[:, :2], xyxy[:, 2:]))
+    with np.errstate(over="ignore", invalid="ignore"):
+        new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
+    lower = centers - new_sizes / 2
+    upper = centers + new_sizes / 2
+    overflow = (
+        ~np.isfinite(new_sizes) & np.isfinite(xyxy[:, :2]) & np.isfinite(xyxy[:, 2:])
     )
+    if np.any(overflow) and np.isfinite(factor):
+        # Subtracting or scaling the full span can overflow while the final
+        # corners still fit the input dtype. Weight each corner directly, so a
+        # separately rounded midpoint and half-span cannot push a representable
+        # corner past the dtype limit. Narrower dtypes are computed in float64.
+        wide_dtype = np.promote_types(xyxy.dtype, np.float64)
+        first = xyxy[:, :2][overflow].astype(wide_dtype) / 2
+        second = xyxy[:, 2:][overflow].astype(wide_dtype) / 2
+        with np.errstate(over="ignore", invalid="ignore"):
+            new_lower = first * (1 + factor) + second * (1 - factor)
+            new_upper = second * (1 + factor) + first * (1 - factor)
+        # A large factor can overflow both weighted terms with opposite signs.
+        # Scaling the half-span still gives the right corner or infinity there.
+        for corners, sign in ((new_lower, -1), (new_upper, 1)):
+            unresolved = ~np.isfinite(corners)
+            if np.any(unresolved):
+                half_spans = (second - first)[unresolved] * factor
+                corners[unresolved] = (first + second)[unresolved] + sign * half_spans
+        lower[overflow] = new_lower
+        upper[overflow] = new_upper
+    return cast(npt.NDArray[np.floating], np.concatenate((lower, upper), axis=1))
 
 
 def spread_out_boxes(
@@ -720,7 +759,7 @@ def spread_out_boxes(
         overlap_mask = iou > 0
 
         # Nx2
-        centers = (xyxy_padded[:, :2] + xyxy_padded[:, 2:]) / 2
+        centers = _box_midpoint(xyxy_padded[:, :2], xyxy_padded[:, 2:])
 
         # NxNx2
         delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]

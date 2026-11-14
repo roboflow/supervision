@@ -1,10 +1,15 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 import supervision as sv
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
+from supervision.detection.tools.polygon_zone import _boxes_union_mask
 from tests.helpers import (
     _ConstantTransform,
     _create_detections,
@@ -35,6 +40,25 @@ POLYGON = np.array([[100, 100], [200, 100], [200, 200], [100, 200]])
 
 
 class TestPolygonZoneInit:
+    @pytest.mark.parametrize("dtype_name", ["int8", "uint8", "int16", "uint16"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_retains_zone_at_integer_coordinate_limit(
+        self, dtype_name: str, axis: int
+    ) -> None:
+        """The mask margin cannot wrap at a polygon coordinate's integer limit."""
+        limit = int(np.iinfo(np.dtype(dtype_name)).max)
+        width, height = (limit, 3) if axis == 0 else (3, limit)
+        polygon = np.array(
+            [[0, 0], [width, 0], [width, height], [0, height]], dtype=dtype_name
+        )
+
+        zone = sv.PolygonZone(polygon)
+
+        expected = np.zeros((height + 2, width + 2), dtype=np.uint8)
+        expected[: height + 1, : width + 1] = 1
+        np.testing.assert_array_equal(zone.mask, expected)
+        np.testing.assert_array_equal(zone.polygon, polygon)
+
     @pytest.mark.parametrize(
         ("polygon", "triggering_anchors", "exception"),
         [
@@ -46,11 +70,17 @@ class TestPolygonZoneInit:
             ),
         ],
     )
-    def test_empty_anchors_raises(self, polygon, triggering_anchors, exception) -> None:
+    def test_empty_anchors_raises(
+        self,
+        polygon: np.ndarray,
+        triggering_anchors: list[sv.Position],
+        exception: AbstractContextManager[object],
+    ) -> None:
+        """An empty list of triggering anchors is rejected."""
         with exception:
             sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
 
-    def test_generator_triggering_anchors_is_materialized(self):
+    def test_generator_triggering_anchors_is_materialized(self) -> None:
         """A generator passed for triggering_anchors must not be silently exhausted.
 
         Calls trigger() twice on the same zone: a materialized list keeps returning
@@ -116,6 +146,23 @@ class TestPolygonZoneInit:
 
 
 class TestPolygonZoneTrigger:
+    @pytest.mark.parametrize("dtype_name", ["int8", "uint8", "int16", "uint16"])
+    def test_counts_inside_narrow_integer_polygon(self, dtype_name: str) -> None:
+        """Inside detections still trigger when the polygon reaches its dtype limit."""
+        width = int(np.iinfo(np.dtype(dtype_name)).max)
+        polygon = np.array([[0, 0], [width, 0], [width, 3], [0, 3]], dtype=dtype_name)
+        zone = sv.PolygonZone(polygon, triggering_anchors=[sv.Position.TOP_LEFT])
+        detections = sv.Detections(
+            xyxy=np.array(
+                [[1, 1, 2, 2], [width, 2, width + 1, 3], [width + 1, 1, width + 2, 2]]
+            )
+        )
+
+        in_zone = zone.trigger(detections)
+
+        np.testing.assert_array_equal(in_zone, [True, True, False])
+        assert zone.current_count == 2
+
     @pytest.mark.parametrize(
         ("detections", "polygon_zone", "expected_results", "exception"),
         [
@@ -170,8 +217,9 @@ class TestPolygonZoneTrigger:
         detections: sv.Detections,
         polygon_zone: sv.PolygonZone,
         expected_results: np.ndarray,
-        exception: Exception,
+        exception: AbstractContextManager[object],
     ) -> None:
+        """Each anchor configuration triggers the expected detections."""
         with exception:
             in_zone = polygon_zone.trigger(detections)
             assert np.all(in_zone == expected_results)
@@ -222,6 +270,73 @@ class TestPolygonZoneTrigger:
         )
         result = zone.trigger(detections)
         assert not result[0]
+
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(None, id="direct"),
+            pytest.param(_ShiftTransform(0, 0), id="identity"),
+        ],
+    )
+    def test_rejects_negative_subpixel_anchors(
+        self, transform: _ShiftTransform | None
+    ) -> None:
+        """A negative subpixel anchor stays outside when its nearest pixel is zero."""
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [20, 0], [20, 20], [0, 20]]),
+            triggering_anchors=[sv.Position.TOP_LEFT],
+        )
+        detections = sv.Detections(
+            xyxy=np.array(
+                [
+                    [-0.4, 5.0, 4.0, 8.0],
+                    [5.0, -0.4, 8.0, 4.0],
+                    [0.0, 5.0, 4.0, 8.0],
+                    [5.0, 0.0, 8.0, 4.0],
+                    [0.4, 5.0, 4.0, 8.0],
+                    [20.0, 5.0, 24.0, 8.0],
+                    [22.0, 5.0, 24.0, 8.0],
+                ]
+            )
+        )
+
+        in_zone = zone.trigger(detections, coord_transform=transform)
+
+        np.testing.assert_array_equal(
+            in_zone, [False, False, True, True, True, True, False]
+        )
+        assert zone.current_count == 4
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    def test_oversized_anchors_are_excluded_without_warning(self) -> None:
+        """Finite coordinates outside the integer range are excluded without warning."""
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [20, 0], [20, 20], [0, 20]]),
+            triggering_anchors=[sv.Position.TOP_LEFT],
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[1e30, 5.0, 1e30, 8.0], [5.0, -1e30, 8.0, 5.0]])
+        )
+
+        in_zone = zone.trigger(detections)
+
+        np.testing.assert_array_equal(in_zone, [False, False])
+        assert zone.current_count == 0
+
+    def test_float16_anchor_on_wide_polygon_boundary_is_included(self) -> None:
+        """The mask width keeps its integer precision for float16 anchors."""
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [8192, 0], [8192, 8], [0, 8]]),
+            triggering_anchors=[sv.Position.BOTTOM_RIGHT],
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[8190, 1, 8192, 5]], dtype=np.float16)
+        )
+
+        in_zone = zone.trigger(detections)
+
+        np.testing.assert_array_equal(in_zone, [True])
+        assert zone.current_count == 1
 
     def test_anchor_on_polygon_boundary_included(self) -> None:
         """An anchor landing exactly on a polygon corner is counted as inside."""
@@ -430,6 +545,10 @@ class TestPolygonZoneTriggerWithCoordTransform:
             pytest.param((160.0, 45.0), id="beyond-mask-width"),
             pytest.param((45.0, -1e30), id="far-beyond-int-range"),
             pytest.param((np.nan, np.nan), id="nan"),
+            pytest.param(
+                (np.uint64(0x7FF0000000000001).view(np.float64), 45.0),
+                id="signaling-nan",
+            ),
             pytest.param((np.inf, 45.0), id="inf"),
         ],
     )
@@ -1090,3 +1209,377 @@ class TestPolygonZoneTimeInZone:
         dwell = zone.time_in_zone(_tracked_frame(["in"], [0]))
 
         np.testing.assert_array_equal(dwell, [0.0])
+
+
+#: Square zone whose vertices span pixels 0..99, so it holds 100 x 100 pixels.
+OCCUPANCY_ZONE = np.array([[0, 0], [99, 0], [99, 99], [0, 99]])
+
+#: Detections a zero-area zone must reject, with or without anything to measure.
+ZERO_AREA_ZONE_DETECTIONS = [
+    pytest.param(sv.Detections.empty(), id="empty-detections"),
+    pytest.param(
+        sv.Detections(xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32)),
+        id="one-box",
+    ),
+]
+
+
+def _masks_detections(
+    frame_hw: tuple[int, int], regions: list[tuple[slice, slice]]
+) -> sv.Detections:
+    """Build detections with one dense boolean mask per `(rows, cols)` region."""
+    masks = np.zeros((len(regions), *frame_hw), dtype=bool)
+    for index, (rows, cols) in enumerate(regions):
+        masks[index, rows, cols] = True
+    return sv.Detections(xyxy=sv.mask_to_xyxy(masks).astype(np.float32), mask=masks)
+
+
+class TestBoxesUnionMask:
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([[1.7, 2.2, 6.9, 7.5]], id="fractional-truncated"),
+            pytest.param([[-3.5, -0.5, 4.0, 3.0]], id="negative-clipped"),
+            pytest.param([[8.0, 5.0, 20.0, 30.0]], id="edge-touching-and-beyond"),
+            pytest.param([[12.0, 0.0, 15.0, 4.0]], id="outside-canvas"),
+            pytest.param([[2.0, 2.0, 2.0, 6.0]], id="zero-width"),
+            pytest.param(
+                [[1.0, 1.0, 5.0, 5.0], [1.0, 1.0, 5.0, 5.0]], id="duplicate-boxes"
+            ),
+            pytest.param([[0.0, 0.0, 9.0, 8.0], [2.0, 2.0, 4.0, 4.0]], id="nested"),
+            pytest.param(
+                [[0.0, 0.0, 3.0, 8.0], [3.0, 0.0, 6.0, 8.0]], id="shared-edge"
+            ),
+        ],
+    )
+    def test_matches_exclusive_xyxy_to_mask_union(
+        self, xyxy: list[list[float]]
+    ) -> None:
+        """One-canvas painting covers the pixels of per-box half-open masks."""
+        boxes = np.array(xyxy, dtype=np.float32)
+        expected = sv.xyxy_to_mask(boxes, (10, 8), "exclusive").any(axis=0)
+
+        union = _boxes_union_mask(boxes, (10, 8))
+
+        np.testing.assert_array_equal(union, expected)
+
+    def test_non_finite_box_covers_nothing(self) -> None:
+        """A box with a NaN or infinite edge adds no pixels instead of failing."""
+        boxes = np.array([[0, 0, 5, 8], [np.nan, 0, 9, 8], [0, 0, np.inf, 8]])
+        expected = sv.xyxy_to_mask(boxes[:1], (10, 8), "exclusive")[0]
+
+        union = _boxes_union_mask(boxes, (10, 8))
+
+        np.testing.assert_array_equal(union, expected)
+
+
+class TestPolygonZoneOccupancyRatio:
+    def test_sparse_compact_masks_do_not_decode_a_huge_union(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Distant sparse masks do not require decoding their full union rectangle."""
+        compact = CompactMask(
+            rles=[np.array([0, 1], dtype=np.int32)] * 2,
+            crop_shapes=np.ones((2, 2), dtype=np.int32),
+            offsets=np.array([[0, 0], [99_999, 99_999]], dtype=np.int32),
+            image_shape=(100_000, 100_000),
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 1, 1], [99_999, 99_999, 100_000, 100_000]]),
+            mask=compact,
+        )
+        zone = sv.PolygonZone(np.array([[0, 0], [9, 0], [9, 9], [0, 9]]))
+        original_crop = CompactMask.crop
+
+        def bounded_crop(mask: CompactMask, index: int) -> npt.NDArray[np.bool_]:
+            """Prevent the regression from allocating the huge union crop."""
+            assert np.prod(mask._crop_shapes[index], dtype=np.int64) <= 10_000
+            return original_crop(mask, index)
+
+        monkeypatch.setattr(CompactMask, "crop", bounded_crop)
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.01)
+
+    def test_compact_long_run_is_clipped_before_expansion(self) -> None:
+        """A long foreground run only paints the part inside the zone."""
+        compact = CompactMask(
+            rles=[np.array([0, 100_000_000], dtype=np.int32)],
+            crop_shapes=np.array([[1, 100_000_000]], dtype=np.int32),
+            offsets=np.array([[0, 0]], dtype=np.int32),
+            image_shape=(1, 100_000_000),
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 100_000_000, 1]]), mask=compact
+        )
+        zone = sv.PolygonZone(np.array([[0, 0], [9, 0], [9, 9], [0, 9]]))
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.1)
+
+    @pytest.mark.parametrize(
+        ("corner", "dtype"),
+        [
+            pytest.param(2**32, np.int64, id="int64-wraps-to-zone"),
+            pytest.param(2**31, np.float32, id="float32-rounded-limit"),
+        ],
+    )
+    def test_rejects_oriented_coordinates_outside_int32(
+        self, corner: int, dtype: type
+    ) -> None:
+        """Distant oriented vertices cannot wrap into the zone during rasterization."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        polygons: npt.NDArray[Any] = np.array(
+            [
+                [
+                    [corner, corner],
+                    [corner + 99, corner],
+                    [corner + 99, corner + 99],
+                    [corner, corner + 99],
+                ]
+            ],
+            dtype=dtype,
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[corner, corner, corner + 99, corner + 99]]),
+            data={ORIENTED_BOX_COORDINATES: polygons},
+        )
+
+        with pytest.raises(ValueError, match="int32"):
+            zone.occupancy_ratio(detections)
+
+    @pytest.mark.parametrize(
+        ("xyxy", "expected"),
+        [
+            pytest.param([[0, 0, 49, 49]], 0.2401, id="half-open-box-pixels"),
+            pytest.param(
+                [[0, 0, 50, 100], [25, 0, 75, 100]], 0.75, id="overlap-counted-once"
+            ),
+            pytest.param([[-50, -50, 500, 500]], 1.0, id="oversized-box-clipped"),
+            pytest.param([[200, 200, 300, 300]], 0.0, id="box-outside-zone"),
+        ],
+    )
+    def test_boxes_cover_union_share_of_zone(
+        self, xyxy: list[list[float]], expected: float
+    ) -> None:
+        """Axis-aligned boxes cover their half-open pixels, overlaps counted once."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        detections = sv.Detections(xyxy=np.array(xyxy, dtype=np.float32))
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(expected)
+
+    def test_empty_detections_occupy_nothing(self) -> None:
+        """No detections leave the zone empty instead of failing to build a union."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+
+        ratio = zone.occupancy_ratio(sv.Detections.empty())
+
+        assert ratio == 0.0
+
+    @pytest.mark.parametrize(
+        ("frame_hw", "regions", "expected"),
+        [
+            pytest.param(
+                (300, 400),
+                [
+                    (slice(0, 100), slice(0, 50)),
+                    (slice(0, 100), slice(25, 75)),
+                    (slice(200, 250), slice(300, 350)),
+                ],
+                0.75,
+                id="larger-frame-cropped-to-zone",
+            ),
+            pytest.param(
+                (50, 50),
+                [(slice(0, 50), slice(0, 50))],
+                0.25,
+                id="smaller-frame-padded",
+            ),
+        ],
+    )
+    def test_dense_masks_cover_union_share_of_zone(
+        self,
+        frame_hw: tuple[int, int],
+        regions: list[tuple[slice, slice]],
+        expected: float,
+    ) -> None:
+        """Dense masks of any frame size are unioned over the zone's own extent."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        detections = _masks_detections(frame_hw, regions)
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(expected)
+
+    def test_compact_mask_is_pasted_at_its_offset(self) -> None:
+        """A compact mask lands at its `(x, y)` offset, not at a swapped or zero one.
+
+        The 800-pixel mask sits right of a wide zone's middle with a different `x` and
+        `y` offset: swapping them would move it below the zone and report `0.0`.
+        """
+        zone = sv.PolygonZone(np.array([[0, 0], [199, 0], [199, 99], [0, 99]]))
+        masks = np.zeros((1, 120, 240), dtype=bool)
+        masks[0, 10:30, 150:190] = True
+        xyxy = np.array([[140, 5, 200, 40]], dtype=np.float32)
+        compact = CompactMask.from_dense(masks, xyxy, image_shape=(120, 240))
+        detections = sv.Detections(xyxy=xyxy, mask=compact)
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(800 / 20_000)
+
+    def test_overlapping_oriented_boxes_are_unioned(self) -> None:
+        """Overlapping oriented boxes count their shared pixels once, not zero times.
+
+        A single even-odd fill of both outlines would leave their intersection empty.
+        """
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        corners = np.array(
+            [
+                [[0, 0], [49, 0], [49, 99], [0, 99]],
+                [[25, 0], [74, 0], [74, 99], [25, 99]],
+            ],
+            dtype=np.float32,
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 50, 100], [25, 0, 75, 100]], dtype=np.float32),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.75)
+
+    def test_zone_mask_scaled_to_255_counts_pixels(self) -> None:
+        """A 0/255 zone mask is measured in pixels, not in summed mask values."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        zone.mask = zone.mask.astype(np.uint8) * 255
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 50, 100], [25, 0, 75, 100]], dtype=np.float32)
+        )
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.75)
+
+    def test_leaves_current_count_unchanged(self) -> None:
+        """Measuring occupancy does not overwrite the count of the last trigger."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        zone.trigger(sv.Detections(xyxy=np.array([[40, 40, 60, 60]], dtype=np.float32)))
+
+        zone.occupancy_ratio(sv.Detections.empty())
+
+        assert zone.current_count == 1
+
+    @pytest.mark.parametrize(
+        ("polygon", "expected"),
+        [
+            pytest.param(OCCUPANCY_ZONE, 1.0, id="pixel-equal-zone-fully-covered"),
+            pytest.param(
+                np.array([[0, 0], [100, 0], [100, 100], [0, 100]]),
+                10_000 / 10_201,
+                id="vertex-equal-zone-misses-far-edges",
+            ),
+        ],
+    )
+    def test_box_convention_against_inclusive_zone(
+        self, polygon: np.ndarray, expected: float
+    ) -> None:
+        """Half-open box `[0, 0, 100, 100]` fills exactly the 100 x 100 pixel zone.
+
+        The zone includes its vertex pixels while boxes stay half-open, so a zone drawn
+        on vertices 0..100 keeps its last row and column uncovered.
+        """
+        zone = sv.PolygonZone(polygon)
+        detections = sv.Detections(xyxy=np.array([[0, 0, 100, 100]], dtype=float))
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == expected
+
+    def test_non_boolean_mask_counts_nonzero_pixels(self) -> None:
+        """A 0/255 detection mask covers the same pixels as its boolean twin."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        masks: npt.NDArray[Any] = np.zeros((2, 100, 100), dtype=np.uint8)
+        masks[0, :, :50] = 255
+        masks[1, :, 25:75] = 255
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 50, 100], [25, 0, 75, 100]], dtype=np.float32),
+            mask=masks.astype(bool),
+        )
+        detections.mask = masks
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.75)
+
+    def test_rejects_flat_oriented_box_corners(self) -> None:
+        """Corners stored flat as `(N, 8)` raise a ValueError naming both shapes."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 50, 100]], dtype=np.float32),
+            data={ORIENTED_BOX_COORDINATES: np.zeros((1, 8), dtype=np.float32)},
+        )
+
+        with pytest.raises(ValueError, match=r"shape \(1, K, 2\); got shape \(1, 8\)"):
+            zone.occupancy_ratio(detections)
+
+    def test_rejects_mask_reassigned_with_wrong_shape(self) -> None:
+        """A mask swapped in after construction is re-checked before reduction."""
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        detections = _masks_detections((100, 100), [(slice(0, 100), slice(0, 50))])
+        detections.mask = np.ones((100, 100), dtype=bool)
+
+        with pytest.raises(
+            ValueError,
+            match=r"mask must have shape \(1, H, W\); got shape \(100, 100\)",
+        ):
+            zone.occupancy_ratio(detections)
+
+    @pytest.mark.parametrize("detections", ZERO_AREA_ZONE_DETECTIONS)
+    def test_rejects_zone_polygon_off_frame(self, detections: sv.Detections) -> None:
+        """A polygon at negative coordinates leaves no zone pixels and raises.
+
+        The zone mask still has a pixel, but the polygon misses it, so the ratio has no
+        denominator; an empty frame must not hide that behind a `0.0`.
+        """
+        zone = sv.PolygonZone(np.array([[-10, -10], [-1, -10], [-1, -1], [-10, -1]]))
+
+        with pytest.raises(ValueError, match="Zone mask covers no pixels"):
+            zone.occupancy_ratio(detections)
+
+    @pytest.mark.parametrize("detections", ZERO_AREA_ZONE_DETECTIONS)
+    def test_rejects_zone_mask_without_pixels(self, detections: sv.Detections) -> None:
+        """A frame-sized zone mask with no nonzero pixels raises instead of dividing.
+
+        Reassigning an all-zero mask isolates the guard from polygon rasterization.
+        """
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        zone.mask = np.zeros_like(zone.mask)
+
+        with pytest.raises(ValueError, match=r"shape \(101, 101\) with no nonzero"):
+            zone.occupancy_ratio(detections)
+
+    def test_oriented_box_takes_precedence_over_enclosing_box(self) -> None:
+        """A rotated box covers only its own body, not the axis-aligned box around it.
+
+        The diamond's enclosing `xyxy` box covers the whole zone, so falling back to it
+        would report full occupancy; the oriented corners must be rasterized instead,
+        with the same rule as `polygon_to_mask`.
+        """
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        diamond = np.array([[50, 0], [99, 50], [50, 99], [0, 50]], dtype=np.float32)
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 100, 100]], dtype=np.float32),
+            data={ORIENTED_BOX_COORDINATES: diamond[np.newaxis]},
+        )
+        expected = np.count_nonzero(sv.polygon_to_mask(diamond, (101, 101))) / 10_000
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(expected)
+        assert ratio < 0.6

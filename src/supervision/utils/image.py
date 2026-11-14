@@ -7,7 +7,7 @@ import urllib.parse
 from hashlib import md5
 from pathlib import Path
 from types import TracebackType
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -84,6 +84,12 @@ def load_image_from_url(
     Raises:
         ValueError: If the URL is invalid or the downloaded bytes cannot be decoded.
         requests.RequestException: If the request fails or returns an error status.
+
+    Note:
+        Without OpenCV, ``cv_imread_flags=0`` (``IMREAD_GRAYSCALE``) returns a
+        two-dimensional ``uint8`` image. Pillow-backed grayscale conversions for
+        other codecs or color modes can differ from OpenCV's decoder, even when
+        their shape and dtype agree.
 
     Examples:
         ```python
@@ -202,6 +208,25 @@ def crop_image(
     )
 
 
+def _keep_single_channel_axis(
+    result: npt.NDArray[Any], image: npt.NDArray[Any]
+) -> npt.NDArray[Any]:
+    """Give ``result`` back the channel axis of an ``(H, W, 1)`` ``image``.
+
+    OpenCV's ``resize`` and ``copyMakeBorder`` return ``(H, W)`` for an ``(H, W, 1)``
+    input, while the NumPy fallback keeps the axis, so the shape would otherwise depend
+    on whether OpenCV is installed.
+    """
+    if image.ndim == 3 and image.shape[2] == 1 and result.ndim == 2:
+        return result[..., np.newaxis]
+    return result
+
+
+def _is_single_channel(image: npt.NDArray[Any]) -> bool:
+    """Return whether ``image`` is grayscale, shaped ``(H, W)`` or ``(H, W, 1)``."""
+    return image.ndim == 2 or (image.ndim == 3 and image.shape[2] == 1)
+
+
 @ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
@@ -257,10 +282,8 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     # image that still exists, so clamp there instead.
     width_new = max(1, int(width_old * scale_factor))
     height_new = max(1, int(height_old * scale_factor))
-    return cast(
-        npt.NDArray[np.uint8],
-        cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
-    )
+    resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
 
 @ensure_cv2_image_for_standalone_function
@@ -285,9 +308,11 @@ def resize_image(
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
     Note:
-        With `keep_aspect_ratio=True` the fitted axis keeps at least one pixel, so
-        an aspect ratio too extreme to fit the target box returns a one-pixel-wide
-        or one-pixel-tall image rather than raising.
+        With `keep_aspect_ratio=True` the fitted axis is rounded down to a whole
+        pixel and keeps at least one pixel, so an aspect ratio too extreme to fit
+        the target box returns a one-pixel-wide or one-pixel-tall image rather
+        than raising. A target with the same aspect ratio as the image returns
+        exactly the target size.
 
     Examples:
         ```pycon
@@ -319,24 +344,25 @@ def resize_image(
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     if keep_aspect_ratio:
-        image_ratio = image.shape[1] / image.shape[0]
-        target_ratio = resolution_wh[0] / resolution_wh[1]
+        height_old, width_old = image.shape[:2]
+        target_width, target_height = resolution_wh
+        # Compare and scale with integer products, not float ratios. A ratio such as
+        # 640 / 427 is inexact, so `640 / (640 / 427)` gives 426.99999999999994 and
+        # `int()` dropped a pixel from a fitted axis whose exact size is whole.
         # The fitted axis truncates to zero once the aspect ratio outgrows the target
         # box, and `cv2.resize` answers a zero-sized target with a bare assertion.
         # One pixel is the smallest image that still exists, so clamp there instead.
-        if image_ratio >= target_ratio:
-            width_new = resolution_wh[0]
-            height_new = max(1, int(resolution_wh[0] / image_ratio))
+        if width_old * target_height >= target_width * height_old:
+            width_new = target_width
+            height_new = max(1, int(target_width * height_old // width_old))
         else:
-            height_new = resolution_wh[1]
-            width_new = max(1, int(resolution_wh[1] * image_ratio))
+            height_new = target_height
+            width_new = max(1, int(target_height * width_old // height_old))
     else:
         width_new, height_new = resolution_wh
 
-    return cast(
-        npt.NDArray[np.uint8],
-        cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
-    )
+    resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
 
 @ensure_cv2_image_for_standalone_function
@@ -351,7 +377,7 @@ def letterbox_image(
     Args:
         image: The image to resize and pad. Accepts BGR arrays of shape
             ``(H, W, 3)``, BGRA arrays of shape ``(H, W, 4)``, grayscale
-            arrays of shape ``(H, W)``, or a PIL ``Image``.
+            arrays of shape ``(H, W)`` or ``(H, W, 1)``, or a PIL ``Image``.
         resolution_wh: Target resolution as `(width, height)`.
         color: Padding color. If tuple, should be in BGR format.
             Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
@@ -396,20 +422,38 @@ def letterbox_image(
     padding_bottom = resolution_wh[1] - height_new - padding_top
     padding_left = (resolution_wh[0] - width_new) // 2
     padding_right = resolution_wh[0] - width_new - padding_left
-    image_with_borders = cast(
-        npt.NDArray[np.uint8],
-        cv2.copyMakeBorder(
-            resized_image,
-            padding_top,
-            padding_bottom,
-            padding_left,
-            padding_right,
-            cv2.BORDER_CONSTANT,
-            value=color,
-        ),
+    image_with_borders = cv2.copyMakeBorder(
+        resized_image,
+        padding_top,
+        padding_bottom,
+        padding_left,
+        padding_right,
+        cv2.BORDER_CONSTANT,
+        value=color,
+    )
+    return cast(
+        npt.NDArray[np.uint8], _keep_single_channel_axis(image_with_borders, image)
     )
 
-    return image_with_borders
+
+def _match_overlay_to_scene_channels(
+    overlay: npt.NDArray[np.uint8], roi: npt.NDArray[np.uint8]
+) -> npt.NDArray[np.uint8]:
+    """Return ``overlay`` in the channel layout of the scene region ``roi``.
+
+    A grayscale scene, shaped ``(H, W)`` or ``(H, W, 1)``, takes a BGR overlay, such as
+    an icon, as its gray luminance. A grayscale overlay is reshaped to the scene's
+    layout, because ``cv2.resize`` drops the channel axis of a crop taken from an ``(H,
+    W, 1)`` scene.
+    """
+    if roi.ndim == 3 and roi.shape[2] != 1:
+        return overlay
+    if overlay.ndim == 3 and overlay.shape[2] == 3:
+        overlay = cast(
+            npt.NDArray[np.uint8],
+            cv2.cvtColor(np.ascontiguousarray(overlay), cv2.COLOR_BGR2GRAY),
+        )
+    return overlay.reshape(roi.shape)
 
 
 def _overlay_image(
@@ -420,10 +464,12 @@ def _overlay_image(
     """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
 
     Args:
-        image: Background BGR array of shape ``(H, W, 3)``. Modified in place
-            and returned.
-        overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``; channel
-            4, when present, is treated as alpha.
+        image: Background array, BGR of shape ``(H, W, 3)`` or grayscale of
+            shape ``(H, W)`` or ``(H, W, 1)``. Modified in place and returned.
+        overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``, or
+            grayscale like ``image``; channel 4, when present, is treated as
+            alpha. A BGR overlay is drawn as gray luminance on a grayscale
+            ``image``.
         anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
             be negative (partial off-screen placement is clipped).
 
@@ -450,20 +496,23 @@ def _overlay_image(
     crop_x_max = image_width - max((anchor_x + image_width) - scene_width, 0)
     crop_y_max = image_height - max((anchor_y + image_height) - scene_height, 0)
 
-    if overlay.shape[2] == 4:
-        b, g, r, alpha = cv2.split(
-            overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
-        )
-        alpha_f32 = alpha[:, :, None].astype(np.float32) / 255.0
-        overlay_color = cv2.merge((b, g, r)).astype(np.float32)
+    overlay_crop = overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
+    roi = image[y_min:y_max, x_min:x_max]
+    alpha = None
+    if overlay_crop.ndim == 3 and overlay_crop.shape[2] == 4:
+        alpha = overlay_crop[:, :, 3]
+        overlay_crop = overlay_crop[:, :, :3]
+    overlay_crop = _match_overlay_to_scene_channels(overlay=overlay_crop, roi=roi)
 
-        roi = image[y_min:y_max, x_min:x_max].astype(np.float32)
-        blended = roi * (1 - alpha_f32) + overlay_color * alpha_f32
+    if alpha is not None:
+        alpha_f32 = alpha.astype(np.float32) / 255.0
+        if roi.ndim == 3:
+            alpha_f32 = alpha_f32[:, :, None]
+        overlay_color = overlay_crop.astype(np.float32)
+        blended = roi.astype(np.float32) * (1 - alpha_f32) + overlay_color * alpha_f32
         image[y_min:y_max, x_min:x_max] = np.clip(blended, 0, 255).astype(np.uint8)
     else:
-        image[y_min:y_max, x_min:x_max] = overlay[
-            crop_y_min:crop_y_max, crop_x_min:crop_x_max
-        ]
+        image[y_min:y_max, x_min:x_max] = overlay_crop
 
     return image
 
@@ -478,7 +527,8 @@ def tint_image(
 
     Args:
         image: The image to tint. Accepts BGR arrays of shape ``(H, W, 3)``,
-            grayscale arrays of shape ``(H, W)``, or a PIL ``Image``.
+            grayscale arrays of shape ``(H, W)`` or ``(H, W, 1)``, or a PIL
+            ``Image``.
         color: Overlay tint color. Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
         opacity: Blend ratio between overlay and image (0.0-1.0).
             Defaults to `0.5`.
@@ -513,7 +563,7 @@ def tint_image(
         raise ValueError("opacity must be between 0.0 and 1.0")
 
     assert isinstance(image, np.ndarray)
-    if image.ndim == 2:
+    if _is_single_channel(image):
         # A three-channel overlay cannot be blended into a single-channel image.
         image = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
@@ -535,8 +585,8 @@ def grayscale_image(image: ImageType) -> ImageType:
 
     Args:
         image: The image to convert to grayscale. Accepts BGR arrays of shape
-            ``(H, W, 3)``, grayscale arrays of shape ``(H, W)``, or a PIL
-            ``Image``.
+            ``(H, W, 3)``, grayscale arrays of shape ``(H, W)`` or ``(H, W, 1)``,
+            or a PIL ``Image``.
 
     Returns:
         3-channel grayscale image
@@ -556,7 +606,7 @@ def grayscale_image(image: ImageType) -> ImageType:
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     assert isinstance(image, np.ndarray)
-    if image.ndim == 2:
+    if _is_single_channel(image):
         return cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
     grayscaled = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
     return cast(npt.NDArray[np.uint8], cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR))
@@ -630,7 +680,7 @@ class ImageSink:
             target_dir_path: Target directory path where images will be
                 saved.
             overwrite: Whether to overwrite existing directory.
-                Defaults to `False`.
+                Also permits replacing an existing image file. Defaults to `False`.
             image_name_pattern: File name pattern for saved images.
                 Defaults to `"image_{:05d}.png"`.
 
@@ -679,12 +729,19 @@ class ImageSink:
                 `None`.
 
         Raises:
+            ValueError: If the target path contains an embedded null character.
+            FileExistsError: If `overwrite` is `False` and the target file exists.
             OSError: If `cv2.imwrite` cannot write the image to disk.
         """
         if image_name is None:
             image_name = self.image_name_pattern.format(self.image_count)
 
         image_path = os.path.join(self.target_dir_path, image_name)
+        # Native image writers can truncate at NUL, bypassing the existence guard.
+        if "\0" in image_path:
+            raise ValueError("Image path contains an embedded null character")
+        if not self.overwrite and os.path.lexists(image_path):
+            raise FileExistsError(f"Image already exists: {image_path}")
         if not cv2.imwrite(image_path, image):
             raise OSError(f"Failed to save image to path: {image_path}")
         self.image_count += 1

@@ -17,16 +17,20 @@ on:
 
 jobs:
   build:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 🐍 Install uv and set Python version ${{ inputs.python-version }}
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: ${{ inputs.python-version }}
           activate-environment: true
+          enable-cache: ${{ github.event_name == 'pull_request' }}
 
       - name: 🎨 Augment paths in README
         # A fork PR's branch exists only on the fork, so links must point there.
@@ -40,7 +44,7 @@ jobs:
 
       - name: 🔗 Link Checker
         if: inputs.link-check
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           lycheeVersion: v0.22.0
           args: |
@@ -55,7 +59,8 @@ jobs:
           twine check --strict dist/*
 
       - name: 📤 Upload distribution artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist/
+          retention-days: 3

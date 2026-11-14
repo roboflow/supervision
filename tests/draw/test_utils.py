@@ -6,6 +6,7 @@ import pytest
 from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    _map_to_drawing_coordinates,
     draw_filled_rectangle,
     draw_image,
     draw_line,
@@ -15,6 +16,9 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import Point, Rect
 from supervision.utils.image import grayscale_image
+from tests.helpers import _MoveBeyondX, _WrongShapeTransform
+
+DRAWING_LIMIT = 2**20
 
 
 def test_draw_image_invalid_path_raises_oserror(tmp_path: Path) -> None:
@@ -324,3 +328,125 @@ def test_grayscale_image_uniform_color_stays_gray() -> None:
     image = np.full((20, 20, 3), fill_value=[100, 150, 200], dtype=np.uint8)
     result = grayscale_image(image=image)
     assert result[:, :, 0].min() == result[:, :, 0].max()
+
+
+class TestMapToDrawingCoordinates:
+    """`_map_to_drawing_coordinates` maps points or rejects undrawable ones."""
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        ("mapped_x", "expected"),
+        [
+            pytest.param(np.nan, None, id="nan"),
+            pytest.param(np.inf, None, id="inf"),
+            pytest.param(-np.inf, None, id="negative-inf"),
+            pytest.param(1e30, None, id="far-beyond-limit"),
+            pytest.param(DRAWING_LIMIT + 0.5, None, id="just-beyond-limit"),
+            pytest.param(-DRAWING_LIMIT - 0.5, None, id="just-beyond-negative-limit"),
+            pytest.param(
+                DRAWING_LIMIT,
+                np.array([[0.0, 5.0], [DRAWING_LIMIT, 2.0]]),
+                id="at-limit",
+            ),
+            pytest.param(
+                -DRAWING_LIMIT,
+                np.array([[0.0, 5.0], [-DRAWING_LIMIT, 2.0]]),
+                id="at-negative-limit",
+            ),
+            pytest.param(
+                2.5, np.array([[0.0, 5.0], [2.5, 2.0]]), id="fraction-not-rounded"
+            ),
+        ],
+    )
+    def test_returns_mapped_points_or_none_when_undrawable(
+        self, mapped_x: float, expected: np.ndarray | None
+    ) -> None:
+        """One non-finite point, or one beyond 2**20 px before rounding, gives None."""
+        points = np.array([[0, 5], [10, 2]])
+
+        mapped = _map_to_drawing_coordinates(points, _MoveBeyondX(1, mapped_x))
+
+        np.testing.assert_equal(mapped, expected)
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        points = np.array([[0, 5], [10, 2]])
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            _map_to_drawing_coordinates(points, _WrongShapeTransform())
+
+
+class TestDrawImageSceneLayouts:
+    @pytest.mark.parametrize(
+        "scene_shape", [pytest.param((6, 8), id="2d"), pytest.param((6, 8, 1), id="3d")]
+    )
+    def test_grayscale_scene_receives_image_luminance(
+        self, scene_shape: tuple[int, ...]
+    ) -> None:
+        """Draw an opaque BGR image on a grayscale scene as its gray luminance."""
+        scene = np.full(scene_shape, 7, dtype=np.uint8)
+        image = np.full((4, 4, 3), (255, 0, 0), dtype=np.uint8)
+        expected = np.asarray(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))[0, 0]
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(1, 1, 4, 4))
+
+        assert result.shape == scene_shape
+        np.testing.assert_array_equal(
+            result[1:5, 1:5], np.full_like(result[1:5, 1:5], expected)
+        )
+        assert result[0, 0].item() == 7
+
+    def test_grayscale_scene_blends_with_opacity(self) -> None:
+        """Blend the image luminance into a grayscale scene at the given opacity."""
+        scene = np.zeros((4, 4), dtype=np.uint8)
+        image = np.full((4, 4, 3), 200, dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=0.5, rect=Rect(0, 0, 4, 4))
+
+        np.testing.assert_array_equal(result, np.full((4, 4), 100, dtype=np.uint8))
+
+    @pytest.mark.parametrize(
+        ("scene_pixel", "expected"),
+        [
+            pytest.param((0, 0, 0, 0), (255, 0, 0, 128), id="transparent-scene"),
+            pytest.param((0, 0, 255, 128), (170, 0, 85, 192), id="translucent-scene"),
+            pytest.param((0, 0, 255, 255), (128, 0, 127, 255), id="opaque-scene"),
+        ],
+    )
+    def test_translucent_image_on_bgra_scene_composites_straight_alpha(
+        self, scene_pixel: tuple[int, ...], expected: tuple[int, ...]
+    ) -> None:
+        """A translucent draw weights colors by alpha rather than darkening them."""
+        scene = np.full((4, 4, 4), scene_pixel, dtype=np.uint8)
+        image = np.full((4, 4, 4), (255, 0, 0, 128), dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(0, 0, 4, 4))
+
+        assert tuple(result[0, 0].tolist()) == expected
+
+    def test_invisible_image_keeps_transparent_bgra_scene(self) -> None:
+        """A fully transparent draw leaves even a transparent scene's color alone."""
+        scene = np.full((4, 4, 4), (9, 8, 7, 0), dtype=np.uint8)
+        image = np.full((4, 4, 4), (255, 0, 0, 0), dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(0, 0, 4, 4))
+
+        assert tuple(result[0, 0].tolist()) == (9, 8, 7, 0)
+
+    @pytest.mark.parametrize(
+        ("opacity", "expected_alpha"),
+        [pytest.param(1.0, 255, id="opaque"), pytest.param(0.0, 40, id="invisible")],
+    )
+    def test_bgra_scene_keeps_alpha_channel(
+        self, opacity: float, expected_alpha: int
+    ) -> None:
+        """Draw on a BGRA scene and make drawn pixels opaque with the image."""
+        scene = np.full((4, 4, 4), (1, 2, 3, 40), dtype=np.uint8)
+        image = np.full((4, 4, 3), (10, 20, 30), dtype=np.uint8)
+        expected_bgr = (10, 20, 30) if opacity else (1, 2, 3)
+
+        result = draw_image(scene, image, opacity=opacity, rect=Rect(0, 0, 4, 4))
+
+        assert result.shape == (4, 4, 4)
+        np.testing.assert_array_equal(result[..., :3], np.full((4, 4, 3), expected_bgr))
+        np.testing.assert_array_equal(result[..., 3], np.full((4, 4), expected_alpha))

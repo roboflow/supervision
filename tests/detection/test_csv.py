@@ -1,6 +1,9 @@
 import csv
+import errno
+import io
 import json
 import os
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -544,7 +547,8 @@ def test_csv_sink_manual(
     assert_csv_equal(file_name, expected_result)
 
 
-def assert_csv_equal(file_name, expected_rows) -> None:
+def assert_csv_equal(file_name: str, expected_rows: list[list[Any]]) -> None:
+    """Assert a CSV sink file holds the expected rows, then delete it."""
     with open(file_name, newline="") as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
@@ -645,6 +649,84 @@ class TestCSVSinkLifecycle:
                 "second_label": "second",
             }
         ]
+
+
+def _run_empty_csv_session(sink: CSVSink, body_error: BaseException | None) -> None:
+    """Exit an empty CSV session, optionally raising a processing error."""
+    with sink:
+        sink.append(sv.Detections.empty())
+        if body_error is not None:
+            raise body_error
+
+
+class TestCSVSinkExitErrors:
+    @pytest.mark.parametrize("failure_phase", ["header", "flush"])
+    @pytest.mark.parametrize(
+        "body_error_type",
+        [
+            None,
+            pytest.param(ValueError, id="callback"),
+            pytest.param(KeyboardInterrupt, id="interrupt"),
+            pytest.param(SystemExit, id="system-exit"),
+        ],
+    )
+    def test_reports_cleanup_failure_without_replacing_body_error(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        failure_phase: str,
+        body_error_type: type[BaseException] | None,
+    ) -> None:
+        """Keep the block error when deferred-header writing or flushing fails."""
+        buffer = io.BytesIO()
+        stream = io.TextIOWrapper(
+            buffer, encoding="utf-8", write_through=failure_phase == "header"
+        )
+        cleanup_error = OSError(errno.ENOSPC, "No space left on device")
+        monkeypatch.setattr(buffer, "write", Mock(side_effect=cleanup_error))
+        monkeypatch.setattr(
+            csv_sink_module, "open", Mock(return_value=stream), raising=False
+        )
+        monkeypatch.setattr(csv_sink_module.logger, "handlers", [caplog.handler])
+        body_error = (
+            None if body_error_type is None else body_error_type("processing failed")
+        )
+        expected_error = cleanup_error if body_error is None else body_error
+        sink = CSVSink(str(tmp_path / "detections.csv"))
+
+        with pytest.raises(type(expected_error)) as caught:
+            _run_empty_csv_session(sink, body_error)
+
+        assert caught.value is expected_error
+        assert stream.closed
+        assert buffer.closed
+        if body_error is None:
+            assert not caplog.records
+        else:
+            assert len(caplog.records) == 1
+            record = caplog.records[0]
+            assert (
+                record.getMessage()
+                == "Failed to close CSV sink while handling an error."
+            )
+            assert record.exc_info is not None
+            assert record.exc_info[1] is cleanup_error
+
+    def test_preserves_body_error_when_close_succeeds(self, tmp_path: Path) -> None:
+        """Closing the CSV after a processing error still writes its deferred header."""
+        path = tmp_path / "detections.csv"
+        sink = CSVSink(str(path))
+        body_error = ValueError("processing failed")
+
+        with pytest.raises(ValueError, match="processing failed") as caught:
+            _run_empty_csv_session(sink, body_error)
+
+        assert caught.value is body_error
+        assert sink.file is not None
+        assert sink.file.closed
+        with path.open(encoding="utf-8", newline="") as file:
+            assert list(csv.reader(file)) == [csv_sink_module.BASE_HEADER]
 
 
 class TestCSVSinkEmptyBatches:
@@ -1032,3 +1114,98 @@ class TestCSVSinkArrayData:
             rows = list(csv.DictReader(file))
 
         assert [row["values"] for row in rows] == [str(values)] * 2
+
+
+class TestCSVSinkReservedColumns:
+    """Cover collisions with built-in detection columns."""
+
+    @pytest.mark.parametrize("count", [0, 1])
+    @pytest.mark.parametrize(
+        ("field_name", "from_custom_data"),
+        [
+            pytest.param("confidence", True, id="custom-data"),
+            pytest.param("x_min", False, id="detection-data"),
+        ],
+    )
+    def test_rejects_collision_without_writing_a_header(
+        self,
+        tmp_path: Path,
+        count: int,
+        field_name: str,
+        from_custom_data: bool,
+    ) -> None:
+        """An invalid batch cannot establish a CSV schema."""
+        path = tmp_path / "detections.csv"
+        custom_data = {field_name: 0.25} if from_custom_data else None
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]])[:count],
+            confidence=np.full(count, 0.75),
+            data={} if from_custom_data else {field_name: np.full(count, 42)},
+        )
+
+        with CSVSink(str(path)) as sink:
+            with pytest.raises(
+                ValueError, match=rf"reserved CSV column names {field_name}"
+            ):
+                sink.append(detections, custom_data=custom_data)
+
+        assert path.read_bytes() == b""
+
+    @pytest.mark.parametrize(
+        "parse", [CSVSink.parse_detection_data, CSVSink.parse_field_names]
+    )
+    def test_parsers_report_all_conflicts(self, parse: Callable[..., object]) -> None:
+        """The public row and header helpers share the reserved-name policy."""
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]]),
+            data={"x_min": np.array([42])},
+        )
+
+        with pytest.raises(
+            ValueError, match="reserved CSV column names confidence, x_min"
+        ):
+            parse(detections, custom_data={"confidence": 0.25, "x_min": 99})
+
+    def test_rejected_batch_preserves_existing_rows_and_extra_fields(
+        self, tmp_path: Path
+    ) -> None:
+        """A rejected batch leaves the sink usable and valid extra fields intact."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]]),
+            confidence=np.array([0.75]),
+            data={"frame": np.array([0])},
+        )
+
+        with CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame": 1})
+            with pytest.raises(
+                ValueError, match="reserved CSV column names confidence"
+            ):
+                sink.append(detections, custom_data={"frame": 2, "confidence": 0.25})
+            sink.append(detections, custom_data={"frame": 3})
+
+        with path.open(newline="", encoding="utf-8") as file:
+            rows = list(csv.reader(file))
+        assert rows == [
+            [*csv_sink_module.BASE_HEADER, "frame"],
+            ["2.0", "3.0", "7.0", "8.0", "", "0.75", "", "1"],
+            ["2.0", "3.0", "7.0", "8.0", "", "0.75", "", "3"],
+        ]
+
+    def test_rejected_empty_batch_preserves_deferred_header(
+        self, tmp_path: Path
+    ) -> None:
+        """Rejecting an empty batch retains the previously deferred header."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections.empty()
+
+        with CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame": 1})
+            with pytest.raises(
+                ValueError, match="reserved CSV column names tracker_id"
+            ):
+                sink.append(detections, custom_data={"tracker_id": 3})
+
+        with path.open(newline="", encoding="utf-8") as file:
+            assert list(csv.reader(file)) == [[*csv_sink_module.BASE_HEADER, "frame"]]

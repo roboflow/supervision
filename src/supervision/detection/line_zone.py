@@ -14,7 +14,11 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import cross_product
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_rectangle, draw_text
+from supervision.draw.utils import (
+    _map_to_drawing_coordinates,
+    draw_rectangle,
+    draw_text,
+)
 from supervision.geometry.core import (
     CoordinatesTransformation,
     Point,
@@ -106,6 +110,7 @@ class LineZone:
             Position.BOTTOM_RIGHT,
         ),
         minimum_crossing_threshold: int = 1,
+        max_absent_frames: int | None = None,
     ) -> None:
         """
         Args:
@@ -130,7 +135,22 @@ class LineZone:
                 on, at the start of its life and again after it has been absent
                 long enough for its state to be dropped, becomes its reference
                 immediately, with no confirmation.
+            max_absent_frames: Number of consecutive missing frames at which a
+                tracker's crossing state is dropped. A tracker that returns sooner
+                keeps its side, so an object occluded while it crosses the line is
+                still counted. If `None`, the limit is the larger of 30 and
+                `minimum_crossing_threshold + 1`, preserving previous retention for
+                high crossing thresholds. Set it explicitly to match the tracker's
+                lost-track buffer when needed.
+
+        Raises:
+            ValueError: If `max_absent_frames` is less than 1.
         """
+        if max_absent_frames is None:
+            max_absent_frames = max(30, minimum_crossing_threshold + 1)
+        if max_absent_frames < 1:
+            raise ValueError("max_absent_frames must be at least 1.")
+        self.max_absent_frames = max_absent_frames
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
@@ -146,9 +166,8 @@ class LineZone:
         # on its first frame back after eviction — still decides where it starts.
         self._confirmed_crossing_side: dict[int, bool] = {}
         # Tracks consecutive frames a tracker key has been absent; eviction
-        # requires crossing_history_length absent frames so that ByteTrack
-        # coasting gaps (single-frame detection drops) don't reset mid-crossing
-        # state prematurely.
+        # requires max_absent_frames absent frames so that a tracker keeping an ID
+        # through an occlusion doesn't lose its mid-crossing state.
         self._tracker_frames_absent: dict[int, int] = {}
         self._in_count_per_class: Counter[int | None] = Counter()
         self._out_count_per_class: Counter[int | None] = Counter()
@@ -317,12 +336,13 @@ class LineZone:
         return crossed_in, crossed_out
 
     def _evict_stale_crossing_history(self, current_keys: set[int]) -> None:
+        """Drop crossing state of trackers absent for `max_absent_frames` frames."""
         for key in list(self.crossing_state_history):
             if key in current_keys:
                 self._tracker_frames_absent.pop(key, None)
             else:
                 absent = self._tracker_frames_absent.get(key, 0) + 1
-                if absent >= self.crossing_history_length:
+                if absent >= self.max_absent_frames:
                     del self.crossing_state_history[key]
                     self._confirmed_crossing_side.pop(key, None)
                     self._tracker_frames_absent.pop(key, None)
@@ -522,19 +542,77 @@ class LineZoneAnnotator:
         self.text_centered: bool = text_centered
 
     def annotate(
-        self, frame: npt.NDArray[np.uint8], line_counter: LineZone
+        self,
+        frame: npt.NDArray[np.uint8],
+        line_counter: LineZone,
+        coord_transform: CoordinatesTransformation | None = None,
     ) -> npt.NDArray[np.uint8]:
         """Draws the line on the frame using the line zone provided.
 
         Args:
             frame: The image on which the line will be drawn.
             line_counter: The line zone that will be used to draw the line.
+            coord_transform: Optional per-frame camera motion, the same one passed
+                to :meth:`~supervision.detection.line_zone.LineZone.trigger`. The
+                line's endpoints are mapped into the current frame with
+                :meth:`~supervision.geometry.core.CoordinatesTransformation.abs_to_rel`
+                and rounded to the nearest pixel, where drawing without a transform
+                truncates. The count labels follow the mapped line. An oriented
+                label (`text_orient_to_line=True`) beyond the left or top edge is
+                pulled back only as far as the line point it is anchored on, so
+                the labels of a line that leaves the frame leave with it; without a
+                transform they are always pulled back onto the frame. If either
+                endpoint maps to a non-finite coordinate or one beyond `2**20`
+                pixels, the line is not drawn on this frame and `frame` is returned
+                unchanged.
 
         Returns:
             The image with the line drawn on it.
+
+        Raises:
+            ValueError: If `coord_transform` does not return one point per input
+                point.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> class CameraShift:
+            ...     def abs_to_rel(self, points): return points + [0, 60]
+            ...     def rel_to_abs(self, points): return points - [0, 60]
+            >>> line = sv.LineZone(start=sv.Point(10, 20), end=sv.Point(190, 20))
+            >>> line_annotator = sv.LineZoneAnnotator(
+            ...     display_in_count=False, display_out_count=False
+            ... )
+            >>> frame = np.zeros((120, 200, 3), dtype=np.uint8)
+            >>> annotated_frame = line_annotator.annotate(
+            ...     frame, line, coord_transform=CameraShift()
+            ... )
+            >>> annotated_frame[80, 100].tolist()
+            [255, 255, 255]
+            >>> annotated_frame[20, 100].tolist()
+            [0, 0, 0]
+
+            ```
         """
-        line_start = line_counter.vector.start.as_xy_int_tuple()
-        line_end = line_counter.vector.end.as_xy_int_tuple()
+        vector = line_counter.vector
+        if coord_transform is not None:
+            endpoints = np.array(
+                [vector.start.as_xy_float_tuple(), vector.end.as_xy_float_tuple()]
+            )
+            mapped = _map_to_drawing_coordinates(endpoints, coord_transform)
+            if mapped is None:
+                return frame
+            (start_x, start_y), (end_x, end_y) = np.rint(mapped).tolist()
+            vector = Vector(
+                start=Point(x=start_x, y=start_y), end=Point(x=end_x, y=end_y)
+            )
+        # The rounded endpoints keep a vertical line at exactly 90 degrees: jitter
+        # that rounds away cannot flip its labels, only a shift across a pixel can.
+        line_angle_degrees = self._get_line_angle(vector)
+
+        line_start = vector.start.as_xy_int_tuple()
+        line_end = vector.end.as_xy_int_tuple()
         cv2.line(
             frame,
             line_start,
@@ -561,9 +639,10 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
+        is_mapped = coord_transform is not None
+
         in_text = f"{self.in_text}: {line_counter.in_count}"
         out_text = f"{self.out_text}: {line_counter.out_count}"
-        line_angle_degrees = self._get_line_angle(line_counter)
 
         for text, is_shown, is_in_count in [
             (in_text, self.display_in_count, True),
@@ -575,31 +654,33 @@ class LineZoneAnnotator:
             if line_angle_degrees == 0 or not self.text_orient_to_line:
                 self._draw_basic_label(
                     frame=frame,
-                    line_center=line_counter.vector.center,
+                    line_center=vector.center,
                     text=text,
                     is_in_count=is_in_count,
                 )
             else:
                 self._draw_oriented_label(
                     frame=frame,
-                    line_zone=line_counter,
+                    vector=vector,
+                    line_angle_degrees=line_angle_degrees,
                     text=text,
                     is_in_count=is_in_count,
+                    is_mapped=is_mapped,
                 )
 
         return frame
 
-    def _get_line_angle(self, line_zone: LineZone) -> float:
-        """Calculate the line counter angle (in degrees).
+    def _get_line_angle(self, vector: Vector) -> float:
+        """Calculate the angle of the line as drawn, in degrees.
 
         Args:
-            line_zone: The line zone object.
+            vector: The line as drawn on the frame.
 
         Returns:
-            Line counter angle, in degrees.
+            Line angle, in degrees.
         """
-        start_point = line_zone.vector.start.as_xy_int_tuple()
-        end_point = line_zone.vector.end.as_xy_int_tuple()
+        start_point = vector.start.as_xy_int_tuple()
+        end_point = vector.end.as_xy_int_tuple()
 
         delta_x = end_point[0] - start_point[0]
         delta_y = end_point[1] - start_point[1]
@@ -615,43 +696,50 @@ class LineZoneAnnotator:
 
     def _calculate_anchor_in_frame(
         self,
-        line_zone: LineZone,
+        vector: Vector,
+        line_angle_degrees: float,
         text_width: int,
         text_height: int,
         is_in_count: bool,
         label_dimension: int,
+        is_mapped: bool = False,
     ) -> tuple[int, int]:
         """Calculate insertion anchor in frame to position the center of the count
         image.
 
         Args:
-            line_zone: The line counter object used for counting.
+            vector: The line as drawn on the frame.
+            line_angle_degrees: The line angle the label is oriented to.
             text_width: Text width.
             text_height: Text height.
             is_in_count: Whether the count should be placed over or below line.
             label_dimension: Size of the label image. Assumes the
                 label is rectangular.
+            is_mapped: Whether the line was mapped into the current frame by a
+                `coord_transform`, so it may lie off-frame. A label beyond the left
+                or top edge is then pulled back only as far as the line point it is
+                anchored on, so labels of a line that leaves the frame leave with
+                it and move continuously across the edge. If `False`, it is always
+                pulled back onto the frame.
 
         Returns:
             xy, point in an image where the label will be placed.
         """
-        line_angle = self._get_line_angle(line_zone)
-
         if self.text_centered:
-            mid_point = Vector(
-                start=line_zone.vector.start, end=line_zone.vector.end
-            ).center.as_xy_int_tuple()
+            line_point = vector.center
+            mid_point = line_point.as_xy_int_tuple()
             anchor = list(mid_point)
         else:
-            end_point = line_zone.vector.end.as_xy_int_tuple()
+            line_point = vector.end
+            end_point = line_point.as_xy_int_tuple()
             anchor = list(end_point)
 
             move_along_x = int(
-                math.cos(math.radians(line_angle))
+                math.cos(math.radians(line_angle_degrees))
                 * (text_width / 2 + self.text_padding)
             )
             move_along_y = int(
-                math.sin(math.radians(line_angle))
+                math.sin(math.radians(line_angle_degrees))
                 * (text_width / 2 + self.text_padding)
             )
 
@@ -659,10 +747,12 @@ class LineZoneAnnotator:
             anchor[1] -= move_along_y
 
         move_perpendicular_x = int(
-            math.sin(math.radians(line_angle)) * (self.text_offset * text_height)
+            math.sin(math.radians(line_angle_degrees))
+            * (self.text_offset * text_height)
         )
         move_perpendicular_y = int(
-            math.cos(math.radians(line_angle)) * (self.text_offset * text_height)
+            math.cos(math.radians(line_angle_degrees))
+            * (self.text_offset * text_height)
         )
 
         if is_in_count:
@@ -672,8 +762,18 @@ class LineZoneAnnotator:
             anchor[0] -= move_perpendicular_x
             anchor[1] += move_perpendicular_y
 
-        x1 = max(anchor[0] - label_dimension // 2, 0)
-        y1 = max(anchor[1] - label_dimension // 2, 0)
+        x1 = anchor[0] - label_dimension // 2
+        y1 = anchor[1] - label_dimension // 2
+        if is_mapped:
+            # The bound falls with an off-frame line point instead of switching off,
+            # so a sub-pixel camera move across the edge shifts the label by about
+            # one pixel, never by a label width. It is taken on the float point,
+            # so a midpoint at x = -0.5 is already outside.
+            x, y = line_point.as_xy_float_tuple()
+            x1 = max(x1, min(0, math.floor(x)))
+            y1 = max(y1, min(0, math.floor(y)))
+        else:
+            x1, y1 = max(x1, 0), max(y1, 0)
 
         return x1, y1
 
@@ -723,9 +823,11 @@ class LineZoneAnnotator:
     def _draw_oriented_label(
         self,
         frame: npt.NDArray[np.uint8],
-        line_zone: LineZone,
+        vector: Vector,
+        line_angle_degrees: float,
         text: str,
         is_in_count: bool,
+        is_mapped: bool = False,
     ) -> npt.NDArray[np.uint8]:
         """Draw the count label on the frame.
 
@@ -733,15 +835,19 @@ class LineZoneAnnotator:
 
         Args:
             frame: The entire scene, on which the label will be placed.
-            line_zone: The line zone responsible for counting objects crossing it.
+            vector: The line as drawn on the frame.
+            line_angle_degrees: The line angle the label is oriented to.
             text: The text that will be drawn.
             is_in_count: Whether to display the in count (above line)
                 or out count (below line).
+            is_mapped: Whether the line was mapped into the current frame by a
+                `coord_transform`. A label beyond the left or top edge is then
+                pulled back only as far as the line point it is anchored on. If
+                `False`, it is always pulled back onto the frame.
 
         Returns:
             The scene with the label drawn on it.
         """
-        line_angle_degrees = self._get_line_angle(line_zone)
         label_image = self._make_label_image(
             text,
             text_scale=self.text_scale,
@@ -759,11 +865,13 @@ class LineZoneAnnotator:
         )[0]
 
         label_anchor = self._calculate_anchor_in_frame(
-            line_zone=line_zone,
+            vector=vector,
+            line_angle_degrees=line_angle_degrees,
             text_width=text_width,
             text_height=text_height,
             is_in_count=is_in_count,
             label_dimension=label_image.shape[0],
+            is_mapped=is_mapped,
         )
 
         frame = _overlay_image(frame, label_image, label_anchor)

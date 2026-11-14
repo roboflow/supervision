@@ -8,6 +8,7 @@ synthetic test data and performing custom assertions.
 from __future__ import annotations
 
 import io
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -35,12 +36,12 @@ def make_panoptic_png(segment_map: np.ndarray) -> bytes:
 
 
 def _create_detections(
-    xyxy: list[list[float]],
-    mask: list[np.ndarray] | None = None,
-    confidence: list[float] | None = None,
-    class_id: list[int] | None = None,
-    tracker_id: list[int] | None = None,
-    data: dict[str, list[Any]] | None = None,
+    xyxy: Sequence[Sequence[float]] | np.ndarray,
+    mask: Sequence[np.ndarray] | np.ndarray | None = None,
+    confidence: Sequence[float] | np.ndarray | None = None,
+    class_id: Sequence[int] | np.ndarray | None = None,
+    tracker_id: Sequence[int] | np.ndarray | None = None,
+    data: Mapping[str, Any] | None = None,
 ) -> Detections:
     """Create a Detections object from list-based inputs.
 
@@ -76,7 +77,10 @@ def _create_detections(
         array([0, 1])
     """
 
-    def convert_data(data: dict[str, list[Any]]) -> dict[str, np.ndarray | list[Any]]:
+    def convert_data(
+        data: Mapping[str, Any],
+    ) -> dict[str, np.ndarray | list[Any]]:
+        """Convert each metadata value to a NumPy array."""
         return {k: np.array(v) for k, v in data.items()}
 
     return Detections(
@@ -154,6 +158,67 @@ class _NanBeyondX:
     def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
         """Return points unchanged, with NaN rows where `x > x_max`."""
         return np.where(points[:, :1] > self.x_max, np.nan, points)
+
+
+class _MoveBeyondX:
+    """An identity transform that moves points with `x > x_max` to x = `new_x`.
+
+    Like `_NanBeyondX`, both directions apply the same move rather than inverses:
+    the drawing tests that use it only call `abs_to_rel`.
+    """
+
+    def __init__(self, x_max: float, new_x: float) -> None:
+        """Store the largest x left in place and the x the others move to."""
+        self.x_max = x_max
+        self.new_x = new_x
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with x set to `new_x` where `x > x_max`."""
+        moved: np.ndarray = np.array(points, dtype=np.float64)
+        moved[moved[:, 0] > self.x_max, 0] = self.new_x
+        return moved
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Apply the same move as `abs_to_rel`."""
+        return self.abs_to_rel(points)
+
+
+class _ShearXTransform:
+    """A camera motion that shifts each point's x by `factor` times its y."""
+
+    def __init__(self, factor: float) -> None:
+        """Store how much x shifts per unit of y."""
+        self.factor = factor
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        sheared = np.array(points, dtype=np.float64)
+        sheared[:, 0] += self.factor * sheared[:, 1]
+        return sheared
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        sheared = np.array(points, dtype=np.float64)
+        sheared[:, 0] -= self.factor * sheared[:, 1]
+        return sheared
+
+
+class _InPlaceShiftTransform:
+    """A shift that adds `(dx, dy)` to the points array it is given, in place."""
+
+    def __init__(self, dx: float, dy: float) -> None:
+        """Store the shift from reference-frame to current-frame coordinates."""
+        self.offset = np.array([dx, dy], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Shift the given points in place and return them."""
+        points += self.offset
+        return points
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Shift the given points back in place and return them."""
+        points -= self.offset
+        return points
 
 
 def _create_key_points(
@@ -403,8 +468,10 @@ class _FakeYoloNasResults:
 class _FakeYoloNasKeyPoint:
     """YOLO-NAS-like key point struct."""
 
-    def __init__(self, poses: Any, labels: Any = None) -> None:
+    def __init__(self, poses: Any, scores: Any, labels: Any = None) -> None:
+        """Store `(N, K, 3)` poses with one score and optional label per pose."""
         self.poses = np.array(poses, dtype=np.float32)
+        self.scores = np.array(scores, dtype=np.float32)
         if labels is not None:
             self.labels = np.array(labels, dtype=int)
 

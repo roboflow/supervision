@@ -27,12 +27,12 @@ concurrency:
 
 # Restrict permissions by default
 permissions:
-  contents: write # Required for committing to gh-pages
-  pages: write # Required for deploying to Pages
-  pull-requests: write # Required for PR comments
+  contents: read
 
 jobs:
   docs-build-deploy:
+    permissions:
+      contents: write
     name: Publish Docs
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -42,6 +42,8 @@ jobs:
       # job timeout inside this step. Shallow checkout, then fetch only what is needed.
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked] -- This job pushes documentation to gh-pages.
 
       # Source history + tags, blobless: git-revision-date-localized walks commits per
       # file and compute_is_latest_release.py reads every tag; neither reads old blobs
@@ -55,18 +57,19 @@ jobs:
         run: git fetch --depth=1 origin gh-pages
 
       - name: 🐍 Install uv and set Python
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: "3.10"
           activate-environment: true
+          enable-cache: false
 
       - name: 🏗️ Install dependencies
         run: uv sync --frozen --group docs
 
       - name: ⚙️ Configure git for github-actions
         run: |
-          git config --global user.name "${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "$GITHUB_ACTOR"
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       # MIKE_DOCS_VERSION feeds `extra.doc_version` in mkdocs.yml, which gates the
       # outdated-version banner the theme renders server-side. It must name the version
@@ -113,9 +116,11 @@ jobs:
               is_latest_release=$(python .github/scripts/compute_is_latest_release.py "$release_tag")
             fi
           fi
-          echo "is_rc=$is_rc" >> "$GITHUB_OUTPUT"
-          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
-          echo "is_latest_release=$is_latest_release" >> "$GITHUB_OUTPUT"
+          {
+            echo "is_rc=$is_rc"
+            echo "release_tag=$release_tag"
+            echo "is_latest_release=$is_latest_release"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true'
@@ -124,7 +129,7 @@ jobs:
           MIKE_DOCS_VERSION: ${{ steps.release_metadata.outputs.release_tag }}
           MIKE_IS_LATEST_RELEASE: ${{ steps.release_metadata.outputs.is_latest_release }}
         run: |
-          mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
+          mike deploy --push "$MIKE_DOCS_VERSION"
 
       # mike never rebuilds an archived tag's tree (see docs/theme/main.html), so the
       # release /latest/ pointed to a moment ago — built with
@@ -147,6 +152,9 @@ jobs:
             git commit -m "chore(docs): archive the previously-latest release"
             git push origin gh-pages
           fi
+          # Later steps read the release's own tree (docs/, .github/), which gh-pages
+          # lacks — hand the workspace back on the exact commit the job started on.
+          git checkout "$GITHUB_SHA"
 
       # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
       # This key must stay in sync across three files:
@@ -163,15 +171,17 @@ jobs:
           (github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true')
         run: |
           root_files=(robots.txt llms.txt llms.full.txt llms-100k.txt _headers 0d5d9799b1cc4a39825146388c6781eb.txt)
+          # Read the inputs from the deployed commit rather than the working tree, so an
+          # earlier step that left gh-pages checked out cannot break this one.
           for f in "${root_files[@]}"; do
-            cp "docs/$f" "/tmp/$f"
+            git show "$GITHUB_SHA:docs/$f" > "/tmp/$f"
           done
           # Site root: replaces mike's redirect stub, which carries no canonical.
           # Release deploys check out the tag, and tags cut before this file existed do
           # not carry it — treat it as optional rather than failing the whole deploy.
           rm -f /tmp/root-index.html
-          if [[ -f .github/root-index.html ]]; then
-            cp .github/root-index.html /tmp/root-index.html
+          if git cat-file -e "$GITHUB_SHA:.github/root-index.html" 2>/dev/null; then
+            git show "$GITHUB_SHA:.github/root-index.html" > /tmp/root-index.html
           fi
           if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
             version_dir="latest"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -18,6 +19,7 @@ from supervision.detection.utils.iou_and_nms import (
     box_non_max_merge,
     box_non_max_suppression,
     box_soft_non_max_suppression,
+    box_weighted_box_fusion,
     mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
@@ -40,7 +42,32 @@ def _rotated_rect(
     corners = np.array(
         [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
     )
-    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+    rotated: np.ndarray = (corners @ rot.T + [cx, cy]).astype(np.float32)
+    return rotated
+
+
+def _rotated_rect_shifted_along_axis(
+    width: float, height: float, angle_deg: float, shift: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return a float64 rotated rectangle and its copy moved along its long axis.
+
+    Their overlapping long edges are collinear up to rounding, and the true IoU is
+    exactly ``(width - shift) / (width + shift)``.
+    """
+    angle = np.deg2rad(angle_deg)
+    axis = np.array([np.cos(angle), np.sin(angle)])
+    normal = np.array([-axis[1], axis[0]])
+    half_width, half_height = axis * width / 2, normal * height / 2
+    center = np.array([200.0, 200.0])
+    box = np.array(
+        [
+            center - half_width - half_height,
+            center + half_width - half_height,
+            center + half_width + half_height,
+            center - half_width + half_height,
+        ]
+    )
+    return box, box + axis * shift
 
 
 def _aabb_of(corners: np.ndarray) -> np.ndarray:
@@ -173,7 +200,7 @@ def test_group_overlapping_boxes(
     predictions: np.ndarray,
     iou_threshold: float,
     expected_result: list[list[int]],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = _group_overlapping_boxes(
@@ -279,12 +306,13 @@ def test_box_non_max_suppression(
     predictions: np.ndarray,
     iou_threshold: float,
     expected_result: np.ndarray | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = box_non_max_suppression(
             predictions=predictions, iou_threshold=iou_threshold
         )
+        assert expected_result is not None
         assert np.array_equal(result, expected_result)
 
 
@@ -414,10 +442,11 @@ def test_box_soft_non_max_suppression(
     predictions: np.ndarray,
     sigma: float,
     expected_result: np.ndarray | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = box_soft_non_max_suppression(predictions=predictions, sigma=sigma)
+        assert expected_result is not None
         np.testing.assert_almost_equal(result, expected_result, decimal=5)
 
 
@@ -618,12 +647,13 @@ def test_mask_non_max_suppression(
     masks: np.ndarray,
     iou_threshold: float,
     expected_result: np.ndarray | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = mask_non_max_suppression(
             predictions=predictions, masks=masks, iou_threshold=iou_threshold
         )
+        assert expected_result is not None
         assert np.array_equal(result, expected_result)
 
 
@@ -769,12 +799,13 @@ def test_mask_soft_non_max_suppression(
     masks: np.ndarray,
     sigma: float,
     expected_result: np.ndarray | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = mask_soft_non_max_suppression(
             predictions=predictions, masks=masks, sigma=sigma
         )
+        assert expected_result is not None
         np.testing.assert_almost_equal(result, expected_result, decimal=5)
 
 
@@ -949,7 +980,7 @@ def test_mask_non_max_merge(
     masks: np.ndarray,
     iou_threshold: float,
     expected_result: list[list[int]],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = mask_non_max_merge(
@@ -1205,7 +1236,7 @@ def test_box_iou(
     box_detection: list[float] | np.ndarray,
     overlap_metric: str | OverlapMetric,
     expected_overlap: float,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = box_iou(
@@ -1476,8 +1507,9 @@ def test_box_iou_batch(
     boxes_detection: np.ndarray,
     overlap_metric: str | OverlapMetric,
     expected_overlap: np.ndarray | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Return pairwise overlaps with the public float32 dtype and expected values."""
     with exception:
         result = box_iou_batch(
             boxes_true=boxes_true,
@@ -1486,6 +1518,8 @@ def test_box_iou_batch(
         )
 
         assert isinstance(result, np.ndarray)
+        assert result.dtype == np.float32
+        assert expected_overlap is not None
         assert result.shape == expected_overlap.shape
         assert np.allclose(
             result,
@@ -1549,8 +1583,10 @@ def _boundary_box_pair(
     Both boxes are `side`x`side`; the second is shifted by `shift` along x so
     the intersection is `shift`x`side` and the union is `2*side**2 - shift*side`.
     """
-    box_a = np.array([[origin, origin, origin + side, origin + side]], dtype=dtype)
-    box_b = np.array(
+    box_a: np.ndarray = np.array(
+        [[origin, origin, origin + side, origin + side]], dtype=dtype
+    )
+    box_b: np.ndarray = np.array(
         [[origin + shift, origin, origin + side + shift, origin + side]],
         dtype=dtype,
     )
@@ -1935,7 +1971,7 @@ class TestOrientedBoxIouBatch:
         ],
     )
     def test_invalid_shape_raises_value_error(
-        self, bad_shape: tuple, match: str
+        self, bad_shape: tuple[int, ...], match: str
     ) -> None:
         """Inputs with wrong shape raise ValueError before any computation."""
         boxes_bad = np.zeros(bad_shape, dtype=np.float32)
@@ -1944,9 +1980,88 @@ class TestOrientedBoxIouBatch:
         with pytest.raises(ValueError, match=match):
             oriented_box_iou_batch(boxes_bad, boxes_ok)
 
+    @pytest.mark.parametrize(
+        ("angle_deg", "shift"),
+        [
+            pytest.param(15.0, 20.0, id="reported-as-identical-at-15-deg"),
+            pytest.param(10.0, 50.0, id="reported-as-identical-at-10-deg"),
+            pytest.param(25.0, 50.0, id="reported-as-disjoint-at-25-deg"),
+            pytest.param(20.0, 10.0, id="underestimated-at-20-deg"),
+        ],
+    )
+    def test_matches_analytic_iou_for_collinear_edges(
+        self, angle_deg: float, shift: float
+    ) -> None:
+        """Rectangles shifted along their axis score their analytic IoU."""
+        box_a, box_b = _rotated_rect_shifted_along_axis(100, 40, angle_deg, shift)
+
+        iou = oriented_box_iou_batch(box_a[None], box_b[None])
+
+        assert iou[0, 0] == pytest.approx((100 - shift) / (100 + shift), abs=1e-4)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_matches_analytic_iou_for_random_collinear_edges(
+        self, dtype: type[np.floating]
+    ) -> None:
+        """Seeded rectangles shifted along their axis all score their analytic IoU."""
+        rng = np.random.default_rng(0)
+        widths = rng.uniform(8, 200, 1000)
+        heights = rng.uniform(8, 200, 1000)
+        angles = rng.uniform(0, 180, 1000)
+        shifts = rng.uniform(0, widths)
+        pairs = [
+            _rotated_rect_shifted_along_axis(*parameters)
+            for parameters in zip(widths, heights, angles, shifts)
+        ]
+
+        scores = [
+            oriented_box_iou_batch(
+                box_a[None].astype(dtype), box_b[None].astype(dtype)
+            )[0, 0]
+            for box_a, box_b in pairs
+        ]
+
+        np.testing.assert_allclose(
+            scores, (widths - shifts) / (widths + shifts), atol=1e-3
+        )
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_tiny_identical_boxes_score_one(self, dtype: type[np.floating]) -> None:
+        """A box far below one coordinate unit in size fully overlaps itself."""
+        box = (_rotated_rect(0, 0, 0.002, 0.001, 30).astype(np.float64) + 0.5)[None]
+        boxes_true = box.astype(dtype)
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_true.copy())
+
+        assert iou[0, 0] == pytest.approx(1.0, abs=1e-3)
+
 
 class TestOrientedBoxNonMaxSuppression:
     """Tests for `oriented_box_non_max_suppression`."""
+
+    @pytest.mark.parametrize(
+        ("angle_deg", "shift", "expected_keep"),
+        [
+            pytest.param(10.0, 50.0, [True, True], id="keeps-low-true-overlap"),
+            pytest.param(50.0, 10.0, [True, False], id="suppresses-high-true-overlap"),
+        ],
+    )
+    def test_uses_true_overlap_for_collinear_edges(
+        self, angle_deg: float, shift: float, expected_keep: list[bool]
+    ) -> None:
+        """Suppression of axis-shifted rectangles follows their analytic IoU."""
+        box_a, box_b = _rotated_rect_shifted_along_axis(100, 40, angle_deg, shift)
+        predictions = np.array(
+            [[*_aabb_of(box_a), 0.9, 0], [*_aabb_of(box_b), 0.8, 0]], dtype=np.float32
+        )
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=np.stack([box_a, box_b]),
+            iou_threshold=0.5,
+        )
+
+        assert keep.tolist() == expected_keep
 
     def test_keeps_x_pattern(self) -> None:
         """X-pattern: two thin rectangles crossing at +/-45° share an AABB but barely
@@ -2193,10 +2308,10 @@ def test_detections_obb_overlap_filter_large_origin_duplicates_deduplicate(
 
 
 class TestIouThresholdValidation:
-    """Invalid IoU thresholds must raise `ValueError` on public NMS/NMM APIs."""
+    """Invalid IoU thresholds must raise `ValueError` on public overlap filters."""
 
     @pytest.mark.parametrize(
-        ("function", "kwargs"),
+        ("fn_function", "kwargs"),
         [
             pytest.param(
                 box_non_max_suppression,
@@ -2207,6 +2322,11 @@ class TestIouThresholdValidation:
                 box_non_max_merge,
                 {"predictions": np.empty((0, 5), dtype=np.float32)},
                 id="box-nmm",
+            ),
+            pytest.param(
+                box_weighted_box_fusion,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-weighted-box-fusion",
             ),
             pytest.param(
                 mask_non_max_suppression,
@@ -2245,13 +2365,13 @@ class TestIouThresholdValidation:
     @pytest.mark.parametrize("iou_threshold", [-0.1, 1.1])
     def test_rejects_thresholds_outside_closed_unit_interval(
         self,
-        function: Callable[..., object],
+        fn_function: Callable[..., object],
         kwargs: dict[str, object],
         iou_threshold: float,
     ) -> None:
         """Each public overlap filter rejects thresholds outside [0, 1]."""
         with pytest.raises(ValueError, match="closed range from 0 to 1"):
-            function(iou_threshold=iou_threshold, **kwargs)
+            fn_function(iou_threshold=iou_threshold, **kwargs)
 
 
 def _naive_mask_iou(
@@ -2267,12 +2387,13 @@ def _naive_mask_iou(
         denominator = area_true[:, None] + area_detection - intersection
     else:
         denominator = np.minimum(area_true[:, None], area_detection)
-    return np.divide(
+    iou: np.ndarray = np.divide(
         intersection,
         denominator,
         out=np.zeros((len(masks_true), len(masks_detection)), dtype=float),
         where=denominator != 0,
     )
+    return iou
 
 
 class TestMaskIouBatch:
@@ -2335,6 +2456,68 @@ class TestMaskIouBatch:
         with pytest.raises(ValueError, match="must share the same"):
             mask_iou_batch(masks_true, masks_detection)
 
+    def test_compact_masks_mismatched_spatial_shape_raises(self) -> None:
+        """Compact masks must reject different image canvases like dense masks."""
+        from supervision.detection.compact_mask import CompactMask
+
+        true_mask = np.zeros((1, 10, 10), dtype=bool)
+        detection_mask = np.zeros((1, 20, 20), dtype=bool)
+        true_compact = CompactMask.from_dense(
+            true_mask, np.array([[0, 0, 9, 9]], dtype=np.float32), (10, 10)
+        )
+        detection_compact = CompactMask.from_dense(
+            detection_mask, np.array([[0, 0, 19, 19]], dtype=np.float32), (20, 20)
+        )
+
+        with pytest.raises(ValueError, match="must share the same"):
+            mask_iou_batch(true_compact, detection_compact)
+
+    def test_compact_masks_match_dense_precision_at_nms_threshold(self) -> None:
+        """Compact and dense NMS must make the same threshold decision."""
+        from supervision.detection.compact_mask import CompactMask
+
+        masks = np.zeros((2, 1, 10), dtype=bool)
+        masks[0, 0, 0] = True
+        masks[1, 0, :] = True
+        boxes = np.array([[0, 0, 9, 0], [0, 0, 9, 0]], dtype=np.float32)
+        compact_masks = CompactMask.from_dense(masks, boxes, image_shape=(1, 10))
+        predictions = np.array(
+            [[0, 0, 9, 0, 0.8, 0], [0, 0, 9, 0, 0.9, 0]], dtype=np.float32
+        )
+
+        dense_keep = mask_non_max_suppression(predictions, masks, iou_threshold=0.1)
+        compact_keep = mask_non_max_suppression(
+            predictions, compact_masks, iou_threshold=0.1
+        )
+
+        np.testing.assert_array_equal(compact_keep, dense_keep)
+
+    def test_compact_masks_validate_overlap_metric_without_overlapping_boxes(
+        self,
+    ) -> None:
+        """Invalid metrics must fail even when the bbox pre-filter finds no pairs."""
+        from supervision.detection.compact_mask import CompactMask
+
+        true_mask = np.zeros((1, 4, 4), dtype=bool)
+        true_mask[0, 0, 0] = True
+        detection_mask = np.zeros((1, 4, 4), dtype=bool)
+        detection_mask[0, 3, 3] = True
+        true_compact = CompactMask.from_dense(
+            true_mask, np.array([[0, 0, 0, 0]], dtype=np.float32), image_shape=(4, 4)
+        )
+        detection_compact = CompactMask.from_dense(
+            detection_mask,
+            np.array([[3, 3, 3, 3]], dtype=np.float32),
+            image_shape=(4, 4),
+        )
+
+        with pytest.raises(ValueError, match="overlap_metric"):
+            mask_iou_batch(
+                true_compact,
+                detection_compact,
+                overlap_metric="bad",  # type: ignore[arg-type]
+            )
+
     def test_invalid_ndim_raises(self) -> None:
         """2D and 4D inputs must raise ValueError before reaching shape[1:] check."""
         mask_3d = np.zeros((1, 10, 10), dtype=bool)
@@ -2367,7 +2550,7 @@ class TestMaskIouBatch:
         )
 
     def test_matmul_emits_no_runtime_warnings(
-        self, recwarn: pytest.WarningsChecker
+        self, recwarn: pytest.WarningsRecorder
     ) -> None:
         """mask_iou_batch on bool input must not emit any RuntimeWarning."""
         rng = np.random.default_rng(2)
@@ -2459,7 +2642,8 @@ class TestBoxIouBatchWithJaccard:
             wh = rng.uniform(0, 40, (n, 2))
             if seed == 4 and n:  # inject zero/negative-width degenerate boxes
                 wh[rng.integers(0, n), 0] = rng.choice([0.0, -5.0])
-            return np.hstack([xy, wh]).tolist()
+            boxes: list[list[float]] = np.hstack([xy, wh]).tolist()
+            return boxes
 
         boxes_true, boxes_detection = _boxes(n_gt), _boxes(n_dt)
         is_crowd = (rng.random(n_gt) < 0.3).tolist()
@@ -2518,7 +2702,8 @@ class TestBoxIouBatchWithJaccard:
         def _boxes(n: int) -> list[list[float]]:
             xy = rng.uniform(0, 100, (n, 2))
             wh = rng.uniform(1, 40, (n, 2))
-            return np.hstack([xy, wh]).tolist()
+            boxes: list[list[float]] = np.hstack([xy, wh]).tolist()
+            return boxes
 
         boxes_true = _boxes(n_gt)
         boxes_detection = _boxes(n_dt)
@@ -2632,3 +2817,535 @@ class TestBoxNonMaxMerge:
         result = box_non_max_merge(predictions, iou_threshold=0.5)
         assert len(result) == 1
         assert len(result[0]) == 2
+
+
+class TestBoxWeightedBoxFusion:
+    """box_weighted_box_fusion fuses overlapping boxes into confidence-weighted ones."""
+
+    def test_fuses_overlap_just_above_threshold(self) -> None:
+        """Fuse boxes whose float64 overlap rounds down to the threshold in float32."""
+        predictions = np.array(
+            [[0, 0, 100, 100, 0.9, 0], [0, 0, 100, 50.000002, 0.8, 0]],
+            dtype=np.float64,
+        )
+
+        result = box_weighted_box_fusion(predictions)
+
+        assert result.shape == (1, 6)
+
+    def test_keeps_identical_boxes_with_large_coordinates_in_one_cluster(self) -> None:
+        """Fuse identical boxes at a huge coordinate origin into a single cluster.
+
+        Averaging absolute coordinates of 1e16 loses low bits, which would shift the
+        fused box away from its identical members and split the cluster.
+        """
+        predictions = np.array(
+            [
+                [1e16, 0, 1e16 + 2, 2, 0.9, 0],
+                [1e16, 0, 1e16 + 2, 2, 0.8, 0],
+                [1e16, 0, 1e16 + 2, 2, 0.7, 0],
+            ],
+            dtype=np.float64,
+        )
+
+        result = box_weighted_box_fusion(predictions)
+
+        assert result.shape == (1, 6)
+        assert np.allclose(result[0, 4], 0.8)
+
+    @pytest.mark.parametrize(
+        ("overlap_metric", "expected_result"),
+        [
+            pytest.param(
+                OverlapMetric.IOU,
+                [[0.0, 0.0, 10.0, 10.0, 0.9], [2.0, 2.0, 8.0, 8.0, 0.6]],
+                id="iou-keeps-contained-box-separate",
+            ),
+            pytest.param(
+                OverlapMetric.IOS,
+                [[0.8, 0.8, 9.2, 9.2, 0.75]],
+                id="ios-fuses-contained-box",
+            ),
+        ],
+    )
+    def test_overlap_metric_controls_fusion_of_contained_box(
+        self, overlap_metric: OverlapMetric, expected_result: list[list[float]]
+    ) -> None:
+        """A contained box fuses under IOS but stays separate under IOU."""
+        predictions = np.array([[0.0, 0.0, 10.0, 10.0, 0.9], [2.0, 2.0, 8.0, 8.0, 0.6]])
+
+        result = box_weighted_box_fusion(
+            predictions, iou_threshold=0.5, overlap_metric=overlap_metric
+        )
+
+        assert result.shape == np.shape(expected_result)
+        np.testing.assert_allclose(result, expected_result)
+
+    @pytest.mark.parametrize(
+        ("iou_threshold", "second_box", "expected_result"),
+        [
+            pytest.param(
+                0.0,
+                [20.0, 0.0, 30.0, 10.0, 0.6],
+                [[0.0, 0.0, 10.0, 10.0, 0.9], [20.0, 0.0, 30.0, 10.0, 0.6]],
+                id="zero-threshold-keeps-disjoint-boxes",
+            ),
+            pytest.param(
+                0.0,
+                [10.0, 0.0, 20.0, 10.0, 0.6],
+                [[0.0, 0.0, 10.0, 10.0, 0.9], [10.0, 0.0, 20.0, 10.0, 0.6]],
+                id="zero-threshold-keeps-touching-boxes",
+            ),
+            pytest.param(
+                0.0,
+                [2.0, 2.0, 8.0, 8.0, 0.6],
+                [[0.8, 0.8, 9.2, 9.2, 0.75]],
+                id="zero-threshold-fuses-positive-overlap",
+            ),
+            pytest.param(
+                1.0,
+                [0.0, 0.0, 10.0, 10.0, 0.6],
+                [[0.0, 0.0, 10.0, 10.0, 0.9], [0.0, 0.0, 10.0, 10.0, 0.6]],
+                id="unit-threshold-keeps-identical-boxes",
+            ),
+        ],
+    )
+    def test_threshold_endpoints_require_strictly_greater_overlap(
+        self,
+        iou_threshold: float,
+        second_box: list[float],
+        expected_result: list[list[float]],
+    ) -> None:
+        """Endpoint thresholds accept only overlaps strictly above the threshold."""
+        predictions = np.array([[0.0, 0.0, 10.0, 10.0, 0.9], second_box])
+
+        result = box_weighted_box_fusion(predictions, iou_threshold=iou_threshold)
+
+        assert result.shape == np.shape(expected_result)
+        np.testing.assert_allclose(result, expected_result)
+
+    @pytest.mark.parametrize(
+        ("predictions", "iou_threshold", "expected_result"),
+        [
+            pytest.param(
+                np.empty(shape=(0, 6)),
+                0.5,
+                np.empty(shape=(0, 6)),
+                id="empty-input-preserves-shape",
+            ),
+            pytest.param(
+                np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0.0]]),
+                0.5,
+                np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0.0]]),
+                id="single-box-returned-unchanged",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+                    ]
+                ),
+                0.5,
+                np.array([[0.8 / 1.7, 0.8 / 1.7, 17.8 / 1.7, 17.8 / 1.7, 0.85, 0.0]]),
+                id="two-overlapping-same-class-confidence-weighted-fuse",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 5.0, 5.0, 0.7, 0.0],
+                        [100.0, 100.0, 110.0, 110.0, 0.9, 1.0],
+                    ]
+                ),
+                0.5,
+                np.array(
+                    [
+                        [100.0, 100.0, 110.0, 110.0, 0.9, 1.0],
+                        [0.0, 0.0, 5.0, 5.0, 0.7, 0.0],
+                    ]
+                ),
+                id="non-overlapping-kept-and-ordered-by-score",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [0.0, 0.0, 10.0, 10.0, 0.8, 1.0],
+                    ]
+                ),
+                0.5,
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [0.0, 0.0, 10.0, 10.0, 0.8, 1.0],
+                    ]
+                ),
+                id="same-box-different-class-not-fused",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9],
+                        [1.0, 1.0, 11.0, 11.0, 0.8],
+                    ]
+                ),
+                0.5,
+                np.array([[0.8 / 1.7, 0.8 / 1.7, 17.8 / 1.7, 17.8 / 1.7, 0.85]]),
+                id="no-class-column-fuses-and-keeps-five-columns",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [3.0, 0.0, 13.0, 10.0, 0.8, 0.0],
+                        [4.0, 0.0, 14.0, 10.0, 0.7, 0.0],
+                    ]
+                ),
+                0.5,
+                np.array([[5.2 / 2.4, 0.0, 29.2 / 2.4, 10.0, 0.8, 0.0]]),
+                id="three-box-chain-joins-drifted-fused-box",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.95, 0.0],
+                        [3.0, 0.0, 13.0, 10.0, 0.9, 0.0],
+                        [4.5, 0.0, 14.5, 10.0, 0.8, 0.0],
+                    ]
+                ),
+                0.5,
+                np.array([[6.3 / 2.65, 0.0, 32.8 / 2.65, 10.0, 2.65 / 3, 0.0]]),
+                id="three-box-chain-missing-seed-joins-fused-box",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [6.0, 0.0, 16.0, 10.0, 0.8, 0.0],
+                        [4.0, 0.0, 14.0, 10.0, 0.7, 0.0],
+                    ]
+                ),
+                0.3,
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [7.6 / 1.5, 0.0, 22.6 / 1.5, 10.0, 0.75, 0.0],
+                    ]
+                ),
+                id="box-joins-best-overlapping-cluster-not-first",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [0.0, 0.0, 10.0, 5.0, 0.8, 0.0],
+                    ]
+                ),
+                0.5,
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [0.0, 0.0, 10.0, 5.0, 0.8, 0.0],
+                    ]
+                ),
+                id="overlap-equal-to-threshold-keeps-boxes-apart",
+            ),
+        ],
+    )
+    def test_fuses_same_class_boxes_and_preserves_other_predictions(
+        self,
+        predictions: np.ndarray,
+        iou_threshold: float,
+        expected_result: np.ndarray,
+    ) -> None:
+        """WBF fuses overlapping same-class boxes by confidence-weighted averaging."""
+        result = box_weighted_box_fusion(
+            predictions=predictions, iou_threshold=iou_threshold
+        )
+
+        assert result.shape == expected_result.shape
+        assert np.allclose(result, expected_result)
+
+    def test_zero_scores_use_uniform_average(self) -> None:
+        """All-zero confidences fuse via a plain coordinate average."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.0, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.0, 0.0],
+            ]
+        )
+
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+        assert result.shape == (1, 6)
+        assert np.allclose(result[0, :4], [0.5, 0.5, 10.5, 10.5])
+
+    def test_pulls_toward_higher_confidence_box(self) -> None:
+        """The fused box lies closer to its higher-confidence member."""
+        high_box = np.array([0.0, 0.0, 10.0, 10.0])
+        low_box = np.array([4.0, 4.0, 14.0, 14.0])
+        predictions = np.array(
+            [
+                [*high_box, 0.95, 0.0],
+                [*low_box, 0.55, 0.0],
+            ]
+        )
+
+        fused_box = box_weighted_box_fusion(predictions, iou_threshold=0.2)[0, :4]
+
+        assert np.all(np.abs(fused_box - high_box) < np.abs(fused_box - low_box))
+
+    @pytest.mark.parametrize(
+        "num_models", [2, pytest.param(np.int64(2), id="numpy-integer")]
+    )
+    def test_num_models_demotes_box_missed_by_other_models(
+        self, num_models: int
+    ) -> None:
+        """A box seen by one of two models is halved; a box both models saw is not."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [50.0, 50.0, 60.0, 60.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+            ]
+        )
+        result = box_weighted_box_fusion(
+            predictions, iou_threshold=0.5, num_models=num_models
+        )
+        assert np.allclose(result[:, 4], [0.85, 0.45])
+
+    def test_cluster_larger_than_num_models_keeps_mean_score(self) -> None:
+        """A cluster with more boxes than models keeps its plain mean confidence."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+                [0.0, 1.0, 10.0, 11.0, 0.7, 0.0],
+            ]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5, num_models=2)
+        assert np.allclose(result[:, 4], [0.8])
+
+    @pytest.mark.parametrize("num_models", [None, 1])
+    def test_single_model_count_keeps_unscaled_confidence(
+        self, num_models: int | None
+    ) -> None:
+        """Setting num_models to 1 gives the same output as leaving it unset."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+                [50.0, 50.0, 60.0, 60.0, 0.6, 0.0],
+                [0.0, 0.0, 10.0, 10.0, 0.7, 1.0],
+            ]
+        )
+        expected = np.array(
+            [
+                [0.8 / 1.7, 0.8 / 1.7, 17.8 / 1.7, 17.8 / 1.7, 0.85, 0.0],
+                [0.0, 0.0, 10.0, 10.0, 0.7, 1.0],
+                [50.0, 50.0, 60.0, 60.0, 0.6, 0.0],
+            ]
+        )
+
+        result = box_weighted_box_fusion(
+            predictions, iou_threshold=0.5, num_models=num_models
+        )
+
+        assert result.shape == expected.shape
+        np.testing.assert_allclose(result, expected)
+
+    @pytest.mark.parametrize("num_models", [0, -1, 2.0, True])
+    def test_rejects_num_models_that_is_not_positive_integer(
+        self, num_models: int
+    ) -> None:
+        """A zero, negative, float or bool model count raises even for empty input."""
+        predictions = np.empty((0, 6))
+        with pytest.raises(ValueError, match="num_models must be a positive integer"):
+            box_weighted_box_fusion(predictions, num_models=num_models)
+
+    def test_tied_classes_come_back_in_ascending_class_id(self) -> None:
+        """Equal-score boxes of different classes come back in ascending class id."""
+        predictions = np.array(
+            [
+                [40.0, 0.0, 50.0, 10.0, 0.5, 2.0],
+                [0.0, 0.0, 10.0, 10.0, 0.5, 0.0],
+                [20.0, 0.0, 30.0, 10.0, 0.5, 1.0],
+            ]
+        )
+        expected_result = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.5, 0.0],
+                [20.0, 0.0, 30.0, 10.0, 0.5, 1.0],
+                [40.0, 0.0, 50.0, 10.0, 0.5, 2.0],
+            ]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.array_equal(result, expected_result)
+
+    def test_tied_boxes_of_one_class_keep_input_order(self) -> None:
+        """Twenty disjoint equal-score boxes of one class come back in input order."""
+        x_min = np.arange(20)[::-1] * 20.0
+        predictions = np.column_stack(
+            [
+                x_min,
+                np.zeros(20),
+                x_min + 10.0,
+                np.full(20, 10.0),
+                np.full(20, 0.5),
+                np.zeros(20),
+            ]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.array_equal(result, predictions)
+
+    @pytest.mark.parametrize("confidence", [-0.5, np.nan, np.inf, -np.inf])
+    def test_rejects_negative_or_non_finite_confidence(self, confidence: float) -> None:
+        """A negative, NaN or infinite confidence raises instead of fusing a bad box."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, confidence, 0.0],
+            ]
+        )
+        with pytest.raises(ValueError, match="must be finite and non-negative"):
+            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+    def test_zero_confidence_box_adds_no_weight_to_cluster(self) -> None:
+        """A zero-confidence box is accepted and joins without moving the cluster."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.8, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.0, 0.0],
+            ]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.allclose(result, [[0.0, 0.0, 10.0, 10.0, 0.4, 0.0]])
+
+    @pytest.mark.parametrize(
+        "predictions",
+        [
+            pytest.param(np.empty((0, 6)), id="empty-input"),
+            pytest.param(np.array([[0.0, 0.0, 10.0, 10.0, 0.9, 0.0]]), id="single-box"),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [0.0, 0.0, 10.0, 10.0, 0.8, 1.0],
+                    ]
+                ),
+                id="one-box-per-class",
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                        [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+                    ]
+                ),
+                id="overlapping-boxes",
+            ),
+        ],
+    )
+    def test_rejects_invalid_overlap_metric(self, predictions: np.ndarray) -> None:
+        """An unknown overlap metric raises even when no overlap is ever computed."""
+        with pytest.raises(ValueError, match="Invalid value"):
+            box_weighted_box_fusion(
+                predictions,
+                overlap_metric="bogus",  # type: ignore[arg-type]
+            )
+
+    @pytest.mark.parametrize(
+        "predictions",
+        [
+            pytest.param(np.zeros((2, 4)), id="four-columns"),
+            pytest.param(np.zeros((2, 7)), id="seven-columns"),
+            pytest.param(
+                np.array([0.0, 0.0, 10.0, 10.0, 0.9, 0.0]), id="one-dimensional-row"
+            ),
+            pytest.param(np.zeros((1, 2, 6)), id="three-dimensional"),
+            pytest.param(np.empty((0,)), id="empty-one-dimensional"),
+            pytest.param(np.empty((0, 4)), id="empty-four-columns"),
+        ],
+    )
+    def test_rejects_predictions_without_five_or_six_columns(
+        self, predictions: np.ndarray
+    ) -> None:
+        """Predictions not shaped (n, 5) or (n, 6) raise a clear ValueError."""
+        with pytest.raises(ValueError, match=r"must have shape \(n, 5\) or \(n, 6\)"):
+            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+    @pytest.mark.parametrize("box_count", [0, 2])
+    @pytest.mark.parametrize("column_count", [5, 6])
+    def test_keeps_column_count_of_valid_predictions(
+        self, box_count: int, column_count: int
+    ) -> None:
+        """Empty and non-empty (n, 5) and (n, 6) predictions keep their column count."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+            ]
+        )[:box_count, :column_count]
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert result.shape[1] == column_count
+
+    @pytest.mark.parametrize(
+        ("dtype", "expected_dtype"),
+        [
+            pytest.param(np.float32, np.float32, id="float32-stays-float32"),
+            pytest.param(np.float64, np.float64, id="float64-stays-float64"),
+            pytest.param(np.int16, np.float32, id="int16-becomes-float32"),
+            pytest.param(np.int64, np.float64, id="int64-becomes-float64"),
+        ],
+    )
+    @pytest.mark.parametrize("box_count", [0, 2])
+    def test_output_dtype_is_same_for_empty_and_fused_input(
+        self, dtype: type, expected_dtype: type, box_count: int
+    ) -> None:
+        """Float input keeps its dtype and integer input turns float, empty or not."""
+        predictions: np.ndarray = np.array(
+            [
+                [0, 0, 10, 10, 1, 0],
+                [1, 1, 11, 11, 1, 0],
+            ],
+            dtype=dtype,
+        )[:box_count]
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert result.dtype == expected_dtype
+
+    def test_float32_input_fuses_to_weighted_box_and_mean_score(self) -> None:
+        """Float32 input fuses to the confidence-weighted box and the mean score."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
+            ],
+            dtype=np.float32,
+        )
+        expected_result = np.array(
+            [[0.8 / 1.7, 0.8 / 1.7, 17.8 / 1.7, 17.8 / 1.7, 0.85, 0.0]]
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.allclose(result, expected_result)
+
+    def test_float32_scores_tied_after_rounding_keep_class_order(self) -> None:
+        """Scores that tie only once rounded to float32 still come back by class id."""
+        score = np.float32(0.5)
+        score_above = np.nextafter(score, np.float32(1.0))
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, score, 1.0],
+                [0.0, 0.0, 10.0, 10.0, score_above, 1.0],
+                [50.0, 50.0, 60.0, 60.0, score, 0.0],
+            ],
+            dtype=np.float32,
+        )
+        expected_result = np.array(
+            [
+                [50.0, 50.0, 60.0, 60.0, 0.5, 0.0],
+                [0.0, 0.0, 10.0, 10.0, 0.5, 1.0],
+            ],
+            dtype=np.float32,
+        )
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        assert np.array_equal(result, expected_result)

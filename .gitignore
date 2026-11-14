@@ -155,8 +155,9 @@ Desktop.ini
 .Trash-*
 
 # local data
-data/
+examples/*/data/
 examples/*/outputs/
+examples/*/*.pt
 !src/supervision/_cv2/data/
 !src/supervision/_cv2/data/*
 *.mp4

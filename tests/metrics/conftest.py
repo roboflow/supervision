@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -5,7 +8,7 @@ from supervision.detection.core import Detections
 
 
 @pytest.fixture
-def detections_50_50():
+def detections_50_50() -> Detections:
     return Detections(
         xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
         confidence=np.array([0.9]),
@@ -14,7 +17,7 @@ def detections_50_50():
 
 
 @pytest.fixture
-def targets_50_50():
+def targets_50_50() -> Detections:
     return Detections(
         xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
         class_id=np.array([0]),
@@ -22,7 +25,7 @@ def targets_50_50():
 
 
 @pytest.fixture
-def dummy_prediction():
+def dummy_prediction() -> Detections:
     return Detections(
         xyxy=np.array([[10, 10, 20, 20]], dtype=np.float32),
         confidence=np.array([0.8]),
@@ -31,7 +34,7 @@ def dummy_prediction():
 
 
 @pytest.fixture
-def predictions_no_overlap():
+def predictions_no_overlap() -> Detections:
     return Detections(
         xyxy=np.array([[10, 10, 20, 20]], dtype=np.float32),
         confidence=np.array([0.9]),
@@ -40,7 +43,7 @@ def predictions_no_overlap():
 
 
 @pytest.fixture
-def targets_no_overlap():
+def targets_no_overlap() -> Detections:
     return Detections(
         xyxy=np.array([[100, 100, 110, 110]], dtype=np.float32),
         class_id=np.array([0]),
@@ -48,7 +51,7 @@ def targets_no_overlap():
 
 
 @pytest.fixture
-def targets_two_objects_class_0():
+def targets_two_objects_class_0() -> Detections:
     return Detections(
         xyxy=np.array(
             [
@@ -62,7 +65,7 @@ def targets_two_objects_class_0():
 
 
 @pytest.fixture
-def predictions_multiple_classes():
+def predictions_multiple_classes() -> Detections:
     return Detections(
         xyxy=np.array(
             [
@@ -78,7 +81,7 @@ def predictions_multiple_classes():
 
 
 @pytest.fixture
-def targets_multiple_classes():
+def targets_multiple_classes() -> Detections:
     return Detections(
         xyxy=np.array(
             [
@@ -92,7 +95,7 @@ def targets_multiple_classes():
 
 
 @pytest.fixture
-def predictions_iou_064():
+def predictions_iou_064() -> Detections:
     return Detections(
         xyxy=np.array([[15, 15, 55, 55]], dtype=np.float32),
         confidence=np.array([0.9]),
@@ -101,7 +104,7 @@ def predictions_iou_064():
 
 
 @pytest.fixture
-def targets_iou_064():
+def targets_iou_064() -> Detections:
     return Detections(
         xyxy=np.array([[10, 10, 60, 60]], dtype=np.float32),
         class_id=np.array([0]),
@@ -109,7 +112,7 @@ def targets_iou_064():
 
 
 @pytest.fixture
-def predictions_confidence_ranking():
+def predictions_confidence_ranking() -> Detections:
     return Detections(
         xyxy=np.array(
             [
@@ -124,7 +127,7 @@ def predictions_confidence_ranking():
 
 
 @pytest.fixture
-def prediction_class_1():
+def prediction_class_1() -> Detections:
     return Detections(
         xyxy=np.array([[60, 60, 100, 100]], dtype=np.float32),
         confidence=np.array([0.8]),
@@ -133,7 +136,7 @@ def prediction_class_1():
 
 
 @pytest.fixture
-def target_class_1():
+def target_class_1() -> Detections:
     return Detections(
         xyxy=np.array([[60, 60, 100, 100]], dtype=np.float32),
         class_id=np.array([1]),
@@ -141,11 +144,11 @@ def target_class_1():
 
 
 def _yolo_dataset_factory(
-    tmp_path,
+    tmp_path: Path,
     num_images: int = 20,
     classes: list[str] | None = None,
     objects_per_image_range: tuple[int, int] = (1, 3),
-):
+) -> dict[str, Any]:
     """Factory function to create synthetic YOLO-format datasets with custom parameters.
 
     Args:
@@ -173,7 +176,7 @@ def _yolo_dataset_factory(
 
 
 @pytest.fixture
-def yolo_dataset_structure(tmp_path):
+def yolo_dataset_structure(tmp_path: Path) -> dict[str, Any]:
     """Synthetic YOLO-format dataset for testing confusion matrix and detection metrics.
 
     Configuration:
@@ -196,7 +199,7 @@ def yolo_dataset_structure(tmp_path):
 
 
 @pytest.fixture
-def yolo_dataset_two_classes(tmp_path):
+def yolo_dataset_two_classes(tmp_path: Path) -> dict[str, Any]:
     """Synthetic YOLO-format dataset for testing mAR and binary classification metrics.
 
     Configuration:

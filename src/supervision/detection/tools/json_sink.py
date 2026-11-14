@@ -3,11 +3,20 @@ from __future__ import annotations
 import io
 import json
 import os
+from copy import deepcopy
+from types import TracebackType
 from typing import Any
 
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
+
+_RESERVED_FIELDS = frozenset(
+    ("x_min", "y_min", "x_max", "y_max", "class_id", "confidence", "tracker_id")
+)
 
 
 class JSONSink:
@@ -37,7 +46,7 @@ class JSONSink:
         from rfdetr import RFDETRMedium
 
         model = RFDETRMedium()
-        json_sink = sv.JSONSink(<RESULT_JSON_FILE_PATH>)
+        json_sink = sv.JSONSink("<RESULT_JSON_FILE_PATH>")
         frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
         with json_sink as sink:
@@ -63,11 +72,17 @@ class JSONSink:
 
     def __exit__(
         self,
-        exc_type: type | None,
-        exc_val: Exception | None,
-        exc_tb: Any | None,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
-        self.write_and_close()
+        """Close the JSON sink while preserving an exception from the managed block."""
+        try:
+            self.write_and_close()
+        except Exception:
+            if exc_val is None:
+                raise
+            logger.exception("Failed to close JSON sink while handling an error.")
 
     def open(self) -> None:
         """Open the JSON file for writing."""
@@ -104,14 +119,17 @@ class JSONSink:
         )
 
     def write_and_close(self) -> None:
-        """Write and close the JSON file."""
-        if self.file:
-            try:
-                json.dump(
-                    self.data, self.file, indent=4, default=JSONSink._json_default
-                )
-            finally:
-                self.file.close()
+        """Write and close the JSON file.
+
+        Does nothing once the file is closed, so calling it inside a `with` block does
+        not make the block's exit fail on the closed file.
+        """
+        if self.file is None or self.file.closed:
+            return
+        try:
+            json.dump(self.data, self.file, indent=4, default=JSONSink._json_default)
+        finally:
+            self.file.close()
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
@@ -158,7 +176,18 @@ class JSONSink:
             A list of dictionaries, one per detection, containing ``xyxy``
             coordinates, ``class_id``, ``confidence``, ``tracker_id``, and any
             values from ``detections.data`` or ``custom_data``.
+
+        Raises:
+            ValueError: If additional data uses a built-in detection field name.
         """
+        extra_fields = set(detections.data)
+        if custom_data is not None:
+            extra_fields.update(custom_data)
+        conflicts = extra_fields.intersection(_RESERVED_FIELDS)
+        if conflicts:
+            names = ", ".join(sorted(conflicts))
+            raise ValueError(f"Additional data uses reserved JSON field names {names}.")
+
         parsed_rows = []
         n = len(detections.xyxy)
         for i in range(n):
@@ -194,6 +223,10 @@ class JSONSink:
     ) -> None:
         """Append detection data to the JSON file.
 
+        The appended rows are deep-copied so later changes to arrays or nested
+        containers in ``detections.data`` or ``custom_data`` do not change the
+        saved values. JSON serialization still happens when the sink is closed.
+
         Args:
             detections: The detection data.
             custom_data: Custom data to include. Scalars, dictionaries, and
@@ -201,6 +234,11 @@ class JSONSink:
                 this batch. NumPy arrays, lists, and tuples with length equal
                 to ``len(detections)`` are sliced per detection; other lists
                 and tuples are broadcast unchanged.
+
+        Raises:
+            ValueError: If additional data uses a built-in detection field name.
+                The batch is rejected before any buffered rows are changed,
+                including when the batch contains no detections.
         """
         parsed_rows = JSONSink.parse_detection_data(detections, custom_data)
-        self.data.extend(parsed_rows)
+        self.data.extend(deepcopy(parsed_rows))

@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import urllib.parse
+from collections.abc import Sequence
 from pathlib import Path
 from shutil import copyfileobj
 from typing import Any
@@ -100,6 +101,9 @@ def _download_to_file(
 
 class NumpyJsonEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
+        """Convert supported NumPy values to JSON-compatible Python values."""
+        if isinstance(obj, np.bool_):
+            return bool(obj)
         if isinstance(obj, np.integer):
             return int(obj)
         if isinstance(obj, np.floating):
@@ -110,14 +114,14 @@ class NumpyJsonEncoder(json.JSONEncoder):
 
 
 def list_files_with_extensions(
-    directory: str | Path, extensions: list[str] | None = None
+    directory: str | Path, extensions: Sequence[str] | None = None
 ) -> list[Path]:
     """List files in a directory with specified extensions or all files if no extensions
     are provided.
 
     Args:
         directory: The directory path as a string or Path object.
-        extensions: A list of file extensions to filter. Extensions may be
+        extensions: A list or tuple of file extensions to filter. Extensions may be
             supplied with or without a leading dot (e.g. ``'jpg'`` and
             ``'.jpg'`` are equivalent). Matching is case-insensitive.
             Multi-part extensions are supported (e.g. ``'tar.gz'``). Pass

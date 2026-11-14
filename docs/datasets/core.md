@@ -1,6 +1,6 @@
 ---
 comments: true
-description: API reference for supervision's DetectionDataset and ClassificationDataset — load, merge, split, and convert datasets in YOLO, COCO, VOC, CreateML, and LabelMe formats.
+description: API reference for supervision's DetectionDataset, KeyPointsDataset and ClassificationDataset — load, merge, split, and convert datasets in YOLO, YOLO pose, COCO, VOC, CreateML, and LabelMe formats.
 ---
 
 # Datasets
@@ -14,6 +14,12 @@ description: API reference for supervision's DetectionDataset and Classification
 </div>
 
 :::supervision.dataset.core.DetectionDataset
+
+<div class="md-typeset">
+  <h2>KeyPointsDataset</h2>
+</div>
+
+:::supervision.dataset.core.KeyPointsDataset
 
 <div class="md-typeset">
   <h2>ClassificationDataset</h2>

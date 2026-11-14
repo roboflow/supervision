@@ -362,6 +362,30 @@ def test_from_matplotlib_accepts_single_color() -> None:
     assert len(palette) == 1
 
 
+@pytest.mark.parametrize(
+    ("palette_name", "color_count"),
+    [
+        ("Accent", 8),
+        ("viridis", 5),
+        ("plasma", 5),
+    ],
+)
+def test_from_matplotlib_matches_matplotlib_hex(
+    palette_name: str, color_count: int
+) -> None:
+    """Palette colors round to the same 8-bit values as Matplotlib's hex codes."""
+    from matplotlib import colormaps
+    from matplotlib.colors import to_hex
+
+    mpl_palette = colormaps[palette_name].resampled(color_count)
+    positions = [i / (color_count - 1) for i in range(color_count)]
+    expected = [to_hex(mpl_palette(position)) for position in positions]
+
+    palette = ColorPalette.from_matplotlib(palette_name, color_count)
+
+    assert [color.as_hex() for color in palette.colors] == expected
+
+
 def test_draw_color_import_does_not_import_matplotlib_pyplot() -> None:
     """Importing draw.color keeps pyplot lazy until from_matplotlib is called."""
     sys.modules.pop("supervision.draw.color", None)
