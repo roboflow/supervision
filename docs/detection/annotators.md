@@ -187,9 +187,12 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         ```python
         import supervision as sv
+        from rfdetr.detr import RFDETRSegSmall
 
         image = ...
-        detections = sv.Detections(...)
+        model = RFDETRSegSmall()
+        # RF-DETR segmentation models return masks in `detections.mask`.
+        detections = model.predict(image[:, :, ::-1])
 
         mask_annotator = sv.MaskAnnotator()
         annotated_frame = mask_annotator.annotate(
