@@ -125,6 +125,23 @@ class TestPolygonZoneInit:
             sv.PolygonZone(np.array([0, 0, 40, 0, 40, 40]))
 
     @pytest.mark.parametrize(
+        ("minimum_crossing_threshold", "expected"),
+        [
+            pytest.param(1, 30, id="default-threshold"),
+            pytest.param(40, 41, id="threshold-above-default-window"),
+        ],
+    )
+    def test_default_max_absent_frames_matches_line_zone(
+        self, minimum_crossing_threshold: int, expected: int
+    ) -> None:
+        """Without `max_absent_frames`, the limit follows LineZone's default."""
+        zone = sv.PolygonZone(
+            POLYGON, minimum_crossing_threshold=minimum_crossing_threshold
+        )
+
+        assert zone.max_absent_frames == expected
+
+    @pytest.mark.parametrize(
         ("kwargs", "match"),
         [
             pytest.param(
@@ -665,15 +682,15 @@ class TestPolygonZoneEntryExit:
             ),
             pytest.param(
                 ["out", None, None, "in"],
-                {"max_absent_frames": 2},
+                {"max_absent_frames": 3},
                 (1, 0),
                 id="state-kept-through-short-absence",
             ),
             pytest.param(
                 ["out", None, None, "in"],
-                {"max_absent_frames": 1},
+                {"max_absent_frames": 2},
                 (0, 0),
-                id="state-dropped-after-long-absence",
+                id="state-dropped-at-absence-limit",
             ),
             pytest.param(
                 ["in", "out", "in"],
@@ -794,6 +811,215 @@ class TestPolygonZoneEntryExit:
         assert (zone.current_count, zone.in_count) == (1, 0)
 
 
+#: Zone to the right of the vertical line `x = 100`, used to compare with LineZone.
+PARITY_POLYGON = np.array([[100, 0], [300, 0], [300, 300], [100, 300]])
+
+#: Center-anchored boxes left (outside) and right (inside) of the line `x = 100`.
+PARITY_BOXES = {"out": [40.0, 140.0, 60.0, 160.0], "in": [140.0, 140.0, 160.0, 160.0]}
+
+
+def _parity_frame(position: str | None) -> sv.Detections:
+    """Build one frame with tracker 0 left or right of `x = 100`, or none if absent."""
+    if position is None:
+        return sv.Detections.empty()
+    return sv.Detections(
+        xyxy=np.array([PARITY_BOXES[position]]), tracker_id=np.array([0])
+    )
+
+
+class TestPolygonZoneLineZoneParity:
+    @pytest.mark.parametrize(
+        ("sequence", "threshold", "expected_in_out"),
+        [
+            pytest.param(["out", "in"], 1, (1, 0), id="enters"),
+            pytest.param(["in", "out"], 1, (0, 1), id="first-seen-inside-exits"),
+            pytest.param(["out", "in", "out", "in"], 1, (2, 1), id="re-enters"),
+            pytest.param(["out", None, "in"], 1, (1, 0), id="short-absence"),
+            pytest.param(["out", "in", "out"], 2, (0, 0), id="flicker-ignored"),
+            pytest.param(["out", "in", "in"], 2, (1, 0), id="sustained-entry"),
+            pytest.param(
+                ["out", "in", None, "in", "out", "out"],
+                2,
+                (1, 1),
+                id="sustained-entry-and-exit-with-gap",
+            ),
+        ],
+    )
+    def test_counts_match_line_zone(
+        self,
+        sequence: list[str | None],
+        threshold: int,
+        expected_in_out: tuple[int, int],
+    ) -> None:
+        """The zone counts the same entries and exits as a LineZone on its edge.
+
+        The line runs downward along the zone's left edge, so LineZone counts a left-to-
+        right move as an entry, exactly when the object enters the zone.
+        """
+        anchors = [sv.Position.CENTER]
+        zone = sv.PolygonZone(
+            PARITY_POLYGON,
+            triggering_anchors=anchors,
+            minimum_crossing_threshold=threshold,
+        )
+        line = sv.LineZone(
+            start=sv.Point(100, 0),
+            end=sv.Point(100, 300),
+            triggering_anchors=anchors,
+            minimum_crossing_threshold=threshold,
+        )
+
+        for position in sequence:
+            zone.trigger(_parity_frame(position))
+            line.trigger(_parity_frame(position))
+
+        assert (zone.in_count, zone.out_count) == expected_in_out
+        assert (line.in_count, line.out_count) == expected_in_out
+
+    @pytest.mark.parametrize(
+        ("max_absent_frames", "expected_in_out"),
+        [
+            pytest.param(2, (0, 0), id="dropped-at-limit"),
+            pytest.param(3, (1, 0), id="kept-below-limit"),
+        ],
+    )
+    def test_absence_limit_matches_line_zone(
+        self, max_absent_frames: int, expected_in_out: tuple[int, int]
+    ) -> None:
+        """Both zones drop a track on the same absent frame, so it re-seeds alike.
+
+        After two empty frames, a track dropped at the limit is seen anew inside, which
+        is not an entry, while a kept track still counts its entry.
+        """
+        anchors = [sv.Position.CENTER]
+        zone = sv.PolygonZone(
+            PARITY_POLYGON,
+            triggering_anchors=anchors,
+            max_absent_frames=max_absent_frames,
+        )
+        line = sv.LineZone(
+            start=sv.Point(100, 0),
+            end=sv.Point(100, 300),
+            triggering_anchors=anchors,
+            max_absent_frames=max_absent_frames,
+        )
+
+        for position in ["out", None, None, "in"]:
+            zone.trigger(_parity_frame(position))
+            line.trigger(_parity_frame(position))
+
+        assert (zone.in_count, zone.out_count) == expected_in_out
+        assert (line.in_count, line.out_count) == expected_in_out
+
+
+class TestPolygonZoneUnusableIds:
+    @pytest.mark.parametrize(
+        "tracker_id",
+        [
+            pytest.param(np.array(["a"]), id="string"),
+            pytest.param(np.array([7], dtype=object), id="object"),
+            pytest.param(np.array([True]), id="boolean"),
+            pytest.param(np.array([3.5]), id="fractional"),
+        ],
+    )
+    def test_skips_tracker_ids_that_are_not_integers(
+        self, tracker_id: npt.NDArray[Any]
+    ) -> None:
+        """Ids that name no single track are skipped while the frame is still counted.
+
+        Such ids used to raise after the frame was committed, leaving `current_count`
+        updated but the clock and track state half-written.
+        """
+        zone = sv.PolygonZone(POLYGON)
+        frames = [
+            sv.Detections(xyxy=np.array([box]), tracker_id=tracker_id)
+            for box in (OUTSIDE_BOX, INSIDE_BOX)
+        ]
+
+        for frame in frames:
+            zone.trigger(frame)
+
+        assert (zone.current_count, zone.in_count, zone.out_count) == (1, 0, 0)
+        assert zone.current_count_per_class == {None: 1}
+
+    def test_fractional_ids_do_not_alias_one_track(self) -> None:
+        """Ids `3.2` and `3.7` are not two observations of track `3`."""
+        zone = sv.PolygonZone(POLYGON, minimum_crossing_threshold=2)
+        zone.trigger(_create_detections(xyxy=[OUTSIDE_BOX], tracker_id=[3]))
+        fractional = sv.Detections(
+            xyxy=np.array([INSIDE_BOX, INSIDE_BOX]), tracker_id=np.array([3.2, 3.7])
+        )
+
+        zone.trigger(fractional)
+
+        assert (zone.current_count, zone.in_count) == (2, 0)
+
+    def test_integral_float_ids_are_followed(self) -> None:
+        """A float id such as `3.0` names track `3`, so its entry is counted."""
+        zone = sv.PolygonZone(POLYGON)
+        frames = [
+            sv.Detections(xyxy=np.array([box]), tracker_id=np.array([3.0]))
+            for box in (OUTSIDE_BOX, INSIDE_BOX)
+        ]
+
+        for frame in frames:
+            zone.trigger(frame)
+
+        assert zone.in_count_per_class == {None: 1}
+
+    def test_nan_class_id_counts_under_none(self) -> None:
+        """A NaN class id is counted under `None`, so per-class counts add up."""
+        zone = sv.PolygonZone(POLYGON)
+        detections = sv.Detections(
+            xyxy=np.array([INSIDE_BOX, INSIDE_BOX]),
+            class_id=np.array([np.nan, 2.0]),
+            tracker_id=np.array([0, 1]),
+        )
+
+        zone.trigger(detections)
+
+        assert zone.current_count == 2
+        assert zone.current_count_per_class == {None: 1, 2: 1}
+
+    def test_exit_with_nan_class_id_is_counted_under_none(self) -> None:
+        """An exit by a detection with a NaN class id is recorded, not lost."""
+        zone = sv.PolygonZone(POLYGON)
+        frames = [
+            sv.Detections(
+                xyxy=np.array([box]),
+                class_id=np.array([class_id]),
+                tracker_id=np.array([0]),
+            )
+            for box, class_id in ((INSIDE_BOX, 1.0), (OUTSIDE_BOX, np.nan))
+        ]
+
+        for frame in frames:
+            zone.trigger(frame)
+
+        assert zone.out_count_per_class == {None: 1}
+        assert (zone.current_count, zone.current_count_per_class) == (0, {})
+
+    @pytest.mark.parametrize(
+        "tracker_id",
+        [
+            pytest.param(np.array([3.2]), id="fractional"),
+            pytest.param(np.array(["3"]), id="string"),
+        ],
+    )
+    def test_time_in_zone_is_nan_for_unusable_ids(
+        self, tracker_id: npt.NDArray[Any]
+    ) -> None:
+        """Dwell lookups follow the counting rule, so `3.2` never reads track `3`."""
+        zone = sv.PolygonZone(POLYGON)
+        _run_sequence(zone, ["in", "in"])
+        zone.trigger(_create_detections(xyxy=[INSIDE_BOX], tracker_id=[3]))
+        detections = sv.Detections(xyxy=np.array([INSIDE_BOX]), tracker_id=tracker_id)
+
+        dwell = zone.time_in_zone(detections)
+
+        np.testing.assert_array_equal(dwell, [np.nan])
+
+
 class TestPolygonZoneReset:
     def test_clears_counts_and_track_state(self) -> None:
         """After reset, a track already inside is re-seeded rather than counted."""
@@ -806,214 +1032,6 @@ class TestPolygonZoneReset:
 
         assert (zone.in_count, zone.out_count, zone.current_count) == (0, 0, 0)
         assert zone.in_count_per_class == {}
-
-
-ZONE_PIXELS = 101 * 101
-LEFT_HALF_PIXELS = 51 * 101
-
-
-def _left_half_mask(image_wh: tuple[int, int] = (250, 250)) -> np.ndarray:
-    """Return one `(1, H, W)` mask covering zone columns 100-150 on every zone row."""
-    width, height = image_wh
-    mask = np.zeros((1, height, width), dtype=bool)
-    mask[0, 100:201, 100:151] = True
-    return mask
-
-
-class TestPolygonZoneOccupancy:
-    @pytest.mark.parametrize(
-        ("xyxy", "expected_pixels"),
-        [
-            pytest.param([[100, 100, 200, 200]], ZONE_PIXELS, id="zone-box"),
-            pytest.param([[100, 100, 150, 200]], LEFT_HALF_PIXELS, id="left-half"),
-            pytest.param(
-                [[100, 100, 150, 200], [125, 100, 175, 200]],
-                76 * 101,
-                id="overlap-counted-once",
-            ),
-            pytest.param(
-                [[100, 100, 150, 200], [100, 100, 150, 200]],
-                LEFT_HALF_PIXELS,
-                id="duplicate-boxes",
-            ),
-            pytest.param([[-50, -50, 150, 150]], 51 * 51, id="partly-outside"),
-            pytest.param([[0, 0, 50, 50]], 0, id="outside"),
-            pytest.param([[150, 200, 100, 100]], LEFT_HALF_PIXELS, id="reversed"),
-            pytest.param(
-                [[100.9, 100, 150.9, 200]], LEFT_HALF_PIXELS, id="fractional-edges"
-            ),
-        ],
-    )
-    def test_box_coverage(self, xyxy: list[list[float]], expected_pixels: int) -> None:
-        """Covered zone pixels are the union of the boxes, edges inclusive."""
-        zone = sv.PolygonZone(POLYGON)
-        detections = sv.Detections(xyxy=np.array(xyxy, dtype=np.float64))
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == pytest.approx(expected_pixels / ZONE_PIXELS)
-
-    def test_empty_detections_are_zero(self) -> None:
-        """No detections cover nothing."""
-        zone = sv.PolygonZone(POLYGON)
-
-        occupancy = zone.occupancy(sv.Detections.empty())
-
-        assert occupancy == 0.0
-
-    def test_mask_takes_precedence_over_box(self) -> None:
-        """A mask narrower than its box is measured by its own pixels."""
-        zone = sv.PolygonZone(POLYGON)
-        detections = sv.Detections(
-            xyxy=np.array([[100.0, 100.0, 200.0, 200.0]]), mask=_left_half_mask()
-        )
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == pytest.approx(LEFT_HALF_PIXELS / ZONE_PIXELS)
-
-    def test_compact_mask_matches_dense_mask(self) -> None:
-        """Compact and dense masks of the same objects give the same occupancy."""
-        zone = sv.PolygonZone(POLYGON)
-        masks = np.concatenate([_left_half_mask(), np.zeros((1, 250, 250), bool)])
-        masks[1, 150:240, 180:245] = True
-        xyxy = sv.mask_to_xyxy(masks).astype(np.float32)
-        compact = sv.CompactMask.from_dense(masks, xyxy, image_shape=(250, 250))
-        expected = zone.occupancy(sv.Detections(xyxy=xyxy, mask=masks))
-        compact_detections = sv.Detections(xyxy=xyxy, mask=compact)
-
-        occupancy = zone.occupancy(compact_detections)
-
-        assert occupancy == pytest.approx(expected)
-
-    def test_compact_masks_outside_zone_are_zero(self) -> None:
-        """Compact masks that never touch the zone cover none of it."""
-        zone = sv.PolygonZone(POLYGON)
-        masks = np.zeros((2, 250, 250), dtype=bool)
-        masks[0, 10:40, 10:40] = True
-        masks[1, 210:240, 10:240] = True
-        xyxy = sv.mask_to_xyxy(masks).astype(np.float32)
-        compact = sv.CompactMask.from_dense(masks, xyxy, image_shape=(250, 250))
-
-        occupancy = zone.occupancy(sv.Detections(xyxy=xyxy, mask=compact))
-
-        assert occupancy == 0.0
-
-    def test_zone_with_negative_vertices(self) -> None:
-        """A zone reaching past the frame's top-left corner is measured where drawn."""
-        zone = sv.PolygonZone(
-            np.array([[-50, -50], [100, -50], [100, 100], [-50, 100]])
-        )
-        detections = sv.Detections(xyxy=np.array([[-50.0, -50.0, 100.0, 100.0]]))
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == 1.0
-
-    def test_mask_image_smaller_than_zone(self) -> None:
-        """Zone pixels beyond the mask's image are counted as uncovered."""
-        zone = sv.PolygonZone(POLYGON)
-        detections = sv.Detections(
-            xyxy=np.array([[0.0, 0.0, 149.0, 149.0]]),
-            mask=np.ones((1, 150, 150), dtype=bool),
-        )
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == pytest.approx(50 * 50 / ZONE_PIXELS)
-
-    def test_oriented_boxes_take_precedence_over_box(self) -> None:
-        """Oriented-box corners, not their axis-aligned envelope, are measured."""
-        zone = sv.PolygonZone(POLYGON)
-        detections = sv.Detections(
-            xyxy=np.array([[100.0, 100.0, 200.0, 200.0]]),
-            data={
-                ORIENTED_BOX_COORDINATES: np.array(
-                    [[[100, 100], [150, 100], [150, 200], [100, 200]]], dtype=float
-                )
-            },
-        )
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == pytest.approx(LEFT_HALF_PIXELS / ZONE_PIXELS)
-
-    def test_overlapping_oriented_boxes_are_counted_once(self) -> None:
-        """The overlap of two oriented boxes stays covered instead of cancelling."""
-        zone = sv.PolygonZone(POLYGON)
-        corners = np.array(
-            [
-                [[100, 100], [150, 100], [150, 200], [100, 200]],
-                [[125, 100], [175, 100], [175, 200], [125, 200]],
-            ],
-            dtype=float,
-        )
-        detections = sv.Detections(
-            xyxy=np.array([[100.0, 100.0, 150.0, 200.0], [125.0, 100.0, 175.0, 200.0]]),
-            data={ORIENTED_BOX_COORDINATES: corners},
-        )
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == pytest.approx(76 * 101 / ZONE_PIXELS)
-
-    def test_rotated_box_crossing_the_zone_edge_is_exact(self) -> None:
-        """A rotated box cut by the zone covers the pixels polygon_to_mask paints."""
-        zone = sv.PolygonZone(np.array([[39, 23], [98, 23], [98, 82], [39, 82]]))
-        corners = np.array([[[81, 1], [74, 37], [-6, 21], [2, -15]]], dtype=float)
-        detections = sv.Detections(
-            xyxy=np.array([[-6.0, -15.0, 81.0, 37.0]]),
-            data={ORIENTED_BOX_COORDINATES: corners},
-        )
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == pytest.approx(435 / (60 * 60))
-
-    def test_oriented_box_outside_zone_adds_nothing(self) -> None:
-        """An oriented box away from the zone leaves the coverage unchanged."""
-        zone = sv.PolygonZone(POLYGON)
-        corners = np.array(
-            [
-                [[100, 100], [150, 100], [150, 200], [100, 200]],
-                [[300, 300], [350, 300], [350, 350], [300, 350]],
-            ],
-            dtype=float,
-        )
-        detections = sv.Detections(
-            xyxy=np.array([[100.0, 100.0, 150.0, 200.0], [300.0, 300.0, 350.0, 350.0]]),
-            data={ORIENTED_BOX_COORDINATES: corners},
-        )
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == pytest.approx(51 * 101 / ZONE_PIXELS)
-
-    def test_oriented_box_larger_than_canvas_limit_covers_zone(self) -> None:
-        """A huge oriented box enclosing the zone is drawn on the zone's window."""
-        zone = sv.PolygonZone(POLYGON)
-        corners = np.array(
-            [[[-5000, -5000], [5000, -5000], [5000, 5000], [-5000, 5000]]], dtype=float
-        )
-        detections = sv.Detections(
-            xyxy=np.array([[-5000.0, -5000.0, 5000.0, 5000.0]]),
-            data={ORIENTED_BOX_COORDINATES: corners},
-        )
-
-        occupancy = zone.occupancy(detections)
-
-        assert occupancy == pytest.approx(1.0)
-
-    def test_rejects_misshaped_oriented_boxes(self) -> None:
-        """Oriented-box data must be `(N, K, 2)` corner arrays."""
-        zone = sv.PolygonZone(POLYGON)
-        detections = sv.Detections(
-            xyxy=np.array([[100.0, 100.0, 150.0, 150.0]]),
-            data={ORIENTED_BOX_COORDINATES: np.zeros((1, 8))},
-        )
-
-        with pytest.raises(ValueError, match=r"\(N, K, 2\)"):
-            zone.occupancy(detections)
 
 
 class TestPolygonZoneTimeInZone:
@@ -1133,6 +1151,49 @@ class TestPolygonZoneTimeInZone:
         dwell = zone.time_in_zone(_tracked_frame(["in"], [0]))
 
         np.testing.assert_array_equal(dwell, [np.nan])
+
+    @pytest.mark.parametrize(
+        "detections",
+        [
+            pytest.param(sv.Detections.empty(), id="untracked"),
+            pytest.param(
+                sv.Detections(xyxy=np.empty((0, 4)), tracker_id=np.empty(0, dtype=int)),
+                id="tracked",
+            ),
+        ],
+    )
+    def test_is_empty_for_empty_detections(self, detections: sv.Detections) -> None:
+        """No detections yield an empty dwell array, even for a zone with state."""
+        zone = sv.PolygonZone(POLYGON)
+        _run_sequence(zone, ["in", "in"])
+
+        dwell = zone.time_in_zone(detections)
+
+        assert dwell.shape == (0,)
+
+    def test_is_nan_for_an_unconfirmed_entry(self) -> None:
+        """An entry not yet sustained for the crossing threshold has no dwell."""
+        zone = sv.PolygonZone(POLYGON, minimum_crossing_threshold=2)
+        _run_sequence(zone, ["out", "in"])
+
+        dwell = zone.time_in_zone(_tracked_frame(["in"], [0]))
+
+        np.testing.assert_array_equal(dwell, [np.nan])
+
+    def test_mixes_confirmed_and_unusable_tracker_ids(self) -> None:
+        """Dwell stays aligned across confirmed, unconfirmed, NaN and unseen ids."""
+        zone = sv.PolygonZone(POLYGON)
+        zone.trigger(_tracked_frame(["in"], [0]))
+        zone.trigger(_tracked_frame(["in", "in"], [0, 0]))
+        zone.trigger(_tracked_frame(["in", "in"], [0, 0]))
+        detections = sv.Detections(
+            xyxy=np.array([INSIDE_BOX] * 5),
+            tracker_id=np.array([1, -1, np.nan, 7, 0]),
+        )
+
+        dwell = zone.time_in_zone(detections)
+
+        np.testing.assert_array_equal(dwell, [1.0, np.nan, np.nan, np.nan, 2.0])
 
     @pytest.mark.parametrize(
         ("timestamps", "match"),
@@ -1431,6 +1492,41 @@ class TestPolygonZoneOccupancyRatio:
         ratio = zone.occupancy_ratio(detections)
 
         assert ratio == pytest.approx(800 / 20_000)
+
+    def test_mask_takes_precedence_over_box(self) -> None:
+        """A mask narrower than its box is measured by its own pixels, not the box.
+
+        The box covers the whole zone, so falling back to it would report `1.0`.
+        """
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        masks = np.zeros((1, 100, 100), dtype=bool)
+        masks[0, :, :50] = True
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 100, 100]], dtype=np.float32), mask=masks
+        )
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.5)
+
+    def test_compact_mask_matches_dense_mask(self) -> None:
+        """Compact and dense masks of the same objects cover the same zone share.
+
+        The second mask straddles the zone's right and bottom edges, so both paths must
+        crop it the same way.
+        """
+        zone = sv.PolygonZone(OCCUPANCY_ZONE)
+        masks = np.zeros((2, 120, 120), dtype=bool)
+        masks[0, :100, :50] = True
+        masks[1, 50:110, 80:115] = True
+        xyxy = sv.mask_to_xyxy(masks).astype(np.float32)
+        compact = sv.CompactMask.from_dense(masks, xyxy, image_shape=(120, 120))
+        expected = zone.occupancy_ratio(sv.Detections(xyxy=xyxy, mask=masks))
+
+        ratio = zone.occupancy_ratio(sv.Detections(xyxy=xyxy, mask=compact))
+
+        assert ratio == pytest.approx(expected)
+        assert ratio == pytest.approx((5_000 + 20 * 50) / 10_000)
 
     def test_overlapping_oriented_boxes_are_unioned(self) -> None:
         """Overlapping oriented boxes count their shared pixels once, not zero times.
