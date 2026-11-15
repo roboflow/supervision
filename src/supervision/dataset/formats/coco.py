@@ -85,8 +85,10 @@ def build_coco_class_index_mapping(
 ) -> dict[int, int]:
     """Build a mapping from COCO category id to internal target class index.
 
-    Matches each category in ``coco_categories`` to the position of its class name
-    within ``target_classes``.
+    Matches each class name in ``target_classes`` to its corresponding COCO category
+    in ``coco_categories``. Source categories not present in ``target_classes`` are
+    omitted from the resulting mapping. Every name in ``target_classes`` must exist in
+    ``coco_categories``; otherwise, a ``KeyError`` is raised.
 
     Args:
         coco_categories: List of COCO category dictionaries, each containing
@@ -98,6 +100,10 @@ def build_coco_class_index_mapping(
         A dictionary mapping COCO ``category_id`` (source id) to the target
         class index (0-indexed position in ``target_classes``).
 
+    Raises:
+        KeyError: If a class name in ``target_classes`` is not found in
+            ``coco_categories``.
+
     Example:
         ```pycon
         >>> from supervision.dataset.formats.coco import build_coco_class_index_mapping
@@ -106,8 +112,8 @@ def build_coco_class_index_mapping(
         ...     {"id": 2, "name": "dog"}
         ... ]
         >>> target = ["dog", "cat"]
-        >>> build_coco_class_index_mapping(categories, target)
-        {2: 0, 1: 1}
+        >>> build_coco_class_index_mapping(categories, target) == {2: 0, 1: 1}
+        True
 
         ```
     """
@@ -178,7 +184,7 @@ def group_coco_annotations_by_image_id(
         ...     {"id": 3, "image_id": 10, "bbox": [5, 5, 40, 40]},
         ... ]
         >>> groups = group_coco_annotations_by_image_id(annotations)
-        >>> list(groups.keys())
+        >>> sorted(groups.keys())
         [10, 20]
         >>> len(groups[10])
         2
