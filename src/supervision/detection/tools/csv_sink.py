@@ -49,6 +49,11 @@ class CSVSink:
         so it can be read back with
         ``json.loads``.
 
+        Built-in columns (`x_min`, `y_min`, `x_max`, `y_max`, `class_id`,
+        `confidence`, and `tracker_id`) are reserved. Rename additional fields
+        that use these names. For other names, `custom_data` takes precedence
+        over `detections.data` when both define the same field.
+
     Args:
         file_name: The name of the CSV file where the detections will be stored.
             Defaults to 'output.csv'.
@@ -212,7 +217,11 @@ class CSVSink:
             A list of dictionaries, one per detection, containing ``xyxy``
             coordinates, ``class_id``, ``confidence``, ``tracker_id``, and any
             values from ``detections.data`` or ``custom_data``.
+
+        Raises:
+            ValueError: If additional data uses a built-in column name.
         """
+        CSVSink._extra_column_names(detections, custom_data)
         parsed_rows = []
         n = len(detections.xyxy)
         for i in range(n):
@@ -261,6 +270,10 @@ class CSVSink:
                 this batch. NumPy arrays, lists, and tuples with length equal
                 to ``len(detections)`` are sliced per detection; other lists
                 and tuples are broadcast unchanged.
+
+        Raises:
+            ValueError: If additional data uses a built-in column name. The
+                batch is rejected before writing a header or any rows.
         """
         if not self.writer:
             raise Exception(
@@ -304,8 +317,32 @@ class CSVSink:
     def parse_field_names(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[str]:
-        custom_keys = set(custom_data.keys()) if custom_data else set()
-        dynamic_header = sorted(
-            custom_keys | set(getattr(detections, "data", {}).keys())
+        """Return the built-in columns followed by sorted additional columns.
+
+        Args:
+            detections: Detections whose per-row data supplies extra columns.
+            custom_data: Optional extra columns supplied by the caller.
+
+        Returns:
+            The CSV column names in header order.
+
+        Raises:
+            ValueError: If additional data uses a built-in column name.
+        """
+        return BASE_HEADER + sorted(
+            CSVSink._extra_column_names(detections, custom_data)
         )
-        return BASE_HEADER + dynamic_header
+
+    @staticmethod
+    def _extra_column_names(
+        detections: Detections, custom_data: dict[str, Any] | None
+    ) -> set[str]:
+        """Collect extra names and reject collisions with built-in columns."""
+        extra_fields = set(getattr(detections, "data", {}))
+        if custom_data is not None:
+            extra_fields.update(custom_data)
+        conflicts = extra_fields.intersection(BASE_HEADER)
+        if conflicts:
+            names = ", ".join(sorted(conflicts))
+            raise ValueError(f"Additional data uses reserved CSV column names {names}.")
+        return extra_fields

@@ -1556,6 +1556,43 @@ class TestLabelAnnotator:
 class TestRichLabelAnnotator:
     """Tests for RichLabelAnnotator class."""
 
+    @pytest.mark.parametrize(
+        "label",
+        [
+            pytest.param("مرحبا بالعالم " * 4, id="arabic"),
+            pytest.param("שלום עולם " * 4, id="hebrew"),
+            pytest.param(
+                "Long Latin label " * 4 + "\n" + "مرحبا بالعالم " * 4, id="mixed"
+            ),
+        ],
+    )
+    def test_oversized_rtl_label_keeps_leading_text_in_frame(
+        self, monkeypatch: pytest.MonkeyPatch, label: str
+    ) -> None:
+        """Keep the leading edge of oversized shaped text visible."""
+        khatt = pytest.importorskip("khatt")
+        original_draw = khatt.draw_text
+        right_edges: list[float] = []
+
+        def record_draw(image: Image.Image, xy: Any, text: str, **kwargs: Any) -> Any:
+            """Record the rendered ink boundary while drawing the text."""
+            options = {key: value for key, value in kwargs.items() if key != "fill"}
+            right_edges.append(xy[0] + khatt.text_bbox(text, **options)[2])
+            return original_draw(image, xy, text, **kwargs)
+
+        monkeypatch.setattr(khatt, "draw_text", record_draw)
+        scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[10, 40, 20, 70]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            font_size=24, smart_position=True, text_position=Position.TOP_LEFT
+        )
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=[label])
+
+        assert right_edges
+        assert all(0 < edge <= scene.shape[1] for edge in right_edges)
+        assert np.any(np.all(result == 255, axis=-1))
+
     def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
         """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()

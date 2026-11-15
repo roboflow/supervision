@@ -371,8 +371,10 @@ def snap_boxes(
     xyxy: npt.NDArray[np.float32],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.float32]:
-    """Shifts `label` bounding boxes into the frame so that they are fully contained
-    within the given resolution, prioritizing the top/left edge. Unlike
+    """Shifts `label` bounding boxes into the frame, prioritizing the top/left edge.
+    A box that fits the frame ends up fully contained within the given resolution.
+    A box wider or taller than the frame stops at the left or top edge and overflows
+    on the right or bottom. Unlike
     :func:`~supervision.detection.utils.boxes.clip_boxes`, this function does not crop
     boxes. It moves them entirely if they exceed the frame boundaries.
 
@@ -418,7 +420,10 @@ def snap_boxes(
     result[left_overflow, 0:3:2] -= result[left_overflow, 0:1]
 
     right_overflow = (~left_overflow) & (result[:, 2] > width)
-    right_shift = width - result[right_overflow, 2]
+    # A box wider than the frame stops at the left edge instead of crossing it.
+    right_shift = np.maximum(
+        width - result[right_overflow, 2], -result[right_overflow, 0]
+    )
     result[right_overflow, 0:3:2] += right_shift[:, np.newaxis]
 
     # Y-axis (prioritize top edge)
@@ -426,7 +431,10 @@ def snap_boxes(
     result[top_overflow, 1:4:2] -= result[top_overflow, 1:2]
 
     bottom_overflow = (~top_overflow) & (result[:, 3] > height)
-    bottom_shift = height - result[bottom_overflow, 3]
+    # A box taller than the frame stops at the top edge instead of crossing it.
+    bottom_shift = np.maximum(
+        height - result[bottom_overflow, 3], -result[bottom_overflow, 1]
+    )
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
     return cast(npt.NDArray[np.float32], result.astype(np.float32, copy=False))
