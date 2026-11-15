@@ -190,6 +190,9 @@ class Classifications:
         """Retrieve the top k class IDs and confidences, ordered in descending order by
         confidence.
 
+        Classes with equal confidence keep their input order, and a NaN confidence
+        ranks below every number.
+
         Args:
             k: The number of top class IDs and confidences to retrieve.
 
@@ -217,7 +220,11 @@ class Classifications:
         if k < 0:
             raise ValueError("k must be non-negative")
 
-        order = np.argsort(self.confidence)[::-1]
+        # Stable descending sort: tied scores keep input order, so the first one wins
+        # as with `np.argmax`, instead of being reversed or scrambled. Negating in
+        # float64 is exact for any real dtype and leaves NaN last.
+        scores = np.asarray(self.confidence, dtype=np.float64)
+        order = np.argsort(-scores, kind="stable")
         top_k_order = order[:k]
         top_k_class_id = self.class_id[top_k_order]
         top_k_confidence = self.confidence[top_k_order]

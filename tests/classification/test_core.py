@@ -191,3 +191,40 @@ def test_classifications_compare_numpy_fields_by_value() -> None:
 
     assert left == right
     assert left != different
+
+
+class TestClassificationsGetTopK:
+    """Order of the classes that `Classifications.get_top_k` returns."""
+
+    def test_returns_first_class_among_tied_top_scores(self) -> None:
+        """A tie for the best score goes to the earlier class, as `np.argmax`."""
+        classifications = Classifications(
+            class_id=np.array([0, 1, 2]), confidence=np.array([0.4, 0.4, 0.2])
+        )
+
+        class_id, confidence = classifications.get_top_k(1)
+
+        np.testing.assert_array_equal(class_id, [0])
+        np.testing.assert_array_equal(confidence, [0.4])
+
+    def test_keeps_input_order_among_ties_with_many_classes(self) -> None:
+        """Tied scores among 1000 classes come back in input order, not scrambled."""
+        confidence = np.zeros(1000, dtype=np.float16)
+        confidence[[10, 20, 30, 40]] = 0.25
+        classifications = Classifications(
+            class_id=np.arange(1000), confidence=confidence
+        )
+
+        class_id, _ = classifications.get_top_k(6)
+
+        np.testing.assert_array_equal(class_id, [10, 20, 30, 40, 0, 1])
+
+    def test_ranks_nan_confidence_last(self) -> None:
+        """A NaN confidence is never returned ahead of real scores."""
+        classifications = Classifications(
+            class_id=np.array([0, 1, 2]), confidence=np.array([0.7, np.nan, 0.3])
+        )
+
+        class_id, _ = classifications.get_top_k(2)
+
+        np.testing.assert_array_equal(class_id, [0, 2])
