@@ -428,6 +428,36 @@ class TestLoadYoloPoseAnnotations:
                 data_yaml_path=data_yaml,
             )
 
+    def test_class_id_resolves_to_its_declared_name(self, tmp_path: Path) -> None:
+        """A class id indexes the name data.yaml declares for it, gaps included."""
+        paths = _write_dataset(
+            root=tmp_path,
+            label_lines={
+                "a": [
+                    "2 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1",
+                    "0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1",
+                ]
+            },
+            data_yaml="names:\n  0: person\n  2: dog\nkpt_shape: [2, 3]\n",
+        )
+
+        classes, image_paths, loaded, _, _ = load_yolo_pose_annotations(*paths)
+
+        class_ids = loaded[image_paths[0]].class_id
+        assert class_ids is not None
+        assert [classes[class_id] for class_id in class_ids] == ["dog", "person"]
+
+    def test_raises_for_class_id_not_in_names(self, tmp_path: Path) -> None:
+        """A label whose class id data.yaml does not declare fails, naming its file."""
+        paths = _write_dataset(
+            root=tmp_path,
+            label_lines={"a": ["1 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1"]},
+            data_yaml="names:\n  0: person\n  2: dog\nkpt_shape: [2, 3]\n",
+        )
+
+        with pytest.raises(ValueError, match=r"a\.txt'.*class id 1 .*not declared"):
+            load_yolo_pose_annotations(*paths)
+
 
 class TestYoloPoseRoundTrip:
     """Tests that a dataset survives a write and read cycle unchanged."""

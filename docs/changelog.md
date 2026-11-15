@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionDataset.from_yolo` and `sv.KeyPointsDataset.from_yolo` map each label's class id to the name `data.yaml` declares for it when `names` is a dict whose keys start above `0` or skip values, such as `{1: cat, 2: dog}`, instead of silently loading labels under the wrong class. Loaded class ids index `classes`, and a label whose class id `names` does not declare raises `ValueError` naming its file. ([#PR_NUMBER](https://github.com/roboflow/supervision/pull/PR_NUMBER))
+
 - `sv.Detections.from_semantic_segmentation` now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the `int64` range instead of accepting invalid scores or failing with an indexing error. ([#2898](https://github.com/roboflow/supervision/pull/2898))
 
 - `sv.Detections.from_inference` now loads Roboflow Inference semantic segmentation results, such as RF-DETR semantic models, as one detection per class id, instead of failing with an opaque `TypeError`. The background id `0` is dropped, classes are named from `class_map`, and a `confidence_mask` gives each class's mean confidence. `compact_masks=True` builds a `sv.CompactMask` one class at a time.
