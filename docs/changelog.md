@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.process_video(preserve_audio=True)` preserves audio delayed relative to the source video instead of moving it to the start of the output. Audio starting after a shortened output is omitted.
+- `sv.process_video(preserve_audio=True)` preserves audio delayed relative to the source video instead of moving it to the start of the output. Audio starting after a shortened output is omitted. ([#2988](https://github.com/roboflow/supervision/pull/2988))
 
 - `sv.Detections.from_semantic_segmentation` now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the `int64` range instead of accepting invalid scores or failing with an indexing error. ([#2898](https://github.com/roboflow/supervision/pull/2898))
 
