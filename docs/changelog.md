@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.remap_classes` skips repeated full-list scans when the target class names are unique, preserving the existing duplicate-name error.
+- `sv.Detections.remap_classes` skips repeated full-list scans when the target class names are unique, preserving the existing duplicate-name error. ([#2986](https://github.com/roboflow/supervision/pull/2986))
 
 - `sv.Detections.from_semantic_segmentation` now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the `int64` range instead of accepting invalid scores or failing with an indexing error. ([#2898](https://github.com/roboflow/supervision/pull/2898))
 
