@@ -3254,12 +3254,13 @@ class Detections:
                 f"Detections must have {CLASS_NAME_DATA_FIELD!r} in .data "
                 "to use remap_classes()."
             )
-        # A repeated name would silently resolve to its first index
         class_list = list(classes)
-        duplicates = sorted({name for name in class_list if class_list.count(name) > 1})
-        if duplicates:
-            raise ValueError(f"classes holds duplicate names: {duplicates}")
         class_index = {name: index for index, name in enumerate(class_list)}
+        if len(class_index) != len(class_list):
+            duplicates = sorted(
+                {name for name in class_list if class_list.count(name) > 1}
+            )
+            raise ValueError(f"classes holds duplicate names: {duplicates}")
         if class_name_mapping is not None:
             if not isinstance(class_name_mapping, Mapping):
                 raise TypeError(
