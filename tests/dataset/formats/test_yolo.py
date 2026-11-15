@@ -587,7 +587,9 @@ def test_from_yolo_loads_labels_saved_with_numpy_savetxt(tmp_path: Path) -> None
     np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
 
 
-def _write_yolo_dataset(root: Path, label: str) -> tuple[str, str, str]:
+def _write_yolo_dataset(
+    root: Path, label: str, data_yaml: str = "names: ['cat', 'dog']\n"
+) -> tuple[str, str, str]:
     """Write a one-image YOLO dataset and return the paths `from_yolo` takes."""
     images_dir = root / "images"
     labels_dir = root / "labels"
@@ -595,8 +597,88 @@ def _write_yolo_dataset(root: Path, label: str) -> tuple[str, str, str]:
     labels_dir.mkdir()
     Image.new("RGB", (100, 80)).save(images_dir / "test.png")
     (labels_dir / "test.txt").write_text(label)
-    (root / "data.yaml").write_text("names: ['cat', 'dog']\n")
+    (root / "data.yaml").write_text(data_yaml)
     return str(images_dir), str(labels_dir), str(root / "data.yaml")
+
+
+class TestFromYoloClassNames:
+    """Tests that ``DetectionDataset.from_yolo`` maps class ids to declared names."""
+
+    @pytest.mark.parametrize(
+        ("data_yaml", "label", "expected_names"),
+        [
+            pytest.param(
+                "names: ['cat', 'dog']\n",
+                "1 0.5 0.5 0.2 0.4\n0 0.5 0.5 0.2 0.4\n",
+                ["dog", "cat"],
+                id="list",
+            ),
+            pytest.param(
+                "names:\n  0: cat\n  1: dog\n",
+                "1 0.5 0.5 0.2 0.4\n0 0.5 0.5 0.2 0.4\n",
+                ["dog", "cat"],
+                id="contiguous-dict",
+            ),
+            pytest.param(
+                "names:\n  1: cat\n  2: dog\n",
+                "1 0.5 0.5 0.2 0.4\n2 0.5 0.5 0.2 0.4\n",
+                ["cat", "dog"],
+                id="one-indexed-dict",
+            ),
+            pytest.param(
+                "names:\n  0: background\n  2: car\n  10: traffic_light\n",
+                "2 0.5 0.5 0.2 0.4\n10 0.5 0.5 0.2 0.4\n0 0.5 0.5 0.2 0.4\n",
+                ["car", "traffic_light", "background"],
+                id="dict-with-gaps",
+            ),
+        ],
+    )
+    def test_class_id_resolves_to_its_declared_name(
+        self, tmp_path: Path, data_yaml: str, label: str, expected_names: list[str]
+    ) -> None:
+        """Each label's class id indexes the name data.yaml declares for that id."""
+        paths = _write_yolo_dataset(tmp_path, label=label, data_yaml=data_yaml)
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        _, _, detections = dataset[0]
+        assert detections.class_id is not None
+        names = [dataset.classes[class_id] for class_id in detections.class_id]
+        assert names == expected_names
+
+    @pytest.mark.parametrize(
+        ("data_yaml", "label", "unknown_id"),
+        [
+            pytest.param(
+                "names: ['cat', 'dog']\n", "2 0.5 0.5 0.2 0.4\n", 2, id="list"
+            ),
+            pytest.param(
+                "names:\n  1: cat\n  2: dog\n", "0 0.5 0.5 0.2 0.4\n", 0, id="dict-gap"
+            ),
+            pytest.param(
+                "names:\n  1: cat\n  2: dog\n",
+                "3 0.5 0.5 0.2 0.4\n",
+                3,
+                id="dict-past-last-key",
+            ),
+            pytest.param(
+                "names: ['cat', 'dog']\n", "-1 0.5 0.5 0.2 0.4\n", -1, id="negative"
+            ),
+        ],
+    )
+    def test_raises_for_class_id_not_in_names(
+        self, tmp_path: Path, data_yaml: str, label: str, unknown_id: int
+    ) -> None:
+        """A label whose class id data.yaml does not declare fails, naming its file."""
+        paths = _write_yolo_dataset(tmp_path, label=label, data_yaml=data_yaml)
+        label_path = tmp_path / "labels" / "test.txt"
+        expected = (
+            re.escape(f"Invalid YOLO annotation file '{label_path}': ")
+            + f".*class id {unknown_id} .*not declared"
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            DetectionDataset.from_yolo(*paths)
 
 
 class TestFromYoloLabelLines:

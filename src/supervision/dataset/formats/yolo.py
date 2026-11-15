@@ -215,6 +215,52 @@ def _extract_class_names(file_path: str) -> list[str]:
     )
 
 
+def _is_int_like(key: Any) -> bool:
+    """Return whether a data.yaml ``names`` key is an int or a digit string."""
+    # bool subclasses int; YAML `true`/`false` must not become class indices
+    if isinstance(key, bool):
+        return False
+    if isinstance(key, int):
+        return True
+    if isinstance(key, str):
+        stripped = key.strip()
+        return stripped.isdigit()
+    return False
+
+
+def _extract_class_ids_from_data(data: dict[str, Any]) -> list[int]:
+    """Return the class ids data.yaml declares, aligned with its class names.
+
+    A ``names`` list declares ids ``0`` to ``N - 1``. A dict with numeric keys
+    declares exactly its keys, which may start above ``0`` or skip values. A
+    dict with non-numeric keys is read by position. Call this only after
+    :func:`~supervision.dataset.formats.yolo._extract_class_names_from_data`
+    has validated ``names``.
+    """
+    names = data["names"]
+    if isinstance(names, dict) and all(_is_int_like(key) for key in names):
+        return sorted(int(key) for key in names)
+    return list(range(len(names)))
+
+
+def _class_ids_to_indices(
+    class_id: npt.NDArray[np.integer], declared_class_ids: list[int]
+) -> npt.NDArray[np.intp]:
+    """Map label class ids to positions in the class-name list of data.yaml.
+
+    Raises:
+        ValueError: If a class id is not declared in data.yaml ``names``.
+    """
+    declared = np.asarray(declared_class_ids, dtype=int)
+    unknown = class_id[~np.isin(class_id, declared)]
+    if unknown.size:
+        raise ValueError(
+            f"class id {int(unknown[0])} is not declared in data.yaml 'names'."
+        )
+    # `declared` is sorted, so each id's insertion point is its name's position.
+    return np.searchsorted(declared, class_id)
+
+
 def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list[str]:
     """Return class names from parsed YOLO data.yaml content ordered by class index.
 
@@ -239,18 +285,6 @@ def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
-
-        def _is_int_like(key: Any) -> bool:
-            # bool subclasses int; YAML `true`/`false` must not become class indices
-            if isinstance(key, bool):
-                return False
-            if isinstance(key, int):
-                return True
-            if isinstance(key, str):
-                stripped = key.strip()
-                return stripped.isdigit()
-            return False
-
         int_like = [_is_int_like(k) for k in keys]
         if any(int_like) and not all(int_like):
             mixed_numeric = [k for k, il in zip(keys, int_like) if il][:3]
@@ -497,13 +531,16 @@ def load_yolo_annotations(
         A tuple containing a list of class names, a dictionary with
             image names as keys and images as values, and a dictionary
             with image names as keys and corresponding Detections instances as values.
+            Each `class_id` indexes the list of class names, so a `names` dict
+            such as `{1: cat, 2: dog}` loads label id `1` as class `0`.
 
     Raises:
         ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
             not a list or dict, or a dict mixing numeric and non-numeric keys;
             or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
             `kpt_shape: null` included. Also if an annotation file contains an
-            invalid line; the message names the offending file.
+            invalid line or a class id that `names` does not declare; the
+            message names the offending file.
     """
     if is_obb and force_masks:
         warnings.warn(
@@ -520,7 +557,9 @@ def load_yolo_annotations(
         )
     ]
 
-    classes = _extract_class_names(file_path=data_yaml_path)
+    data = _read_data_yaml(file_path=data_yaml_path)
+    classes = _extract_class_names_from_data(data=data, file_path=data_yaml_path)
+    class_ids = _extract_class_ids_from_data(data=data)
     pose_value_count = _extract_pose_value_count(file_path=data_yaml_path)
     if is_obb:
         # OBB rows are never pose labels, yet a nine-token OBB row would match
@@ -555,6 +594,12 @@ def load_yolo_annotations(
                 with_masks=with_masks,
                 is_obb=is_obb,
             )
+            if annotation.class_id is not None:
+                # data.yaml may declare ids such as {1: cat, 2: dog}; `classes`
+                # is indexed by position, so class ids are remapped to match it.
+                annotation.class_id = _class_ids_to_indices(
+                    class_id=annotation.class_id, declared_class_ids=class_ids
+                )
         except ValueError as error:
             # One bad label among thousands of files must be traceable to its file.
             raise ValueError(

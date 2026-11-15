@@ -14,6 +14,8 @@ from supervision.config import (
 )
 from supervision.dataset.formats.yolo import (
     _YOLO_IMAGE_EXTENSIONS,
+    _class_ids_to_indices,
+    _extract_class_ids_from_data,
     _extract_class_names_from_data,
     _extract_pose_value_count_from_data,
     _image_name_to_annotation_name,
@@ -276,7 +278,8 @@ def load_yolo_pose_annotations(
     Raises:
         ValueError: If data.yaml has no valid ``kpt_shape`` or ``names``, if
             ``flip_idx`` is not a permutation of the keypoint indices, or if a
-            label file holds an invalid line; the message names the file.
+            label file holds an invalid line or a class id that ``names`` does
+            not declare; the message names the file.
     """
     # Read once; every field below comes from the same parsed mapping.
     data = _read_data_yaml(file_path=data_yaml_path)
@@ -285,6 +288,7 @@ def load_yolo_pose_annotations(
         data=data, file_path=data_yaml_path, keypoint_count=keypoint_count
     )
     classes = _extract_class_names_from_data(data=data, file_path=data_yaml_path)
+    class_ids = _extract_class_ids_from_data(data=data)
     image_paths = [
         str(path)
         for path in list_files_with_extensions(
@@ -308,12 +312,18 @@ def load_yolo_pose_annotations(
         resolution_wh = _image_file_resolution_wh(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
         try:
-            annotations[image_path] = yolo_pose_annotations_to_key_points(
+            key_points = yolo_pose_annotations_to_key_points(
                 lines=lines,
                 resolution_wh=resolution_wh,
                 keypoint_count=keypoint_count,
                 value_dim=value_dim,
             )
+            if key_points.class_id is not None:
+                # `classes` is indexed by position, not by the ids data.yaml declares.
+                key_points.class_id = _class_ids_to_indices(
+                    class_id=key_points.class_id, declared_class_ids=class_ids
+                )
+            annotations[image_path] = key_points
         except ValueError as error:
             # One bad label among thousands of files must be traceable to its file.
             raise ValueError(
