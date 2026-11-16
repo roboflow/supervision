@@ -471,8 +471,8 @@ def _color_for_canvas(
 
     A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
     channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
-    polygons other annotators draw on the same scene. A BGRA canvas, shaped
-    ``(H, W, 4)``, takes the color with an opaque alpha, as
+    polygons other annotators draw on the same scene. A BGRA canvas, shaped ``(H, W,
+    4)``, takes the color with an opaque alpha, as
     :func:`~supervision.draw.utils.draw_image` blends onto BGRA scenes, so a mask
     blended at some opacity keeps an opaque scene opaque.
     """
