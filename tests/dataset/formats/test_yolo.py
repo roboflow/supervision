@@ -17,6 +17,7 @@ from supervision.dataset.formats.yolo import (
     detections_to_yolo_annotations,
     load_yolo_annotations,
     object_to_yolo,
+    save_data_yaml,
     yolo_annotations_to_detections,
 )
 from supervision.detection.compact_mask import CompactMask
@@ -1826,3 +1827,17 @@ class TestAsYoloCrowdAnnotations:
         ann_file = labels_dir / "sample.txt"
         lines = ann_file.read_text().strip().splitlines()
         assert len(lines) == 2
+
+
+def test_save_data_yaml(tmp_path: Path) -> None:
+    """Verify save_data_yaml writes classes and class count and creates parents."""
+    from supervision.utils.file import read_yaml_file
+
+    yaml_path = tmp_path / "nested" / "dir" / "data.yaml"
+    classes = ["dog", "cat", "horse"]
+
+    save_data_yaml(data_yaml_path=str(yaml_path), classes=classes)
+
+    assert yaml_path.is_file()
+    data = read_yaml_file(str(yaml_path))
+    assert data == {"nc": 3, "names": ["dog", "cat", "horse"]}
