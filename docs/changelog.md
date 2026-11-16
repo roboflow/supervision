@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- The `plot` methods of `sv.metrics` results and `plot_aggregate_metric_results` now leave the user's Matplotlib font family unchanged. They drew in monospace by setting `plt.rcParams["font.family"]` globally and then set it to `"sans-serif"`, so a family the user had configured, such as `"serif"`, was replaced for every later figure. The monospace font is now applied only while the plot is drawn. ([#2991](https://github.com/roboflow/supervision/pull/2991))
+
 - `sv.Detections.from_semantic_segmentation` now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the `int64` range instead of accepting invalid scores or failing with an indexing error. ([#2898](https://github.com/roboflow/supervision/pull/2898))
 
 - `sv.Detections.from_inference` now loads Roboflow Inference semantic segmentation results, such as RF-DETR semantic models, as one detection per class id, instead of failing with an opaque `TypeError`. The background id `0` is dropped, classes are named from `class_map`, and a `confidence_mask` gives each class's mean confidence. `compact_masks=True` builds a `sv.CompactMask` one class at a time.
