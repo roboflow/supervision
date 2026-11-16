@@ -11,7 +11,7 @@ from PIL import Image
 
 from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask, _polygon_to_compact_mask
 from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
@@ -490,29 +490,26 @@ def process_roboflow_result(
                     f"Polygon prediction of class {prediction['class']!r} has a "
                     "vertex that is not a finite number."
                 )
-            # Vertices are sub-pixel floats; round them like the dataset loaders do,
-            # since truncating shifts the mask up and to the left by up to a pixel.
-            polygon = np.round(vertices).astype(np.int32)
-            mask = polygon_to_mask(
-                polygon, resolution_wh=(image_width, image_height)
-            ).astype(bool)
+            if compact_masks:
+                # Encodes the object's rounded vertex extent, not the frame.
+                compact_mask = _polygon_to_compact_mask(
+                    vertices=vertices, resolution_wh=(image_width, image_height)
+                )
+            else:
+                # Vertices are sub-pixel floats; round them like the dataset loaders
+                # do, since truncating shifts the mask up and to the left by up to a
+                # pixel.
+                polygon = np.round(vertices).astype(np.int32)
+                mask = polygon_to_mask(
+                    polygon, resolution_wh=(image_width, image_height)
+                ).astype(bool)
             xyxy_idx = len(xyxy)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            if compact_masks:
-                # Every filled pixel lies within the polygon's vertex extent, so
-                # cropping to it is lossless and encodes the object, not the frame.
-                # from_dense clips the box to the image.
-                polygon_xyxy = np.concatenate(
-                    [polygon.min(axis=0), polygon.max(axis=0)]
-                ).astype(np.float64)
-                _polygon_compact_map[xyxy_idx] = CompactMask.from_dense(
-                    masks=mask[np.newaxis, ...],
-                    xyxy=polygon_xyxy[np.newaxis, :],
-                    image_shape=(image_height, image_width),
-                )
+            if compact_mask is not None:
+                _polygon_compact_map[xyxy_idx] = compact_mask
             else:
                 masks.append(mask)
             tracker_ids.append(prediction.get("tracker_id"))
