@@ -4456,6 +4456,15 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>The <code>time_in_zone</code> examples now use <code>sv.PolygonZone.time_in_zone</code> instead of their own timers, which are removed. Dwell restarts when an object leaves a zone and comes back, rather than continuing from its first sighting. File examples time frames from the video's frame rate; stream examples use <code>time.monotonic()</code>. They label only objects confirmed inside or first seen inside, with a 3-frame <code>minimum_crossing_threshold</code> so boxes flickering across the zone edge do not restart the clock, and the README now installs supervision from the cloned repository because the scripts need an API newer than the latest release. (<a href="https://github.com/roboflow/supervision/pull/2770">#2770</a>)</p>
+</li>
+<li>
+<p><code>sv.PolygonZone.time_in_zone(detections)</code> reports how long each tracked object has been inside the zone, as an array aligned with <code>detections</code>, with <code>NaN</code> for objects that are not confirmed inside or have a missing, negative, non-finite, fractional or non-numeric <code>tracker_id</code>. <code>sv.PolygonZone.trigger</code> gains an optional <code>timestamp</code>, such as <code>frame_index / fps</code> for seconds or <code>time.monotonic()</code> for live streams; without one, dwell is measured in frames. A stay starts at a confirmed entry, dated to the first frame of the run that confirmed it, or when an object is first seen inside, and ends at a confirmed exit, so re-entering starts a new stay, while boundary flicker below <code>minimum_crossing_threshold</code> and absences shorter than <code>max_absent_frames</code> frames do not interrupt it. <code>trigger</code> raises <code>ValueError</code> for a non-finite timestamp, one earlier than the previous frame's, or a switch between passing timestamps and measuring frames; equal timestamps are allowed, a frame whose <code>coord_transform</code> raises does not advance the clock, and <code>reset()</code> restarts it. (<a href="https://github.com/roboflow/supervision/pull/2770">#2770</a>)</p>
+</li>
+<li>
+<p><code>sv.PolygonZone</code> now counts tracked objects entering and leaving the zone, and reports the current count per class. <code>in_count</code>, <code>out_count</code>, <code>in_count_per_class</code> and <code>out_count_per_class</code> share their names and <code>class_id</code> keys with <code>sv.LineZone</code>; crossings are followed per <code>tracker_id</code> and the per-class counts are keyed by <code>class_id</code>. The first side an object is seen on is its starting side, so an object that first appears inside has not entered, detections with a negative, non-finite, fractional, non-numeric or missing <code>tracker_id</code> are never counted and never make <code>trigger</code> raise, a <code>class_id</code> that is not a finite integer is counted under the <code>None</code> key, and a <code>tracker_id</code> repeated within one frame is one observation. <code>current_count_per_class</code> gives this frame's in-zone objects by <code>class_id</code> and needs no tracker. The new <code>minimum_crossing_threshold</code> (default <code>1</code>) ignores anchors flickering across the boundary, <code>max_absent_frames</code> (default <code>max(30, minimum_crossing_threshold + 1)</code>, as in <code>sv.LineZone</code>) keeps a track's state through shorter occlusions and drops it on that many consecutive absent frames to bound memory, and <code>reset()</code> clears counts and track state. <code>trigger</code> still returns the same in-zone mask, and <code>current_count</code> is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2770">#2770</a>)</p>
+</li>
+<li>
 <p><code>sv.Detections.from_semantic_segmentation</code> now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the <code>int64</code> range instead of accepting invalid scores or failing with an indexing error. (<a href="https://github.com/roboflow/supervision/pull/2898">#2898</a>)</p>
 </li>
 <li>
@@ -6886,7 +6895,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 13, 2026 23:10:13 UTC">November 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 16, 2026 08:25:03 UTC">November 16, 2026</span>
   </span>
 
     
@@ -6914,9 +6923,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/AdvaitS" class="md-author" title="@AdvaitS">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/36281471?v=4&size=72" alt="AdvaitS">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6924,21 +6933,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/eminaruk" class="md-author" title="@eminaruk">
           
           <img src="https://avatars.githubusercontent.com/u/74098276?v=4&size=72" alt="eminaruk">
-        </a>
-      
-        <a href="https://github.com/AshAnand34" class="md-author" title="@AshAnand34">
-          
-          <img src="https://avatars.githubusercontent.com/u/84689683?v=4&size=72" alt="AshAnand34">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +28
+            +29
           </a>
         
       
