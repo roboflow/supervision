@@ -3256,6 +3256,8 @@ class Detections:
             )
         class_list = list(classes)
         class_index = {name: index for index, name in enumerate(class_list)}
+        # Repeated names collapse into one key (last index wins), so a size
+        # mismatch means duplicates; this keeps the common unique path linear
         if len(class_index) != len(class_list):
             duplicates = sorted(
                 {name for name in class_list if class_list.count(name) > 1}
