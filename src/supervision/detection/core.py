@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from collections import Counter
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import reduce
@@ -3254,12 +3255,14 @@ class Detections:
                 f"Detections must have {CLASS_NAME_DATA_FIELD!r} in .data "
                 "to use remap_classes()."
             )
-        # A repeated name would silently resolve to its first index
         class_list = list(classes)
-        duplicates = sorted({name for name in class_list if class_list.count(name) > 1})
-        if duplicates:
-            raise ValueError(f"classes holds duplicate names: {duplicates}")
         class_index = {name: index for index, name in enumerate(class_list)}
+        # Repeated names collapse into one key (last index wins), so a size
+        # mismatch means duplicates; this keeps the common unique path linear
+        if len(class_index) != len(class_list):
+            counts = Counter(class_list)
+            duplicates = sorted(name for name, count in counts.items() if count > 1)
+            raise ValueError(f"classes holds duplicate names: {duplicates}")
         if class_name_mapping is not None:
             if not isinstance(class_name_mapping, Mapping):
                 raise TypeError(

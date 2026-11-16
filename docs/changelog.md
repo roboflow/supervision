@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.remap_classes` skips repeated full-list scans when the target class names are unique, preserving the existing duplicate-name error. ([#2986](https://github.com/roboflow/supervision/pull/2986))
+
 - `sv.DetectionDataset.from_yolo(..., compact_masks=True)` now keeps segmentation masks as `sv.CompactMask`, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and `force_masks=True` can also produce compact box masks. ([#2834](https://github.com/roboflow/supervision/pull/2834))
 
 - The `time_in_zone` examples now use `sv.PolygonZone.time_in_zone` instead of their own timers, which are removed. Dwell restarts when an object leaves a zone and comes back, rather than continuing from its first sighting. File examples time frames from the video's frame rate; stream examples use `time.monotonic()`. They label only objects confirmed inside or first seen inside, with a 3-frame `minimum_crossing_threshold` so boxes flickering across the zone edge do not restart the clock, and the README now installs supervision from the cloned repository because the scripts need an API newer than the latest release. ([#2770](https://github.com/roboflow/supervision/pull/2770))
