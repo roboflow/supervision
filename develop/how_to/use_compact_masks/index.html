@@ -1323,6 +1323,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#load-yolo-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load YOLO Datasets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#performance-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3381,6 +3392,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#load-yolo-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load YOLO Datasets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#performance-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3442,6 +3464,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li><a href="#skip-unnecessary-materialisation">Skipping mask materialisation for box/label annotators</a></li>
 <li><a href="#merge-mixed-detections">Merging mixed dense and compact detections</a></li>
 <li><a href="#merge-overlapping-predictions">Merging overlapping segmentation predictions</a></li>
+<li><a href="#load-yolo-datasets">Loading YOLO segmentation datasets as CompactMask</a></li>
 </ol>
 <hr />
 <h2 id="ingest-coco-rle-payloads">Ingest COCO RLE Payloads<a class="headerlink" href="#ingest-coco-rle-payloads" title="Permanent link">&para;</a></h2>
@@ -3610,6 +3633,19 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Union cost depends on the number of foreground column intervals (<code>K</code>), determined by mask fragmentation and the columns foreground runs cross, not by the logical canvas area. Highly fragmented masks can take more time and temporary memory than a dense union, including with large crops. Holding the encoded crops fixed keeps this interval cost independent of canvas size. Overlap evaluation still decodes overlapping crops and allocates pairwise overlap arrays, so a very large or loose crop can still be expensive. This change removes the additional full-image union allocations.</p>
 <p>A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run <code>python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096</code>. To expose fragmentation overhead, run <code>python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard</code>: twelve masks in four groups of three duplicates increased peak traced NMM allocation from <strong>4.34 MiB to 7.79 MiB (1.79×)</strong> when comparing the pre-change dense-union implementation with the interval implementation (maximum of three repeats; input construction excluded). This measures the complete NMM call, not just union storage; see the <a href="https://github.com/roboflow/supervision/tree/develop/examples/compact_mask#non-maximum-merging-benchmark">benchmark results</a> for the matching solid-mask case.</p>
 <hr />
+<h2 id="load-yolo-datasets">Load YOLO Datasets<a class="headerlink" href="#load-yolo-datasets" title="Permanent link">&para;</a></h2>
+<p><code>DetectionDataset.from_yolo</code> accepts <code>compact_masks=True</code> to keep each polygon mask as a <code>CompactMask</code> instead of a dense <code>(N, H, W)</code> array, so a loaded segmentation dataset does not retain a full-frame boolean array per image:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">images_directory_path</span><span class="o">=</span><span class="s2">&quot;train/images&quot;</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">annotations_directory_path</span><span class="o">=</span><span class="s2">&quot;train/labels&quot;</span><span class="p">,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">data_yaml_path</span><span class="o">=</span><span class="s2">&quot;data.yaml&quot;</span><span class="p">,</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">compact_masks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Compression depends on mask complexity: it usually reduces retained memory, but highly fragmented masks can use more memory than dense storage. See <a href="../process_datasets/">Process Datasets</a> for the full loading options and caveats. A reproducible benchmark is available with <code>python examples/compact_mask/benchmark.py --section yolo</code> from a repository checkout.</p>
+<hr />
 <h2 id="performance-notes">Performance Notes<a class="headerlink" href="#performance-notes" title="Permanent link">&para;</a></h2>
 <p>These estimates apply to the <strong>parsing and annotation stage</strong>, not end-to-end pipeline FPS. Model inference typically dominates total runtime.</p>
 <table>
@@ -3663,6 +3699,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-classmethod&quot;&gt;&lt;code&gt;classmethod&lt;/code&gt;&lt;/small&gt;
   &lt;/span&gt;" href="../../detection/core/#supervision.detection.core.Detections.from_inference">Detections.from_inference</a></li>
+<li><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;from_yolo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;images_directory_path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;annotations_directory_path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;data_yaml_path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;force_masks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;bool&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is_obb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;bool&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;show_progress&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;bool&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compact_masks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;bool&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DetectionDataset&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-classmethod&quot;&gt;&lt;code&gt;classmethod&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt;" href="../../datasets/core/#supervision.dataset.core.DetectionDataset.from_yolo">DetectionDataset.from_yolo</a></li>
 <li><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;to_compact_masks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Detections&lt;/span&gt;&lt;/code&gt;" href="../../detection/core/#supervision.detection.core.Detections.to_compact_masks">Detections.to_compact_masks</a></li>
 <li><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;merge&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;detections_list&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;list&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Detections&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Detections&lt;/span&gt;&lt;/code&gt;
 
@@ -3693,7 +3734,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 16, 2026 18:22:27 UTC">October 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 16, 2026 12:52:08 UTC">November 16, 2026</span>
   </span>
 
     
@@ -3721,9 +3762,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/tongwentao" class="md-author" title="@tongwentao">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/51501406?v=4&size=72" alt="tongwentao">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3731,21 +3772,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/trueoneplusone" class="md-author" title="@trueoneplusone">
           
           <img src="https://avatars.githubusercontent.com/u/78432179?v=4&size=72" alt="trueoneplusone">
-        </a>
-      
-        <a href="https://github.com/claude%5Bbot%5D" class="md-author" title="@claude[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/1236702?v=4&size=72" alt="GitHub user">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/how_to/use_compact_masks.md" class="md-author md-author--more">
-            +4
+            +5
           </a>
         
       
