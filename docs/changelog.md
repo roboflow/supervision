@@ -7,7 +7,9 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Detection annotators using `sv.ColorLookup.TRACK` again explain that missing `tracker_id` values can be populated by a tracker's `update(...)` method. ([#2343](https://github.com/roboflow/supervision/pull/2343))
+- `sv.VertexAnnotator`, `sv.EdgeAnnotator` and `sv.VertexLabelAnnotator` now accept a `sv.ColorPalette` and a `color_lookup` argument. `sv.ColorLookup.INDEX` and `sv.ColorLookup.CLASS` work as for detection annotators, and the new `sv.ColorLookup.KEYPOINT` colors each keypoint by its index within the skeleton. `sv.ColorLookup.TRACK` is not supported for keypoints and is rejected when the annotator is created. ([#2343](https://github.com/roboflow/supervision/pull/2343))
+
+- Passing a `list[sv.Color]` as `color` or `text_color` to `sv.VertexLabelAnnotator` is deprecated in `0.32.0` and will be removed in `0.35.0`. Use a `sv.ColorPalette` or a single `sv.Color` instead. ([#2343](https://github.com/roboflow/supervision/pull/2343))
 
 - `sv.Detections.remap_classes` skips repeated full-list scans when the target class names are unique, preserving the existing duplicate-name error. ([#2986](https://github.com/roboflow/supervision/pull/2986))
 
