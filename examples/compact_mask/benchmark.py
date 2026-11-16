@@ -18,8 +18,9 @@ No GPU or real model is required — everything is synthesized with NumPy.
 Mask complexity is controlled by ``num_vertices``: random polygons with more
 vertices produce jaggier boundaries and more RLE runs per row.
 
-The YOLO section writes 16 synthetic images with 8 small polygons each, loads them in
-three fresh processes per mode, and reports mask buffer bytes, load time and peak RSS.
+The YOLO section generates 16 images with 8 small polygons each using the
+``vision-synth`` package (``pip install vision-synth``), loads them in three fresh
+processes per mode, and reports mask buffer bytes, load time and peak RSS.
 Peak RSS comes from the POSIX ``resource`` module, so that section is skipped on
 platforms without it, such as Windows. Peak RSS includes interpreter, import and input
 generation overhead; mask buffer bytes exclude Python objects and allocator overhead.
@@ -48,7 +49,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
-from PIL import Image
 from rich import box
 from rich.console import Console
 from rich.progress import (
@@ -1132,7 +1132,15 @@ def save_results_csv(results: list[ScenarioResult], path: Path) -> None:
 # YOLO dataset loading
 # ══════════════════════════════════════════════════════════════════════════════
 
-YOLO_SCENARIOS = ("rectangles", "triangles", "wide")
+#: Scenario name -> vision-synth primitive shapes; circles give the densest polygons.
+YOLO_SCENARIOS = {
+    "rectangles": ("rectangle",),
+    "triangles": ("triangle",),
+    "circles": ("circle",),
+}
+YOLO_NUM_IMAGES = 16
+YOLO_OBJECTS_PER_IMAGE = 8
+YOLO_IMG_SIZE = 1024  # square images, pixels
 YOLO_SAMPLES = 3  # fresh processes per (scenario, mode)
 YOLO_TIMEOUT_S = 120
 
@@ -1147,26 +1155,32 @@ def _maxrss_mib() -> float:
     return peak / divisor
 
 
-def _write_yolo_dataset(root: Path, scenario: str) -> tuple[Path, Path, Path, int, int]:
-    """Write 16 images with 8 small polygon labels each; return dirs, yaml, size."""
-    width, height = (1024, 1024) if scenario != "wide" else (1920, 1080)
-    images, labels = root / "images", root / "labels"
-    images.mkdir()
-    labels.mkdir()
-    rows = []
-    for j in range(8):
-        x = 0.05 + j * 0.1
-        if scenario == "rectangles":
-            points = [(x, 0.1), (x + 0.04, 0.1), (x + 0.04, 0.15), (x, 0.15)]
-        else:
-            points = [(x, 0.1), (x + 0.04, 0.1), (x + 0.025, 0.15)]
-        rows.append("0 " + " ".join(str(c) for point in points for c in point))
-    for i in range(16):
-        Image.new("RGB", (width, height)).save(images / f"{i:03}.png")
-        (labels / f"{i:03}.txt").write_text("\n".join(rows) + "\n")
-    data_yaml = root / "data.yaml"
-    data_yaml.write_text("names: [object]\n")
-    return images, labels, data_yaml, width, height
+def _write_yolo_dataset(root: Path, scenario: str) -> tuple[Path, Path, Path]:
+    """Generate a seeded YOLO segmentation dataset; return image dir, label dir, yaml.
+
+    Uses ``vision-synth`` (imported lazily so the matrix section does not need it) to
+    draw ``YOLO_OBJECTS_PER_IMAGE`` small polygons of the scenario's shape per image,
+    all in the ``train`` split.
+    """
+    from synth_datasets import SplitRatios, generate_dataset
+    from synth_datasets.primitives import PrimitiveShape
+
+    shapes = tuple(PrimitiveShape(name) for name in YOLO_SCENARIOS[scenario])
+    generate_dataset(
+        root,
+        num_images=YOLO_NUM_IMAGES,
+        fmt="yolo",
+        split_ratios=SplitRatios(train=1.0, val=0.0, test=0.0),
+        seed=0,
+        task="segmentation",
+        img_size=YOLO_IMG_SIZE,
+        shapes=shapes,
+        min_objects=YOLO_OBJECTS_PER_IMAGE,
+        max_objects=YOLO_OBJECTS_PER_IMAGE,
+        min_size_ratio=0.03,
+        max_size_ratio=0.08,
+    )
+    return root / "images" / "train", root / "labels" / "train", root / "data.yaml"
 
 
 def _loaded_mask_bytes(dataset: sv.DetectionDataset) -> int:
@@ -1191,9 +1205,7 @@ def yolo_worker(mode: str, scenario: str) -> None:
     untimed pixel, box and class-ID equality check between the two loaders.
     """
     with tempfile.TemporaryDirectory() as tmp:
-        images, labels, data_yaml, width, height = _write_yolo_dataset(
-            Path(tmp), scenario
-        )
+        images, labels, data_yaml = _write_yolo_dataset(Path(tmp), scenario)
         rss_before_mib = _maxrss_mib()
         start = time.perf_counter()
         dataset = sv.DetectionDataset.from_yolo(
@@ -1219,7 +1231,7 @@ def yolo_worker(mode: str, scenario: str) -> None:
                 {
                     "mode": mode,
                     "scenario": scenario,
-                    "resolution": [width, height],
+                    "resolution": [YOLO_IMG_SIZE, YOLO_IMG_SIZE],
                     "mask_buffer_bytes": _loaded_mask_bytes(dataset),
                     "load_seconds": elapsed,
                     "peak_rss_mib": peak_rss_mib,
@@ -1291,7 +1303,8 @@ def run_yolo_loading() -> None:
             )
     console.print(table)
     console.print(
-        "[dim]Synthetic inputs: 16 images x 8 small polygons. Peak RSS includes "
+        f"[dim]vision-synth inputs: {YOLO_NUM_IMAGES} images x "
+        f"{YOLO_OBJECTS_PER_IMAGE} small polygons. Peak RSS includes "
         "interpreter, import and input-generation overhead; mask buffer bytes "
         "exclude Python objects and allocator overhead.[/dim]"
     )
