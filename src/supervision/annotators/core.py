@@ -2655,6 +2655,11 @@ class HeatMapAnnotator(BaseAnnotator):
         heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
         # A grayscale scene takes the heat colors as their gray luminance.
         heat_overlay = _match_overlay_to_scene_channels(overlay=heat_bgr, roi=scene)
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            # A BGRA scene takes the heat colors with an opaque alpha, so the heat
+            # map composites over it the way `draw_image` does.
+            opaque = np.full((*scene.shape[:2], 1), 255, dtype=np.uint8)
+            heat_overlay = np.concatenate([heat_overlay, opaque], axis=2)
         mask2d = heat_mask > 0
         # OpenCV drops a singleton channel axis; restore the scene's layout.
         blended = cv2.addWeighted(
