@@ -1,3 +1,4 @@
+import re
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from typing import cast
@@ -8,6 +9,7 @@ import pytest
 from supervision.annotators.utils import (
     ColorLookup,
     Trace,
+    _resolve_annotator_color,
     _resolve_color_idx,
     get_labels_text,
     hex_to_rgba,
@@ -84,7 +86,17 @@ from tests.helpers import _create_detections
             0,
             ColorLookup.CLASS,
             None,
-            pytest.raises(ValueError, match="resolve color by class"),
+            pytest.raises(
+                ValueError,
+                match="^"
+                + re.escape(
+                    "Could not resolve color by class because "
+                    "Detections do not have class_id. If using an annotator, "
+                    "try setting color_lookup to sv.ColorLookup.INDEX or "
+                    "sv.ColorLookup.TRACK."
+                )
+                + "$",
+            ),
         ),  # multiple detections; class lookup; no class_id
         (
             _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
@@ -116,6 +128,7 @@ def test_resolve_color_idx(
     expected_result: int | None,
     exception: AbstractContextManager[object],
 ) -> None:
+    """Public detection resolver maps each lookup to its palette index or raises."""
     with exception:
         result = resolve_color_idx(
             detections=detections,
@@ -274,6 +287,7 @@ def test_resolve_color_idx_from_fields(
     expected_result: int | None,
     exception: AbstractContextManager[object],
 ) -> None:
+    """Field-level resolver maps each lookup to its palette index or raises."""
     with exception:
         result = _resolve_color_idx(
             instance_idx=instance_idx,
@@ -317,6 +331,24 @@ def test_resolve_color_accepts_palette_from_src_namespace() -> None:
     )
 
     assert result.as_bgr() == (251, 81, 163)
+
+
+def test_detection_annotator_color_rejects_keypoint_lookup() -> None:
+    """Detection annotators reject the keypoint-only lookup and list valid ones."""
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+    expected_message = (
+        "ColorLookup.KEYPOINT is only valid for keypoint annotators; "
+        "supported lookups for detection annotators: INDEX, CLASS, TRACK."
+    )
+
+    with pytest.raises(ValueError, match=f"^{re.escape(expected_message)}$"):
+        _resolve_annotator_color(
+            color=Color.RED,
+            detections=detections,
+            detection_idx=0,
+            color_lookup=ColorLookup.CLASS,
+            custom_color_lookup=ColorLookup.KEYPOINT,
+        )
 
 
 @pytest.mark.parametrize(

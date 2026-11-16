@@ -60,7 +60,8 @@ def _resolve_color_idx(
             ``KEYPOINT``.
 
     Returns:
-        An integer index suitable for ``ColorPalette.by_idx()``.
+        An integer index suitable for
+        :meth:`~supervision.draw.color.ColorPalette.by_idx`.
 
     Raises:
         ValueError: If ``instance_idx`` is out of bounds for the given ``count``.
@@ -108,16 +109,21 @@ def _resolve_detection_color_idx(
     """Resolve a palette index for a single detection.
 
     Args:
-        detections: The detections object.
+        detections: The :class:`~supervision.detection.core.Detections` being
+            annotated.
         detection_idx: Index of the current detection.
         color_lookup: Strategy for mapping colors. Also accepts a custom
             ``np.ndarray`` of integer indices.
 
     Returns:
-        An integer index suitable for ``ColorPalette.by_idx()``.
+        An integer index suitable for
+        :meth:`~supervision.draw.color.ColorPalette.by_idx`.
 
     Raises:
+        ValueError: If class colors are requested without detection class IDs.
         ValueError: If tracking colors are requested without detection tracker IDs.
+        ValueError: If ``color_lookup`` is ``KEYPOINT``, which only keypoint
+            annotators support.
     """
     if detection_idx >= len(detections):
         raise ValueError(
@@ -132,6 +138,24 @@ def _resolve_detection_color_idx(
                 f"does not match length of detections {len(detections)}"
             )
         return int(color_lookup[detection_idx])
+
+    # KEYPOINT shares the enum with the detection lookups but has no meaning for a
+    # detection, so name the lookups this family does support.
+    if color_lookup == ColorLookup.KEYPOINT:
+        raise ValueError(
+            "ColorLookup.KEYPOINT is only valid for keypoint annotators; "
+            "supported lookups for detection annotators: INDEX, CLASS, TRACK."
+        )
+
+    # Detection-specific hints live here: the shared resolver also serves keypoint
+    # annotators, for which suggesting a tracker or a TRACK lookup would be wrong.
+    if color_lookup == ColorLookup.CLASS and detections.class_id is None:
+        raise ValueError(
+            "Could not resolve color by class because "
+            "Detections do not have class_id. If using an annotator, "
+            "try setting color_lookup to sv.ColorLookup.INDEX or "
+            "sv.ColorLookup.TRACK."
+        )
 
     if color_lookup == ColorLookup.TRACK and detections.tracker_id is None:
         raise ValueError(
@@ -149,17 +173,51 @@ def _resolve_detection_color_idx(
     )
 
 
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_resolve_detection_color_idx,
-    deprecated_in="0.30.0",
-    remove_in="0.33.0",
-)
-def resolve_color_idx(  # type: ignore[return]
+def resolve_color_idx(
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
-    void(detections, detection_idx, color_lookup)
+    """Resolve the palette index used to color a single detection.
+
+    Args:
+        detections: The detections being annotated.
+        detection_idx: Index of the detection whose palette index to resolve.
+        color_lookup: Strategy for mapping colors. Also accepts a custom
+            `np.ndarray` of integer indices, one per detection.
+
+    Returns:
+        An integer index suitable for
+        :meth:`~supervision.draw.color.ColorPalette.by_idx`.
+
+    Raises:
+        ValueError: If `detection_idx` is out of bounds, a custom lookup array
+            does not match the number of detections, or the field required by
+            `color_lookup` is missing from `detections`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.annotators.utils import resolve_color_idx
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10], [5, 5, 20, 20]], dtype=np.float32),
+        ...     class_id=np.array([3, 7]),
+        ... )
+        >>> resolve_color_idx(
+        ...     detections=detections,
+        ...     detection_idx=1,
+        ...     color_lookup=sv.ColorLookup.CLASS,
+        ... )
+        7
+
+        ```
+    """
+    return _resolve_detection_color_idx(
+        detections=detections,
+        detection_idx=detection_idx,
+        color_lookup=color_lookup,
+    )
 
 
 def resolve_text_background_xyxy(
@@ -234,15 +292,32 @@ def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     )
 
 
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_get_color_by_index,
-    deprecated_in="0.30.0",
-    remove_in="0.33.0",
-)
-def get_color_by_index(  # type: ignore[return]
-    color: Color | ColorPalette, idx: int
-) -> Color:
-    void(color, idx)
+def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
+    """Pick the color drawn for a palette index.
+
+    A single :class:`~supervision.draw.color.Color` is returned unchanged for every
+    index; a :class:`~supervision.draw.color.ColorPalette` is looked up with
+    :meth:`~supervision.draw.color.ColorPalette.by_idx`, which wraps around the
+    palette length.
+
+    Args:
+        color: A single color or a palette to pick from.
+        idx: Palette index to resolve.
+
+    Returns:
+        The resolved :class:`~supervision.draw.color.Color`.
+
+    Examples:
+        ```pycon
+        >>> import supervision as sv
+        >>> from supervision.annotators.utils import get_color_by_index
+        >>> palette = sv.ColorPalette.from_hex(["#ff0000", "#00ff00"])
+        >>> get_color_by_index(color=palette, idx=3).as_hex()
+        '#00ff00'
+
+        ```
+    """
+    return _get_color_by_index(color=color, idx=idx)
 
 
 def _resolve_detection_color(
@@ -255,13 +330,14 @@ def _resolve_detection_color(
 
     Args:
         color: A single color or a palette to pick from.
-        detections: The detections object.
+        detections: The :class:`~supervision.detection.core.Detections` being
+            annotated.
         detection_idx: Index of the current detection.
         color_lookup: Strategy for mapping colors. Also accepts a custom
             ``np.ndarray`` of integer indices.
 
     Returns:
-        The resolved ``Color``.
+        The resolved :class:`~supervision.draw.color.Color`.
     """
     idx = _resolve_detection_color_idx(
         detections=detections,
@@ -277,18 +353,58 @@ def _resolve_detection_color(
     return _get_color_by_index(color=color, idx=idx)
 
 
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_resolve_detection_color,
-    deprecated_in="0.30.0",
-    remove_in="0.33.0",
-)
-def resolve_color(  # type: ignore[return]
+def resolve_color(
     color: Color | ColorPalette,
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> Color:
-    void(color, detections, detection_idx, color_lookup)
+    """Resolve the color used to draw a single detection.
+
+    Tracks still pending a tracker ID are drawn in a neutral grey when colors are
+    looked up by track.
+
+    Args:
+        color: A single color or a palette to pick from.
+        detections: The detections being annotated.
+        detection_idx: Index of the detection whose color to resolve.
+        color_lookup: Strategy for mapping colors. Also accepts a custom
+            `np.ndarray` of integer indices, one per detection.
+
+    Returns:
+        The resolved :class:`~supervision.draw.color.Color`.
+
+    Raises:
+        ValueError: If `detection_idx` is out of bounds, a custom lookup array
+            does not match the number of detections, or the field required by
+            `color_lookup` is missing from `detections`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.annotators.utils import resolve_color
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10], [5, 5, 20, 20]], dtype=np.float32),
+        ...     class_id=np.array([0, 1]),
+        ... )
+        >>> palette = sv.ColorPalette.from_hex(["#ff0000", "#00ff00"])
+        >>> resolve_color(
+        ...     color=palette,
+        ...     detections=detections,
+        ...     detection_idx=1,
+        ...     color_lookup=sv.ColorLookup.CLASS,
+        ... ).as_hex()
+        '#00ff00'
+
+        ```
+    """
+    return _resolve_detection_color(
+        color=color,
+        detections=detections,
+        detection_idx=detection_idx,
+        color_lookup=color_lookup,
+    )
 
 
 def _resolve_annotator_color(
