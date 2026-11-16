@@ -983,8 +983,10 @@ class TestBgraMaskAnnotators:
     ) -> npt.NDArray[np.uint8]:
         """Annotate `scene`, comparing `detections` with an empty set if needed."""
         if isinstance(annotator, ComparisonAnnotator):
-            return annotator.annotate(scene, detections, Detections.empty())
-        return annotator.annotate(scene=scene, detections=detections)
+            result = annotator.annotate(scene, detections, Detections.empty())
+        else:
+            result = annotator.annotate(scene=scene, detections=detections)
+        return np.asarray(result, dtype=np.uint8)
 
     @pytest.mark.parametrize(
         "annotator",
