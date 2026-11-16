@@ -680,6 +680,49 @@ def test_overlay_image_blends_bgra_overlay_as_gray_on_grayscale_scene(
     np.testing.assert_array_equal(result.reshape(2, 2), expected)
 
 
+def test_overlay_image_pastes_bgr_overlay_opaque_on_bgra_scene() -> None:
+    """A BGR overlay is pasted into a BGRA scene with an opaque alpha."""
+    # given
+    image = np.zeros((3, 3, 4), dtype=np.uint8)
+    overlay = np.full((2, 2, 3), (10, 20, 30), dtype=np.uint8)
+    expected = np.zeros((3, 3, 4), dtype=np.uint8)
+    expected[1:, 1:] = (10, 20, 30, 255)
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(1, 1))
+
+    # then
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("scene_alpha", "overlay_alpha", "expected_alpha"),
+    [
+        pytest.param(255, 60, 255, id="opaque-scene-stays-opaque"),
+        pytest.param(0, 60, 60, id="transparent-scene-takes-overlay-alpha"),
+        pytest.param(100, 0, 100, id="transparent-overlay-keeps-scene-alpha"),
+        pytest.param(100, 255, 255, id="opaque-overlay-is-opaque"),
+    ],
+)
+def test_overlay_image_composites_bgra_overlay_alpha_over_bgra_scene(
+    scene_alpha: int, overlay_alpha: int, expected_alpha: int
+) -> None:
+    """Colors blend as on a BGR scene; overlay alpha composites over scene alpha."""
+    # given
+    image = np.full((1, 1, 4), (22, 22, 22, scene_alpha), dtype=np.uint8)
+    overlay = np.array([[[39, 39, 39, overlay_alpha]]], dtype=np.uint8)
+    expected_bgr = _overlay_image(
+        image=np.full((1, 1, 3), 22, dtype=np.uint8), overlay=overlay, anchor=(0, 0)
+    )
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+    # then
+    np.testing.assert_array_equal(result[..., :3], expected_bgr)
+    assert result[0, 0, 3] == expected_alpha
+
+
 @pytest.mark.parametrize(
     ("image", "xyxy", "expected_size"),
     [

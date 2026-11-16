@@ -464,12 +464,15 @@ def _overlay_image(
     """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
 
     Args:
-        image: Background array, BGR of shape ``(H, W, 3)`` or grayscale of
-            shape ``(H, W)`` or ``(H, W, 1)``. Modified in place and returned.
+        image: Background array, BGR of shape ``(H, W, 3)``, BGRA of shape
+            ``(H, W, 4)``, or grayscale of shape ``(H, W)`` or ``(H, W, 1)``.
+            Modified in place and returned.
         overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``, or
             grayscale like ``image``; channel 4, when present, is treated as
             alpha. A BGR overlay is drawn as gray luminance on a grayscale
-            ``image``.
+            ``image``. On a BGRA ``image`` the overlay is drawn opaque where its
+            alpha is, so the scene's alpha grows by the overlay's, as when
+            compositing one image over another.
         anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
             be negative (partial off-screen placement is clipped).
 
@@ -503,6 +506,11 @@ def _overlay_image(
         alpha = overlay_crop[:, :, 3]
         overlay_crop = overlay_crop[:, :, :3]
     overlay_crop = _match_overlay_to_scene_channels(overlay=overlay_crop, roi=roi)
+    if roi.ndim == 3 and roi.shape[2] == 4:
+        # The BGR overlay gets an opaque alpha channel, so blending all four
+        # channels below composites the overlay's alpha over the scene's.
+        opaque = np.full((*overlay_crop.shape[:2], 1), 255, dtype=np.uint8)
+        overlay_crop = np.concatenate([overlay_crop, opaque], axis=2)
 
     if alpha is not None:
         alpha_f32 = alpha.astype(np.float32) / 255.0
@@ -510,7 +518,12 @@ def _overlay_image(
             alpha_f32 = alpha_f32[:, :, None]
         overlay_color = overlay_crop.astype(np.float32)
         blended = roi.astype(np.float32) * (1 - alpha_f32) + overlay_color * alpha_f32
-        image[y_min:y_max, x_min:x_max] = np.clip(blended, 0, 255).astype(np.uint8)
+        blended = np.clip(blended, 0, 255)
+        if roi.ndim == 3 and roi.shape[2] == 4:
+            # Rounded rather than truncated: float error would turn an opaque
+            # scene's 255 into 254 under partially transparent overlay pixels.
+            blended[..., 3] = np.rint(blended[..., 3])
+        image[y_min:y_max, x_min:x_max] = blended.astype(np.uint8)
     else:
         image[y_min:y_max, x_min:x_max] = overlay_crop
 

@@ -2246,9 +2246,52 @@ class TestCropAnnotator:
             "Regression: source_scene must be scene.copy(), not an alias."
         )
 
+    def test_bgra_scene_matches_color_scene(self) -> None:
+        """A BGRA scene gets the BGR crops and keeps its alpha under the crop.
+
+        The 2x crop of the 20x15 box is pasted at columns 20-60, rows 0-30; alpha is
+        checked inside it, away from the border `cv2.rectangle` draws around it.
+        """
+        bgr = np.arange(60 * 80 * 3, dtype=np.uint8).reshape(60, 80, 3)
+        scene = np.dstack([bgr, np.full((60, 80), 255, dtype=np.uint8)])
+        detections = _create_detections(xyxy=[[30, 30, 50, 45]], class_id=[0])
+        annotator = CropAnnotator()
+        expected = annotator.annotate(scene=bgr.copy(), detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result.shape == (60, 80, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        np.testing.assert_array_equal(result[3:27, 23:57, 3], 255)
+
 
 class TestIconAnnotator:
     """Tests for IconAnnotator class."""
+
+    def test_bgra_scene_composites_icon_alpha(self, tmp_path: Path) -> None:
+        """A BGRA scene gets the BGR icon colors; icon alpha composites over its own."""
+        icon = np.zeros((16, 16, 4), dtype=np.uint8)
+        icon[4:12, 4:12] = (255, 0, 0, 255)
+        icon_path = tmp_path / "icon.png"
+        Image.fromarray(icon[..., [2, 1, 0, 3]], mode="RGBA").save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        annotator = IconAnnotator(icon_resolution_wh=(16, 16))
+        expected = annotator.annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        result = annotator.annotate(
+            scene=np.zeros((48, 48, 4), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        assert result.shape == (48, 48, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        np.testing.assert_array_equal(result[..., 3], np.any(expected, axis=2) * 255)
 
     @pytest.mark.parametrize(
         ("icon_shape_hw", "expected_slice"),
