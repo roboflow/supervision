@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from collections import Counter
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import reduce
@@ -41,6 +42,7 @@ from supervision.detection.utils.converters import (
 )
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
+    extract_ultralytics_semantic_masks,
     get_data_item,
     is_data_equal,
     is_metadata_equal,
@@ -349,8 +351,11 @@ class Detections:
             :meth:`~supervision.detection.core.Detections.from_ultralytics` is
             compatible with
             [detection](https://docs.ultralytics.com/tasks/detect/),
-            [segmentation](https://docs.ultralytics.com/tasks/segment/), and
-            [OBB](https://docs.ultralytics.com/tasks/obb/) models.
+            [segmentation](https://docs.ultralytics.com/tasks/segment/),
+            [semantic segmentation](https://docs.ultralytics.com/tasks/semantic/),
+            and [OBB](https://docs.ultralytics.com/tasks/obb/) models. A semantic
+            segmentation result gives one detection per class present in the image,
+            with a mask covering all of that class's pixels and no confidence.
 
         Args:
             ultralytics_results: The output Results instance from Ultralytics,
@@ -389,6 +394,26 @@ class Detections:
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
                     CLASS_NAME_DATA_FIELD: class_names,
                 },
+            )
+
+        if getattr(ultralytics_results, "semantic_mask", None) is not None:
+            class_id, semantic_masks = extract_ultralytics_semantic_masks(
+                ultralytics_results
+            )
+            if len(class_id) == 0:
+                # A map with no named class returns the same empty form as the
+                # other branches, not a (0, H, W) mask.
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
+            class_names = np.array(
+                [ultralytics_results.names[i] for i in class_id], dtype=str
+            )
+            return cls(
+                xyxy=mask_to_xyxy(semantic_masks),
+                mask=semantic_masks,
+                class_id=class_id,
+                data={CLASS_NAME_DATA_FIELD: class_names},
             )
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
@@ -3254,12 +3279,14 @@ class Detections:
                 f"Detections must have {CLASS_NAME_DATA_FIELD!r} in .data "
                 "to use remap_classes()."
             )
-        # A repeated name would silently resolve to its first index
         class_list = list(classes)
-        duplicates = sorted({name for name in class_list if class_list.count(name) > 1})
-        if duplicates:
-            raise ValueError(f"classes holds duplicate names: {duplicates}")
         class_index = {name: index for index, name in enumerate(class_list)}
+        # Repeated names collapse into one key (last index wins), so a size
+        # mismatch means duplicates; this keeps the common unique path linear
+        if len(class_index) != len(class_list):
+            counts = Counter(class_list)
+            duplicates = sorted(name for name, count in counts.items() if count > 1)
+            raise ValueError(f"classes holds duplicate names: {duplicates}")
         if class_name_mapping is not None:
             if not isinstance(class_name_mapping, Mapping):
                 raise TypeError(
