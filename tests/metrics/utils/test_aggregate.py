@@ -236,6 +236,22 @@ class TestPlotAggregateMetricResults:
         plot_aggregate_metric_results([r1, r2], model_names=["YOLO", "DETR"], show=True)
         mock_show.assert_called_once()
 
+    def test_plot_keeps_user_font_family(self) -> None:
+        """Plotting leaves the font family the user configured in rcParams."""
+        from matplotlib import pyplot as plt
+
+        results: list[MetricResult] = [
+            _make_f1_result(),
+            _make_f1_result(f1_50=0.9, f1_75=0.7),
+        ]
+
+        with plt.rc_context({"font.family": "serif"}):
+            plot_aggregate_metric_results(results)
+            font_family = plt.rcParams["font.family"]
+        plt.close("all")
+
+        assert font_family == ["serif"]
+
     def test_label_mismatch_raises(self) -> None:
         """Results with different object-size populations raise ValueError."""
         small = _make_f1_result(f1_50=0.5, f1_75=0.3)
