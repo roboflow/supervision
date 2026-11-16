@@ -682,4 +682,6 @@ ______________________________________________________________________
 | `benchmark.py`           | Full benchmark across FHD / 4K / satellite tiers         |
 | `bench_inference_api.py` | Focused dense vs compact `from_inference` benchmark      |
 | `benchmark_nmm.py`       | Compact NMM canvas size and mask fragmentation benchmark |
+| `benchmark_yolo.py`      | YOLO loading time, mask buffer and peak RSS benchmark    |
+| `yolo_loading.ipynb`     | CPU demo of compact YOLO loading, run from a checkout    |
 | `README.md`              | This file                                                |

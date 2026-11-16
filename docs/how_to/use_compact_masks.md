@@ -23,6 +23,7 @@ This guide covers the main integration points:
 3. [Skipping mask materialisation for box/label annotators](#skip-unnecessary-materialisation)
 4. [Merging mixed dense and compact detections](#merge-mixed-detections)
 5. [Merging overlapping segmentation predictions](#merge-overlapping-predictions)
+6. [Loading YOLO segmentation datasets as CompactMask](#load-yolo-datasets)
 
 ---
 
@@ -212,6 +213,25 @@ A reproducible benchmark varying canvas size and mask fragmentation is included 
 
 ---
 
+## Load YOLO Datasets
+
+`DetectionDataset.from_yolo` accepts `compact_masks=True` to keep each polygon mask as a `CompactMask` instead of a dense `(N, H, W)` array, so a loaded segmentation dataset does not retain a full-frame boolean array per image:
+
+```python
+import supervision as sv
+
+ds = sv.DetectionDataset.from_yolo(
+    images_directory_path="train/images",
+    annotations_directory_path="train/labels",
+    data_yaml_path="data.yaml",
+    compact_masks=True,
+)
+```
+
+Compression depends on mask complexity: it usually reduces retained memory, but highly fragmented masks can use more memory than dense storage. See [Process Datasets](process_datasets.md) for the full loading options and caveats. A reproducible benchmark is available with `python examples/compact_mask/benchmark_yolo.py` from a repository checkout.
+
+---
+
 ## Performance Notes
 
 These estimates apply to the **parsing and annotation stage**, not end-to-end pipeline FPS. Model inference typically dominates total runtime.
@@ -233,6 +253,7 @@ Upper-end gains assume: ≥1080p frames, tens to hundreds of instances, masks co
 - [CompactMask.from_coco_rle][supervision.detection.compact_mask.CompactMask.from_coco_rle]
 - [CompactMask.from_dense][supervision.detection.compact_mask.CompactMask.from_dense]
 - [Detections.from_inference][supervision.detection.core.Detections.from_inference]
+- [DetectionDataset.from_yolo][supervision.dataset.core.DetectionDataset.from_yolo]
 - [Detections.to_compact_masks][supervision.detection.core.Detections.to_compact_masks]
 - [Detections.merge][supervision.detection.core.Detections.merge]
 - [BaseAnnotator.requires_mask][supervision.annotators.base.BaseAnnotator]

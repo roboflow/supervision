@@ -608,11 +608,12 @@ class DetectionDataset(BaseDataset):
             compact_masks: If True, store segmentation masks as
                 :class:`~supervision.detection.compact_mask.CompactMask` instead
                 of dense NumPy arrays. Each mask is rasterized full-frame and
-                immediately encoded within its rounded polygon bounds, reducing
-                retained memory without changing pixels. Compression depends on
-                mask complexity. Does not enable masks for box-only datasets;
-                combine with `force_masks=True` to generate compact box masks.
-                OBB annotations never generate masks.
+                immediately encoded within its rounded polygon bounds without
+                changing pixels. This usually reduces retained memory, but
+                compression depends on mask complexity and can increase memory
+                for highly fragmented masks. Does not enable masks for box-only
+                datasets; combine with `force_masks=True` to generate compact box
+                masks. OBB annotations never generate masks.
 
         Returns:
             A DetectionDataset instance
