@@ -30,6 +30,12 @@ https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-
   uv pip install -r requirements.txt
   ```
 
+- install supervision from the cloned repository, because these scripts use `sv.PolygonZone.time_in_zone`, which is newer than the latest release on PyPI
+
+  ```bash
+  uv pip install -e ../..
+  ```
+
 The three RTSP `*_stream_example.py` scripts display frames from an `InferencePipeline` callback running on a worker thread, so they use OpenCV HighGUI instead of `sv.ImageWindow`. Install `opencv-python` and keep only one OpenCV wheel installed to run those scripts. The file and naive-stream examples use `sv.ImageWindow`, which works regardless of which OpenCV wheel (or none) is installed.
 
 ## 🛠 scripts
@@ -255,6 +261,7 @@ Script to run object detection on a video file using the Ultralytics YOLOv8 mode
 - `--classes`: List of class IDs to track. If empty, all classes are tracked.
 - `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
 - `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
+- `--output_video_path`: Optional path to save the annotated video. If not provided, the video is only displayed. Must differ from `--source_video_path`.
 
 ```bash
 python ultralytics_file_example.py \
@@ -264,7 +271,8 @@ python ultralytics_file_example.py \
     --device "cpu" \
     --classes "[0]" \
     --confidence_threshold 0.3 \
-    --iou_threshold 0.7
+    --iou_threshold 0.7 \
+    --output_video_path "data/checkout/output.mp4"
 ```
 
 ```bash
