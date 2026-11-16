@@ -18,7 +18,7 @@ from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     check_no_basename_collisions,
 )
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask, _polygon_to_compact_mask
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import _DetectionDataType
 from supervision.detection.utils.boxes import _sort_box_corners
@@ -135,29 +135,20 @@ def _polygons_to_compact_masks(
 ) -> CompactMask:
     """Encode nonempty polygons individually, retaining only crop-scoped RLE.
 
-    Keep full-frame rasterization to preserve clipping and boundary pixels on both
-    drawing backends. Only one object's dense mask is passed to the encoder at a time; a
-    dense ``(N, H, W)`` stack is never constructed.
+    The result is lossless: it decodes to the pixels of
+    :func:`~supervision.dataset.formats.yolo._polygons_to_masks`. Each polygon is
+    rasterized full-frame and encoded by
+    :func:`~supervision.detection.compact_mask._polygon_to_compact_mask` before the
+    next one is drawn, so the temporary memory stays bounded by a few frame-sized
+    buffers whatever the number of polygons, and a dense ``(N, H, W)`` stack is never
+    constructed.
     """
-    w, h = resolution_wh
-    masks: list[CompactMask] = []
-    for vertices in polygons:
-        polygon = np.round(vertices).astype(np.int32)
-        mask = polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh).astype(
-            bool
-        )
-        # Round before deriving the crop: truncating the floating-point bounds
-        # would drop foreground pixels at the right or bottom polygon edge.
-        bounds = polygon_to_xyxy(polygon)
-        masks.append(
-            CompactMask.from_dense(
-                masks=mask[np.newaxis, ...],
-                xyxy=bounds[np.newaxis, :],
-                image_shape=(h, w),
-            )
-        )
-        del mask
-    return CompactMask.merge(masks)
+    return CompactMask.merge(
+        [
+            _polygon_to_compact_mask(vertices=vertices, resolution_wh=resolution_wh)
+            for vertices in polygons
+        ]
+    )
 
 
 def _check_line_is_parsable(values: list[str], line: str, is_obb: bool) -> None:
