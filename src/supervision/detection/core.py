@@ -2272,6 +2272,8 @@ class Detections:
            centroid is returned regardless of OBB data presence. A detection
            whose mask has no pixels has no centroid, so it is anchored at the
            center of its ``xyxy`` box instead of the frame's top-left corner.
+           Across frames, that anchor can differ from the centroid the same
+           object has when its mask is not empty.
            An empty batch returns no anchors, with or without a mask.
         3. Otherwise, the anchor is derived from the axis-aligned envelope
            (``xyxy``).
