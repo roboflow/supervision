@@ -107,7 +107,9 @@ def extract_ultralytics_semantic_masks(
     `semantic_mask` holds one class ID per pixel at the original image size. Its
     labels are read as Ultralytics' `Results.summary` reads them: a single-class
     model writes `1` for its class over a `0` background, and IDs missing from
-    `names`, such as the `255` that `classes` filtering writes, are ignored.
+    `names`, such as the `255` that `classes` filtering writes, are ignored. On a
+    model with 256 or more classes `255` is a real class ID, so pixels that
+    `classes` filtering drops are read as that class, as in `Results.summary`.
 
     The class map is split here instead of through
     :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`
