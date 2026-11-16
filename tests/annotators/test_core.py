@@ -960,6 +960,77 @@ class TestSingleChannelMaskAnnotators:
         assert result.getpixel((2, 2)) == 50
 
 
+class TestBgraMaskAnnotators:
+    """Verify mask-painting annotators on four-channel BGRA scenes."""
+
+    @staticmethod
+    def _detections(compact: bool = False) -> Detections:
+        """Return one square mask detection inside a 30x40 scene."""
+        mask = np.zeros((1, 30, 40), dtype=bool)
+        mask[0, 8:20, 10:26] = True
+        xyxy = np.array([[10, 8, 25, 19]], dtype=np.float32)
+        masks = CompactMask.from_dense(mask, xyxy, (30, 40)) if compact else mask
+        return Detections(xyxy=xyxy, mask=masks, class_id=np.array([0]))
+
+    @staticmethod
+    def _annotate(
+        annotator: MaskAnnotator
+        | HaloAnnotator
+        | BackgroundOverlayAnnotator
+        | ComparisonAnnotator,
+        scene: npt.NDArray[np.uint8],
+        detections: Detections,
+    ) -> npt.NDArray[np.uint8]:
+        """Annotate `scene`, comparing `detections` with an empty set if needed."""
+        if isinstance(annotator, ComparisonAnnotator):
+            return annotator.annotate(scene, detections, Detections.empty())
+        return annotator.annotate(scene=scene, detections=detections)
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(MaskAnnotator(opacity=0.6), id="mask"),
+            pytest.param(HaloAnnotator(kernel_size=5), id="halo"),
+            pytest.param(BackgroundOverlayAnnotator(), id="background-overlay"),
+            pytest.param(ComparisonAnnotator(), id="comparison"),
+        ],
+    )
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_bgra_matches_color_scene_and_stays_opaque(
+        self,
+        annotator: MaskAnnotator
+        | HaloAnnotator
+        | BackgroundOverlayAnnotator
+        | ComparisonAnnotator,
+        compact: bool,
+    ) -> None:
+        """An opaque BGRA scene gets the BGR result and keeps an opaque alpha."""
+        bgr = np.arange(30 * 40 * 3, dtype=np.uint8).reshape(30, 40, 3)
+        scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
+        detections = self._detections(compact=compact)
+        expected = self._annotate(annotator, bgr.copy(), detections)
+
+        result = self._annotate(annotator, scene, detections)
+
+        assert result is scene
+        assert result.shape == (30, 40, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        np.testing.assert_array_equal(result[..., 3], 255)
+
+    def test_mask_composites_over_transparent_bgra_scene(self) -> None:
+        """A fully opaque mask makes its pixels opaque and leaves the rest as is."""
+        scene = np.zeros((30, 40, 4), dtype=np.uint8)
+        color = Color(r=10, g=20, b=200)
+
+        result = MaskAnnotator(color=color, opacity=1.0).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        assert result[12, 18].tolist() == [color.b, color.g, color.r, 255]
+        assert result[2, 2].tolist() == [0, 0, 0, 0]
+
+
 class TestPaintMasksByArea:
     """Tests for the _paint_masks_by_area helper function."""
 
