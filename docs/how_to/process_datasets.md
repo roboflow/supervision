@@ -140,7 +140,7 @@ The Supervision library provides convenient functions to load datasets in variou
     )
     ```
 
-    Each polygon is rasterized and immediately run-length encoded inside its rounded vertex bounds. This preserves the dense loader's pixels while avoiding a retained `(N, H, W)` array for every image. One full-frame mask is still rasterized at a time, and compression depends on mask complexity. Images remain lazily loaded, as before. Use `detections.mask.to_dense()` only when a consumer requires a NumPy stack; that allocates full-size masks again.
+    Compact loading is lossless: the masks decode to exactly the pixels of the dense loader. Retained memory is roughly the size of each object's run-length encoding inside its rounded vertex bounds, rather than a full `(N, H, W)` array per image, so the saving depends on mask size and complexity. Each polygon is encoded before the next one is drawn, so the temporary memory used while loading stays bounded by a few frame-sized buffers, however many objects an image has. Images remain lazily loaded, as before. Use `detections.mask.to_dense()` only when a consumer requires a NumPy stack; that allocates full-size masks again.
 
     The option does not generate masks for box-only datasets unless `force_masks=True` is also set. Empty annotations still have `mask=None`, and OBB annotations never generate masks. The default `compact_masks=False` keeps the existing dense representation.
 

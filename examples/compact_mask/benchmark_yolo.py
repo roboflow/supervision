@@ -1,4 +1,7 @@
-"""Measure YOLO loading time, mask buffers and peak RSS on Linux.
+"""Measure YOLO loading time, mask buffers and peak RSS on Linux and macOS.
+
+Peak RSS comes from the POSIX ``resource`` module, so the script exits with a message on
+platforms without it, such as Windows.
 
 Run ``uv run python examples/compact_mask/benchmark_yolo.py`` from the repository root.
 Each mode runs three times in fresh processes; input generation and imports are outside
@@ -13,7 +16,6 @@ GPU, or additional dependencies are needed.
 
 import argparse
 import json
-import resource
 import subprocess
 import sys
 import tempfile
@@ -24,6 +26,22 @@ import numpy as np
 from PIL import Image
 
 import supervision as sv
+
+try:
+    import resource
+except ImportError:
+    sys.exit(
+        "benchmark_yolo.py needs the POSIX 'resource' module to read peak RSS; "
+        "run it on Linux or macOS."
+    )
+
+
+def _maxrss_mib() -> float:
+    """Return this process's peak resident set size in MiB."""
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # macOS reports ru_maxrss in bytes; Linux and other POSIX systems use KiB.
+    divisor = 2**20 if sys.platform == "darwin" else 1024
+    return peak / divisor
 
 
 def worker(mode: str, scenario: str) -> None:
@@ -46,7 +64,7 @@ def worker(mode: str, scenario: str) -> None:
             Image.new("RGB", (width, height)).save(images / f"{i:03}.png")
             (labels / f"{i:03}.txt").write_text("\n".join(rows) + "\n")
         (root / "data.yaml").write_text("names: [object]\n")
-        rss_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_before_mib = _maxrss_mib()
         start = perf_counter()
         dataset = sv.DetectionDataset.from_yolo(
             str(images),
@@ -55,7 +73,7 @@ def worker(mode: str, scenario: str) -> None:
             compact_masks=mode == "compact",
         )
         elapsed = perf_counter() - start
-        rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        peak_rss_mib = _maxrss_mib()
         if mode == "verify":
             compact = sv.DetectionDataset.from_yolo(
                 str(images), str(labels), str(root / "data.yaml"), compact_masks=True
@@ -87,8 +105,8 @@ def worker(mode: str, scenario: str) -> None:
                     "resolution": [width, height],
                     "mask_buffer_bytes": buffers,
                     "load_seconds": elapsed,
-                    "peak_rss_mib": rss_after / 1024,
-                    "rss_before_mib": rss_before / 1024,
+                    "peak_rss_mib": peak_rss_mib,
+                    "rss_before_mib": rss_before_mib,
                 }
             )
         )
