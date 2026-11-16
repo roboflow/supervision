@@ -1,21 +1,25 @@
-from __future__ import annotations
-
+import importlib
+import re
+from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
-from typing import Any, cast, overload
+from types import ModuleType
+from typing import Any, ClassVar, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
-from PIL import Image, ImageDraw, ImageFont
+from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
+from PIL import Image, ImageDraw, ImageFont, features
 from scipy.interpolate import splev, splprep
 
+from supervision import _cv2 as cv2
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    _iter_resolved_colors,
+    _resolve_annotator_color,
     _resolve_detection_color,
     _validate_labels,
     calculate_dynamic_kernel_size,
@@ -35,6 +39,7 @@ from supervision.detection.utils.converters import (
     polygon_to_mask,
     xyxy_to_polygons,
 )
+from supervision.detection.utils.masks import _masks_to_roi
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
@@ -44,31 +49,82 @@ from supervision.utils.conversion import (
     ensure_pil_image_for_class_method,
 )
 from supervision.utils.image import (
+    _match_overlay_to_scene_channels,
+    _overlay_image,
     crop_image,
     letterbox_image,
-    overlay_image,
     scale_image,
 )
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
 
+# Hebrew, Arabic, Syriac, Thaana, NKo and their presentation forms
+_RTL_TEXT = re.compile("[֐-ࣿיִ-﷿ﹰ-ﻼ]")
 
-@overload
-def _normalize_color_input(color: Color | str) -> Color: ...
+
+@lru_cache(maxsize=2)
+def _warn_unshaped_rtl_text(unsupported_mode: bool = False) -> None:
+    """Warn once when Pillow cannot shape right-to-left text."""
+    # Pillow joins Arabic letters and orders right-to-left text only with Raqm
+    if not features.check("raqm"):
+        if unsupported_mode:
+            logger.warning(
+                "The `rtl` extra requires RGB or RGBA images. Pillow needs Raqm "
+                "to shape right-to-left labels. Convert the image to RGB or RGBA "
+                "to use the extra."
+            )
+        else:
+            logger.warning(
+                "Right-to-left labels (Arabic, Hebrew) need Pillow with Raqm or the "
+                "`rtl` extra to render correctly. Run `uv pip install "
+                "'supervision[rtl]'` or `uv add supervision --extra rtl`."
+            )
 
 
-@overload
-def _normalize_color_input(
-    color: Color | ColorPalette | str,
-) -> Color | ColorPalette: ...
+@lru_cache
+def _load_icon_from_path(
+    icon_path: str, icon_resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.uint8]:
+    """Load and resize an icon image through a cache shared by annotators.
+
+    Icons are read unchanged to keep their alpha channel, which also keeps a grayscale
+    PNG as a 2-D array and a 16-bit PNG at 16 bits. A 16-bit icon is scaled down to 8
+    bits and a grayscale icon is expanded to BGR, the depth and layout the icon overlay
+    draws; an icon of any other pixel type is rejected.
+    """
+    icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+    if icon is None:
+        raise FileNotFoundError(f"Error: Couldn't load the icon image from {icon_path}")
+    icon_array: npt.NDArray[np.uint8]
+    if icon.dtype == np.uint8:
+        icon_array = cast(npt.NDArray[np.uint8], icon)
+    elif icon.dtype == np.uint16:
+        # The overlay writes the icon into an 8-bit scene, where a 16-bit value wraps
+        # modulo 256 and redraws a bright icon as a dark one; keep the high byte.
+        icon_array = np.clip(np.rint(icon / 256), 0, 255).astype(np.uint8)
+    else:
+        raise ValueError(
+            f"Icon image ('{icon_path}') has an unsupported pixel type "
+            f"('{icon.dtype}'); an icon must be 8-bit or 16-bit."
+        )
+    if icon_array.ndim == 2:
+        icon_array = cast(
+            npt.NDArray[np.uint8], cv2.cvtColor(icon_array, cv2.COLOR_GRAY2BGR)
+        )
+    result: npt.NDArray[np.uint8] = letterbox_image(
+        image=icon_array, resolution_wh=icon_resolution_wh
+    )
+    return result
 
 
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
     """Normalize accepted color inputs to internal color objects.
 
-    Accepts `Color`, `ColorPalette`, or hex string input. Hex strings are parsed via
-    `hex_to_rgba` and converted to `Color` (alpha channel is ignored because annotator
+    Accepts :class:`~supervision.draw.color.Color`,
+    :class:`~supervision.draw.color.ColorPalette`, or hex string input. Hex strings are
+    parsed via :func:`~supervision.annotators.utils.hex_to_rgba` and converted to
+    :class:`~supervision.draw.color.Color` (alpha channel is ignored because annotator
     drawing uses RGB/BGR colors).
     """
     if isinstance(color, str):
@@ -81,8 +137,7 @@ CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 
 class _BaseLabelAnnotator(BaseAnnotator):
-    """
-    Base class for annotators that add labels to detections.
+    """Base class for annotators that add labels to detections.
 
     Attributes:
         color: The color to use for the label background.
@@ -112,8 +167,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         smart_position: bool = False,
         max_line_length: int | None = None,
     ):
-        """
-        Initializes the _BaseLabelAnnotator.
+        """Initializes the _BaseLabelAnnotator.
 
         Args:
             color: The color to use for the label
@@ -149,9 +203,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
         resolution_wh: tuple[int, int],
         labels: list[str],
         label_properties: npt.NDArray[np.float32],
-    ) -> npt.NDArray[np.uint8]:
-        """
-        Adjusts the position of labels to ensure they stay within the frame boundaries.
+    ) -> npt.NDArray[np.float32]:
+        """Adjusts the position of labels to ensure they stay within the frame
+        boundaries.
 
         Args:
             resolution_wh: The width and height of the frame.
@@ -184,13 +238,14 @@ class _BaseLabelAnnotator(BaseAnnotator):
                 adjusted_properties[:, :4], resolution_wh
             )
 
-        return adjusted_properties
+        return cast(
+            npt.NDArray[np.float32],
+            np.asarray(adjusted_properties, dtype=np.float32),
+        )
 
 
 class BoxAnnotator(BaseAnnotator):
-    """
-    A class for drawing bounding boxes on an image using provided detections.
-    """
+    """A class for drawing bounding boxes on an image using provided detections."""
 
     def __init__(
         self,
@@ -217,8 +272,8 @@ class BoxAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with bounding boxes based on the provided detections.
+        """Annotates the given scene with bounding boxes based on the provided
+        detections.
 
         Args:
             scene: The image where bounding boxes will be drawn. `ImageType`
@@ -254,16 +309,10 @@ class BoxAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
@@ -275,9 +324,8 @@ class BoxAnnotator(BaseAnnotator):
 
 
 class OrientedBoxAnnotator(BaseAnnotator):
-    """
-    A class for drawing oriented bounding boxes on an image using provided detections.
-    """
+    """A class for drawing oriented bounding boxes on an image using provided
+    detections."""
 
     def __init__(
         self,
@@ -304,9 +352,8 @@ class OrientedBoxAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with oriented bounding boxes based on the
-        provided detections.
+        """Annotates the given scene with oriented bounding boxes based on the provided
+        detections.
 
         Args:
             scene: The image where bounding boxes will be drawn.
@@ -320,9 +367,9 @@ class OrientedBoxAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
+        Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -338,6 +385,25 @@ class OrientedBoxAnnotator(BaseAnnotator):
                 detections=detections
             )
             ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from supervision.config import ORIENTED_BOX_COORDINATES
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> obb = np.array([[[20, 20], [80, 20], [80, 80], [20, 80]]])
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0]),
+            ...     data={ORIENTED_BOX_COORDINATES: obb},
+            ... )
+            >>> oriented_box_annotator = sv.OrientedBoxAnnotator()
+            >>> annotated_frame = oriented_box_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+
+            ```
         """
         if not isinstance(scene, np.ndarray):
             return scene
@@ -345,16 +411,10 @@ class OrientedBoxAnnotator(BaseAnnotator):
             return scene
         obb_boxes = np.array(detections.data[ORIENTED_BOX_COORDINATES]).astype(int)
 
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             obb = obb_boxes[detection_idx]
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
 
             cv2.drawContours(scene, [obb], 0, color.as_bgr(), self.thickness)
 
@@ -362,33 +422,123 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
 
 # --- Shared mask-painting utilities ---
+def _iter_mask_crops(
+    detections: Detections,
+) -> Iterator[tuple[int, npt.NDArray[np.bool_], npt.NDArray[np.int32] | None]]:
+    """Yield ``(detection_idx, mask_or_crop, offset_or_None)`` for each mask.
+
+    Encapsulates the :class:`~supervision.detection.compact_mask.CompactMask` vs
+    dense dispatch so individual annotators do not need inline ``isinstance``
+    checks. For
+    :class:`~supervision.detection.compact_mask.CompactMask` inputs yields
+    the bbox crop and its ``(x1, y1)`` image-space origin; for dense masks
+    yields the full-frame boolean slice with ``offset=None``.
+
+    Args:
+        detections: Object detections whose masks to iterate.
+
+    Yields:
+        Tuple of ``(detection_idx, mask_or_crop, offset_or_None)``.
+        ``mask_or_crop`` is boolean (crop-sized for
+        :class:`~supervision.detection.compact_mask.CompactMask`, full-frame
+        for dense). ``offset_or_None`` is an int32 ``(x1, y1)`` array for
+        crop→image translation, or ``None`` for dense masks.
+    """
+    masks = detections.mask
+    if masks is None:
+        return
+    # TODO: replace isinstance dispatch with a MaskLike Protocol (separate PR)
+    compact_mask = masks if isinstance(masks, CompactMask) else None
+    for detection_idx in range(len(detections)):
+        if compact_mask is None:
+            yield (
+                detection_idx,
+                cast(npt.NDArray[np.bool_], masks[detection_idx]),
+                None,
+            )
+        else:
+            yield (
+                detection_idx,
+                compact_mask.crop(detection_idx),
+                compact_mask.offsets[detection_idx],
+            )
+
+
+def _color_for_canvas(
+    color_bgr: tuple[int, int, int], canvas: npt.NDArray[np.uint8]
+) -> tuple[int, ...]:
+    """Return the color as the pixel value OpenCV drawing writes to `canvas`.
+
+    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
+    channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
+    polygons other annotators draw on the same scene.
+    """
+    if canvas.ndim == 2 or canvas.shape[2] == 1:
+        return color_bgr[:1]
+    return color_bgr
+
+
+def _pillow_fill(color: Color, mode: str) -> float | tuple[int, ...]:
+    """Return `color` as the fill Pillow's `ImageDraw` accepts for a scene of `mode`.
+
+    Pillow rejects an RGB tuple on grayscale modes. Those take the first (blue) BGR
+    channel, as :func:`~supervision.annotators.core._color_for_canvas` does, so rich
+    labels match what the other annotators draw on the same scene. Integer modes
+    deeper than 8 bits scale it by 257, the mapping of 0-255 onto 0-65535 that
+    :func:`~supervision.utils.conversion.ensure_cv2_image_for_class_method` applies.
+
+    Args:
+        color: Color to draw.
+        mode: Pillow mode of the scene.
+
+    Returns:
+        Fill value for `ImageDraw` on an image of that mode.
+    """
+    if mode == "1":
+        return 255 if color.b >= 128 else 0
+    if mode in ("L", "F"):
+        return color.b
+    if mode == "LA":
+        return (color.b, 255)
+    if mode == "I" or mode.startswith("I;16"):
+        return color.b * 257
+    return color.as_rgb()
+
+
 def _paint_masks_by_area(
     canvas: npt.NDArray[np.uint8],
     detections: Detections,
     color: Color | ColorPalette,
     color_lookup: ColorLookup | npt.NDArray[np.int_],
     collect_union: bool = False,
+    canvas_origin: tuple[int, int] = (0, 0),
 ) -> npt.NDArray[np.bool_] | None:
     """Paint each detection's mask into `canvas` in descending-area order.
 
-    Smaller masks are drawn on top of larger ones. `CompactMask` detections
-    are painted into their bounding-box crop only, avoiding a full `(H, W)`
+    Smaller masks are drawn on top of larger ones.
+    :class:`~supervision.detection.compact_mask.CompactMask` detections are painted
+    into their bounding-box crop only, avoiding a full `(H, W)`
     allocation per mask; dense masks fall back to full-frame boolean indexing.
 
     Args:
-        canvas: BGR image array painted in place. Shape ``(H, W, 3)``.
+        canvas: Image array painted in place: BGR of shape ``(H, W, 3)``, or
+            grayscale of shape ``(H, W)`` or ``(H, W, 1)``.
         detections: Detections whose masks to paint. Returns immediately
             without modifying `canvas` when ``detections.mask`` is ``None``.
         color: Single color or palette used to resolve each detection's color.
         color_lookup: Strategy for mapping colors to detection indices.
         collect_union: When ``True``, allocate and return a ``(H, W)``
             boolean array that accumulates the union of all painted masks
-            (useful for callers like `HaloAnnotator` that need the combined
-            mask footprint). When ``False`` (default), returns ``None``.
+            (useful for callers like
+            :class:`~supervision.annotators.core.HaloAnnotator` that need the
+            combined mask footprint). When ``False`` (default), returns ``None``.
+        canvas_origin: Absolute ``(x, y)`` origin of `canvas` within the source
+            image. Use the default for full-frame painting.
 
     Returns:
-        A ``(H, W)`` boolean union array when ``collect_union=True``,
-        otherwise ``None``.
+        A boolean array matching the canvas dimensions when
+        ``collect_union=True``, otherwise ``None``. When called with an
+        ROI sub-canvas, dimensions are the ROI size, not the full image.
     """
     masks = detections.mask
     if masks is None:
@@ -397,37 +547,63 @@ def _paint_masks_by_area(
         np.zeros(canvas.shape[:2], dtype=bool) if collect_union else None
     )
     compact_mask = masks if isinstance(masks, CompactMask) else None
+    origin_x, origin_y = canvas_origin
+    canvas_h, canvas_w = canvas.shape[:2]
     for detection_idx in np.flip(np.argsort(detections.area)):
-        color_bgr = _resolve_detection_color(
-            color=color,
-            detections=detections,
-            detection_idx=detection_idx,
-            color_lookup=color_lookup,
-        ).as_bgr()
+        pixel_value = _color_for_canvas(
+            _resolve_detection_color(
+                color=color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=color_lookup,
+            ).as_bgr(),
+            canvas,
+        )
         if compact_mask is not None:
             x1 = int(compact_mask.offsets[detection_idx, 0])
             y1 = int(compact_mask.offsets[detection_idx, 1])
             crop_m = compact_mask.crop(detection_idx)
             crop_h, crop_w = crop_m.shape
-            canvas[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = color_bgr
+            crop_x1 = max(0, origin_x - x1)
+            crop_y1 = max(0, origin_y - y1)
+            canvas_x1 = max(0, x1 - origin_x)
+            canvas_y1 = max(0, y1 - origin_y)
+            paint_w = min(crop_w - crop_x1, canvas_w - canvas_x1)
+            paint_h = min(crop_h - crop_y1, canvas_h - canvas_y1)
+            if paint_w <= 0 or paint_h <= 0:
+                continue
+            crop_slice = crop_m[
+                crop_y1 : crop_y1 + paint_h, crop_x1 : crop_x1 + paint_w
+            ]
+            canvas_slice = canvas[
+                canvas_y1 : canvas_y1 + paint_h,
+                canvas_x1 : canvas_x1 + paint_w,
+            ]
+            canvas_slice[crop_slice] = pixel_value
             if union is not None:
-                union[y1 : y1 + crop_h, x1 : x1 + crop_w] |= crop_m
+                union[
+                    canvas_y1 : canvas_y1 + paint_h,
+                    canvas_x1 : canvas_x1 + paint_w,
+                ] |= crop_slice
         else:
             mask = np.asarray(masks[detection_idx], dtype=bool)
-            canvas[mask] = color_bgr
+            mask = mask[origin_y : origin_y + canvas_h, origin_x : origin_x + canvas_w]
+            canvas[mask] = pixel_value
             if union is not None:
                 union |= mask
     return union
 
 
 class MaskAnnotator(BaseAnnotator):
-    """
-    A class for drawing masks on an image using provided detections.
+    """A class for drawing masks on an image using provided detections.
 
     !!! warning
 
-        This annotator uses `sv.Detections.mask`.
+    This annotator uses
+    :class:`~supervision.detection.core.Detections`.mask.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -454,13 +630,14 @@ class MaskAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with masks based on the provided detections.
+        """Annotates the given scene with masks based on the provided detections.
 
         Args:
             scene: The image where masks will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`; masks are drawn in the first (blue) channel of
+                their color, as OpenCV draws boxes and polygons.
             detections: Object detections to annotate.
             custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
@@ -495,27 +672,49 @@ class MaskAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
-        colored_mask = np.array(scene, copy=True, dtype=np.uint8)
+        image_shape = (int(scene.shape[0]), int(scene.shape[1]))
+        effective_lookup = (
+            self.color_lookup if custom_color_lookup is None else custom_color_lookup
+        )
+        if len(detections) > 0:
+            _resolve_detection_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=0,
+                color_lookup=effective_lookup,
+            )
+        roi = _masks_to_roi(detections.mask, image_shape, detections.xyxy)
+        if roi is None:
+            return scene
+
+        x1, y1, x2, y2 = roi
+        scene_roi = scene[y1:y2, x1:x2]
+        colored_mask = np.array(scene_roi, copy=True, dtype=np.uint8)
         _paint_masks_by_area(
             colored_mask,
             detections,
             self.color,
-            self.color_lookup if custom_color_lookup is None else custom_color_lookup,
+            effective_lookup,
+            canvas_origin=(x1, y1),
         )
-        cv2.addWeighted(
-            colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
+        tmp = cv2.addWeighted(
+            colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
         )
+        # OpenCV drops a singleton channel axis; restore it before assignment.
+        scene_roi[:] = tmp.reshape(scene_roi.shape)
         return scene
 
 
 class PolygonAnnotator(BaseAnnotator):
-    """
-    A class for drawing polygons on an image using provided detections.
+    """A class for drawing polygons on an image using provided detections.
 
     !!! warning
 
-        This annotator uses `sv.Detections.mask`.
+    This annotator uses
+    :class:`~supervision.detection.core.Detections`.mask.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -542,8 +741,7 @@ class PolygonAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with polygons based on the provided detections.
+        """Annotates the given scene with polygons based on the provided detections.
 
         Args:
             scene: The image where polygons will be drawn.
@@ -574,6 +772,16 @@ class PolygonAnnotator(BaseAnnotator):
 
             ```
 
+        Note:
+            When `detections.mask` is a
+            :class:`~supervision.detection.compact_mask.CompactMask`, each
+            detection's polygon is decoded from a bbox-sized crop (O(crop_area))
+            rather than a full-frame ``(H, W)`` allocation (O(H·W)). Polygon
+            coordinates are
+            shifted from crop-local space to image space via the stored
+            ``(x1, y1)`` bbox origin. Pixels outside the declared ``xyxy`` box
+            are not represented in compact storage and will not be drawn.
+
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
         """
@@ -582,20 +790,21 @@ class PolygonAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
-        for detection_idx in range(len(detections)):
-            mask = detections.mask[detection_idx]
-            color = _resolve_detection_color(
+        for detection_idx, mask, offset in _iter_mask_crops(detections):
+            color = _resolve_annotator_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=self.color_lookup,
+                custom_color_lookup=custom_color_lookup,
             )
             for polygon in mask_to_polygons(mask=mask):
+                if offset is not None:
+                    # translate crop-local polygon to image space via (x1, y1) origin
+                    polygon = polygon + offset
                 scene = draw_polygon(
                     scene=scene,
-                    polygon=polygon,
+                    polygon=cast(npt.NDArray[np.int_], polygon),
                     color=color,
                     thickness=self.thickness,
                 )
@@ -604,9 +813,7 @@ class PolygonAnnotator(BaseAnnotator):
 
 
 class ColorAnnotator(BaseAnnotator):
-    """
-    A class for drawing box masks on an image using provided detections.
-    """
+    """A class for drawing box masks on an image using provided detections."""
 
     def __init__(
         self,
@@ -633,8 +840,7 @@ class ColorAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with box masks based on the provided detections.
+        """Annotates the given scene with box masks based on the provided detections.
 
         Args:
             scene: The image where bounding boxes will be drawn.
@@ -671,16 +877,10 @@ class ColorAnnotator(BaseAnnotator):
         if not isinstance(scene, np.ndarray):
             return scene
         scene_with_boxes = scene.copy()
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             cv2.rectangle(
                 img=scene_with_boxes,
                 pt1=(x1, y1),
@@ -696,13 +896,15 @@ class ColorAnnotator(BaseAnnotator):
 
 
 class HaloAnnotator(BaseAnnotator):
-    """
-    A class for drawing Halos on an image using provided detections.
+    """A class for drawing Halos on an image using provided detections.
 
     !!! warning
 
-        This annotator uses `sv.Detections.mask`.
+    This annotator uses
+    :class:`~supervision.detection.core.Detections`.mask.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -733,13 +935,14 @@ class HaloAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with halos based on the provided detections.
+        """Annotates the given scene with halos based on the provided detections.
 
         Args:
             scene: The image where the halo effect will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`; halos are drawn in the first (blue) channel of
+                their color, as OpenCV draws boxes and polygons.
             detections: Object detections to annotate.
             custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
@@ -783,24 +986,34 @@ class HaloAnnotator(BaseAnnotator):
         )
         assert fmask is not None  # collect_union=True always returns an array
 
-        colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
-        colored_mask[fmask] = [0, 0, 0]
-        gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
+        # OpenCV drops a singleton channel axis; restore the scene's layout.
+        colored_mask = cv2.blur(
+            colored_mask, (self.kernel_size, self.kernel_size)
+        ).reshape(scene.shape)
+        colored_mask[fmask] = 0
+        if colored_mask.ndim == 2 or colored_mask.shape[2] == 1:
+            gray = colored_mask.reshape(scene.shape[:2])
+        else:
+            gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
         gray_max = gray.max()
         if gray_max == 0:
             # no halo to draw (e.g. empty masks); leave the scene untouched
             return scene
         alpha = self.opacity * gray / gray_max
-        alpha_mask = alpha[:, :, np.newaxis]
-        blended_scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
+        alpha_mask = alpha if scene.ndim == 2 else alpha[:, :, np.newaxis]
+        # Blend in float space so halo opacity cannot wrap around uint8 boundaries.
+        blended_scene = np.clip(
+            scene.astype(np.float32) * (1 - alpha_mask)
+            + colored_mask.astype(np.float32) * alpha_mask,
+            0,
+            255,
+        ).astype(np.uint8)
         np.copyto(scene, blended_scene)
         return scene
 
 
 class EllipseAnnotator(BaseAnnotator):
-    """
-    A class for drawing ellipses on an image using provided detections.
-    """
+    """A class for drawing ellipses on an image using provided detections."""
 
     def __init__(
         self,
@@ -833,8 +1046,7 @@ class EllipseAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with ellipses based on the provided detections.
+        """Annotates the given scene with ellipses based on the provided detections.
 
         Args:
             scene: The image where ellipses will be drawn.
@@ -870,16 +1082,10 @@ class EllipseAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, _y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             center = (int((x1 + x2) / 2), y2)
             width = x2 - x1
             cv2.ellipse(
@@ -897,9 +1103,7 @@ class EllipseAnnotator(BaseAnnotator):
 
 
 class BoxCornerAnnotator(BaseAnnotator):
-    """
-    A class for drawing box corners on an image using provided detections.
-    """
+    """A class for drawing box corners on an image using provided detections."""
 
     def __init__(
         self,
@@ -929,8 +1133,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with box corners based on the provided detections.
+        """Annotates the given scene with box corners based on the provided detections.
 
         Args:
             scene: The image where box corners will be drawn.
@@ -966,16 +1169,10 @@ class BoxCornerAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             corners = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
 
             for x, y in corners:
@@ -992,9 +1189,7 @@ class BoxCornerAnnotator(BaseAnnotator):
 
 
 class CircleAnnotator(BaseAnnotator):
-    """
-    A class for drawing circle on an image using provided detections.
-    """
+    """A class for drawing circle on an image using provided detections."""
 
     def __init__(
         self,
@@ -1010,7 +1205,6 @@ class CircleAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-
         self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
@@ -1022,8 +1216,7 @@ class CircleAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with circles based on the provided detections.
+        """Annotates the given scene with circles based on the provided detections.
 
         Args:
             scene: The image where box corners will be drawn.
@@ -1060,18 +1253,12 @@ class CircleAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             center = ((x1 + x2) // 2, (y1 + y2) // 2)
             distance = sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             cv2.circle(
                 img=scene,
                 center=center,
@@ -1084,10 +1271,8 @@ class CircleAnnotator(BaseAnnotator):
 
 
 class DotAnnotator(BaseAnnotator):
-    """
-    A class for drawing dots on an image at specific coordinates based on provided
-    detections.
-    """
+    """A class for drawing dots on an image at specific coordinates based on provided
+    detections."""
 
     def __init__(
         self,
@@ -1125,8 +1310,7 @@ class DotAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with dots based on the provided detections.
+        """Annotates the given scene with dots based on the provided detections.
 
         Args:
             scene: The image where dots will be drawn.
@@ -1163,26 +1347,19 @@ class DotAnnotator(BaseAnnotator):
         if not isinstance(scene, np.ndarray):
             return scene
         xy = detections.get_anchors_coordinates(anchor=self.position)
-        for detection_idx in range(len(detections)):
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
 
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
             if self.outline_thickness:
-                outline_color = _resolve_detection_color(
+                outline_color = _resolve_annotator_color(
                     color=self.outline_color,
                     detections=detections,
                     detection_idx=detection_idx,
-                    color_lookup=self.color_lookup
-                    if custom_color_lookup is None
-                    else custom_color_lookup,
+                    color_lookup=self.color_lookup,
+                    custom_color_lookup=custom_color_lookup,
                 )
                 cv2.circle(
                     scene,
@@ -1195,9 +1372,7 @@ class DotAnnotator(BaseAnnotator):
 
 
 class LabelAnnotator(_BaseLabelAnnotator):
-    """
-    A class for annotating labels on an image using provided detections.
-    """
+    """A class for annotating labels on an image using provided detections."""
 
     def __init__(
         self,
@@ -1225,7 +1400,8 @@ class LabelAnnotator(_BaseLabelAnnotator):
             text_thickness: Thickness of the text characters.
             text_padding: Padding around the text within its background box.
             text_position: Position of the text relative to the detection.
-                Possible values are defined in the `Position` enum.
+                Possible values are defined in the
+                :class:`~supervision.geometry.core.Position` enum.
             text_offset: A tuple of 2D coordinates `(x, y)` to
                 offset the text position from the anchor point, in pixels.
             border_radius: The radius to apply round edges. If the selected
@@ -1251,13 +1427,12 @@ class LabelAnnotator(_BaseLabelAnnotator):
     @ensure_cv2_image_for_class_method
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
-    ) -> Image.Image:
-        """
-        Annotates the given scene with labels based on the provided detections.
+    ) -> ImageType:
+        """Annotates the given scene with labels based on the provided detections.
 
         Args:
             scene: The image where labels will be drawn.
@@ -1310,10 +1485,6 @@ class LabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
-            xyxy = label_properties[:, :4]
-            xyxy = spread_out_boxes(xyxy)
-            label_properties[:, :4] = xyxy
-
             label_properties = self._adjust_labels_in_frame(
                 (scene.shape[1], scene.shape[0]),
                 labels,
@@ -1357,6 +1528,14 @@ class LabelAnnotator(_BaseLabelAnnotator):
                     fontScale=self.text_scale,
                     thickness=self.text_thickness,
                 )[0]
+                if not line:
+                    # Reserve the same height `_draw_labels` skips for a blank line
+                    text_h = cv2.getTextSize(
+                        text="Tg",
+                        fontFace=CV2_FONT,
+                        fontScale=self.text_scale,
+                        thickness=self.text_thickness,
+                    )[0][1]
                 line_heights.append(text_h)
                 line_widths.append(text_w)
 
@@ -1473,11 +1652,52 @@ class LabelAnnotator(_BaseLabelAnnotator):
         color: tuple[int, int, int],
         border_radius: int,
     ) -> npt.NDArray[np.uint8]:
+        """Draw a filled rectangle with optional rounded corners on an image.
+
+        Args:
+            scene: BGR image array to draw on; modified in-place and returned.
+            xyxy: Bounding box as (x1, y1, x2, y2) pixel coordinates.
+            color: Fill color as a BGR tuple (e.g. ``(0, 0, 255)`` for red).
+            border_radius: Corner rounding radius in pixels. Values <= 0
+                (including values clamped to 0 by a degenerate box) draw a
+                plain filled rectangle with square corners.
+
+        Returns:
+            The annotated ``scene`` array.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> scene = np.zeros((200, 200, 3), dtype=np.uint8)
+            >>> scene = sv.LabelAnnotator.draw_rounded_rectangle(
+            ...     scene=scene,
+            ...     xyxy=(10, 10, 100, 50),
+            ...     color=(0, 255, 0),
+            ...     border_radius=0,
+            ... )
+            >>> bool(scene[30, 50].tolist() == [0, 255, 0])
+            True
+
+            ```
+        """
         x1, y1, x2, y2 = xyxy
         width = x2 - x1
         height = y2 - y1
 
         border_radius = min(border_radius, min(width, height) // 2)
+
+        if border_radius <= 0:
+            # square corners: a single fill rectangle (the common default), rather
+            # than two rectangles plus four zero-radius corner circles
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color,
+                thickness=-1,
+            )
+            return scene
 
         rectangle_coordinates = [
             ((x1 + border_radius, y1), (x2 - border_radius, y2)),
@@ -1510,10 +1730,8 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
 
 class RichLabelAnnotator(_BaseLabelAnnotator):
-    """
-    A class for annotating labels on an image using provided detections,
-    with support for Unicode characters by using a custom font.
-    """
+    """A class for annotating labels on an image using provided detections, with support
+    for Unicode characters by using a custom font."""
 
     def __init__(
         self,
@@ -1538,10 +1756,16 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             text_color: The color to use for the text.
             font_path: Path to the font file (e.g., ".ttf" or ".otf")
                 to use for rendering text. If `None`, the default PIL font will be used.
+                With the `rtl` extra installed, Arabic and Hebrew lines in RGB or
+                RGBA images are drawn with `khatt`, using this font when supplied.
+                Missing glyphs use Noto Naskh Arabic or Rubik (Hebrew). Other image
+                modes fall back to Pillow, which requires Raqm for shaping and may
+                not support every image mode.
             font_size: Font size for the text.
             text_padding: Padding around the text within its background box.
             text_position: Position of the text relative to the detection.
-                Possible values are defined in the `Position` enum.
+                Possible values are defined in the
+                :class:`~supervision.geometry.core.Position` enum.
             text_offset: A tuple of 2D coordinates `(x, y)` to
                 offset the text position from the anchor point, in pixels.
             border_radius: The radius to apply round edges. If the selected
@@ -1553,6 +1777,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         self.font_path = font_path
         self.font_size = font_size
         self.font = self._load_font(font_size, font_path)
+        # khatt draws in the font file Pillow loaded (which may be resolved from a
+        # system font directory), or its bundled Arabic font when the default PIL
+        # font (no Arabic glyphs, loaded from memory) is in use
+        loaded_path = getattr(self.font, "path", None)
+        self._rtl_font = loaded_path if isinstance(loaded_path, str) else None
         super().__init__(
             color=color,
             color_lookup=color_lookup,
@@ -1568,19 +1797,20 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     @ensure_pil_image_for_class_method
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
-    ) -> Image.Image:
-        """
-        Annotates the given scene with labels based on the provided
-        detections, with support for Unicode characters.
+    ) -> ImageType:
+        """Annotates the given scene with labels based on the provided detections, with
+        support for Unicode characters.
 
         Args:
             scene: The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale scenes, shaped `(H, W)` or
+                `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`,
+                `I`, `F` or `I;16`), are supported.
             detections: Object detections to annotate.
             labels: Custom labels for each detection.
             custom_color_lookup: Custom color lookup array.
@@ -1616,7 +1846,6 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
             ```
         """
-        assert isinstance(scene, Image.Image)
         _validate_labels(labels, detections)
 
         draw = ImageDraw.Draw(scene)
@@ -1626,17 +1855,15 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
-            xyxy = label_properties[:, :4]
-            xyxy = spread_out_boxes(xyxy)
-            label_properties[:, :4] = xyxy
-
+            scene_pil = cast(Image.Image, scene)
             label_properties = self._adjust_labels_in_frame(
-                (scene.width, scene.height),
+                (scene_pil.width, scene_pil.height),
                 labels,
                 label_properties,
             )
 
         self._draw_labels(
+            scene=cast(Image.Image, scene),
             draw=draw,
             labels=labels,
             label_properties=label_properties,
@@ -1645,6 +1872,48 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         return scene
+
+    def _rtl_engine(self, draw: ImageDraw.ImageDraw, line: str) -> ModuleType | None:
+        """The `khatt` module when `line` holds right-to-left text, the scene is RGB or
+        RGBA and the `rtl` extra is installed, else `None` (the line is measured and
+        drawn by Pillow)."""
+        if not _RTL_TEXT.search(line):
+            return None
+        if draw.mode not in ("RGB", "RGBA"):
+            _warn_unshaped_rtl_text(unsupported_mode=True)
+            return None
+        try:
+            return importlib.import_module("khatt")
+        except ModuleNotFoundError as exc:
+            if exc.name != "khatt":
+                raise
+            _warn_unshaped_rtl_text()
+            return None
+
+    def _rtl_options(self) -> dict[str, Any]:
+        # khatt's bundled Noto Naskh Arabic and Rubik (Hebrew) cover characters
+        # the label font lacks
+        if self._rtl_font is None:
+            return {
+                "font": "noto-naskh",
+                "size_px": self.font_size,
+                "fallback_fonts": ("rubik",),
+            }
+        return {
+            "font": self._rtl_font,
+            "size_px": self.font_size,
+            "fallback_fonts": ("noto-naskh", "rubik"),
+        }
+
+    def _text_bbox(
+        self, draw: ImageDraw.ImageDraw, line: str
+    ) -> tuple[float, float, float, float]:
+        khatt = self._rtl_engine(draw, line)
+        if khatt is not None:
+            left, top, right, bottom = khatt.text_bbox(line, **self._rtl_options())
+        else:
+            left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+        return left, top, right, bottom
 
     def _get_label_properties(
         self, draw: ImageDraw.ImageDraw, detections: Detections, labels: list[str]
@@ -1668,7 +1937,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             total_height = 0.0
 
             for line in wrapped_lines:
-                left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                left, top, right, bottom = self._text_bbox(draw, line)
                 line_width = right - left
                 line_height = bottom - top
 
@@ -1700,12 +1969,14 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
     def _draw_labels(
         self,
+        scene: Image.Image,
         draw: ImageDraw.ImageDraw,
         labels: list[str],
         label_properties: npt.NDArray[np.float32],
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None,
     ) -> None:
+        """Draw each label's background and text in a fill valid for `scene.mode`."""
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
             f"labels ({len(labels)}) and detections ({len(detections)}) "
@@ -1739,7 +2010,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             draw.rounded_rectangle(
                 tuple(box_xyxy),
                 radius=self.border_radius,
-                fill=background_color.as_rgb(),
+                fill=_pillow_fill(background_color, scene.mode),
                 outline=None,
             )
 
@@ -1749,15 +2020,35 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             y_position = box_xyxy[1] + self.text_padding - text_top
 
             for line in wrapped_lines:
-                draw.text(
-                    xy=(x_position, y_position),
-                    text=line,
-                    font=self.font,
-                    fill=text_color.as_rgb(),
-                )
+                khatt = self._rtl_engine(draw, line)
+                if khatt is not None:
+                    # Right-aligned in the box, with its ink top where Pillow's
+                    # lines start. Oversized boxes extend beyond the frame, so
+                    # align shaped RTL text to the visible right edge instead.
+                    _left, top, right, _bottom = self._text_bbox(draw, line)
+                    right_edge = box_xyxy[2]
+                    if self.smart_position and box_xyxy[2] - box_xyxy[0] > scene.width:
+                        right_edge = min(right_edge, scene.width)
+                    khatt.draw_text(
+                        scene,
+                        (
+                            right_edge - self.text_padding - right,
+                            y_position + text_top - top,
+                        ),
+                        line,
+                        fill=text_color.as_rgb(),
+                        **self._rtl_options(),
+                    )
+                else:
+                    draw.text(
+                        xy=(x_position, y_position),
+                        text=line,
+                        font=self.font,
+                        fill=_pillow_fill(text_color, scene.mode),
+                    )
 
                 # Move to the next line position
-                _left, top, _right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                _left, top, _right, bottom = self._text_bbox(draw, line)
                 line_height = bottom - top
                 y_position += line_height + self.text_padding
 
@@ -1786,9 +2077,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
 
 class IconAnnotator(BaseAnnotator):
-    """
-    A class for drawing an icon on an image, using provided detections.
-    """
+    """A class for drawing an icon on an image, using provided detections."""
 
     def __init__(
         self,
@@ -1815,8 +2104,7 @@ class IconAnnotator(BaseAnnotator):
         detections: Detections,
         icon_path: str | list[str] = "",
     ) -> ImageType:
-        """
-        Annotates the given scene with given icons.
+        """Annotates the given scene with given icons.
 
         Args:
             scene: The image where labels will be drawn.
@@ -1833,6 +2121,7 @@ class IconAnnotator(BaseAnnotator):
 
         Example:
             ```python
+            import numpy as np
             import supervision as sv
 
             image = ...
@@ -1877,27 +2166,18 @@ class IconAnnotator(BaseAnnotator):
             x = int(xy[detection_idx, 0] - icon_w / 2 + self.offset_xy[0])
             y = int(xy[detection_idx, 1] - icon_h / 2 + self.offset_xy[1])
 
-            scene[:] = overlay_image(scene, icon, (x, y))
+            scene[:] = _overlay_image(scene, icon, (x, y))
         return scene
 
-    @lru_cache
     def _load_icon(self, icon_path: str) -> npt.NDArray[np.uint8]:
-        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
-        if icon is None:
-            raise FileNotFoundError(
-                f"Error: Couldn't load the icon image from {icon_path}"
-            )
-        icon = cast(
-            npt.NDArray[np.uint8],
-            letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh),
+        """Load an icon through the module-level cache shared by annotators."""
+        return _load_icon_from_path(
+            icon_path=icon_path, icon_resolution_wh=self.icon_resolution_wh
         )
-        return icon
 
 
 class BlurAnnotator(BaseAnnotator):
-    """
-    A class for blurring regions in an image using provided detections.
-    """
+    """A class for blurring regions in an image using provided detections."""
 
     def __init__(self, kernel_size: int | None = None):
         """
@@ -1916,13 +2196,14 @@ class BlurAnnotator(BaseAnnotator):
         scene: ImageType,
         detections: Detections,
     ) -> ImageType:
-        """
-        Annotates the given scene by blurring regions based on the provided detections.
+        """Annotates the given scene by blurring regions based on the provided
+        detections.
 
         Args:
             scene: The image where blurring will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`.
             detections: Object detections to annotate.
 
         Returns:
@@ -1953,7 +2234,8 @@ class BlurAnnotator(BaseAnnotator):
             return scene
         image_height, image_width = scene.shape[:2]
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+            xyxy=detections.xyxy,
+            resolution_wh=(image_width, image_height),
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
@@ -1965,21 +2247,25 @@ class BlurAnnotator(BaseAnnotator):
                 if self.kernel_size is not None
                 else calculate_dynamic_kernel_size(x1, y1, x2, y2)
             )
-            roi = cv2.blur(roi, (kernel_size, kernel_size))
-            scene[y1:y2, x1:x2] = roi
+            blurred_roi = cast(
+                npt.NDArray[np.uint8], cv2.blur(roi, (kernel_size, kernel_size))
+            )
+            # OpenCV drops a singleton channel axis; restore it before assignment.
+            scene[y1:y2, x1:x2] = blurred_roi.reshape(roi.shape)
 
         return scene
 
 
 class TraceAnnotator(BaseAnnotator):
-    """
-    A class for drawing trace paths on an image based on detection coordinates.
+    """A class for drawing trace paths on an image based on detection coordinates.
 
     !!! warning
 
-        This annotator uses the `sv.Detections.tracker_id`. Read
-        [here](/latest/trackers/) to learn how to plug
-        tracking into your inference pipeline.
+    This annotator uses the
+    :class:`~supervision.detection.core.Detections`.tracker_id. Read [here](
+    https://trackers.roboflow.com/latest/)
+    to learn how to plug
+    tracking into your inference pipeline.
     """
 
     def __init__(
@@ -2013,6 +2299,34 @@ class TraceAnnotator(BaseAnnotator):
         self.smooth = smooth
         self.color_lookup: ColorLookup = color_lookup
 
+    def reset(self) -> None:
+        """Clears the accumulated trace history so the annotator can be reused across
+        independent streams without carrying over points from a previous stream.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((20, 20, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[1, 1, 10, 10]]),
+            ...     class_id=np.array([0]),
+            ...     tracker_id=np.array([1])
+            ... )
+            >>> trace_annotator = sv.TraceAnnotator()
+            >>> _ = trace_annotator.annotate(scene=image.copy(), detections=detections)
+            >>> trace_annotator.trace.xy.shape
+            (1, 2)
+            >>> trace_annotator.reset()
+            >>> trace_annotator.trace.current_frame_id
+            0
+            >>> trace_annotator.trace.xy.shape
+            (0, 2)
+
+            ```
+        """
+        self.trace.reset()
+
     @ensure_cv2_image_for_class_method
     def annotate(
         self,
@@ -2020,15 +2334,16 @@ class TraceAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Draws trace paths on the frame based on the detection coordinates provided.
+        """Draws trace paths on the frame based on the detection coordinates provided.
 
         Args:
             scene: The image on which the traces will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
             detections: The detections which include coordinates for
-                which the traces will be drawn.
+                which the traces will be drawn. An empty
+                :class:`~supervision.detection.core.Detections` batch is a no-op:
+                `scene` is returned unmodified.
             custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
@@ -2036,27 +2351,65 @@ class TraceAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
+        Raises:
+            ValueError: If `detections` is non-empty and its `tracker_id` field is
+                missing.
+
+        Examples:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
+            from trackers import ByteTrackTracker
 
-            model = YOLO('yolov8x.pt')
+            model = RFDETRMedium()
             trace_annotator = sv.TraceAnnotator()
 
             video_info = sv.VideoInfo.from_video_path(video_path='...')
             frames_generator = sv.get_video_frames_generator(source_path='...')
-            tracker = sv.ByteTrack()
+            tracker = ByteTrackTracker(
+                track_activation_threshold=0.25, minimum_consecutive_frames=1
+            )
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
-                   result = model(frame)[0]
-                   detections = sv.Detections.from_ultralytics(result)
-                   detections = tracker.update_with_detections(detections)
+                   detections = model.predict(frame[:, :, ::-1])
+                   detections = tracker.update(detections)
+                   detections = detections[detections.tracker_id != -1]
                    annotated_frame = trace_annotator.annotate(
                        scene=frame.copy(),
                        detections=detections)
                    sink.write_frame(frame=annotated_frame)
+            ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> trace_annotator = sv.TraceAnnotator()
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 10, 30, 30]]),
+            ...     class_id=np.array([0]),
+            ...     tracker_id=np.array([1]),
+            ... )
+            >>> _ = trace_annotator.annotate(scene=image.copy(), detections=detections)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[70, 70, 90, 90]]),
+            ...     class_id=np.array([0]),
+            ...     tracker_id=np.array([1]),
+            ... )
+            >>> annotated_frame = trace_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            >>> bool(annotated_frame.any())
+            True
+            >>> annotated_frame = trace_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=sv.Detections.empty()
+            ... )
+            >>> np.array_equal(annotated_frame, image)
+            True
+
             ```
 
         ![trace-annotator-example](https://media.roboflow.com/
@@ -2064,14 +2417,33 @@ class TraceAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
+
+        # A frame in which nothing was detected carries no `tracker_id` and is
+        # not a missing-tracker mistake, so it must not raise. It still reaches
+        # the trace: advancing the frame counter there keeps `trace_length` a
+        # window over elapsed frames, so a track whose stored history had
+        # already filled that window is not joined to its pre-gap trail when it
+        # reappears after a longer gap.
+        if len(detections) == 0:
+            self.trace.put(detections)
+            return scene
+
         if detections.tracker_id is None:
             raise ValueError(
                 "The `tracker_id` field is missing in the provided detections."
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
-        filtered_detections: Detections = detections[
-            detections.tracker_id != PENDING_TRACK_ID
-        ]  # type: ignore
+        is_confirmed = detections.tracker_id != PENDING_TRACK_ID
+        filtered_detections: Detections = detections[is_confirmed]  # type: ignore
+        # Validate before filtering so an invalid lookup cannot happen to match only
+        # the confirmed tracks. The matching lookup then drops pending-track entries.
+        if custom_color_lookup is not None:
+            if len(custom_color_lookup) != len(detections):
+                raise ValueError(
+                    f"Length of color lookup {len(custom_color_lookup)} "
+                    f"does not match length of detections {len(detections)}"
+                )
+            custom_color_lookup = custom_color_lookup[is_confirmed]
 
         self.trace.put(filtered_detections)
         for detection_idx in range(len(filtered_detections)):
@@ -2079,13 +2451,12 @@ class TraceAnnotator(BaseAnnotator):
             if tracker_id_val is None:
                 continue
             tracker_id = int(tracker_id_val)
-            color = _resolve_detection_color(
+            color = _resolve_annotator_color(
                 color=self.color,
                 detections=filtered_detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=self.color_lookup,
+                custom_color_lookup=custom_color_lookup,
             )
             xy = self.trace.get(tracker_id=tracker_id)
             spline_points: npt.NDArray[np.int32] = xy.astype(np.int32)
@@ -2098,8 +2469,20 @@ class TraceAnnotator(BaseAnnotator):
                     try:
                         x, y = unique_xy[:, 0], unique_xy[:, 1]
                         tck, _u = splprep([x, y], s=20)
-                        xy_new = splev(np.linspace(0, 1, 100), tck)
-                        spline_points = np.stack(xy_new, axis=1).astype(np.int32)
+                        x_new, y_new = splev(
+                            np.linspace(0, 1, 100),
+                            cast(
+                                tuple[
+                                    npt.NDArray[np.float64],
+                                    npt.NDArray[np.float64],
+                                    int,
+                                ],
+                                tck,
+                            ),
+                        )
+                        spline_points = np.stack((x_new, y_new), axis=1).astype(
+                            np.int32
+                        )
                     except ValueError:
                         spline_points = unique_xy.astype(np.int32)
                 else:
@@ -2117,10 +2500,10 @@ class TraceAnnotator(BaseAnnotator):
 
 
 class HeatMapAnnotator(BaseAnnotator):
-    """
-    A class for drawing heatmaps on an image based on provided detections.
-    Heat accumulates over time and is drawn as a semi-transparent overlay
-    of blurred circles.
+    """A class for drawing heatmaps on an image based on provided detections.
+
+    Heat accumulates over time and is drawn as a semi-transparent overlay of blurred
+    circles.
     """
 
     def __init__(
@@ -2151,10 +2534,36 @@ class HeatMapAnnotator(BaseAnnotator):
         self.low_hue = low_hue
         self.heat_mask: npt.NDArray[np.float32] | None = None
 
+    def reset(self) -> None:
+        """Clears the accumulated heat so the annotator can be reused across independent
+        streams. :meth:`~supervision.annotators.core.HeatMapAnnotator.annotate` already
+        reinitializes the heat mask when the scene resolution changes; call this to
+        discard heat from a previous stream that shares the same resolution.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((40, 40, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(xyxy=np.array([[10, 10, 20, 20]]))
+            >>> heat_map_annotator = sv.HeatMapAnnotator()
+            >>> _ = heat_map_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            >>> bool(heat_map_annotator.heat_mask.sum() > 0)
+            True
+            >>> heat_map_annotator.reset()
+            >>> heat_map_annotator.heat_mask is None
+            True
+
+            ```
+        """
+        self.heat_mask = None
+
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
-        """
-        Annotates the scene with a heatmap based on the provided detections.
+        """Annotates the scene with a heatmap based on the provided detections.
 
         Args:
             scene: The image where the heatmap will be drawn.
@@ -2170,12 +2579,12 @@ class HeatMapAnnotator(BaseAnnotator):
             When `detections` is empty or no heat has accumulated yet, the
             scene is returned unchanged without raising a ``RuntimeWarning``.
 
-        Example:
+        Examples:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
-            model = YOLO('yolov8x.pt')
+            model = RFDETRMedium()
 
             heat_map_annotator = sv.HeatMapAnnotator()
 
@@ -2184,12 +2593,29 @@ class HeatMapAnnotator(BaseAnnotator):
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
-                   result = model(frame)[0]
-                   detections = sv.Detections.from_ultralytics(result)
+                   detections = model.predict(frame[:, :, ::-1])
                    annotated_frame = heat_map_annotator.annotate(
                        scene=frame.copy(),
                        detections=detections)
                    sink.write_frame(frame=annotated_frame)
+            ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> heat_map_annotator = sv.HeatMapAnnotator()
+            >>> annotated_frame = heat_map_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            >>> bool(heat_map_annotator.heat_mask.sum() > 0)
+            True
+
             ```
 
         ![heatmap-annotator-example](https://media.roboflow.com/
@@ -2197,10 +2623,10 @@ class HeatMapAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        if self.heat_mask is None:
+        if self.heat_mask is None or self.heat_mask.shape != scene.shape[:2]:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
-        mask = np.zeros(scene.shape[:2])
+        mask: npt.NDArray[np.float32] = np.zeros(scene.shape[:2], dtype=np.float32)
         for xy in detections.get_anchors_coordinates(self.position):
             x, y = int(xy[0]), int(xy[1])
             cv2.circle(
@@ -2211,27 +2637,35 @@ class HeatMapAnnotator(BaseAnnotator):
                 thickness=-1,  # fill
             )
         self.heat_mask = mask + self.heat_mask
-        temp = self.heat_mask.copy()
-        max_val = temp.max()
+        heat_mask = self.heat_mask
+        heat_values = heat_mask.copy()
+        max_val = heat_values.max()
         if max_val > 0:
-            temp = self.low_hue - temp / max_val * (self.low_hue - self.top_hue)
-        temp = temp.astype(np.uint8)
+            heat_values = self.low_hue - heat_values / max_val * (
+                self.low_hue - self.top_hue
+            )
+        heat_hue = heat_values.astype(np.uint8)
         if self.kernel_size is not None:
-            temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
-        hsv = np.full(scene.shape, 255, dtype=np.uint8)
-        hsv[..., 0] = temp
-        temp = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
-        scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
-            mask
-        ]
+            heat_hue = cast(
+                npt.NDArray[np.uint8],
+                cv2.blur(heat_hue, (self.kernel_size, self.kernel_size)),
+            )
+        hsv = np.full((*scene.shape[:2], 3), 255, dtype=np.uint8)
+        hsv[..., 0] = heat_hue
+        heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
+        # A grayscale scene takes the heat colors as their gray luminance.
+        heat_overlay = _match_overlay_to_scene_channels(overlay=heat_bgr, roi=scene)
+        mask2d = heat_mask > 0
+        # OpenCV drops a singleton channel axis; restore the scene's layout.
+        blended = cv2.addWeighted(
+            heat_overlay, self.opacity, scene, 1 - self.opacity, 0
+        ).reshape(scene.shape)
+        scene[mask2d] = blended[mask2d]
         return scene
 
 
 class PixelateAnnotator(BaseAnnotator):
-    """
-    A class for pixelating regions in an image using provided detections.
-    """
+    """A class for pixelating regions in an image using provided detections."""
 
     def __init__(self, pixel_size: int | None = None):
         """
@@ -2252,14 +2686,14 @@ class PixelateAnnotator(BaseAnnotator):
         scene: ImageType,
         detections: Detections,
     ) -> ImageType:
-        """
-        Annotates the given scene by pixelating regions based on the provided
-            detections.
+        """Annotates the given scene by pixelating regions based on the provided
+        detections.
 
         Args:
             scene: The image where pixelating will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`.
             detections: Object detections to annotate.
 
         Returns:
@@ -2267,17 +2701,20 @@ class PixelateAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> pixelate_annotator = sv.PixelateAnnotator()
+            >>> annotated_frame = pixelate_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
-            image = ...
-            detections = sv.Detections(...)
-
-            pixelate_annotator = sv.PixelateAnnotator()
-            annotated_frame = pixelate_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
             ```
 
         ![pixelate-annotator-example](https://media.roboflow.com/
@@ -2287,7 +2724,8 @@ class PixelateAnnotator(BaseAnnotator):
             return scene
         image_height, image_width = scene.shape[:2]
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+            xyxy=detections.xyxy,
+            resolution_wh=(image_width, image_height),
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
@@ -2317,16 +2755,15 @@ class PixelateAnnotator(BaseAnnotator):
                 interpolation=cv2.INTER_NEAREST,
             )
 
-            scene[y1:y2, x1:x2] = scaled_down_roi
+            # OpenCV drops a singleton channel axis; restore it before assignment.
+            scene[y1:y2, x1:x2] = scaled_down_roi.reshape(roi.shape)
 
         return scene
 
 
 class TriangleAnnotator(BaseAnnotator):
-    """
-    A class for drawing triangle markers on an image at specific coordinates based on
-    provided detections.
-    """
+    """A class for drawing triangle markers on an image at specific coordinates based on
+    provided detections."""
 
     def __init__(
         self,
@@ -2367,8 +2804,7 @@ class TriangleAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with triangles based on the provided detections.
+        """Annotates the given scene with triangles based on the provided detections.
 
         Args:
             scene: The image where triangles will be drawn.
@@ -2405,15 +2841,9 @@ class TriangleAnnotator(BaseAnnotator):
         if not isinstance(scene, np.ndarray):
             return scene
         xy = detections.get_anchors_coordinates(anchor=self.position)
-        for detection_idx in range(len(detections)):
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             tip_x, tip_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
             vertices = np.array(
                 [
@@ -2426,13 +2856,12 @@ class TriangleAnnotator(BaseAnnotator):
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
             if self.outline_thickness:
-                outline_color = _resolve_detection_color(
+                outline_color = _resolve_annotator_color(
                     color=self.outline_color,
                     detections=detections,
                     detection_idx=detection_idx,
-                    color_lookup=self.color_lookup
-                    if custom_color_lookup is None
-                    else custom_color_lookup,
+                    color_lookup=self.color_lookup,
+                    custom_color_lookup=custom_color_lookup,
                 )
                 cv2.polylines(
                     scene,
@@ -2445,10 +2874,8 @@ class TriangleAnnotator(BaseAnnotator):
 
 
 class RoundBoxAnnotator(BaseAnnotator):
-    """
-    A class for drawing bounding boxes with round edges on an image
-    using provided detections.
-    """
+    """A class for drawing bounding boxes with round edges on an image using provided
+    detections."""
 
     def __init__(
         self,
@@ -2483,9 +2910,8 @@ class RoundBoxAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with bounding boxes with rounded edges
-        based on the provided detections.
+        """Annotates the given scene with bounding boxes with rounded edges based on the
+        provided detections.
 
         Args:
             scene: The image where rounded bounding boxes will be drawn.
@@ -2521,16 +2947,10 @@ class RoundBoxAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = _resolve_detection_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
 
             radius = (
                 int((x2 - x1) // 2 * self.roundness)
@@ -2581,9 +3001,7 @@ class RoundBoxAnnotator(BaseAnnotator):
 
 
 class PercentageBarAnnotator(BaseAnnotator):
-    """
-    A class for drawing percentage bars on an image using provided detections.
-    """
+    """A class for drawing percentage bars on an image using provided detections."""
 
     def __init__(
         self,
@@ -2610,7 +3028,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         self.height: int = height
         self.width: int = width
         self.color: Color | ColorPalette = _normalize_color_input(color)
-        self.border_color: Color = _normalize_color_input(border_color)
+        self.border_color = cast(Color, _normalize_color_input(border_color))
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
@@ -2628,8 +3046,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
         custom_values: npt.NDArray[np.float64] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with percentage bars based on the provided
+        """Annotates the given scene with percentage bars based on the provided
         detections. The percentage bars visually represent the confidence or custom
         values associated with each detection.
 
@@ -2691,13 +3108,12 @@ class PercentageBarAnnotator(BaseAnnotator):
                 assert detections.confidence is not None  # MyPy type hint
                 value = detections.confidence[detection_idx]
 
-            color = _resolve_detection_color(
+            color = _resolve_annotator_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=self.color_lookup,
+                custom_color_lookup=custom_color_lookup,
             )
             cv2.rectangle(
                 img=scene,
@@ -2722,6 +3138,7 @@ class PercentageBarAnnotator(BaseAnnotator):
     def calculate_border_coordinates(
         anchor_xy: tuple[int, int], border_wh: tuple[int, int], position: Position
     ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Compute the border corner coordinates for a given anchor position."""
         cx, cy = anchor_xy
         width, height = border_wh
 
@@ -2746,6 +3163,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             return (cx - width // 2, cy), (cx + width // 2, cy + height)
         elif position == Position.BOTTOM_RIGHT:
             return (cx, cy), (cx + width, cy + height)
+        raise ValueError(f"Unsupported position: {position}")
 
     @staticmethod
     def _validate_custom_values(
@@ -2788,9 +3206,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
 
 class CropAnnotator(BaseAnnotator):
-    """
-    A class for drawing scaled up crops of detections on the scene.
-    """
+    """A class for drawing scaled up crops of detections on the scene."""
 
     def __init__(
         self,
@@ -2826,12 +3242,10 @@ class CropAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the provided scene with scaled and cropped parts of the image based
+        """Annotates the provided scene with scaled and cropped parts of the image based
         on the provided detections. Each detection is cropped from the original scene
         and scaled according to the annotator's scale factor before being placed back
         onto the scene at the specified position.
-
 
         Args:
             scene: The image where cropped detection will be placed.
@@ -2843,6 +3257,12 @@ class CropAnnotator(BaseAnnotator):
 
         Returns:
             The annotated image.
+
+        Note:
+            Detections whose bounding boxes extend partially outside `scene` are
+            clipped to scene bounds before cropping. Detections fully outside the
+            scene collapse to zero area after clipping and are skipped without
+            raising an error.
 
         Examples:
             ```pycon
@@ -2866,29 +3286,35 @@ class CropAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        crops = [
-            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
-        ]
-        resized_crops = [
-            scale_image(image=crop, scale_factor=self.scale_factor) for crop in crops
-        ]
+        image_height, image_width = scene.shape[:2]
+        clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+            xyxy=detections.xyxy,
+            resolution_wh=(image_width, image_height),
+        ).astype(np.int32)
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
-        ).astype(int)
+        ).astype(np.int32)
+        # Snapshot before the loop so later crops are taken from the original image,
+        # not a scene already annotated by earlier iterations (overlapping-box case).
+        source_scene = scene.copy()
 
-        for idx, (resized_crop, anchor) in enumerate(zip(resized_crops, anchors)):
+        for idx, (xyxy, anchor) in enumerate(zip(clipped_xyxy, anchors)):
+            crop_x1, crop_y1, crop_x2, crop_y2 = xyxy
+            if crop_x2 <= crop_x1 or crop_y2 <= crop_y1:
+                continue
+            crop = crop_image(image=source_scene, xyxy=xyxy)
+            resized_crop = scale_image(image=crop, scale_factor=self.scale_factor)
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
             (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
                 anchor=anchor, crop_wh=crop_wh, position=self.position
             )
-            scene = overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
-            color = _resolve_detection_color(
+            scene = _overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
+            color = _resolve_annotator_color(
                 color=self.border_color,
                 detections=detections,
                 detection_idx=idx,
-                color_lookup=self.border_color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=self.border_color_lookup,
+                custom_color_lookup=custom_color_lookup,
             )
             cv2.rectangle(
                 img=scene,
@@ -2904,6 +3330,7 @@ class CropAnnotator(BaseAnnotator):
     def calculate_crop_coordinates(
         anchor: tuple[int, int], crop_wh: tuple[int, int], position: Position
     ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Compute the crop coordinates for a given anchor position."""
         anchor_x, anchor_y = anchor
         width, height = crop_wh
 
@@ -2940,21 +3367,22 @@ class CropAnnotator(BaseAnnotator):
             )
         elif position == Position.BOTTOM_RIGHT:
             return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
+        raise ValueError(f"Unsupported position: {position}")
 
 
 class BackgroundOverlayAnnotator(BaseAnnotator):
-    """
-    A class for drawing a colored overlay on the background of an image outside
-    the region of detections.
+    """A class for drawing a colored overlay on the background of an image outside the
+    region of detections.
 
-    If masks are provided, the background is colored outside the masks.
-    If masks are not provided, the background is colored outside the bounding boxes.
+    If masks are provided, the background is colored outside the masks. If masks are not
+    provided, the background is colored outside the bounding boxes.
 
     You can use the `force_box` parameter to force the annotator to use bounding boxes.
 
     !!! warning
 
-        This annotator uses `sv.Detections.mask`.
+    This annotator uses
+    :class:`~supervision.detection.core.Detections`.mask.
     """
 
     def __init__(
@@ -2968,7 +3396,8 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             color: The color to use for annotating detections.
             opacity: Opacity of the overlay mask. Must be between `0` and `1`.
             force_box: If `True`, forces the annotator to use bounding boxes when
-                masks are provided in the supplied sv.Detections.
+                masks are provided in the supplied
+                :class:`~supervision.detection.core.Detections`.
         """
         self.color: Color = color
         self.opacity = opacity
@@ -2976,8 +3405,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
-        """
-        Applies a colored overlay to the scene outside of the detected regions.
+        """Applies a colored overlay to the scene outside of the detected regions.
 
         Args:
             scene: The image where masks will be drawn.
@@ -3011,14 +3439,21 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
+        colored_mask = np.full_like(
+            scene, _color_for_canvas(self.color.as_bgr(), scene), dtype=np.uint8
+        )
 
         cv2.addWeighted(
             scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
         )
 
         if detections.mask is None or self.force_box:
-            for x1, y1, x2, y2 in detections.xyxy.astype(int):
+            image_height, image_width = scene.shape[:2]
+            clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+                xyxy=detections.xyxy,
+                resolution_wh=(image_width, image_height),
+            ).astype(np.int32)
+            for x1, y1, x2, y2 in clipped_xyxy:
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
@@ -3030,15 +3465,17 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
 
 
 class ComparisonAnnotator:
-    """
-    Highlights the differences between two sets of detections.
-    Useful for comparing results from two different models, or the difference
-    between a ground truth and a prediction.
+    """Highlights the differences between two sets of detections.
 
-    If present, uses the oriented bounding box data.
-    Otherwise, if present, uses a mask.
+    Useful for comparing results from two different models, or the difference between a
+    ground truth and a prediction.
+
+    If present, uses the oriented bounding box data. Otherwise, if present, uses a mask.
     Otherwise, uses the bounding box data.
     """
+
+    # Not a BaseAnnotator subclass — duck-typing callers can still check requires_mask
+    requires_mask: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -3065,7 +3502,6 @@ class ComparisonAnnotator:
             label_overlap: Label for areas present in both sets of detections.
             label_scale: Controls how large the labels are.
         """
-
         self.color_1 = color_1
         self.color_2 = color_2
         self.color_overlap = color_overlap
@@ -3081,13 +3517,14 @@ class ComparisonAnnotator:
     def annotate(
         self, scene: ImageType, detections_1: Detections, detections_2: Detections
     ) -> ImageType:
-        """
-        Highlights the differences between two sets of detections.
+        """Highlights the differences between two sets of detections.
 
         Args:
             scene: The image where detections will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`; regions are blended with the first (blue) channel
+                of their color, as OpenCV draws boxes and polygons.
             detections_1: The first set of detections or predictions.
             detections_2: The second set of detections to compare or
                 ground truth.
@@ -3096,19 +3533,25 @@ class ComparisonAnnotator:
             The annotated image.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections_1 = sv.Detections(
+            ...     xyxy=np.array([[10, 10, 50, 50]]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> detections_2 = sv.Detections(
+            ...     xyxy=np.array([[40, 40, 90, 90]]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> comparison_annotator = sv.ComparisonAnnotator()
+            >>> annotated_frame = comparison_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections_1=detections_1,
+            ...     detections_2=detections_2
+            ... )
 
-            image = ...
-            detections_1 = sv.Detections(...)
-            detections_2 = sv.Detections(...)
-
-            comparison_annotator = sv.ComparisonAnnotator()
-            annotated_frame = comparison_annotator.annotate(
-                scene=image.copy(),
-                detections_1=detections_1,
-                detections_2=detections_2
-            )
             ```
 
         ![comparison-annotator-example](https://media.roboflow.com/
@@ -3139,9 +3582,11 @@ class ComparisonAnnotator:
         mask_2 = mask_2 & ~mask_overlap
 
         color_layer = np.zeros_like(scene, dtype=np.uint8)
-        color_layer[mask_overlap] = self.color_overlap.as_bgr()
-        color_layer[mask_1] = self.color_1.as_bgr()
-        color_layer[mask_2] = self.color_2.as_bgr()
+        color_layer[mask_overlap] = _color_for_canvas(
+            self.color_overlap.as_bgr(), scene
+        )
+        color_layer[mask_1] = _color_for_canvas(self.color_1.as_bgr(), scene)
+        color_layer[mask_2] = _color_for_canvas(self.color_2.as_bgr(), scene)
 
         scene[mask_overlap] = (1 - self.opacity) * scene[
             mask_overlap
@@ -3214,18 +3659,29 @@ class ComparisonAnnotator:
     def _mask_from_mask(
         scene: npt.NDArray[np.uint8], detections: Detections
     ) -> npt.NDArray[np.bool_]:
-        mask = np.zeros(scene.shape[:2], dtype=np.bool_)
+        """Return the union of detection masks without materializing CompactMask."""
         if detections.is_empty():
-            return mask
+            return np.zeros(scene.shape[:2], dtype=np.bool_)
         assert detections.mask is not None
 
-        for detections_mask in detections.mask:
-            mask |= detections_mask.astype(np.bool_)
-        return mask
+        if isinstance(detections.mask, CompactMask):
+            mask = np.zeros(scene.shape[:2], dtype=np.bool_)
+            scene_height, scene_width = scene.shape[:2]
+            # Decode each CompactMask crop so this union never allocates (N, H, W).
+            for detection_idx, (x1, y1) in enumerate(detections.mask.offsets):
+                crop = detections.mask.crop(detection_idx)
+                crop_height, crop_width = crop.shape
+                x1_int, y1_int = int(x1), int(y1)
+                x2 = min(x1_int + crop_width, scene_width)
+                y2 = min(y1_int + crop_height, scene_height)
+                if x2 > x1_int and y2 > y1_int:
+                    mask[y1_int:y2, x1_int:x2] |= crop[: y2 - y1_int, : x2 - x1_int]
+            return mask
+
+        return cast(npt.NDArray[np.bool_], np.any(detections.mask, axis=0))
 
     def _draw_labels(self, scene: npt.NDArray[np.uint8]) -> None:
-        """
-        Draw the labels, explaining what each color represents, with automatically
+        """Draw the labels, explaining what each color represents, with automatically
         computed positions.
 
         Args:

@@ -1,9 +1,14 @@
 from supervision.metrics.core import (
     AveragingMethod,
     Metric,
+    MetricResult,
     MetricTarget,
 )
 from supervision.metrics.f1_score import F1Score, F1ScoreResult
+from supervision.metrics.keypoint_mean_average_precision import (
+    KeyPointMeanAveragePrecision,
+    KeyPointMeanAveragePrecisionResult,
+)
 from supervision.metrics.mean_average_precision import (
     MeanAveragePrecision,
     MeanAveragePrecisionResult,
@@ -14,6 +19,10 @@ from supervision.metrics.mean_average_recall import (
 )
 from supervision.metrics.precision import Precision, PrecisionResult
 from supervision.metrics.recall import Recall, RecallResult
+from supervision.metrics.utils.aggregate import (
+    aggregate_metric_results,
+    plot_aggregate_metric_results,
+)
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -24,17 +33,22 @@ __all__ = [
     "AveragingMethod",
     "F1Score",
     "F1ScoreResult",
+    "KeyPointMeanAveragePrecision",
+    "KeyPointMeanAveragePrecisionResult",
     "MeanAveragePrecision",
     "MeanAveragePrecisionResult",
     "MeanAverageRecall",
     "MeanAverageRecallResult",
     "Metric",
+    "MetricResult",
     "MetricTarget",
     "ObjectSizeCategory",
     "Precision",
     "PrecisionResult",
     "Recall",
     "RecallResult",
+    "aggregate_metric_results",
     "get_detection_size_category",
     "get_object_size_category",
+    "plot_aggregate_metric_results",
 ]

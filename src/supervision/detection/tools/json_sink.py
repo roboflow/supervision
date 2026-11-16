@@ -3,17 +3,25 @@ from __future__ import annotations
 import io
 import json
 import os
+from copy import deepcopy
+from types import TracebackType
 from typing import Any
 
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
+
+_RESERVED_FIELDS = frozenset(
+    ("x_min", "y_min", "x_max", "y_max", "class_id", "confidence", "tracker_id")
+)
 
 
 class JSONSink:
-    """
-    A utility class for saving detection data to a JSON file. This class is designed to
-    efficiently serialize detection objects into a JSON format, allowing for the
+    """A utility class for saving detection data to a JSON file. This class is designed
+    to efficiently serialize detection objects into a JSON format, allowing for the
     inclusion of bounding box coordinates and additional attributes like `confidence`,
     `class_id`, and `tracker_id`.
 
@@ -21,9 +29,10 @@ class JSONSink:
 
         JSONSink allows passing custom data alongside detection fields, providing
         flexibility for logging various types of information.
-        When a list or tuple value in custom_data (or detections.data) has the
-        same length as the detection count, each element is written to the
-        corresponding detection row; any other value is broadcast to all rows.
+        When a NumPy array, list, or tuple value in custom_data (or
+        detections.data) has the same length as the detection count, each
+        element is written to the corresponding detection row; any other value
+        is broadcast to all rows.
         NumPy scalars (e.g. ``np.int64``, ``np.float32``) are serialized as
         JSON numbers; NumPy arrays are serialized as JSON arrays.
 
@@ -34,23 +43,21 @@ class JSONSink:
     Example:
         ```python
         import supervision as sv
-        from ultralytics import YOLO
+        from rfdetr import RFDETRMedium
 
-        model = YOLO("<SOURCE_MODEL_PATH>")
-        json_sink = sv.JSONSink(<RESULT_JSON_FILE_PATH>)
+        model = RFDETRMedium()
+        json_sink = sv.JSONSink("<RESULT_JSON_FILE_PATH>")
         frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
         with json_sink as sink:
             for frame in frames_generator:
-                result = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(result)
+                detections = model.predict(frame[:, :, ::-1])
                 sink.append(detections, custom_data={"<CUSTOM_LABEL>":"<CUSTOM_DATA>"})
         ```
     """
 
     def __init__(self, file_name: str = "output.json") -> None:
-        """
-        Initialize the JSONSink instance.
+        """Initialize the JSONSink instance.
 
         Args:
             file_name: The name of the JSON file.
@@ -65,21 +72,26 @@ class JSONSink:
 
     def __exit__(
         self,
-        exc_type: type | None,
-        exc_val: Exception | None,
-        exc_tb: Any | None,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
-        self.write_and_close()
+        """Close the JSON sink while preserving an exception from the managed block."""
+        try:
+            self.write_and_close()
+        except Exception:
+            if exc_val is None:
+                raise
+            logger.exception("Failed to close JSON sink while handling an error.")
 
     def open(self) -> None:
-        """
-        Open the JSON file for writing.
-        """
+        """Open the JSON file for writing."""
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
             os.makedirs(parent_directory)
 
         self.file = open(self.file_name, "w")
+        self.data = []
 
     @staticmethod
     def _json_default(value: Any) -> Any:
@@ -107,25 +119,25 @@ class JSONSink:
         )
 
     def write_and_close(self) -> None:
+        """Write and close the JSON file.
+
+        Does nothing once the file is closed, so calling it inside a `with` block does
+        not make the block's exit fail on the closed file.
         """
-        Write and close the JSON file.
-        """
-        if self.file:
-            try:
-                json.dump(
-                    self.data, self.file, indent=4, default=JSONSink._json_default
-                )
-            finally:
-                self.file.close()
+        if self.file is None or self.file.closed:
+            return
+        try:
+            json.dump(self.data, self.file, indent=4, default=JSONSink._json_default)
+        finally:
+            self.file.close()
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
-        """
-        Return the i-th element when the value stores per-detection data.
+        """Return the i-th element when the value stores per-detection data.
 
         Dispatch rules:
             - np.ndarray with ndim == 0: return as-is for broadcasting
-            - np.ndarray with ndim >= 1: return value[i]
+            - np.ndarray with len equal to n: return value[i]
             - list or tuple with len equal to n: return value[i]
             - any other type: return as-is for broadcasting
 
@@ -139,7 +151,7 @@ class JSONSink:
             otherwise value unchanged.
         """
         if isinstance(value, np.ndarray):
-            return value if value.ndim == 0 else value[i]
+            return value[i] if value.ndim > 0 and len(value) == n else value
         if isinstance(value, (list, tuple)) and len(value) == n:
             return value[i]
         return value
@@ -148,14 +160,13 @@ class JSONSink:
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """
-        Convert detections and optional custom data into per-detection rows.
+        """Convert detections and optional custom data into per-detection rows.
 
         Builds one dictionary per detection containing bounding box coordinates,
         detection attributes, and any values from ``detections.data`` or
-        ``custom_data``. List and tuple values in ``custom_data`` with length
-        equal to ``len(detections.xyxy)`` are sliced one element per row; all
-        other values are broadcast to every row.
+        ``custom_data``. NumPy array, list, and tuple values in
+        ``custom_data`` with length equal to ``len(detections.xyxy)`` are
+        sliced one element per row; all other values are broadcast to every row.
 
         Args:
             detections: Detection data to serialize into row dictionaries.
@@ -165,7 +176,18 @@ class JSONSink:
             A list of dictionaries, one per detection, containing ``xyxy``
             coordinates, ``class_id``, ``confidence``, ``tracker_id``, and any
             values from ``detections.data`` or ``custom_data``.
+
+        Raises:
+            ValueError: If additional data uses a built-in detection field name.
         """
+        extra_fields = set(detections.data)
+        if custom_data is not None:
+            extra_fields.update(custom_data)
+        conflicts = extra_fields.intersection(_RESERVED_FIELDS)
+        if conflicts:
+            names = ", ".join(sorted(conflicts))
+            raise ValueError(f"Additional data uses reserved JSON field names {names}.")
+
         parsed_rows = []
         n = len(detections.xyxy)
         for i in range(n):
@@ -187,12 +209,11 @@ class JSONSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    row[key] = str(JSONSink._slice_value(value, i, n))
+                    row[key] = JSONSink._slice_value(value, i, n)
 
             if custom_data:
                 for key, value in custom_data.items():
-                    v = JSONSink._slice_value(value, i, n)
-                    row[key] = str(v) if isinstance(value, np.ndarray) else v
+                    row[key] = JSONSink._slice_value(value, i, n)
 
             parsed_rows.append(row)
         return parsed_rows
@@ -200,8 +221,11 @@ class JSONSink:
     def append(
         self, detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> None:
-        """
-        Append detection data to the JSON file.
+        """Append detection data to the JSON file.
+
+        The appended rows are deep-copied so later changes to arrays or nested
+        containers in ``detections.data`` or ``custom_data`` do not change the
+        saved values. JSON serialization still happens when the sink is closed.
 
         Args:
             detections: The detection data.
@@ -210,6 +234,11 @@ class JSONSink:
                 this batch. NumPy arrays, lists, and tuples with length equal
                 to ``len(detections)`` are sliced per detection; other lists
                 and tuples are broadcast unchanged.
+
+        Raises:
+            ValueError: If additional data uses a built-in detection field name.
+                The batch is rejected before any buffered rows are changed,
+                including when the batch contains no detections.
         """
         parsed_rows = JSONSink.parse_detection_data(detections, custom_data)
-        self.data.extend(parsed_rows)
+        self.data.extend(deepcopy(parsed_rows))

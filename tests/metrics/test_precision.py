@@ -8,7 +8,8 @@ from supervision.metrics.precision import Precision
 
 class TestPrecision:
     @pytest.fixture
-    def predictions_multiple_classes(self):
+    def predictions_multiple_classes(self) -> Detections:
+        """Predictions spanning two classes for per-class averaging tests."""
         return Detections(
             xyxy=np.array(
                 [
@@ -23,7 +24,8 @@ class TestPrecision:
         )
 
     @pytest.fixture
-    def targets_multiple_classes(self):
+    def targets_multiple_classes(self) -> Detections:
+        """Targets spanning two classes for per-class averaging tests."""
         return Detections(
             xyxy=np.array(
                 [
@@ -36,16 +38,16 @@ class TestPrecision:
             class_id=np.array([0, 0, 1]),
         )
 
-    def test_initialization_default(self):
-        """Test that Precision can be initialized with default parameters"""
+    def test_initialization_default(self) -> None:
+        """Test that Precision can be initialized with default parameters."""
         metric = Precision()
         assert metric._metric_target == MetricTarget.BOXES
         assert metric.averaging_method == AveragingMethod.WEIGHTED
         assert metric._predictions_list == []
         assert metric._targets_list == []
 
-    def test_initialization_custom(self):
-        """Test that Precision can be initialized with custom parameters"""
+    def test_initialization_custom(self) -> None:
+        """Test that Precision can be initialized with custom parameters."""
         metric = Precision(
             metric_target=MetricTarget.MASKS,
             averaging_method=AveragingMethod.MACRO,
@@ -53,8 +55,8 @@ class TestPrecision:
         assert metric._metric_target == MetricTarget.MASKS
         assert metric.averaging_method == AveragingMethod.MACRO
 
-    def test_reset(self, dummy_prediction):
-        """Test that reset() clears all stored data"""
+    def test_reset(self, dummy_prediction: Detections) -> None:
+        """Test that reset() clears all stored data."""
         metric = Precision()
 
         # Add some dummy data
@@ -69,8 +71,10 @@ class TestPrecision:
         assert metric._predictions_list == []
         assert metric._targets_list == []
 
-    def test_perfect_match(self, detections_50_50, targets_50_50):
-        """Test precision with perfect matching predictions and targets"""
+    def test_perfect_match(
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
+        """Test precision with perfect matching predictions and targets."""
         metric = Precision()
         result = metric.update(detections_50_50, targets_50_50).compute()
 
@@ -82,8 +86,10 @@ class TestPrecision:
         assert len(result.matched_classes) == 1
         assert result.matched_classes[0] == 0
 
-    def test_no_overlap(self, predictions_no_overlap, targets_no_overlap):
-        """Test precision with predictions that don't overlap with targets"""
+    def test_no_overlap(
+        self, predictions_no_overlap: Detections, targets_no_overlap: Detections
+    ) -> None:
+        """Test precision with predictions that don't overlap with targets."""
         metric = Precision()
         result = metric.update(predictions_no_overlap, targets_no_overlap).compute()
 
@@ -92,8 +98,8 @@ class TestPrecision:
         assert result.precision_at_50 == 0.0
         assert result.precision_at_75 == 0.0
 
-    def test_empty_predictions(self, targets_50_50):
-        """Test precision with empty predictions but existing targets"""
+    def test_empty_predictions(self, targets_50_50: Detections) -> None:
+        """Test precision with empty predictions but existing targets."""
         predictions = Detections.empty()
 
         metric = Precision()
@@ -103,8 +109,8 @@ class TestPrecision:
         assert result.precision_at_50 == 0.0
         assert result.precision_at_75 == 0.0
 
-    def test_empty_targets(self, detections_50_50):
-        """Test precision with predictions but no targets"""
+    def test_empty_targets(self, detections_50_50: Detections) -> None:
+        """Test precision with predictions but no targets."""
         targets = Detections.empty()
 
         metric = Precision()
@@ -115,7 +121,24 @@ class TestPrecision:
         assert result.precision_at_50 == 0.0
         assert result.precision_at_75 == 0.0
 
-    def test_false_positives_on_background_image_counted(self):
+    def test_medium_bucket_scores_target_matched_small_prediction(self) -> None:
+        """Medium-object precision keeps a small matched prediction in the score."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        result = Precision().update(predictions, targets).compute()
+
+        assert result.medium_objects is not None
+        assert result.medium_objects.precision_at_50 == 1.0
+
+    def test_false_positives_on_background_image_counted(self) -> None:
         """Predictions on an image with no targets must count as false positives."""
         predictions_with_gt = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
@@ -158,9 +181,11 @@ class TestPrecision:
             ),
         ],
     )
-    def test_false_positives_of_absent_class_counted(self, method, expected):
-        """Predictions of absent class count as FPs under MICRO/MACRO; WEIGHTED
-        excludes them by design (GT support=0 → weight=0, consistent with sklearn)."""
+    def test_false_positives_of_absent_class_counted(
+        self, method: AveragingMethod, expected: float
+    ) -> None:
+        """Predictions of absent class count as FPs under MICRO/MACRO; WEIGHTED excludes
+        them by design (GT support=0 → weight=0, consistent with sklearn)."""
         predictions = Detections(
             xyxy=np.array(
                 [[0, 0, 10, 10], [100, 0, 110, 10], [120, 0, 130, 10]], np.float32
@@ -181,7 +206,7 @@ class TestPrecision:
         # WEIGHTED: class_1 weight=0 -> only class 0 contributes -> 1.0
         assert result.precision_at_50 == pytest.approx(expected)
 
-    def test_false_positives_on_background_image_weighted_returns_zero(self):
+    def test_false_positives_on_background_image_weighted_returns_zero(self) -> None:
         """WEIGHTED precision is 0.0 when all images are background (no GT anywhere)."""
         background_predictions = Detections(
             xyxy=np.array([[20, 0, 25, 5], [40, 0, 45, 5]], np.float32),
@@ -195,8 +220,10 @@ class TestPrecision:
         # No GT support anywhere -> class_counts.sum() == 0 -> returns 0.0
         assert result.precision_at_50 == 0.0
 
-    def test_single_class(self, predictions_confidence_ranking, targets_50_50):
-        """Test precision calculation for single class with mixed results"""
+    def test_single_class(
+        self, predictions_confidence_ranking: Detections, targets_50_50: Detections
+    ) -> None:
+        """Test precision calculation for single class with mixed results."""
         metric = Precision()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
 
@@ -206,9 +233,11 @@ class TestPrecision:
         assert result.precision_at_75 == 0.5
 
     def test_multiple_classes(
-        self, predictions_multiple_classes, targets_multiple_classes
-    ):
-        """Test precision calculation for multiple classes"""
+        self,
+        predictions_multiple_classes: Detections,
+        targets_multiple_classes: Detections,
+    ) -> None:
+        """Test precision calculation for multiple classes."""
         metric = Precision()
         result = metric.update(
             predictions_multiple_classes, targets_multiple_classes
@@ -224,8 +253,10 @@ class TestPrecision:
         assert 0 in result.matched_classes
         assert 1 in result.matched_classes
 
-    def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064):
-        """Test precision at different IoU thresholds"""
+    def test_different_iou_thresholds(
+        self, predictions_iou_064: Detections, targets_iou_064: Detections
+    ) -> None:
+        """Test precision at different IoU thresholds."""
         metric = Precision()
         result = metric.update(predictions_iou_064, targets_iou_064).compute()
 
@@ -234,8 +265,10 @@ class TestPrecision:
         assert result.precision_at_50 == 1.0  # TP=1, FP=0
         assert result.precision_at_75 == 0.0  # TP=0, FP=1
 
-    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
-        """Test that predictions are ranked by confidence"""
+    def test_confidence_ranking(
+        self, predictions_confidence_ranking: Detections, targets_50_50: Detections
+    ) -> None:
+        """Test that predictions are ranked by confidence."""
         metric = Precision()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
 
@@ -244,9 +277,13 @@ class TestPrecision:
         assert result.precision_at_50 == 0.5
 
     def test_list_inputs(
-        self, detections_50_50, targets_50_50, prediction_class_1, target_class_1
-    ):
-        """Test precision with list inputs"""
+        self,
+        detections_50_50: Detections,
+        targets_50_50: Detections,
+        prediction_class_1: Detections,
+        target_class_1: Detections,
+    ) -> None:
+        """Test precision with list inputs."""
         metric = Precision()
         result = metric.update(
             [detections_50_50, prediction_class_1], [targets_50_50, target_class_1]
@@ -256,8 +293,10 @@ class TestPrecision:
         assert result.precision_at_50 == 1.0
         assert result.precision_at_75 == 1.0
 
-    def test_mismatched_list_lengths(self, detections_50_50, targets_50_50):
-        """Test that mismatched prediction/target list lengths raise error"""
+    def test_mismatched_list_lengths(
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
+        """Test that mismatched prediction/target list lengths raise error."""
         metric = Precision()
 
         # Should raise ValueError for mismatched lengths
@@ -265,14 +304,78 @@ class TestPrecision:
             metric.update([detections_50_50], [targets_50_50, targets_50_50])
 
     @pytest.mark.parametrize(
+        "missing_attribute",
+        ["predictions_class_id", "targets_class_id", "predictions_confidence"],
+    )
+    def test_compute_value_error_for_missing_required_fields(
+        self, missing_attribute: str
+    ) -> None:
+        """Test compute raises ValueError when required fields are missing."""
+        metric = Precision()
+        boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
+        class_id = np.array([0], dtype=np.int32)
+        confidence = np.array([0.9], dtype=np.float32)
+
+        predictions = Detections(
+            xyxy=boxes,
+            confidence=confidence,
+            class_id=class_id,
+        )
+        targets = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+        )
+
+        if missing_attribute == "predictions_class_id":
+            predictions = Detections(
+                xyxy=boxes,
+                confidence=confidence,
+            )
+        elif missing_attribute == "targets_class_id":
+            targets = Detections(xyxy=boxes)
+        else:
+            predictions = Detections(
+                xyxy=boxes,
+                class_id=class_id,
+            )
+
+        with pytest.raises(ValueError, match="Precision metric requires"):
+            metric.update(predictions, targets).compute()
+
+    @pytest.mark.parametrize(
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
-    def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50):
-        """Test different averaging methods"""
+    def test_averaging_methods(
+        self,
+        averaging_method: AveragingMethod,
+        detections_50_50: Detections,
+        targets_50_50: Detections,
+    ) -> None:
+        """Test different averaging methods."""
         metric = Precision(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()
 
         # Perfect match should give 1.0 regardless of averaging method
         assert result.precision_at_50 == 1.0
         assert result.averaging_method == averaging_method
+
+    def test_greedy_matching_two_valid_pairs(self) -> None:
+        """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+        IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+        assignment is T0<->P0 and T1<->P1 (2 TPs, precision=1.0).
+        """
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = Precision().update(preds, targets).compute()
+
+        assert result.precision_at_50 == 1.0

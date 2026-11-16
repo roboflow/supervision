@@ -4,20 +4,38 @@ import copy
 import datetime
 import itertools
 from collections import defaultdict
+from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 
+from supervision.config import (
+    AREA_DATA_FIELD,
+    ISCROWD_DATA_FIELD,
+    ORIENTED_BOX_COORDINATES,
+)
 from supervision.detection.core import Detections
-from supervision.detection.utils.iou_and_nms import box_iou_batch_with_jaccard
+from supervision.detection.utils.iou_and_nms import (
+    _oriented_box_pair_intersections,
+    _polygon_areas,
+    box_iou_batch_with_jaccard,
+    oriented_box_iou_batch,
+)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricTarget
-from supervision.metrics.utils.utils import ensure_pandas_installed
+from supervision.metrics.core import (
+    Metric,
+    MetricResult,
+    MetricTarget,
+    PlotDetails,
+    _append_object_size_plot_details,
+    _mean_valid_score,
+    _scores_to_pandas,
+    _show_bar_plot,
+)
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -26,18 +44,61 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-@dataclass
-class MeanAveragePrecisionResult:
-    """
-    The result of the Mean Average Precision calculation.
+class _TypeCocoDict(TypedDict, total=False):
+    id: int
+    image_id: int
+    category_id: int
+    bbox: list[float]
+    area: float
+    iscrowd: int
+    ignore: int
+    _ignore: int
+    score: float
+    segmentation: list[list[float]]
+    name: str
+    supercategory: str
+    caption: str
+    keypoints: list[float]
+    # Evaluator-specific content, read only by the owning evaluator's
+    # `_compute_iou`. Invariant, per evaluator: shape and dtype are what that
+    # evaluator's `_compute_iou` expects. For `COCOEvaluator` it is a boolean
+    # mask of shape (H, W) for `MetricTarget.MASKS`, an oriented box of shape
+    # (4, 2) for `MetricTarget.ORIENTED_BOUNDING_BOXES`, and absent for
+    # `MetricTarget.BOXES`; for the keypoint evaluator it is `(K, 3)` rows of
+    # `(x, y, visible)`.
+    content: npt.NDArray[Any]
 
-    Defaults to `0` when no detections or targets are present.
+
+_TypeCocoDataset: TypeAlias = dict[str, list[_TypeCocoDict]]
+
+
+class _TypeEvaluationImageResult(TypedDict):
+    image_id: int
+    category_id: int
+    area_range: list[float] | tuple[float, float]
+    max_det: int
+    dt_ids: list[int]
+    gt_ids: list[int]
+    dtMatches: npt.NDArray[np.int64]
+    gtMatches: npt.NDArray[np.int64]
+    dtScores: list[float]
+    gtIgnore: npt.NDArray[np.int64]
+    dtIgnore: npt.NDArray[np.bool_]
+
+
+@dataclass
+class MeanAveragePrecisionResult(MetricResult):
+    """The result of the Mean Average Precision calculation.
+
+    Returns `-1` sentinel scores when no detections or targets are present.
 
     Attributes:
         metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        is_class_agnostic: When computing class-agnostic results, class ID
-            is set to `-1`.
+        is_class_agnostic: When computing class-agnostic results, the class ID of
+            every labeled detection is set to `-1`. Detections without class IDs
+            join that class when any input has class IDs, and otherwise keep the
+            default class `0`.
         mAP_scores: the mAP scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         ap_per_class: the average precision scores per
@@ -46,11 +107,15 @@ class MeanAveragePrecisionResult:
         matched_classes: the class IDs of all matched classes.
             Corresponds to the rows of `ap_per_class`.
         small_objects: the mAP results
-            for small objects (area < 32²).
+            for small objects (area ≤ 32²).
         medium_objects: the mAP results
-            for medium objects (32² ≤ area < 96²).
+            for medium objects (32² ≤ area ≤ 96²).
         large_objects: the mAP results
-            for large objects (area ≥ 96²).
+            for large objects (area ≥ 96²). Like `pycocotools`, the size limits
+            are inclusive, so an object whose area is exactly 32² or 96² counts
+            in both neighboring buckets.
+        max_detection_thresholds: The three evaluation limits. AP uses the last
+            limit, per image and category after any class mapping.
     """
 
     metric_target: MetricTarget
@@ -58,21 +123,17 @@ class MeanAveragePrecisionResult:
 
     @property
     def map50_95(self) -> float:
-        """the mAP score at IoU thresholds from `0.5` to `0.95`."""
-        valid_scores = self.mAP_scores[self.mAP_scores > -1]
-        if len(valid_scores) > 0:
-            return float(valid_scores.mean())
-        else:
-            return -1
+        """The mAP score at IoU thresholds from `0.5` to `0.95`."""
+        return _mean_valid_score(self.mAP_scores)
 
     @property
     def map50(self) -> float:
-        """the mAP score at IoU threshold of `0.5`."""
+        """The mAP score at IoU threshold of `0.5`."""
         return float(self.mAP_scores[0])
 
     @property
     def map75(self) -> float:
-        """the mAP score at IoU threshold of `0.75`."""
+        """The mAP score at IoU threshold of `0.75`."""
         return float(self.mAP_scores[5])
 
     mAP_scores: npt.NDArray[np.float64]
@@ -82,10 +143,11 @@ class MeanAveragePrecisionResult:
     small_objects: MeanAveragePrecisionResult | None = None
     medium_objects: MeanAveragePrecisionResult | None = None
     large_objects: MeanAveragePrecisionResult | None = None
+    max_detection_thresholds: tuple[int, ...] = (1, 10, 100)
 
     def __str__(self) -> str:
-        """
-        Formats the evaluation output metrics to match the structure used by pycocotools
+        """Formats the evaluation output metrics to match the structure used by
+        pycocotools.
 
         Example:
            ```pycon
@@ -113,6 +175,7 @@ class MeanAveragePrecisionResult:
 
            ```
         """
+        max_dets = self.max_detection_thresholds[-1]
         if (
             self.small_objects is None
             or self.medium_objects is None
@@ -120,142 +183,101 @@ class MeanAveragePrecisionResult:
         ):
             return (
                 f"Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | "
-                f"maxDets=100 ] = {self.map50_95:.3f}\n"
+                f"maxDets={max_dets} ] = {self.map50_95:.3f}\n"
                 f"Average Precision (AP) @[ IoU=0.50      | area=   all | "
-                f"maxDets=100 ] = {self.map50:.3f}\n"
+                f"maxDets={max_dets} ] = {self.map50:.3f}\n"
                 f"Average Precision (AP) @[ IoU=0.75      | area=   all | "
-                f"maxDets=100 ] = {self.map75:.3f}"
+                f"maxDets={max_dets} ] = {self.map75:.3f}"
             )
 
         return (
             f"Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | "
-            f"maxDets=100 ] = {self.map50_95:.3f}\n"
+            f"maxDets={max_dets} ] = {self.map50_95:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.50      | area=   all | "
-            f"maxDets=100 ] = {self.map50:.3f}\n"
+            f"maxDets={max_dets} ] = {self.map50:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.75      | area=   all | "
-            f"maxDets=100 ] = {self.map75:.3f}\n"
+            f"maxDets={max_dets} ] = {self.map75:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.50:0.95 | area= small | "
-            f"maxDets=100 ] = {self.small_objects.map50_95:.3f}\n"
+            f"maxDets={max_dets} ] = {self.small_objects.map50_95:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | "
-            f"maxDets=100 ] = {self.medium_objects.map50_95:.3f}\n"
+            f"maxDets={max_dets} ] = {self.medium_objects.map50_95:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.50:0.95 | area= large | "
-            f"maxDets=100 ] = {self.large_objects.map50_95:.3f}"
+            f"maxDets={max_dets} ] = {self.large_objects.map50_95:.3f}"
         )
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
-            The result as a DataFrame.
+            The result as a DataFrame. Its `attrs["max_detection_thresholds"]`
+            records the limits without changing the score columns. DataFrame
+            attributes are not preserved by CSV export.
         """
-        ensure_pandas_installed()
-        import pandas as pd
-
-        pandas_data = {
-            "mAP@50:95": self.map50_95,
-            "mAP@50": self.map50,
-            "mAP@75": self.map75,
-        }
-
-        if self.small_objects is not None:
-            small_objects_df = self.small_objects.to_pandas()
-            for key, value in small_objects_df.items():
-                pandas_data[f"small_objects_{key}"] = value
-        if self.medium_objects is not None:
-            medium_objects_df = self.medium_objects.to_pandas()
-            for key, value in medium_objects_df.items():
-                pandas_data[f"medium_objects_{key}"] = value
-        if self.large_objects is not None:
-            large_objects_df = self.large_objects.to_pandas()
-            for key, value in large_objects_df.items():
-                pandas_data[f"large_objects_{key}"] = value
-
         # Average precisions are currently not included in the DataFrame.
-        return pd.DataFrame(
-            pandas_data,
-            index=[0],
+        dataframe = _scores_to_pandas(
+            {"mAP@50:95": self.map50_95, "mAP@50": self.map50, "mAP@75": self.map75},
+            [
+                ("small_objects", self.small_objects),
+                ("medium_objects", self.medium_objects),
+                ("large_objects", self.large_objects),
+            ],
         )
 
-    def plot(self) -> None:
-        """
-        Plot the mAP results.
+        dataframe.attrs["max_detection_thresholds"] = self.max_detection_thresholds
+        return dataframe
 
-        ![example_plot](
-            https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png
-        ){ align=center width="800" }
-        """
+    def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
+        """Return bar-chart data for mAP scores.
 
+        Args:
+            include_object_sizes: When ``True``, include bars for
+                small / medium / large object-size categories.
+        """
         labels = ["mAP@50:95", "mAP@50", "mAP@75"]
         values = [self.map50_95, self.map50, self.map75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 3
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["mAP@50:95", "mAP@50", "mAP@75"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [
+                result.map50_95,
+                result.map50,
+                result.map75,
+            ],
+        )
 
-        if self.small_objects is not None:
-            labels += ["Small: mAP@50:95", "Small: mAP@50", "Small: mAP@75"]
-            values += [
-                self.small_objects.map50_95,
-                self.small_objects.map50,
-                self.small_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 3
+        title = (
+            "Mean Average Precision\n"
+            f"(target: {self.metric_target.value}, "
+            f"class agnostic: {self.is_class_agnostic})"
+        )
+        if self.max_detection_thresholds[-1] != 100:
+            title += f"\nmaxDets={self.max_detection_thresholds[-1]}"
+        return PlotDetails(labels=labels, values=values, colors=colors, title=title)
 
-        if self.medium_objects is not None:
-            labels += ["Medium: mAP@50:95", "Medium: mAP@50", "Medium: mAP@75"]
-            values += [
-                self.medium_objects.map50_95,
-                self.medium_objects.map50,
-                self.medium_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 3
+    def plot(self) -> None:
+        """Plot the mAP results.
 
-        if self.large_objects is not None:
-            labels += ["Large: mAP@50:95", "Large: mAP@50", "Large: mAP@75"]
-            values += [
-                self.large_objects.map50_95,
-                self.large_objects.map50,
-                self.large_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 3
-
-        plt.rcParams["font.family"] = "monospace"
-
-        _, ax = plt.subplots(figsize=(10, 6))
-        ax.set_ylim(0, 1)
-        ax.set_ylabel("Value", fontweight="bold")
-        ax.set_title("Mean Average Precision", fontweight="bold")
-
-        x_positions = range(len(labels))
-        bars = ax.bar(x_positions, values, color=colors, align="center")
-
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels(labels, rotation=45, ha="right")
-
-        for bar in bars:
-            y_value = bar.get_height()
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                y_value + 0.02,
-                f"{y_value:.2f}",
-                ha="center",
-                va="bottom",
-            )
-
-        plt.rcParams["font.family"] = "sans-serif"
-
-        plt.tight_layout()
-        plt.show()
+        ![example_plot](
+        https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png
+        ){ align=center width="800" }
+        """
+        _show_bar_plot(self._get_plot_details())
 
 
 class EvaluationDataset:
-    """
-    Class used representing a dataset in the right format needed by the
-    `COCOEvaluator` class.
-    """
+    """Class used representing a dataset in the right format needed by the
+    :class:`~supervision.metrics.mean_average_precision.COCOEvaluator` class."""
 
-    def __init__(self, targets: dict[str, Any] | None = None):
-        """
-        Constructor of EvaluationDataset object used to evaluate models with
-        Mean Average Precision.
+    def __init__(self, targets: _TypeCocoDataset | None = None) -> None:
+        """Constructor of EvaluationDataset object used to evaluate models with Mean
+        Average Precision.
 
         Args:
             targets: The targets (ground truth) of the dataset in a the
@@ -263,11 +285,11 @@ class EvaluationDataset:
         """
         # Initialize members
         # Initialize members
-        self.dataset: dict[str, Any] = dict()
-        self.anns: dict[int, Any] = dict()
-        self.cats: dict[int, Any] = dict()
-        self.imgs: dict[int, Any] = dict()
-        self.img_to_anns: dict[int, list[Any]] = defaultdict(list)
+        self.dataset: _TypeCocoDataset = {}
+        self.anns: dict[int, _TypeCocoDict] = {}
+        self.cats: dict[int, _TypeCocoDict] = {}
+        self.imgs: dict[int, _TypeCocoDict] = {}
+        self.img_to_anns: dict[int, list[_TypeCocoDict]] = defaultdict(list)
         self.cat_to_imgs: dict[int, list[int]] = defaultdict(list)
 
         if targets is None:
@@ -282,11 +304,12 @@ class EvaluationDataset:
         return cls(targets=None)
 
     def create_class_members(self) -> None:
-        """
-        Create index elements for the dataset.
-        """
-        anns, cats, imgs = {}, {}, {}
-        img_to_anns, cat_to_imgs = defaultdict(list), defaultdict(list)
+        """Create index elements for the dataset."""
+        anns: dict[int, _TypeCocoDict] = {}
+        cats: dict[int, _TypeCocoDict] = {}
+        imgs: dict[int, _TypeCocoDict] = {}
+        img_to_anns: dict[int, list[_TypeCocoDict]] = defaultdict(list)
+        cat_to_imgs: dict[int, list[int]] = defaultdict(list)
         if "annotations" in self.dataset:
             for ann in self.dataset["annotations"]:
                 img_to_anns[ann["image_id"]].append(ann)
@@ -318,8 +341,7 @@ class EvaluationDataset:
         area_range: tuple[float, float] | None = None,
         iscrowd: bool = False,
     ) -> list[int]:
-        """
-        Get annotation ids that satisfy given filter conditions.
+        """Get annotation ids that satisfy given filter conditions.
 
         Args:
             img_ids: ids of the images that we want to retrieve.
@@ -371,8 +393,7 @@ class EvaluationDataset:
         supercategory_names: list[str] | None = None,
         cat_ids: list[int] | None = None,
     ) -> list[int]:
-        """
-        Get category ids that satisfy given filter conditions.
+        """Get category ids that satisfy given filter conditions.
 
         Args:
             cat_names: names of the categories to retrieve.
@@ -416,8 +437,7 @@ class EvaluationDataset:
         img_ids: list[int] | None = None,
         cat_ids: list[int] | None = None,
     ) -> list[int]:
-        """
-        Get image ids that satisfy given filter conditions.
+        """Get image ids that satisfy given filter conditions.
 
         Args:
             img_ids: ids of the images to retrieve.
@@ -442,9 +462,8 @@ class EvaluationDataset:
 
         return list(ids_set)
 
-    def get_annotations(self, ids: list[int] | None = None) -> list[dict[str, Any]]:
-        """
-        Get annotations with the specified ids.
+    def get_annotations(self, ids: list[int] | None = None) -> list[_TypeCocoDict]:
+        """Get annotations with the specified ids.
 
         Args:
             ids: integer ids specifying annotations.
@@ -456,9 +475,8 @@ class EvaluationDataset:
             return []
         return [self.anns[idx] for idx in ids]
 
-    def load_predictions(self, predictions: list[dict[str, Any]]) -> EvaluationDataset:
-        """
-        Load prediction result into an EvaluationDataset object.
+    def load_predictions(self, predictions: list[_TypeCocoDict]) -> EvaluationDataset:
+        """Load prediction result into an EvaluationDataset object.
 
         Args:
             predictions: prediction result.
@@ -468,7 +486,7 @@ class EvaluationDataset:
         """
         # Create an empty EvaluationDataset object for the predictions
         predictions_dataset = EvaluationDataset.empty()
-        predictions_dataset.dataset["images"] = [img for img in self.dataset["images"]]
+        predictions_dataset.dataset["images"] = list(self.dataset["images"])
 
         if not isinstance(predictions, list):
             raise ValueError("results must be a list")
@@ -480,10 +498,11 @@ class EvaluationDataset:
 
         ids = [pred["image_id"] for pred in predictions]
 
-        # Make sure the image ids from predictions exist in the current dataset
-        assert set(ids) == (set(ids) & set(self.get_image_ids())), (
-            "Results do not correspond to current coco set"
-        )
+        # Make sure the image ids from predictions exist in the current dataset.
+        # A plain ``assert`` would be stripped under ``python -O``, so validate
+        # this public-input contract with an explicit exception instead.
+        if not set(ids) <= set(self.get_image_ids()):
+            raise ValueError("Results do not correspond to current coco set")
 
         # Check if the predictions contain any unsupported keys
         if "caption" in predictions[0]:
@@ -528,14 +547,193 @@ SMALL_OBJECT_AREA = 32**2
 MEDIUM_OBJECT_AREA = 96**2
 MAX_ALL_OBJECT_AREA = 1e5**2
 
-# Smallest number to avoid division by zero
-EPS = np.finfo(np.float32).eps
+# Avoids division by zero in precision. np.spacing(1), as in pycocotools, removes
+# the float32-epsilon-sized bias, so a perfect precision stored as float32 is 1.0
+EPS = np.spacing(1)
+
+# Match the 5 GiB dense-mask working-memory convention in `mask_iou_batch`.
+_MASK_IOU_GT_BUFFER_BYTES = 1024 * 5 * 1024 * 1024
+
+
+def _agnostic_class_ids(length: int) -> npt.NDArray[np.int_]:
+    """Build the class IDs that class-agnostic evaluation gives every detection.
+
+    Args:
+        length: Number of detections to label.
+
+    Returns:
+        A signed integer array filled with `-1`. The dtype is fixed so that unsigned
+        class ID dtypes on caller data can neither overflow nor wrap around.
+    """
+    return np.full(length, -1, dtype=int)
+
+
+def _with_agnostic_class_id(detections: Detections) -> Detections:
+    """Return detections that carry the class-agnostic class ID.
+
+    Args:
+        detections: Stored detections of a metric.
+
+    Returns:
+        `detections` itself when it already has class IDs, otherwise a shallow copy
+        labeled with the class-agnostic class ID. The input is never modified, so
+        repeated calls to
+        :meth:`~supervision.metrics.mean_average_precision.MeanAveragePrecision.compute`
+        leave stored state untouched.
+    """
+    if detections.class_id is not None:
+        return detections
+    labeled = copy.copy(detections)
+    labeled.class_id = _agnostic_class_ids(len(detections))
+    return labeled
+
+
+def _oriented_box_iou_with_jaccard(
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    is_crowd: list[bool],
+) -> npt.NDArray[np.float64]:
+    """Calculate the IoU between detection oriented boxes (dt) and ground-truth oriented
+    boxes (gt), following the COCO convention: a detection may match any subregion of a
+    crowd ground truth, so for crowd rows the union collapses to the detection area
+    (oriented box counterpart of
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch_with_jaccard`).
+
+    Args:
+        boxes_true: Ground-truth oriented boxes of shape `(N, 4, 2)`.
+        boxes_detection: Detection oriented boxes of shape `(M, 4, 2)`.
+        is_crowd: List indicating if each ground-truth box is a crowd region.
+
+    Returns:
+        Array of IoU values of shape `(len(boxes_detection), len(boxes_true))`.
+    """
+    if len(boxes_detection) == 0 or len(boxes_true) == 0:
+        return np.empty((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+
+    # oriented_box_iou_batch returns (gt, dt); the evaluator expects (dt, gt).
+    iou: npt.NDArray[np.float64] = oriented_box_iou_batch(
+        boxes_true, boxes_detection
+    ).T.astype(np.float64)
+    crowd = np.asarray(is_crowd, dtype=bool)
+    if not np.any(crowd):
+        return iou
+
+    crowd_true = boxes_true[crowd]
+    rows, cols, intersections = _oriented_box_pair_intersections(
+        crowd_true, boxes_detection
+    )
+    areas_detection = _polygon_areas(boxes_detection)
+    crowd_iou = np.zeros((len(boxes_detection), len(crowd_true)), dtype=np.float64)
+    # A fixed epsilon changes exact threshold matches and dominates tiny areas.
+    detection_areas = areas_detection[cols]
+    crowd_iou[cols, rows] = np.divide(
+        intersections,
+        detection_areas,
+        out=np.zeros_like(intersections),
+        where=detection_areas > 0,
+    )
+    # Intersections use float32-rounded polygons and can exceed the detection
+    # area by about 1e-7, so clip as oriented_box_iou_batch does.
+    iou[:, crowd] = np.clip(crowd_iou, 0.0, 1.0)
+    return iou
+
+
+def _mask_iou_with_jaccard(
+    masks_true: list[npt.NDArray[np.bool_]],
+    masks_detection: list[npt.NDArray[np.bool_]],
+    is_crowd: list[bool],
+) -> npt.NDArray[np.float64]:
+    """
+    Calculate the IoU between detection masks (dt) and ground-truth masks (gt),
+    following the COCO convention: a detection may match any subregion of a
+    crowd ground truth, so for crowd rows the union collapses to the detection
+    area (mask counterpart of
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch_with_jaccard`).
+
+    Args:
+        masks_true: List of ground-truth masks of shape `(H, W)`.
+        masks_detection: List of detection masks of shape `(H, W)`.
+        is_crowd: List indicating if each ground-truth mask is a crowd region.
+
+    Returns:
+        Array of IoU values of shape `(len(masks_detection), len(masks_true))`.
+
+    Raises:
+        ValueError: If the masks do not share the same spatial dimensions.
+    """
+    if len(masks_detection) == 0 or len(masks_true) == 0:
+        return np.empty((len(masks_detection), len(masks_true)), dtype=np.float64)
+
+    mask_shape = masks_true[0].shape
+    if any(
+        mask.shape != mask_shape
+        for mask in itertools.chain(masks_true[1:], masks_detection)
+    ):
+        raise ValueError(
+            "Ground-truth and detection masks must share the same spatial "
+            f"dimensions; got {mask_shape} and a different shape."
+        )
+
+    crowd = np.asarray(is_crowd, dtype=bool)
+
+    # pycocotools divides the pixel counts in float64 and compares the IoUs with
+    # float64 thresholds. `mask_iou_batch` divides float32 counts, which rounds an
+    # exact IoU such as 65/100 just below the 0.65 threshold, so count the pixels
+    # here and divide in float64. float32 counts pixels exactly up to 2**24.
+    pixels = int(np.prod(mask_shape))
+    count_dtype = np.float32 if pixels <= 2**24 else np.float64
+
+    # Predictions are capped at max_dets by the evaluator. Ground truths are not,
+    # so only materialize GT chunks whose mask and pairwise buffers fit the budget.
+    dt_flat = np.asarray(masks_detection, dtype=count_dtype).reshape(
+        len(masks_detection), pixels
+    )
+    detection_buffer_bytes = dt_flat.nbytes
+    if detection_buffer_bytes > _MASK_IOU_GT_BUFFER_BYTES:
+        logger.warning(
+            "Detection masks require %d bytes, exceeding the %d-byte mask IoU "
+            "buffer budget; ground-truth chunking cannot reduce this floor.",
+            detection_buffer_bytes,
+            _MASK_IOU_GT_BUFFER_BYTES,
+        )
+    area_dt = dt_flat.sum(axis=1, dtype=np.float64)  # (dt,)
+    iou = np.empty((len(masks_detection), len(masks_true)), dtype=np.float64)
+    eps = np.spacing(1)
+
+    count_itemsize = np.dtype(count_dtype).itemsize
+    per_gt_buffer_bytes = pixels * count_itemsize + 3 * len(dt_flat) * 8
+    available_gt_buffer_bytes = max(
+        _MASK_IOU_GT_BUFFER_BYTES - detection_buffer_bytes, 0
+    )
+    gt_chunk_size = max(available_gt_buffer_bytes // per_gt_buffer_bytes, 1)
+    for gt_chunk_start in range(0, len(masks_true), gt_chunk_size):
+        gt_chunk_stop = gt_chunk_start + gt_chunk_size
+        gt_masks = np.asarray(
+            masks_true[gt_chunk_start:gt_chunk_stop], dtype=count_dtype
+        ).reshape(-1, pixels)
+        area_inter = (dt_flat @ gt_masks.T).astype(np.float64)
+        area_gt = gt_masks.sum(axis=1, dtype=np.float64)
+        union = area_dt[:, None] + area_gt - area_inter
+        iou_chunk = np.divide(
+            area_inter,
+            union,
+            out=np.zeros_like(area_inter),
+            where=union != 0,
+        )
+
+        crowd_chunk = crowd[gt_chunk_start:gt_chunk_stop]
+        if np.any(crowd_chunk):
+            # COCO crowd regions use detection area as the denominator.
+            iou_chunk[:, crowd_chunk] = area_inter[:, crowd_chunk] / (
+                area_dt[:, None] + eps
+            )
+        iou[:, gt_chunk_start:gt_chunk_stop] = iou_chunk
+
+    return iou
 
 
 class ObjectSize(Enum):
-    """
-    Enum for object size.
-    """
+    """Enum for object size."""
 
     ALL = "all"
     SMALL = "small"
@@ -543,24 +741,42 @@ class ObjectSize(Enum):
     LARGE = "large"
 
 
+#: COCO area range `(min, max)` of each object size, in square pixels.
+_OBJECT_SIZE_AREA_RANGES: dict[ObjectSize, tuple[float, float]] = {
+    ObjectSize.ALL: (0, MAX_ALL_OBJECT_AREA),
+    ObjectSize.SMALL: (0, SMALL_OBJECT_AREA),
+    ObjectSize.MEDIUM: (SMALL_OBJECT_AREA, MEDIUM_OBJECT_AREA),
+    ObjectSize.LARGE: (MEDIUM_OBJECT_AREA, MAX_ALL_OBJECT_AREA),
+}
+
+#: Suffix of the `COCOEvaluator.results` keys holding each object size's scores.
+_OBJECT_SIZE_RESULT_KEYS: dict[ObjectSize, str] = {
+    ObjectSize.ALL: "all_sizes",
+    ObjectSize.SMALL: "small",
+    ObjectSize.MEDIUM: "medium",
+    ObjectSize.LARGE: "large",
+}
+
+
 class COCOEvaluatorParameters:
-    """
-    Parameters for COCOEvaluator
-    """
+    """Parameters for COCOEvaluator."""
 
     def __init__(self) -> None:
-        """Initialize all parameters for evaluation"""
-
+        """Initialize all parameters for evaluation."""
         self.img_ids: list[int] = []
         self.cat_ids: list[int] = []
 
+        # Thresholds are float64 as in pycocotools. IoUs and recalls are compared
+        # against them, and float32 rounds some of them (e.g. 0.7) to the other side
+        # of the float64 value pycocotools compares, which moves the precision
+        # sampled at that recall, or the match made at that IoU, by one detection.
         # IoU thresholds [0.5, 0.55, 0.6, 0.65, ..., 0.95]
         self.iou_thrs = np.linspace(
             0.5,
             0.95,
             int(np.round((0.95 - 0.5) / 0.05)) + 1,
             endpoint=True,
-            dtype=np.float32,
+            dtype=np.float64,
         )
         # 101 recall thresholds [0.0, 0.01, 0.02, ..., 1.00]
         self.rec_thrs = np.linspace(
@@ -568,33 +784,44 @@ class COCOEvaluatorParameters:
             1.00,
             int(np.round((1.00 - 0.0) / 0.01)) + 1,
             endpoint=True,
-            dtype=np.float32,
+            dtype=np.float64,
         )
         # 3 maximum detection thresholds [1, 10, 100]
         self.max_dets = [1, 10, 100]
-        # Area ranges [0, 1e5], [0, 32], [32, 96], [96, 1e5]
+        # Area ranges [0, 1e5²], [0, 32²], [32², 96²], [96², 1e5²] of all, small,
+        # medium and large objects. An evaluator may keep only some of them; the
+        # results of each size are found by its range, not by its position.
         self.area_range: list[list[float]] = [
-            [0, MAX_ALL_OBJECT_AREA],
-            [0, SMALL_OBJECT_AREA],
-            [SMALL_OBJECT_AREA, MEDIUM_OBJECT_AREA],
-            [MEDIUM_OBJECT_AREA, MAX_ALL_OBJECT_AREA],
+            list(_OBJECT_SIZE_AREA_RANGES[size]) for size in ObjectSize
         ]
 
 
 class COCOEvaluator:
-    """
-    Evaluator class to compute COCO metrics.
+    """Evaluator class to compute COCO metrics.
+
+    Matching, accumulation and the 101-point interpolation are shared by every
+    evaluator. The similarity between targets and predictions is the subclass
+    hook: override `_compute_iou` to match by another similarity in `[0, 1]`,
+    as the keypoint evaluator does with OKS. The override reads each
+    annotation's `content` and returns a `(predictions, targets)` matrix whose
+    rows are the predictions sorted by descending score (stable) and cut to
+    `params.max_dets[-1]`, and whose columns keep the order of the targets, as
+    `_evaluate_image` indexes it that way.
     """
 
     def __init__(
-        self, coco_targets: EvaluationDataset, coco_predictions: EvaluationDataset
-    ):
-        """
-        Constructor of COCOEvaluator object.
+        self,
+        coco_targets: EvaluationDataset,
+        coco_predictions: EvaluationDataset,
+        metric_target: MetricTarget = MetricTarget.BOXES,
+    ) -> None:
+        """Constructor of COCOEvaluator object.
 
         Args:
             coco_targets: The dataset with the ground truths.
             coco_predictions: The dataset with the predictions.
+            metric_target: The type of detection data used to compute the IoU -
+                boxes, masks or oriented bounding boxes.
         """
         if coco_targets is None:
             raise ValueError("coco_targets must be provided")
@@ -603,29 +830,32 @@ class COCOEvaluator:
 
         self.coco_targets = coco_targets
         self.coco_predictions = coco_predictions
+        self.metric_target = metric_target
         # List of dictionaries containing the evaluation results
         # len(eval_imgs) = (categories) * (area_ranges) * (images)
         # For COCO 2017: len(eval_images) = 80 * 4 * 5000 = 1600000
-        self.eval_imgs: Any = defaultdict(list)
+        self.eval_imgs: list[_TypeEvaluationImageResult | None] = []
         # Dictionary of accumulated results
-        self.results: dict[str, Any] = {}
+        self.results: dict[str, object] = {}
         # Dictionary of targets for evaluation
-        self._targets: defaultdict[tuple[int, int], list[Any]] = defaultdict(list)
-        self._predictions: defaultdict[tuple[int, int], list[Any]] = defaultdict(list)
+        self._targets: defaultdict[tuple[int, int], list[_TypeCocoDict]] = defaultdict(
+            list
+        )
+        self._predictions: defaultdict[tuple[int, int], list[_TypeCocoDict]] = (
+            defaultdict(list)
+        )
         # Parameters for evaluation
         self.params = COCOEvaluatorParameters()
         # List of results summarization
-        self.stats: list[Any] = []
+        self.stats: list[object] = []
         # Dictionary of IOUs between all targets and predictions
-        self.ious: dict[tuple[int, int], Any] = {}
+        self.ious: dict[tuple[int, int], npt.NDArray[np.float64]] = {}
         # Set image and category ids
         self.params.img_ids = sorted(self.coco_targets.get_image_ids())
         self.params.cat_ids = sorted(self.coco_targets.get_category_ids())
 
     def _prepare_targets_and_predictions(self) -> None:
-        """
-        Prepare targets and predictions for evaluation.
-        """
+        """Prepare targets and predictions for evaluation."""
         # Get the target samples for the evaluation
         annotation_ids = self.coco_targets.get_annotation_ids(
             img_ids=self.params.img_ids, cat_ids=self.params.cat_ids
@@ -639,8 +869,9 @@ class COCOEvaluator:
 
         # Set ignore flag
         for gt in targets:
-            gt["ignore"] = gt["ignore"] if "ignore" in gt else 0
-            gt["ignore"] = "iscrowd" in gt and gt["iscrowd"]
+            ignore = int(gt.get("ignore", 0))
+            iscrowd = int(gt.get("iscrowd", 0))
+            gt["ignore"] = int(bool(ignore or iscrowd))
 
         # Select targets
         self._targets = defaultdict(list)
@@ -653,13 +884,13 @@ class COCOEvaluator:
             self._predictions[dt["image_id"], dt["category_id"]].append(dt)
 
         # Initialize evaluation results
-        self.eval_imgs = defaultdict(list)
+        self.eval_imgs = []
         self.results = {}
 
-    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float32]:
-        """
-        Compute the IoU between the targets and predictions for a given image and
-        category.
+    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float64]:
+        """Compute the IoU between the targets and predictions for a given image and
+        category, using boxes, masks or oriented bounding boxes depending on the
+        configured metric target.
 
         Args:
             img_id: The image id.
@@ -668,13 +899,12 @@ class COCOEvaluator:
         Returns:
             The IoU between the targets and predictions.
         """
-
         gt = self._targets[img_id, cat_id]
         dt = self._predictions[img_id, cat_id]
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
-            empty_result: npt.NDArray[np.float32] = np.array([], dtype=np.float32)
+            empty_result: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
             return empty_result
 
         # Sort predictions by highest score first
@@ -686,16 +916,28 @@ class COCOEvaluator:
         if len(dt) > self.params.max_dets[-1]:
             dt = dt[0 : self.params.max_dets[-1]]
 
-        gt_boxes = [g["bbox"] for g in gt]
-        dt_boxes = [d["bbox"] for d in dt]
-
         # Get the iscrowd flag for each gt
         is_crowd = [bool(o["iscrowd"]) for o in gt]
-        # Compute iou between each prediction a and gt region
-        iou = box_iou_batch_with_jaccard(gt_boxes, dt_boxes, is_crowd).astype(
-            np.float32
-        )
-        return iou
+
+        # Compute iou between each prediction and gt region
+        if self.metric_target == MetricTarget.MASKS:
+            iou = _mask_iou_with_jaccard(
+                [g["content"] for g in gt], [d["content"] for d in dt], is_crowd
+            )
+        elif self.metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            if len(gt) == 0 or len(dt) == 0:
+                iou = np.empty((len(dt), len(gt)), dtype=np.float64)
+            else:
+                iou = _oriented_box_iou_with_jaccard(
+                    np.stack([g["content"] for g in gt]),
+                    np.stack([d["content"] for d in dt]),
+                    is_crowd,
+                )
+        else:
+            gt_boxes = [g["bbox"] for g in gt]
+            dt_boxes = [d["bbox"] for d in dt]
+            iou = box_iou_batch_with_jaccard(gt_boxes, dt_boxes, is_crowd)
+        return iou.astype(np.float64)
 
     def _evaluate_image(
         self,
@@ -703,7 +945,7 @@ class COCOEvaluator:
         cat_id: int,
         area_range: list[float] | tuple[float, float],
         max_det: int,
-    ) -> dict[str, Any] | None:
+    ) -> _TypeEvaluationImageResult | None:
         """
         Perform evaluation for single category and image.
         Args:
@@ -716,8 +958,8 @@ class COCOEvaluator:
             The evaluation results.
         """
         # Get targets (gt) and predictions (dt) for the given image and category
-        gt: list[dict[str, Any]] = self._targets[img_id, cat_id]
-        dt: list[dict[str, Any]] = self._predictions[img_id, cat_id]
+        gt: list[_TypeCocoDict] = self._targets[img_id, cat_id]
+        dt: list[_TypeCocoDict] = self._predictions[img_id, cat_id]
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
@@ -754,46 +996,36 @@ class COCOEvaluator:
         num_detections = len(dt)
 
         # Initialize matches: 0 means no match
-        gt_matches = np.zeros((num_thresholds, num_ground_truths))
-        dt_matches = np.zeros((num_thresholds, num_detections))
+        gt_matches = np.zeros((num_thresholds, num_ground_truths), dtype=np.int64)
+        dt_matches = np.zeros((num_thresholds, num_detections), dtype=np.int64)
         # Initialize ignore flags: 0 means no ignore
-        gt_ignore = np.array([g["_ignore"] for g in gt])
-        dt_ignore = np.zeros((num_thresholds, num_detections))
+        gt_ignore = np.array([g["_ignore"] for g in gt], dtype=np.int64)
+        dt_ignore = np.zeros((num_thresholds, num_detections), dtype=np.bool_)
         if len(ious) != 0:
-            # Go through the iou thresholds
-            for tresh_idx, thresh in enumerate(self.params.iou_thrs):
-                # Go through the detections
-                for det_idx, det in enumerate(dt):
-                    # Start the iou of the best match
-                    iou_best_match = min([thresh, 1 - 1e-10])
-                    # Set the best match index to -1 (unmatched)
-                    best_match_idx = -1
-                    # Go through the ground truths
-                    for g_idx, g in enumerate(gt):
-                        # If current gt is already matched, and not a crowd, continue
-                        # if gt_matches[tresh_idx, g_idx] > 0 and not iscrowd[g_idx]:
-                        iscrowd = int(g.get("iscrowd", 0))
-                        if gt_matches[tresh_idx, g_idx] > 0 and not iscrowd:
-                            continue
-                        # Stop searching the ground truths
-                        if (
-                            best_match_idx > -1  # detection is matched to a gt
-                            and gt_ignore[best_match_idx]
-                            == 0  # matched gt is not ignored
-                            and gt_ignore[g_idx] == 1  # current gt is ignored
-                        ):
-                            break
-
-                        # A new best match was found
-                        if ious[det_idx, g_idx] >= iou_best_match:
-                            iou_best_match = ious[det_idx, g_idx]
-                            best_match_idx = g_idx
-
-                    # A best match was found
-                    if best_match_idx != -1:
-                        dt_ignore[tresh_idx, det_idx] = gt_ignore[best_match_idx]
-                        dt_matches[tresh_idx, det_idx] = gt[best_match_idx]["id"]
-                        gt_matches[tresh_idx, best_match_idx] = det["id"]
+            is_crowd = np.array(
+                [bool(int(g.get("iscrowd", 0))) for g in gt], dtype=np.bool_
+            )
+            gt_ids = np.array([g["id"] for g in gt], dtype=np.int64)
+            is_kept = gt_ignore == 0
+            thresholds = np.minimum(self.params.iou_thrs, 1 - 1e-10)[:, np.newaxis]
+            available = (gt_matches <= 0) | is_crowd
+            reachable = (ious[:num_detections] >= thresholds.min()).any(axis=1)
+            for det_idx in np.flatnonzero(reachable):
+                candidates = (ious[det_idx] >= thresholds) & available
+                # COCO stops at ignored targets once a kept target matched.
+                has_kept = (candidates & is_kept).any(axis=1, keepdims=True)
+                candidates &= is_kept | ~has_kept
+                matched = np.flatnonzero(candidates.any(axis=1))
+                if matched.size == 0:
+                    continue
+                scores = np.where(candidates[matched], ious[det_idx], -np.inf)
+                best = num_ground_truths - 1 - np.argmax(scores[:, ::-1], axis=1)
+                dt_ignore[matched, det_idx] = gt_ignore[best]
+                dt_matches[matched, det_idx] = gt_ids[best]
+                gt_matches[matched, best] = dt[det_idx]["id"]
+                available[matched, best] = (gt_matches[matched, best] <= 0) | (
+                    is_crowd[best]
+                )
 
         # Set unmatched detections outside of area range to ignore
         area_range_mask = np.array(
@@ -823,9 +1055,8 @@ class COCOEvaluator:
         }
 
     def _accumulate(self) -> None:
-        """
-        Accumulate per image evaluation results and store the result in self.results
-        """
+        """Accumulate per image evaluation results and store the result in
+        self.results."""
         # Get the number of thresholds, categories, area ranges, and max detections
         num_iou_thresholds = len(self.params.iou_thrs)
         num_recall_thresholds = len(self.params.rec_thrs)
@@ -901,10 +1132,12 @@ class COCOEvaluator:
 
                 # Loop through max detections
                 for max_det_idx, max_det in enumerate(selected_max_detections):
-                    eval_img_data = [
+                    eval_img_data_raw = [
                         self.eval_imgs[cat_offset + area_offset + i] for i in image_inds
                     ]
-                    eval_img_data = [e for e in eval_img_data if e is not None]
+                    eval_img_data: list[_TypeEvaluationImageResult] = [
+                        e for e in eval_img_data_raw if e is not None
+                    ]
 
                     # No image to evaluate
                     if len(eval_img_data) == 0:
@@ -941,8 +1174,8 @@ class COCOEvaluator:
                         np.logical_not(dt_matches), np.logical_not(dt_ignored)
                     )
 
-                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float32)
-                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float32)
+                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float64)
+                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float64)
 
                     # Loop through thresholds
                     for iou_thresh_idx, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
@@ -950,7 +1183,7 @@ class COCOEvaluator:
                         fp = np.array(fp)
                         num_tps = len(tp)
                         # Recall: TP / Total number of ground truth objects
-                        rc = tp / np.float32(num_non_ignored_gt)
+                        rc = tp / num_non_ignored_gt
                         # Precision: TP / (FP + TP)
                         pr = (tp / (fp + tp + EPS)).tolist()
                         # List to compute the precision at each recall threshold
@@ -1009,67 +1242,50 @@ class COCOEvaluator:
         # Helper function to compute average precision while handling -1 sentinel values
         def compute_average_precision(
             precision_slice: npt.NDArray[np.float32],
-        ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+        ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
             """Compute average precision while handling -1 sentinel values."""
             valid_mask = precision_slice != -1
             valid_precision = np.where(valid_mask, precision_slice, np.float32(0.0))
 
             def mean_with_mask(
                 axis: int | tuple[int, ...],
-            ) -> npt.NDArray[np.float32]:
+            ) -> npt.NDArray[np.float64]:
                 sums = valid_precision.sum(axis=axis, dtype=np.float64)
                 counts = valid_mask.sum(axis=axis)
-                means = np.divide(
+                means: npt.NDArray[np.float64] = np.divide(
                     sums,
                     counts,
                     out=np.full(sums.shape, -1.0, dtype=np.float64),
                     where=counts > 0,
                 )
-                return means.astype(np.float32)
+                return means
 
             mAP_scores = mean_with_mask((1, 2))
             ap_per_class = mean_with_mask(1).transpose(1, 0)
             return mAP_scores, ap_per_class
 
-        # Average precision over all sizes, 100 max detections
-        area_range_idx = list(ObjectSize).index(ObjectSize.ALL)
-        max_100_dets_idx = self.params.max_dets.index(100)
-        # Average precision  [threshold, recall, classes]
-        average_precision_all_sizes = precision[
-            :, :, :, area_range_idx, max_100_dets_idx
-        ]
-        # mAP over thresholds (dimension=num_thresholds)
-        # Exclude -1 sentinel values when computing mean
-        mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(
-            average_precision_all_sizes
-        )
-
-        # Average precision for SMALL objects and 100 max detections
-        small_area_range_idx = list(ObjectSize).index(ObjectSize.SMALL)
-        average_precision_small = precision[
-            :, :, :, small_area_range_idx, max_100_dets_idx
-        ]
-        mAP_scores_small, ap_per_class_small = compute_average_precision(
-            average_precision_small
-        )
-
-        # Average precision for MEDIUM objects and 100 max detections
-        medium_area_range_idx = list(ObjectSize).index(ObjectSize.MEDIUM)
-        average_precision_medium = precision[
-            :, :, :, medium_area_range_idx, max_100_dets_idx
-        ]
-        mAP_scores_medium, ap_per_class_medium = compute_average_precision(
-            average_precision_medium
-        )
-
-        # Average precision for LARGE objects and 100 max detections
-        large_area_range_idx = list(ObjectSize).index(ObjectSize.LARGE)
-        average_precision_large = precision[
-            :, :, :, large_area_range_idx, max_100_dets_idx
-        ]
-        mAP_scores_large, ap_per_class_large = compute_average_precision(
-            average_precision_large
-        )
+        # Average precision per object size at the largest max detections (100 for
+        # boxes, masks and oriented boxes; `max_dets` is sorted in `evaluate`).
+        # Each size is looked up by its area range, because an evaluator may keep
+        # only some sizes (keypoints have no small one); a size that was not
+        # evaluated gets `-1` sentinel scores, so every results key exists.
+        largest_max_dets_idx = len(self.params.max_dets) - 1
+        evaluated_area_ranges = [tuple(area) for area in self.params.area_range]
+        size_scores: dict[str, npt.NDArray[np.float64]] = {}
+        for size, key in _OBJECT_SIZE_RESULT_KEYS.items():
+            area_range = _OBJECT_SIZE_AREA_RANGES[size]
+            if area_range in evaluated_area_ranges:
+                # Average precision [threshold, recall, classes]; the means skip
+                # the -1 sentinel of absent classes.
+                area_range_idx = evaluated_area_ranges.index(area_range)
+                mAP_scores, ap_per_class = compute_average_precision(
+                    precision[:, :, :, area_range_idx, largest_max_dets_idx]
+                )
+            else:
+                mAP_scores = np.full(num_iou_thresholds, -1.0)
+                ap_per_class = np.full((num_categories, num_iou_thresholds), -1.0)
+            size_scores[f"mAP_scores_{key}"] = mAP_scores
+            size_scores[f"ap_per_class_{key}"] = ap_per_class
 
         self.results = {
             "params": self.params,
@@ -1084,20 +1300,11 @@ class COCOEvaluator:
             "precision": precision,
             "recall": recall,
             "scores": scores,
-            "mAP_scores_all_sizes": mAP_scores_all_sizes,
-            "ap_per_class_all_sizes": ap_per_class_all_sizes,
-            "mAP_scores_small": mAP_scores_small,
-            "ap_per_class_small": ap_per_class_small,
-            "mAP_scores_medium": mAP_scores_medium,
-            "ap_per_class_medium": ap_per_class_medium,
-            "mAP_scores_large": mAP_scores_large,
-            "ap_per_class_large": ap_per_class_large,
+            **size_scores,
         }
 
     def _pycocotools_summarize(self) -> None:
-        """
-        Compute and display summary metrics for evaluation results.
-        """
+        """Compute and display summary metrics for evaluation results."""
 
         def _summarize(
             use_ap: bool = True,
@@ -1113,13 +1320,19 @@ class COCOEvaluator:
                 if iou_thr is None
                 else f"{iou_thr:0.2f}"
             )
-            all_object_sizes = list(ObjectSize)
-            area_range_idx = all_object_sizes.index(area_range)
+            # Look the size up by its area range, not its enum position, since
+            # an evaluator may keep only some sizes (keypoints have no small one).
+            evaluated_area_ranges = [tuple(area) for area in self.params.area_range]
+            area_range_idx = evaluated_area_ranges.index(
+                _OBJECT_SIZE_AREA_RANGES[area_range]
+            )
             max_detections_idx = self.params.max_dets.index(max_dets)
             if use_ap:
                 # Dimension of precision:
                 # threshold x recall x classes x areas x max detections
-                s = self.results["precision"]
+                s: npt.NDArray[np.float32] = np.asarray(
+                    self.results["precision"], dtype=np.float32
+                )
                 # IOU
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
@@ -1128,7 +1341,7 @@ class COCOEvaluator:
             else:
                 # Dimension of recall:
                 # threshold x classes x areas x max detections
-                s = self.results["recall"]
+                s = np.asarray(self.results["recall"], dtype=np.float32)
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
                     s = s[t]
@@ -1144,7 +1357,7 @@ class COCOEvaluator:
 
         def _summarize_predictions() -> npt.NDArray[np.float32]:
             stats: npt.NDArray[np.float32] = np.zeros((12,), dtype=np.float32)
-            stats[0] = _summarize(use_ap=True)
+            stats[0] = _summarize(use_ap=True, max_dets=self.params.max_dets[2])
             stats[1] = _summarize(
                 use_ap=True, iou_thr=0.5, max_dets=self.params.max_dets[2]
             )
@@ -1190,10 +1403,8 @@ class COCOEvaluator:
             self.stats = _summarize_predictions().tolist()
 
     def evaluate(self) -> None:
-        """
-        Start the per image evaluation on all images and keeep results in
-        self.eval_imgs (a list of dictionaries).
-        """
+        """Start the per image evaluation on all images and keeep results in
+        self.eval_imgs (a list of dictionaries)."""
         # Select all parameters to evaluate
         self.params.img_ids = list(np.unique(self.params.img_ids))
         self.params.cat_ids = list(np.unique(self.params.cat_ids))
@@ -1208,7 +1419,7 @@ class COCOEvaluator:
             for cat_id in self.params.cat_ids
         }
 
-        # Select the largest max area (the last element containing 100 dets
+        # Evaluate at the largest configured prediction limit.
         max_det = self.params.max_dets[-1]
 
         # Evaluate each image with all categories, area range and max detections
@@ -1223,10 +1434,10 @@ class COCOEvaluator:
         self._accumulate()
 
 
-class MeanAveragePrecision(Metric):
-    """
-    Mean Average Precision (mAP) is a metric used to evaluate object detection models.
-    It is the average of the precision-recall curves at different IoU thresholds.
+class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
+    """Mean Average Precision (mAP) is a metric used to evaluate object detection
+    models. It is the average of the precision-recall curves at different IoU
+    thresholds.
 
     Examples:
         ```pycon
@@ -1267,16 +1478,51 @@ class MeanAveragePrecision(Metric):
         class_agnostic: bool = False,
         class_mapping: dict[int, int] | None = None,
         image_indices: list[int] | None = None,
-    ):
-        """
-        Initialize the Mean Average Precision metric.
+        *,
+        max_detection_thresholds: Sequence[int] = (1, 10, 100),
+    ) -> None:
+        """Initialize the Mean Average Precision metric.
 
         Args:
             metric_target: The type of detection data to use.
-            class_agnostic: Whether to treat all data as a single class.
-            class_mapping: A dictionary to map class IDs to new IDs.
+            class_agnostic: Whether to treat all data as a single class with ID `-1`.
+                Detections without class IDs join that class when any input has
+                class IDs, and otherwise keep the default class `0`.
+            class_mapping: A dictionary to map class IDs to new IDs. With
+                `class_agnostic=True` and any input that has class IDs, it must
+                contain key `-1`, which maps the single merged class. It is not
+                used when no input has class IDs.
             image_indices: The indices of the images to use.
+            max_detection_thresholds: Exactly three strictly increasing positive
+                integer limits, defaulting to COCO's `(1, 10, 100)`. AP uses the
+                largest limit: the highest-confidence predictions per image and
+                category after class mapping or class-agnostic merging. Ground
+                truths are not capped. For dense scenes, use `(1, 10, 1000)`.
+                Results using different limits are different metrics and should
+                not be compared as standard COCO AP@100.
+
+        Raises:
+            ValueError: If `max_detection_thresholds` is not a sequence of three
+                strictly increasing positive integers.
+
+        Example:
+            ```python
+            from supervision.metrics import MeanAveragePrecision
+
+            metric = MeanAveragePrecision(max_detection_thresholds=(1, 10, 1000))
+            ```
         """
+        thresholds = tuple(max_detection_thresholds)
+        if (
+            len(thresholds) != 3
+            or any(type(limit) is not int or limit <= 0 for limit in thresholds)
+            or not thresholds[0] < thresholds[1] < thresholds[2]
+        ):
+            raise ValueError(
+                "max_detection_thresholds must contain exactly three strictly "
+                "increasing positive integers."
+            )
+        self._max_detection_thresholds = thresholds
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
 
@@ -1286,9 +1532,7 @@ class MeanAveragePrecision(Metric):
         self._image_indices = image_indices
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -1297,8 +1541,7 @@ class MeanAveragePrecision(Metric):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> MeanAveragePrecision:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -1319,30 +1562,71 @@ class MeanAveragePrecision(Metric):
             )
 
         if self._class_agnostic:
+            # Relabel private copies so caller-owned detections stay as passed in.
             predictions = deepcopy(predictions)
             targets = deepcopy(targets)
 
             for prediction in predictions:
                 if prediction.class_id is not None:
-                    prediction.class_id[:] = -1
+                    prediction.class_id = _agnostic_class_ids(len(prediction))
             for target in targets:
                 if target.class_id is not None:
-                    target.class_id[:] = -1
+                    target.class_id = _agnostic_class_ids(len(target))
 
         self._predictions_list.extend(predictions)
         self._targets_list.extend(targets)
 
         return self
 
+    def _detections_content(self, detections: Detections) -> npt.NDArray[Any] | None:
+        """Return per-detection masks or oriented boxes for the metric target, or `None`
+        for the box target and for empty detections.
+
+        Preserve oriented-box precision so IoU can translate large coordinates before
+        converting them to its local float32 geometry.
+        """
+        if self._metric_target == MetricTarget.BOXES or len(detections) == 0:
+            return None
+        if self._metric_target == MetricTarget.MASKS:
+            if detections.mask is None:
+                raise ValueError(
+                    "MeanAveragePrecision with `MetricTarget.MASKS` requires"
+                    " masks on both predictions and targets."
+                )
+            return np.asarray(detections.mask).astype(bool)
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            obb = detections.data.get(ORIENTED_BOX_COORDINATES)
+            if obb is None:
+                raise ValueError(
+                    "MeanAveragePrecision with"
+                    " `MetricTarget.ORIENTED_BOUNDING_BOXES` requires"
+                    f" `{ORIENTED_BOX_COORDINATES}` in `data` on both"
+                    " predictions and targets."
+                )
+            return np.asarray(obb).reshape(-1, 4, 2)
+        raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    def _content_area(
+        self, xywh: list[float], content: npt.NDArray[Any] | None, idx: int
+    ) -> float:
+        """Compute the default annotation area for the metric target: bbox area for
+        boxes, pixel count for masks, polygon area for oriented boxes."""
+        if content is None:
+            return float(xywh[2] * xywh[3])
+        if self._metric_target == MetricTarget.MASKS:
+            return float(np.count_nonzero(content[idx]))
+        return float(_polygon_areas(content[idx : idx + 1])[0])
+
     def _prepare_targets(
         self, targets: list[Detections]
-    ) -> dict[str, list[dict[str, Any]]]:
-        """Transform targets into a dictionary that can be used by the COCO evaluator"""
-        images = [{"id": img_id} for img_id in range(len(targets))]
+    ) -> dict[str, list[_TypeCocoDict]]:
+        """Transform targets into a dictionary that can be used by the COCO
+        evaluator."""
+        images: list[_TypeCocoDict] = [{"id": img_id} for img_id in range(len(targets))]
         if self._image_indices is not None:
             images = [{"id": self._image_indices[img["id"]]} for img in images]
         # Annotations list
-        annotations: list[dict[str, Any]] = []
+        annotations: list[_TypeCocoDict] = []
         for image_id, image_targets in enumerate(targets):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
@@ -1351,7 +1635,10 @@ class MeanAveragePrecision(Metric):
             if image_targets.xyxy is None:
                 continue
 
-            for target_idx, xyxy in enumerate(image_targets.xyxy):
+            content = self._detections_content(image_targets)
+            # Native Python scalars avoid overflowing narrow NumPy dtypes when
+            # subtracting corners or multiplying the resulting box extents.
+            for target_idx, xyxy in enumerate(image_targets.xyxy.tolist()):
                 xywh = [xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]]
 
                 # Default values
@@ -1364,31 +1651,55 @@ class MeanAveragePrecision(Metric):
                     else:
                         category_id = int(cls_id)
 
-                # Use area from data if available, otherwise calculate from bbox
+                # Use area from data if available, otherwise calculate from the
+                # metric target content (bbox, mask or oriented box)
                 area = None
-                if image_targets.data is not None and "area" in image_targets.data:
-                    area = float(image_targets.data["area"][target_idx])
+                if (
+                    image_targets.data is not None
+                    and AREA_DATA_FIELD in image_targets.data
+                ):
+                    # float64, as in pycocotools: float32 rounds areas near 32² or
+                    # 96² onto the limit, which puts the target in two buckets.
+                    area_data: npt.NDArray[np.float64] = np.asarray(
+                        image_targets.data[AREA_DATA_FIELD], dtype=np.float64
+                    )
+                    area = float(area_data[target_idx])
 
                 if area is None:
-                    area = xywh[2] * xywh[3]
+                    area = self._content_area(xywh, content, target_idx)
 
                 iscrowd = 0
-                if image_targets.data is not None and "iscrowd" in image_targets.data:
-                    iscrowd = int(image_targets.data["iscrowd"][target_idx])
+                if (
+                    image_targets.data is not None
+                    and ISCROWD_DATA_FIELD in image_targets.data
+                ):
+                    iscrowd_data: npt.NDArray[np.int64] = np.asarray(
+                        image_targets.data[ISCROWD_DATA_FIELD], dtype=np.int64
+                    )
+                    iscrowd = int(iscrowd_data[target_idx])
 
-                dict_annotation = {
+                ignore = 0
+                if image_targets.data is not None and "ignore" in image_targets.data:
+                    ignore_data: npt.NDArray[np.int64] = np.asarray(
+                        image_targets.data["ignore"], dtype=np.int64
+                    )
+                    ignore = int(ignore_data[target_idx])
+
+                dict_annotation: _TypeCocoDict = {
                     "area": area,
                     "iscrowd": iscrowd,
                     "image_id": image_id,
                     "bbox": xywh,
                     "category_id": category_id,
                     "id": len(annotations) + 1,  # Start IDs from 1 (0 means no match)
-                    "ignore": 0,
+                    "ignore": ignore,
                 }
+                if content is not None:
+                    dict_annotation["content"] = content[target_idx]
                 annotations.append(dict_annotation)
         # Category list
-        all_cat_ids = {annotation.get("category_id") for annotation in annotations}
-        categories = [{"id": cat_id} for cat_id in all_cat_ids]
+        all_cat_ids = {annotation["category_id"] for annotation in annotations}
+        categories: list[_TypeCocoDict] = [{"id": cat_id} for cat_id in all_cat_ids]
         # Create coco dictionary
         return {
             "images": images,
@@ -1398,10 +1709,10 @@ class MeanAveragePrecision(Metric):
 
     def _prepare_predictions(
         self, predictions: list[Detections]
-    ) -> list[dict[str, Any]]:
+    ) -> list[_TypeCocoDict]:
         """Transform predictions into a list of predictions that can be used by the COCO
         evaluator."""
-        coco_predictions: list[dict[str, Any]] = []
+        coco_predictions: list[_TypeCocoDict] = []
         for image_id, image_predictions in enumerate(predictions):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
@@ -1409,7 +1720,10 @@ class MeanAveragePrecision(Metric):
             if image_predictions.xyxy is None:
                 continue
 
-            for pred_idx, xyxy in enumerate(image_predictions.xyxy):
+            content = self._detections_content(image_predictions)
+            # Match target preparation: overflow would also change whether an
+            # unmatched prediction is ignored in each area bucket.
+            for pred_idx, xyxy in enumerate(image_predictions.xyxy.tolist()):
                 xywh = [xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]]
 
                 category_id = 0
@@ -1425,18 +1739,12 @@ class MeanAveragePrecision(Metric):
                 if image_predictions.confidence is not None:
                     score = float(image_predictions.confidence[pred_idx])
 
-                # Use area from data if available, otherwise calculate from bbox
-                area = None
-                if (
-                    image_predictions.data is not None
-                    and "area" in image_predictions.data
-                ):
-                    area = float(image_predictions.data["area"][pred_idx])
+                # pycocotools `loadRes` sizes every result by its own bbox or
+                # mask, so area metadata on predictions must not change the
+                # size bucket of an unmatched prediction.
+                area = self._content_area(xywh, content, pred_idx)
 
-                if area is None:
-                    area = xywh[2] * xywh[3]
-
-                dict_prediction = {
+                dict_prediction: _TypeCocoDict = {
                     "image_id": image_id,
                     "bbox": xywh,
                     "score": score,
@@ -1444,6 +1752,8 @@ class MeanAveragePrecision(Metric):
                     "area": area,
                     "id": len(coco_predictions) + 1,
                 }
+                if content is not None:
+                    dict_prediction["content"] = content[pred_idx]
                 coco_predictions.append(dict_prediction)
         return coco_predictions
 
@@ -1465,14 +1775,30 @@ class MeanAveragePrecision(Metric):
                 f" targets ({total_images_targets}) during the evaluation must be"
                 " the same."
             )
-        dict_targets = self._prepare_targets(self._targets_list)
-        lst_predictions = self._prepare_predictions(self._predictions_list)
+
+        predictions_list = self._predictions_list
+        targets_list = self._targets_list
+        if self._class_agnostic:
+            detections = predictions_list + targets_list
+            # All-unlabeled inputs keep their default category; mixed inputs
+            # must join the class assigned to labeled detections in update.
+            # Relabeled shallow copies keep the stored detections unmodified.
+            if any(d.class_id is not None and len(d) > 0 for d in detections):
+                predictions_list = [
+                    _with_agnostic_class_id(d) for d in predictions_list
+                ]
+                targets_list = [_with_agnostic_class_id(d) for d in targets_list]
+
+        dict_targets = self._prepare_targets(targets_list)
+        lst_predictions = self._prepare_predictions(predictions_list)
         # Create a coco object with the targets
         coco_gt = EvaluationDataset(targets=dict_targets)
         # Include the predictions to coco object
         coco_det = coco_gt.load_predictions(lst_predictions)
         # Create a coco evaluator with the predictions
-        cocoEval = COCOEvaluator(coco_gt, coco_det)
+        cocoEval = COCOEvaluator(coco_gt, coco_det, metric_target=self._metric_target)
+
+        cocoEval.params.max_dets = list(self._max_detection_thresholds)
 
         # Evaluate on all images
         cocoEval.evaluate()
@@ -1481,38 +1807,58 @@ class MeanAveragePrecision(Metric):
         mAP_small = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=cocoEval.results["mAP_scores_small"],
-            ap_per_class=cocoEval.results["ap_per_class_small"],
-            iou_thresholds=cocoEval.params.iou_thrs,
-            matched_classes=np.array(cocoEval.params.cat_ids),
+            max_detection_thresholds=self._max_detection_thresholds,
+            mAP_scores=np.asarray(
+                cocoEval.results["mAP_scores_small"], dtype=np.float64
+            ),
+            ap_per_class=np.asarray(
+                cocoEval.results["ap_per_class_small"], dtype=np.float64
+            ),
+            iou_thresholds=np.asarray(cocoEval.params.iou_thrs, dtype=np.float64),
+            matched_classes=np.asarray(cocoEval.params.cat_ids, dtype=np.int32),
         )
         # Create MeanAveragePrecisionResult object for medium objects
         mAP_medium = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=cocoEval.results["mAP_scores_medium"],
-            ap_per_class=cocoEval.results["ap_per_class_medium"],
-            iou_thresholds=cocoEval.params.iou_thrs,
-            matched_classes=np.array(cocoEval.params.cat_ids),
+            max_detection_thresholds=self._max_detection_thresholds,
+            mAP_scores=np.asarray(
+                cocoEval.results["mAP_scores_medium"], dtype=np.float64
+            ),
+            ap_per_class=np.asarray(
+                cocoEval.results["ap_per_class_medium"], dtype=np.float64
+            ),
+            iou_thresholds=np.asarray(cocoEval.params.iou_thrs, dtype=np.float64),
+            matched_classes=np.asarray(cocoEval.params.cat_ids, dtype=np.int32),
         )
         # Create MeanAveragePrecisionResult object for large objects
         mAP_large = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=cocoEval.results["mAP_scores_large"],
-            ap_per_class=cocoEval.results["ap_per_class_large"],
-            iou_thresholds=cocoEval.params.iou_thrs,
-            matched_classes=np.array(cocoEval.params.cat_ids),
+            max_detection_thresholds=self._max_detection_thresholds,
+            mAP_scores=np.asarray(
+                cocoEval.results["mAP_scores_large"], dtype=np.float64
+            ),
+            ap_per_class=np.asarray(
+                cocoEval.results["ap_per_class_large"], dtype=np.float64
+            ),
+            iou_thresholds=np.asarray(cocoEval.params.iou_thrs, dtype=np.float64),
+            matched_classes=np.asarray(cocoEval.params.cat_ids, dtype=np.int32),
         )
 
         # Create the final MeanAveragePrecisionResult object
         mAP_result = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=cocoEval.results["mAP_scores_all_sizes"],
-            ap_per_class=cocoEval.results["ap_per_class_all_sizes"],
-            iou_thresholds=cocoEval.params.iou_thrs,
-            matched_classes=np.array(cocoEval.params.cat_ids),
+            max_detection_thresholds=self._max_detection_thresholds,
+            mAP_scores=np.asarray(
+                cocoEval.results["mAP_scores_all_sizes"], dtype=np.float64
+            ),
+            ap_per_class=np.asarray(
+                cocoEval.results["ap_per_class_all_sizes"], dtype=np.float64
+            ),
+            iou_thresholds=np.asarray(cocoEval.params.iou_thrs, dtype=np.float64),
+            matched_classes=np.asarray(cocoEval.params.cat_ids, dtype=np.int32),
             small_objects=mAP_small,
             medium_objects=mAP_medium,
             large_objects=mAP_large,

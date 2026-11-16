@@ -6,6 +6,12 @@ comments: true
 
 This page contains supplementary values, types and enums that metrics use.
 
+Install the metrics extra before using metrics APIs:
+
+```bash
+pip install "supervision[metrics]"
+```
+
 <div class="md-typeset">
     <h2><a href="#supervision.metrics.core.MetricTarget">MetricTarget</a></h2>
 </div>

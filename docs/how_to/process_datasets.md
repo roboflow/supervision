@@ -1,24 +1,24 @@
 ---
 comments: true
-description: Load, split, merge, and convert computer vision datasets between YOLO, COCO, and Pascal VOC formats using supervision's DetectionDataset.
+description: Load, split, merge, and convert computer vision datasets between YOLO, COCO, Pascal VOC, CreateML, and LabelMe formats using supervision's DetectionDataset.
 authors:
   - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
-date_modified: 2026-04-22
+date_modified: 2026-06-25
 ---
 
 With Supervision, you can load and manipulate classification, object detection, and segmentation datasets. This tutorial will walk you through how to load, split, merge, visualize, and augment datasets in Supervision.
 
 ## Download Dataset
 
-In this tutorial, we will use a dataset from [Roboflow Universe](https://universe.roboflow.com/), a public repository of thousands of computer vision datasets. If you already have your dataset in [COCO](https://roboflow.com/formats/coco-json), [YOLO](https://roboflow.com/formats/yolov8-pytorch-txt), or [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format, you can skip this section.
+In this tutorial, we will use a dataset from [Roboflow Universe](https://universe.roboflow.com/), a public repository of thousands of computer vision datasets. If you already have your dataset in [COCO](https://roboflow.com/formats/coco-json), [YOLO](https://roboflow.com/formats/yolov8-pytorch-txt), [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml), [CreateML](https://roboflow.com/formats/createml-json), or [LabelMe](https://roboflow.com/formats/labelme-json) format, you can skip this section.
 
 ```bash
 pip install roboflow
 ```
 
-Next, log into your Roboflow account and download the dataset of your choice in the COCO, YOLO, or Pascal VOC format. You can customize the following code snippet with your workspace ID, project ID, and version number.
+Next, log into your Roboflow account and download the dataset of your choice. The following snippets show common COCO, YOLO, Pascal VOC, and CreateML exports; LabelMe datasets can also be loaded directly from per-image JSON files in the next section. You can customize the code with your workspace ID, project ID, and version number.
 
 === "COCO"
 
@@ -54,6 +54,18 @@ Next, log into your Roboflow account and download the dataset of your choice in 
     rf = roboflow.Roboflow()
     project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
     dataset = project.version("<PROJECT_VERSION>").download("voc")
+    ```
+
+=== "CreateML"
+
+    ```python
+    import roboflow
+
+    roboflow.login()
+
+    rf = roboflow.Roboflow()
+    project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
+    dataset = project.version("<PROJECT_VERSION>").download("createml")
     ```
 
 ## Load Dataset
@@ -117,6 +129,21 @@ The Supervision library provides convenient functions to load datasets in variou
     # 800, 100, 100
     ```
 
+    For segmentation datasets, pass `compact_masks=True` to keep masks as [`sv.CompactMask`](https://supervision.roboflow.com/latest/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) instead of dense NumPy arrays:
+
+    ```python
+    ds_train = sv.DetectionDataset.from_yolo(
+        images_directory_path=f"{dataset.location}/train/images",
+        annotations_directory_path=f"{dataset.location}/train/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
+        compact_masks=True,
+    )
+    ```
+
+    Compact loading is lossless: the masks decode to exactly the pixels of the dense loader. Retained memory is roughly the size of each object's run-length encoding inside its rounded vertex bounds, rather than a full `(N, H, W)` array per image, so the saving depends on mask size and complexity. Each polygon is encoded before the next one is drawn, so the temporary memory used while loading stays bounded by a few frame-sized buffers, however many objects an image has. Images remain lazily loaded, as before. Use `detections.mask.to_dense()` only when a consumer requires a NumPy stack; that allocates full-size masks again.
+
+    The option does not generate masks for box-only datasets unless `force_masks=True` is also set. Empty annotations still have `mask=None`, and OBB annotations never generate masks. The default `compact_masks=False` keeps the existing dense representation.
+
 === "Pascal VOC"
 
     We can do so using the [`sv.DetectionDataset.from_pascal_voc`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc) to load annotations in [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format.
@@ -143,6 +170,84 @@ The Supervision library provides convenient functions to load datasets in variou
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
     ```
+
+=== "CreateML"
+
+    We can do so using the [`sv.DetectionDataset.from_createml`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_createml) to load annotations in [CreateML](https://roboflow.com/formats/createml-json) format.
+
+    ```python
+    import supervision as sv
+
+    ds_train = sv.DetectionDataset.from_createml(
+        images_directory_path=f"{dataset.location}/train",
+        annotations_path=f"{dataset.location}/train/_annotations.createml.json",
+    )
+    ds_valid = sv.DetectionDataset.from_createml(
+        images_directory_path=f"{dataset.location}/valid",
+        annotations_path=f"{dataset.location}/valid/_annotations.createml.json",
+    )
+    ds_test = sv.DetectionDataset.from_createml(
+        images_directory_path=f"{dataset.location}/test",
+        annotations_path=f"{dataset.location}/test/_annotations.createml.json",
+    )
+
+    ds_train.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds_train), len(ds_valid), len(ds_test)
+    # 800, 100, 100
+    ```
+
+=== "LabelMe"
+
+    We can do so using the [`sv.DetectionDataset.from_labelme`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_labelme) to load annotations in [LabelMe](https://roboflow.com/formats/labelme-json) format. LabelMe `rectangle` shapes are loaded as bounding boxes and `polygon` shapes are loaded as masks with bounding boxes.
+
+    ```python
+    import supervision as sv
+
+    ds_train = sv.DetectionDataset.from_labelme(
+        images_directory_path="<TRAIN_IMAGES_DIRECTORY_PATH>",
+        annotations_directory_path="<TRAIN_ANNOTATIONS_DIRECTORY_PATH>",
+    )
+    ds_valid = sv.DetectionDataset.from_labelme(
+        images_directory_path="<VALID_IMAGES_DIRECTORY_PATH>",
+        annotations_directory_path="<VALID_ANNOTATIONS_DIRECTORY_PATH>",
+    )
+    ds_test = sv.DetectionDataset.from_labelme(
+        images_directory_path="<TEST_IMAGES_DIRECTORY_PATH>",
+        annotations_directory_path="<TEST_ANNOTATIONS_DIRECTORY_PATH>",
+    )
+
+    ds_train.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds_train), len(ds_valid), len(ds_test)
+    # 800, 100, 100
+    ```
+
+### COCO polygon masks
+
+COCO polygon vertices are points on a continuous boundary. A square from `(1.65, 1.65)` to `(5.65, 5.65)` encloses a 4 × 4 area, so the COCO reference tools, which evaluation metrics are built on, produce a 16-pixel mask for it: a pixel is on when its centre lies inside the boundary. The default `mask_rasterizer="supervision"` rounds each vertex and fills inclusively, treating the rounded vertices as pixel indices, so the same polygon becomes 25 pixels: one extra row and one extra column. The same holds for integer vertices, where `(1, 1)` to `(5, 5)` gives 25 pixels instead of 16. On large objects the difference is small. On small objects it changes mask area and IoU noticeably.
+
+![Animation of one square polygon: "supervision" rounds the vertices and fills 25 pixels, "pycocotools" keeps them continuous and fills the 16 pixels whose centres are inside the boundary, leaving 9 extra pixels and an IoU of 0.64](../assets/coco-polygon-rasterizer.svg){ align=center width="760" }
+
+Pass `mask_rasterizer="pycocotools"` to load polygons the way COCO does. This mode needs the optional extra: `pip install "supervision[coco]"`.
+
+```python
+import supervision as sv
+
+ds_train = sv.DetectionDataset.from_coco(
+    images_directory_path=f"{dataset.location}/train",
+    annotations_path=f"{dataset.location}/train/_annotations.coco.json",
+    mask_rasterizer="pycocotools",
+)
+```
+
+!!! warning
+
+    Omitting `mask_rasterizer` still gives the current `"supervision"` masks, but loading a file that contains polygon segmentation now emits a `SupervisionWarnings` warning. The default changes to `"pycocotools"` no earlier than `0.35.0`. Pass `mask_rasterizer="supervision"` to keep today's masks, or `"pycocotools"` to adopt the COCO ones now.
+
+RLE masks decode identically in both modes, and `as_coco` export is unchanged. Use RLE when you need exact masks to survive a round trip through other COCO tools.
 
 ## Split Dataset
 
@@ -269,6 +374,72 @@ If you have multiple datasets that you would like to merge, you can do so using 
     # 1000
     ```
 
+=== "CreateML"
+
+    ```{ .py hl_lines="22-28" }
+    import supervision as sv
+
+    ds_train = sv.DetectionDataset.from_createml(
+        images_directory_path=f'{dataset.location}/train',
+        annotations_path=f'{dataset.location}/train/_annotations.createml.json',
+    )
+    ds_valid = sv.DetectionDataset.from_createml(
+        images_directory_path=f'{dataset.location}/valid',
+        annotations_path=f'{dataset.location}/valid/_annotations.createml.json',
+    )
+    ds_test = sv.DetectionDataset.from_createml(
+        images_directory_path=f'{dataset.location}/test',
+        annotations_path=f'{dataset.location}/test/_annotations.createml.json',
+    )
+
+    ds_train.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds_train), len(ds_valid), len(ds_test)
+    # 800, 100, 100
+
+    ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
+
+    ds.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds)
+    # 1000
+    ```
+
+=== "LabelMe"
+
+    ```{ .py hl_lines="22-28" }
+    import supervision as sv
+
+    ds_train = sv.DetectionDataset.from_labelme(
+        images_directory_path="<TRAIN_IMAGES_DIRECTORY_PATH>",
+        annotations_directory_path="<TRAIN_ANNOTATIONS_DIRECTORY_PATH>",
+    )
+    ds_valid = sv.DetectionDataset.from_labelme(
+        images_directory_path="<VALID_IMAGES_DIRECTORY_PATH>",
+        annotations_directory_path="<VALID_ANNOTATIONS_DIRECTORY_PATH>",
+    )
+    ds_test = sv.DetectionDataset.from_labelme(
+        images_directory_path="<TEST_IMAGES_DIRECTORY_PATH>",
+        annotations_directory_path="<TEST_ANNOTATIONS_DIRECTORY_PATH>",
+    )
+
+    ds_train.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds_train), len(ds_valid), len(ds_test)
+    # 800, 100, 100
+
+    ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
+
+    ds.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds)
+    # 1000
+    ```
+
 ## Iterate over Dataset
 
 There are two ways to loop over a `sv.DetectionDataset`: using a direct [for loop](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__iter__) called on the `sv.DetectionDataset` instance or loading `sv.DetectionDataset` entries [by index](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__getitem__).
@@ -367,6 +538,36 @@ sv.plot_images_grid(
     )
     ```
 
+=== "CreateML"
+
+    We can do so using the [`sv.DetectionDataset.as_createml`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_createml) method to save annotations in [CreateML](https://roboflow.com/formats/createml-json) format.
+
+    ```python
+    import supervision as sv
+
+    ds = sv.DetectionDataset(...)
+
+    ds.as_createml(
+        images_directory_path="<IMAGE_DIRECTORY_PATH>",
+        annotations_path="<ANNOTATIONS_PATH>",
+    )
+    ```
+
+=== "LabelMe"
+
+    We can do so using the [`sv.DetectionDataset.as_labelme`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_labelme) method to save annotations in [LabelMe](https://roboflow.com/formats/labelme-json) format. Detections with masks are exported as `polygon` shapes; box-only detections are exported as `rectangle` shapes.
+
+    ```python
+    import supervision as sv
+
+    ds = sv.DetectionDataset(...)
+
+    ds.as_labelme(
+        images_directory_path="<IMAGE_DIRECTORY_PATH>",
+        annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+    )
+    ```
+
 ## Augment Dataset
 
 In this section, we'll explore using Supervision in combination with Albumentations to augment our dataset. Data augmentation is a common technique in computer vision to increase the size and diversity of training datasets, leading to improved model performance and generalization.
@@ -424,7 +625,7 @@ augmented_annotations = replace(
 
 ### What dataset formats does supervision support?
 
-For detection datasets, supervision supports YOLO, COCO JSON, and Pascal VOC. Use `DetectionDataset.from_yolo()`, `from_coco()`, or `from_pascal_voc()` to load, and `as_yolo()`, `as_coco()`, or `as_pascal_voc()` to save. Classification datasets use `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
+For detection datasets, supervision supports YOLO, COCO JSON, Pascal VOC, CreateML, and LabelMe. Use `DetectionDataset.from_yolo()`, `from_coco()`, `from_pascal_voc()`, `from_createml()`, or `from_labelme()` to load, and `as_yolo()`, `as_coco()`, `as_pascal_voc()`, `as_createml()`, or `as_labelme()` to save. Classification datasets use `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
 
 ### Can I split a dataset into train/val/test sets?
 

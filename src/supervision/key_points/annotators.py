@@ -1,13 +1,12 @@
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
+from supervision.annotators.core import _color_for_canvas
 from supervision.annotators.utils import (
     ColorLookup,
     _get_color_by_index,
@@ -51,6 +50,33 @@ def _resolve_keypoint_color(
     return _get_color_by_index(color=color, idx=idx)
 
 
+def _validate_edge_indices(edge: tuple[int, int], vertex_count: int) -> tuple[int, int]:
+    """Validate 1-based skeleton edges and return zero-based vertex indexes."""
+    vertex_a, vertex_b = edge
+    if not (1 <= vertex_a <= vertex_count and 1 <= vertex_b <= vertex_count):
+        raise ValueError(
+            "Edge indices must use the 1-based convention and be within the "
+            f"available keypoint range [1, {vertex_count}], got {edge}."
+        )
+    # Public skeleton definitions are 1-based; keypoint arrays are zero-based.
+    return vertex_a - 1, vertex_b - 1
+
+
+def _has_finite_coordinates(point: npt.ArrayLike) -> bool:
+    """Report whether a keypoint carries coordinates that can be rasterized.
+
+    Pose estimators mark an undetected or occluded keypoint with `NaN` rather than
+    dropping it, and :class:`~supervision.key_points.core.KeyPoints` accepts
+    those values, so annotators receive them routinely. Every drawing helper
+    below converts a coordinate to `int`, which raises
+    on `NaN` and on an infinity, and `np.allclose(point, 0)` does not catch either.
+    :meth:`~supervision.key_points.core.KeyPoints.as_detections` already
+    excludes non-finite coordinates; this keeps the annotators on the same rule
+    instead of aborting the whole frame.
+    """
+    return bool(np.isfinite(point).all())
+
+
 class BaseKeyPointAnnotator(ABC):
     @abstractmethod
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
@@ -58,9 +84,9 @@ class BaseKeyPointAnnotator(ABC):
 
 
 class VertexAnnotator(BaseKeyPointAnnotator):
-    """
-    A class that specializes in drawing skeleton vertices on images. It uses
-    specified key points to determine the locations where the vertices should be
+    """A class that specializes in drawing skeleton vertices on images.
+
+    It uses specified key points to determine the locations where the vertices should be
     drawn.
     """
 
@@ -87,20 +113,23 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Annotates the given scene with skeleton vertices based on the provided key
-        points. It draws circles at each key point location. Anchors marked as
-        not visible via ``key_points.visible`` are skipped.
+        """Annotates the given scene with skeleton vertices based on the provided key
+        points. It draws circles at each key point location. Anchors marked as not
+        visible via ``key_points.visible``, and anchors whose coordinates are not
+        finite, are skipped.
 
         Args:
             scene: The image where skeleton vertices will be drawn. `ImageType` is a
                 flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
-            key_points: A collection of key points where each key point consists of x
-                and y coordinates.
+            key_points: A collection of key points. Only the first two coordinate
+                channels, x and y, determine pixel positions.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
         Example:
             ```pycon
@@ -122,13 +151,12 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
         for detection_index, xy in enumerate(key_points.xy):
-            for point_index, (x, y) in enumerate(xy):
-                if np.allclose((x, y), 0):
+            for point_index, (x, y) in enumerate(xy[:, :2]):
+                if np.allclose((x, y), 0) or not _has_finite_coordinates((x, y)):
                     continue
                 if (
                     key_points.visible is not None
@@ -154,9 +182,10 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
 
 class EdgeAnnotator(BaseKeyPointAnnotator):
-    """
-    A class that specializes in drawing skeleton edges on images using specified key
-    points. It connects key points with lines to form the skeleton structure.
+    """A class that specializes in drawing skeleton edges on images using specified key
+    points.
+
+    It connects key points with lines to form the skeleton structure.
     """
 
     def __init__(
@@ -192,10 +221,10 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Annotates the given scene by drawing lines between specified key points to form
-        edges. Edges where either endpoint is marked as not visible via
-        ``key_points.visible`` are skipped.
+        """Annotates the given scene by drawing lines between specified key points to
+        form edges. Edges where either endpoint is marked as not visible via
+        ``key_points.visible``, or where either endpoint has a non-finite x/y
+        coordinate, are skipped. An extra coordinate does not affect drawing.
 
         Args:
             scene: The image where skeleton edges will be drawn. `ImageType` is a
@@ -206,6 +235,9 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
         Example:
             Single-skeleton example:
@@ -258,7 +290,6 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -286,12 +317,15 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     continue
                 edges = _looked_up
 
-            for class_a, class_b in edges:
-                idx_a = class_a - 1
-                idx_b = class_b - 1
-                xy_a = xy[idx_a]
-                xy_b = xy[idx_b]
+            for edge in edges:
+                idx_a, idx_b = _validate_edge_indices(edge=edge, vertex_count=len(xy))
+                xy_a = xy[idx_a, :2]
+                xy_b = xy[idx_b, :2]
                 if np.allclose(xy_a, 0) or np.allclose(xy_b, 0):
+                    continue
+                if not _has_finite_coordinates(xy_a) or not _has_finite_coordinates(
+                    xy_b
+                ):
                     continue
                 if key_points.visible is not None:
                     if (
@@ -390,14 +424,14 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
     def _iter_ellipse_params(
         self, key_points: KeyPoints
     ) -> list[list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]]:
-        """Return ellipse params grouped by sigma level (outermost first)."""
+        """Return image-space ellipse params, using x/y, outermost level first."""
         covariances = self._get_covariances(key_points)
         levels: list[
             list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]
         ] = [[] for _ in self.sigma]
         for detection_index, xy in enumerate(key_points.xy):
-            for point_index, (x, y) in enumerate(xy):
-                if np.allclose((x, y), 0):
+            for point_index, (x, y) in enumerate(xy[:, :2]):
+                if np.allclose((x, y), 0) or not _has_finite_coordinates((x, y)):
                     continue
                 if (
                     key_points.visible is not None
@@ -428,16 +462,14 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
 
 
 class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws filled semi-transparent covariance ellipses at multiple sigma levels
-    around each keypoint, each ring in a different color.  This produces a
-    bullseye-like uncertainty visualization where inner rings represent higher
-    probability density.
+    """Draws filled semi-transparent covariance ellipses at multiple sigma levels around
+    each keypoint, each ring in a different color.  This produces a bullseye-like
+    uncertainty visualization where inner rings represent higher probability density.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     def __init__(
@@ -453,7 +485,8 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
                 innermost.  Accepts a single float or a sequence of floats.
                 Defaults to ``(1.0, 2.0, 3.0)``.
             color: The color for each sigma level.  Accepts a single
-                ``Color`` or a sequence of colors (one per sigma level).
+                :class:`~supervision.draw.color.Color` or a sequence of colors
+                (one per sigma level).
                 Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
             opacity: Opacity of the overlay mask. Must be between ``0`` and
                 ``1``.
@@ -464,8 +497,9 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Draws filled semi-transparent covariance ellipses around each keypoint.
+        """Draws filled semi-transparent covariance ellipses around each keypoint.
+        Keypoints marked as not visible via ``key_points.visible``, and keypoints whose
+        coordinates are not finite, are skipped.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -475,6 +509,9 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
         Returns:
             The annotated image, matching the type of ``scene``.
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
         Example:
             ```pycon
@@ -505,7 +542,6 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -529,14 +565,13 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
 
 class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws stroke-only concentric covariance ellipse rings at multiple sigma
-    levels around each keypoint.
+    """Draws stroke-only concentric covariance ellipse rings at multiple sigma levels
+    around each keypoint.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     def __init__(
@@ -552,7 +587,8 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
                 innermost.  Accepts a single float or a sequence of floats.
                 Defaults to ``(1.0, 2.0, 3.0)``.
             color: The color for each sigma level.  Accepts a single
-                ``Color`` or a sequence of colors (one per sigma level).
+                :class:`~supervision.draw.color.Color` or a sequence of colors
+                (one per sigma level).
                 Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
             thickness: Line thickness of the ellipse outlines.
             max_axis: Optional cap for ellipse semi-axis lengths in pixels.
@@ -562,8 +598,9 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Draws stroke-only covariance ellipse outlines around each keypoint.
+        """Draws stroke-only covariance ellipse outlines around each keypoint. Keypoints
+        marked as not visible via ``key_points.visible``, and keypoints whose
+        coordinates are not finite, are skipped.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -573,6 +610,9 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
         Returns:
             The annotated image, matching the type of ``scene``.
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
         Example:
             ```pycon
@@ -604,7 +644,6 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -626,16 +665,15 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
 
 class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws filled covariance ellipses with a radial fade: full opacity at the
-    center, smoothly falling off to zero at the ellipse boundary.  The falloff
-    follows a power curve controlled by ``decay``, producing a soft glow that
-    is strongest near the keypoint.
+    """Draws filled covariance ellipses with a radial fade: full opacity at the center,
+    smoothly falling off to zero at the ellipse boundary.  The falloff follows a power
+    curve controlled by ``decay``, producing a soft glow that is strongest near the
+    keypoint.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     _DECAY: float = 2.0
@@ -653,7 +691,8 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
                 innermost.  Accepts a single float or a sequence of floats.
                 Defaults to ``(1.0, 2.0, 3.0)``.
             color: The color for each sigma level.  Accepts a single
-                ``Color`` or a sequence of colors (one per sigma level).
+                :class:`~supervision.draw.color.Color` or a sequence of colors
+                (one per sigma level).
                 Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
             opacity: Peak opacity at the ellipse center. Must be between ``0``
                 and ``1``.
@@ -664,8 +703,9 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Draws radially-fading covariance ellipses around each keypoint.
+        """Draws radially-fading covariance ellipses around each keypoint. Keypoints
+        marked as not visible via ``key_points.visible``, and keypoints whose
+        coordinates are not finite, are skipped.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -675,6 +715,9 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
         Returns:
             The annotated image, matching the type of ``scene``.
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
         Example:
             ```pycon
@@ -705,12 +748,12 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
         h, w = scene.shape[:2]
-        composite: npt.NDArray[np.float32] = scene.astype(np.float32)
+        # Blend in an (H, W, C) view so a grayscale scene broadcasts like a BGR one.
+        composite: npt.NDArray[np.float32] = np.atleast_3d(scene).astype(np.float32)
 
         for level in self._iter_ellipse_params(key_points):
             for center, axis_lengths, angle, _sigma, color in level:
@@ -718,9 +761,13 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
                 if ax == 0 or ay == 0:
                     continue
 
+                # `ax` runs along `angle`, not along the image x axis, so the region
+                # must cover the rotated ellipse's bounding box or a vertical or
+                # diagonal ellipse is cut off.
                 pad = 2
-                roi_half_w = ax + pad
-                roi_half_h = ay + pad
+                cos_t, sin_t = np.cos(np.radians(angle)), np.sin(np.radians(angle))
+                roi_half_w = int(np.ceil(np.hypot(ax * cos_t, ay * sin_t))) + pad
+                roi_half_h = int(np.ceil(np.hypot(ax * sin_t, ay * cos_t))) + pad
                 cx, cy = center
 
                 x_min = max(cx - roi_half_w, 0)
@@ -748,12 +795,14 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
                 scaled_alpha = falloff * self.opacity
 
-                bgr = np.array(color.as_bgr(), dtype=np.float32)
+                pixel = np.array(
+                    _color_for_canvas(color.as_bgr(), scene), dtype=np.float32
+                )
                 roi = composite[y_min:y_max, x_min:x_max]
                 alpha_3 = scaled_alpha[:, :, np.newaxis]
-                roi[:] = roi * (1 - alpha_3) + bgr * alpha_3
+                roi[:] = roi * (1 - alpha_3) + pixel * alpha_3
 
-        np.copyto(scene, composite.astype(np.uint8))
+        np.copyto(scene, composite.astype(np.uint8).reshape(scene.shape))
         return scene
 
 
@@ -761,9 +810,10 @@ VertexEllipseAnnotator = VertexEllipseAreaAnnotator
 
 
 class VertexLabelAnnotator:
-    """
-    A class that draws labels of skeleton vertices on images. It uses specified key
-    points to determine the locations where the vertices should be drawn.
+    """A class that draws labels of skeleton vertices on images.
+
+    It uses specified key points to determine the locations where the vertices should be
+    drawn.
     """
 
     def __init__(
@@ -824,15 +874,16 @@ class VertexLabelAnnotator:
         self.smart_position = smart_position
         self.color_lookup = color_lookup
 
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         key_points: KeyPoints,
         labels: list[str] | dict[int, list[str]] | None = None,
     ) -> ImageType:
-        """
-        Draws labels at skeleton vertex positions on the image. Vertices
-        marked not visible via ``key_points.visible`` are skipped.
+        """Draws labels at skeleton vertex positions on the image. Vertices marked not
+        visible via ``key_points.visible``, and vertices whose coordinates are not
+        finite, are skipped.
 
         Args:
             scene: The image where vertex labels will be drawn. `ImageType` is a
@@ -848,6 +899,9 @@ class VertexLabelAnnotator:
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
         Example:
             Single-skeleton example:
@@ -911,7 +965,6 @@ class VertexLabelAnnotator:
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         font = cv2.FONT_HERSHEY_SIMPLEX
 
         skeletons_count, points_count, _ = key_points.xy.shape
@@ -924,7 +977,7 @@ class VertexLabelAnnotator:
         all_text_colors: list[Color] = []
 
         for i in range(skeletons_count):
-            xy = key_points.xy[i]
+            xy = key_points.xy[i, :, :2]
 
             class_id = (
                 int(key_points.class_id[i]) if key_points.class_id is not None else None
@@ -932,6 +985,8 @@ class VertexLabelAnnotator:
             instance_labels = self._resolve_labels(labels, points_count, class_id)
 
             for j in range(points_count):
+                if not _has_finite_coordinates(xy[j]):
+                    continue
                 if key_points.visible is not None:
                     if not key_points.visible[i, j]:
                         continue

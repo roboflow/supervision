@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import time
 from enum import Enum
 
-import cv2
 import numpy as np
 from rfdetr import RFDETRBase, RFDETRLarge, RFDETRMedium, RFDETRNano, RFDETRSmall
+from trackers import ByteTrackTracker
 from utils.general import find_in_list, get_stream_frames_generator, load_zones_config
-from utils.timers import ClockBasedTimer
 
 import supervision as sv
 
@@ -25,7 +25,7 @@ class ModelSize(Enum):
     LARGE = "large"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
     @classmethod
@@ -44,7 +44,9 @@ class ModelSize(Enum):
         )
 
 
-def load_model(checkpoint: ModelSize | str, device: str, resolution: int):
+def load_model(
+    checkpoint: ModelSize | str, device: str, resolution: int
+) -> RFDETRBase | RFDETRLarge | RFDETRMedium | RFDETRNano | RFDETRSmall:
     checkpoint = ModelSize.from_value(checkpoint)
 
     if checkpoint == ModelSize.NANO:
@@ -97,8 +99,7 @@ def main(
     iou_threshold: float = 0.7,
     classes: list[int] = [],
 ) -> None:
-    """
-    Calculating detections dwell time in zones, using RTSP stream.
+    """Calculating detections dwell time in zones, using RTSP stream.
 
     Args:
         rtsp_url: Complete RTSP URL for the video stream
@@ -112,7 +113,9 @@ def main(
     """
     resolution = adjust_resolution(checkpoint=model_size, resolution=resolution)
     model = load_model(checkpoint=model_size, device=device, resolution=resolution)
-    tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
+    tracker = ByteTrackTracker(
+        minimum_iou_threshold=0.5, track_activation_threshold=confidence_threshold
+    )
     frames_generator = get_stream_frames_generator(rtsp_url=rtsp_url)
     fps_monitor = sv.FPSMonitor()
 
@@ -121,11 +124,13 @@ def main(
         sv.PolygonZone(
             polygon=polygon,
             triggering_anchors=(sv.Position.CENTER,),
+            # Ignore boxes flickering across the edge for under 3 frames.
+            minimum_crossing_threshold=3,
         )
         for polygon in polygons
     ]
-    timers = [ClockBasedTimer() for _ in zones]
 
+    window = sv.ImageWindow("Processed Video")
     for frame in frames_generator:
         fps_monitor.tick()
         fps = fps_monitor.fps
@@ -133,7 +138,8 @@ def main(
         detections = model.predict(frame, threshold=confidence_threshold)
         detections = detections[find_in_list(detections.class_id, classes)]
         detections = detections.with_nms(threshold=iou_threshold)
-        detections = tracker.update_with_detections(detections)
+        detections = tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         annotated_frame = frame.copy()
         annotated_frame = sv.draw_text(
@@ -149,8 +155,14 @@ def main(
                 scene=annotated_frame, polygon=zone.polygon, color=COLORS.by_idx(idx)
             )
 
-            detections_in_zone = detections[zone.trigger(detections)]
-            time_in_zone = timers[idx].tick(detections_in_zone)
+            zone.trigger(detections, timestamp=time.monotonic())
+            time_in_zone = zone.time_in_zone(detections)
+            # Dwell is NaN until confirmed inside or first seen inside,
+            # so only objects confirmed inside, or first seen inside, are
+            # drawn and labelled.
+            is_in_zone = ~np.isnan(time_in_zone)
+            detections_in_zone = detections[is_in_zone]
+            time_in_zone = time_in_zone[is_in_zone]
             custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
 
             annotated_frame = COLOR_ANNOTATOR.annotate(
@@ -169,11 +181,12 @@ def main(
                 custom_color_lookup=custom_color_lookup,
             )
 
-        cv2.imshow("Processed Video", annotated_frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        window.show(annotated_frame)
+        key = window.wait_key(1)
+        if not window.is_open or key == "q":
             break
 
-    cv2.destroyAllWindows()
+    window.close()
 
 
 if __name__ == "__main__":

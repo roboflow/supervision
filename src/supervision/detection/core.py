@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+import warnings
+from collections import Counter
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import reduce
 from typing import Any, cast
@@ -13,76 +15,147 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection._geometry_dispatch import detection_area, detection_iou
+from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
+from supervision.detection.utils._typing import (
+    _DetectionDataType,
+    _DetectionDataValueType,
+    _MetadataType,
+)
+from supervision.detection.utils.boxes import (
+    _box_midpoint,
+    _oriented_box_anchors,
+    _sort_box_corners,
+    xyxyxyxy_to_xyxy,
+)
 from supervision.detection.utils.converters import (
+    MIN_POLYGON_POINT_COUNT,
     mask_to_xyxy,
     polygon_to_mask,
+    rle_to_mask,
     xywh_to_xyxy,
 )
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
+    extract_ultralytics_semantic_masks,
     get_data_item,
     is_data_equal,
     is_metadata_equal,
     merge_data,
     merge_metadata,
     process_roboflow_result,
+    process_semantic_segmentation,
+    read_semantic_result,
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_iou_batch,
     box_non_max_merge,
     box_non_max_suppression,
-    mask_iou_batch,
+    box_soft_non_max_suppression,
     mask_non_max_merge,
     mask_non_max_suppression,
+    mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
-from supervision.detection.utils.masks import calculate_masks_centroids
+from supervision.detection.utils.masks import (
+    calculate_masks_centroids,
+)
 from supervision.detection.vlm import (
-    LMM,
     VLM,
     _validate_vlm_parameters,
     from_deepseek_vl_2,
     from_florence_2,
     from_google_gemini_2_0,
     from_google_gemini_2_5,
+    from_google_gemini_3_5,
+    from_google_gemini_3_6,
+    from_google_gemini_3_7,
+    from_kosmos_2,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
     from_qwen_3_vl,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import get_instance_variables, warn_deprecated
-from supervision.validators import _validate_detections_fields, _validate_resolution
+from supervision.utils.internal import (
+    SupervisionWarnings,
+    _to_numpy,
+    get_instance_variables,
+)
+from supervision.validators import (
+    _validate_data,
+    _validate_detections_fields,
+    _validate_resolution,
+)
+
+#: VLM parsers taking a string result and returning `(xyxy, class_id, class_name)`.
+_VLM_BOX_PARSERS: dict[VLM, Callable[..., tuple[Any, Any, Any]]] = {
+    VLM.PALIGEMMA: from_paligemma,
+    VLM.QWEN_2_5_VL: from_qwen_2_5_vl,
+    VLM.QWEN_3_VL: from_qwen_3_vl,
+    VLM.DEEPSEEK_VL_2: from_deepseek_vl_2,
+    VLM.GOOGLE_GEMINI_2_0: from_google_gemini_2_0,
+}
+
+#: VLM parsers taking a string result and additionally returning `confidence` and
+#: `mask`, as `(xyxy, class_id, class_name, confidence, mask)`.
+_VLM_SEGMENTATION_PARSERS: dict[VLM, Callable[..., tuple[Any, Any, Any, Any, Any]]] = {
+    VLM.GOOGLE_GEMINI_2_5: from_google_gemini_2_5,
+    VLM.GOOGLE_GEMINI_3_5: from_google_gemini_3_5,
+    VLM.GOOGLE_GEMINI_3_6: from_google_gemini_3_6,
+    VLM.GOOGLE_GEMINI_3_7: from_google_gemini_3_7,
+}
+
+#: VLMs whose parsers report no per-detection score, so `Detections.from_vlm` fills
+#: `confidence` with an all-ones array to keep the field populated.
+_VLM_UNIT_CONFIDENCE: frozenset[VLM] = frozenset({VLM.QWEN_2_5_VL, VLM.QWEN_3_VL})
 
 
 @dataclass
 class Detections:
-    """
-    The `sv.Detections` class in the Supervision library standardizes results from
+    """The :class:`~supervision.detection.core.Detections` class standardizes
+    results from
     various object detection and segmentation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
+    integration with the external [trackers](https://trackers.roboflow.com/latest/),
+    [annotators](/latest/detection/annotators/), and
+    [tools](/detection/tools/line_zone/).
+
+    === "RF-DETR"
+
+        [RF-DETR](https://github.com/roboflow/rf-detr)'s `predict` method returns a
+        :class:`~supervision.detection.core.Detections` object directly, so no
+        conversion step is needed. Segmentation models such as `RFDETRSegSmall`
+        also fill `detections.mask`, so the result works with
+        :class:`~supervision.annotators.core.MaskAnnotator` as is.
+
+        ```python
+        from supervision import _cv2 as cv2
+        import supervision as sv
+        from rfdetr import RFDETRMedium
+
+        model = RFDETRMedium()
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
+        detections = model.predict(image[:, :, ::-1])
+        ```
 
     === "Inference"
 
-        Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference)
-        method, which accepts model results from both detection and segmentation models.
+        Use :meth:`~supervision.detection.core.Detections.from_inference`, which
+        accepts model results from both detection and segmentation models.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
-        model = get_model(model_id="yolov8n-640")
+        model = get_model(model_id="rfdetr-small")
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
         results = model.infer(image)[0]
         detections = sv.Detections.from_inference(results)
@@ -90,11 +163,11 @@ class Detections:
 
     === "Ultralytics"
 
-        Use [`sv.Detections.from_ultralytics`](/detection/core/#supervision.detection.core.Detections.from_ultralytics)
-        method, which accepts model results from both detection and segmentation models.
+        Use :meth:`~supervision.detection.core.Detections.from_ultralytics`, which
+        accepts model results from both detection and segmentation models.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
 
@@ -106,8 +179,8 @@ class Detections:
 
     === "Transformers"
 
-        Use [`sv.Detections.from_transformers`](/detection/core/#supervision.detection.core.Detections.from_transformers)
-        method, which accepts model results from both detection and segmentation models.
+        Use :meth:`~supervision.detection.core.Detections.from_transformers`, which
+        accepts model results from both detection and segmentation models.
 
         ```python
         import torch
@@ -153,13 +226,13 @@ class Detections:
             as the video name, camera parameters, timestamp, or other global metadata.
     """  # noqa: E501 // docs
 
-    xyxy: npt.NDArray[np.generic]
-    mask: npt.NDArray[np.generic] | CompactMask | None = None
-    confidence: npt.NDArray[np.generic] | None = None
-    class_id: npt.NDArray[np.generic] | None = None
-    tracker_id: npt.NDArray[np.generic] | None = None
-    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    xyxy: npt.NDArray[np.number]
+    mask: npt.NDArray[np.bool_] | CompactMask | None = None
+    confidence: npt.NDArray[np.floating] | None = None
+    class_id: npt.NDArray[np.integer] | None = None
+    tracker_id: npt.NDArray[np.integer] | None = None
+    data: _DetectionDataType = field(default_factory=dict)
+    metadata: _MetadataType = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         _validate_detections_fields(
@@ -172,27 +245,23 @@ class Detections:
         )
 
     def __len__(self) -> int:
-        """
-        Returns the number of detections in the Detections object.
-        """
+        """Returns the number of detections in the Detections object."""
         return len(self.xyxy)
 
     def __iter__(
         self,
     ) -> Iterator[
         tuple[
-            npt.NDArray[np.generic],
-            npt.NDArray[np.generic] | None,
+            npt.NDArray[np.number],
+            npt.NDArray[np.bool_] | None,
             np.generic | None,
             np.generic | None,
             np.generic | None,
-            dict[str, npt.NDArray[np.generic] | list[Any]],
+            _DetectionDataType,
         ]
     ]:
-        """
-        Iterates over the Detections object and yield a tuple of
-        `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
-        """
+        """Iterates over the Detections object and yield a tuple of `(xyxy, mask,
+        confidence, class_id, tracker_id, data)` for each detection."""
         for i in range(len(self.xyxy)):
             yield (
                 self.xyxy[i],
@@ -206,13 +275,34 @@ class Detections:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Detections):
             return NotImplemented
+
+        def array_equal_or_none(
+            a: npt.NDArray[np.generic] | None,
+            b: npt.NDArray[np.generic] | None,
+        ) -> bool:
+            if a is None or b is None:
+                return a is b
+            return bool(np.array_equal(a, b))
+
+        def mask_equal(
+            a: npt.NDArray[np.generic] | CompactMask | None,
+            b: npt.NDArray[np.generic] | CompactMask | None,
+        ) -> bool:
+            if a is None or b is None:
+                return a is b
+            if isinstance(a, CompactMask):
+                return bool(a == b)
+            if isinstance(b, CompactMask):
+                return bool(b == a)
+            return bool(np.array_equal(a, b))
+
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
-                np.array_equal(self.mask, other.mask),
-                np.array_equal(self.class_id, other.class_id),
-                np.array_equal(self.confidence, other.confidence),
-                np.array_equal(self.tracker_id, other.tracker_id),
+                mask_equal(self.mask, other.mask),
+                array_equal_or_none(self.class_id, other.class_id),
+                array_equal_or_none(self.confidence, other.confidence),
+                array_equal_or_none(self.tracker_id, other.tracker_id),
                 is_data_equal(self.data, other.data),
                 is_metadata_equal(self.metadata, other.metadata),
             ]
@@ -232,7 +322,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import torch
             import supervision as sv
 
@@ -253,25 +343,30 @@ class Detections:
     @classmethod
     def from_ultralytics(cls, ultralytics_results: Any) -> Detections:
         """
-        Creates a `sv.Detections` instance from a
+        Creates a :class:`~supervision.detection.core.Detections` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         !!! Note
 
-            `from_ultralytics` is compatible with
+            :meth:`~supervision.detection.core.Detections.from_ultralytics` is
+            compatible with
             [detection](https://docs.ultralytics.com/tasks/detect/),
-            [segmentation](https://docs.ultralytics.com/tasks/segment/), and
-            [OBB](https://docs.ultralytics.com/tasks/obb/) models.
+            [segmentation](https://docs.ultralytics.com/tasks/segment/),
+            [semantic segmentation](https://docs.ultralytics.com/tasks/semantic/),
+            and [OBB](https://docs.ultralytics.com/tasks/obb/) models. A semantic
+            segmentation result gives one detection per class present in the image,
+            with a mask covering all of that class's pixels and no confidence.
 
         Args:
-            ultralytics_results: The output Results instance from Ultralytics.
+            ultralytics_results: The output Results instance from Ultralytics,
+                with tensor or NumPy properties (including `Results.numpy()`).
 
         Returns:
             A new Detections object.
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -283,15 +378,15 @@ class Detections:
         """
 
         if hasattr(ultralytics_results, "obb") and ultralytics_results.obb is not None:
-            class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
+            class_id = _to_numpy(ultralytics_results.obb.cls).astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
-            oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
+            oriented_box_coordinates = _to_numpy(ultralytics_results.obb.xyxyxyxy)
             return cls(
-                xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
-                confidence=ultralytics_results.obb.conf.cpu().numpy(),
+                xyxy=_to_numpy(ultralytics_results.obb.xyxy),
+                confidence=_to_numpy(ultralytics_results.obb.conf),
                 class_id=class_id,
                 tracker_id=(
-                    ultralytics_results.obb.id.int().cpu().numpy()
+                    _to_numpy(ultralytics_results.obb.id).astype(np.int32)
                     if ultralytics_results.obb.id is not None
                     else None
                 ),
@@ -301,27 +396,51 @@ class Detections:
                 },
             )
 
+        if getattr(ultralytics_results, "semantic_mask", None) is not None:
+            class_id, semantic_masks = extract_ultralytics_semantic_masks(
+                ultralytics_results
+            )
+            if len(class_id) == 0:
+                # A map with no named class returns the same empty form as the
+                # other branches, not a (0, H, W) mask.
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
+            class_names = np.array(
+                [ultralytics_results.names[i] for i in class_id], dtype=str
+            )
+            return cls(
+                xyxy=mask_to_xyxy(semantic_masks),
+                mask=semantic_masks,
+                class_id=class_id,
+                data={CLASS_NAME_DATA_FIELD: class_names},
+            )
+
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
             masks = extract_ultralytics_masks(ultralytics_results)
+            if masks is None:
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
-                class_id=np.arange(len(ultralytics_results)),
+                class_id=np.zeros(len(masks), dtype=int),
             )
 
         if (
             hasattr(ultralytics_results, "boxes")
             and ultralytics_results.boxes is not None
         ):
-            class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+            class_id = _to_numpy(ultralytics_results.boxes.cls).astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
             return cls(
-                xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
-                confidence=ultralytics_results.boxes.conf.cpu().numpy(),
+                xyxy=_to_numpy(ultralytics_results.boxes.xyxy),
+                confidence=_to_numpy(ultralytics_results.boxes.conf),
                 class_id=class_id,
                 mask=extract_ultralytics_masks(ultralytics_results),
                 tracker_id=(
-                    ultralytics_results.boxes.id.int().cpu().numpy()
+                    _to_numpy(ultralytics_results.boxes.id).astype(np.int32)
                     if ultralytics_results.boxes.id is not None
                     else None
                 ),
@@ -349,7 +468,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from super_gradients.training import models
             import supervision as sv
 
@@ -379,7 +498,12 @@ class Detections:
         inference result.
 
         Args:
-            tensorflow_results: The output results from Tensorflow Hub.
+            tensorflow_results: Raw output dict from a TensorFlow Hub
+                object-detection model. Must contain:
+                ``"detection_boxes"`` (shape ``[1, N, 4]``, normalized
+                ``[ymin, xmin, ymax, xmax]``), ``"detection_scores"``
+                (shape ``[1, N]``), and ``"detection_classes"``
+                (shape ``[1, N]``).
             resolution_wh: The input image resolution as `(width, height)`.
                 Bounding boxes from Tensorflow are normalized and are scaled
                 to absolute coordinates using this resolution.
@@ -387,26 +511,38 @@ class Detections:
         Returns:
             A new Detections object.
 
+        Note:
+            TensorFlow Hub object-detection models return bounding boxes
+            normalized as ``[ymin, xmin, ymax, xmax]``. This method rescales
+            them to absolute pixel coordinates and reorders them to ``xyxy``
+            (``[xmin, ymin, xmax, ymax]``) before constructing the
+            :class:`~supervision.detection.core.Detections` object.
+
         Example:
             ```python
             import tensorflow as tf
             import tensorflow_hub as hub
             import numpy as np
-            import cv2
+            import supervision as sv
+            from PIL import Image
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
             model = hub.load(module_handle)
-            img = np.array(cv2.imread(SOURCE_IMAGE_PATH))
-            result = model(img)
+            img = np.array(Image.open("<SOURCE_IMAGE_PATH>"))
+            result = model(np.expand_dims(img, axis=0))
             detections = sv.Detections.from_tensorflow(
                 result, resolution_wh=(img.shape[1], img.shape[0])
             )
             ```
         """
 
-        boxes = tensorflow_results["detection_boxes"][0].numpy()
-        boxes[:, [0, 2]] *= resolution_wh[0]
-        boxes[:, [1, 3]] *= resolution_wh[1]
+        # Tensorflow returns normalized boxes as [ymin, xmin, ymax, xmax], so the
+        # y coordinates (cols 0, 2) scale by height and x (cols 1, 3) by width.
+        # `.numpy()` may share memory with the source tensor, so copy before the
+        # in-place scaling to avoid mutating the caller's result / double-scaling.
+        boxes = tensorflow_results["detection_boxes"][0].numpy().copy()
+        boxes[:, [0, 2]] *= resolution_wh[1]
+        boxes[:, [1, 3]] *= resolution_wh[0]
         boxes = boxes[:, [1, 0, 3, 2]]
         return cls(
             xyxy=boxes,
@@ -436,7 +572,7 @@ class Detections:
                 task="yolo",
                 model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
              )
-            result = yolo_pipeline(<SOURCE IMAGE PATH>)
+            result = yolo_pipeline("<SOURCE_IMAGE_PATH>")
             detections = sv.Detections.from_deepsparse(result)
             ```
         """  # noqa: E501 // docs
@@ -465,7 +601,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from mmdet.apis import init_detector, inference_detector
 
@@ -498,6 +634,32 @@ class Detections:
         Creates a Detections instance from object detection or panoptic, semantic
         and instance segmentation
         [Transformer](https://github.com/huggingface/transformers) inference result.
+
+        For object detection, pass post-processed predictions with pixel `xyxy`
+        boxes, `labels`, and `scores`. Training targets containing `class_labels`
+        need a separate conversion; see
+        [Evaluate targets from a PyTorch DataLoader](https://supervision.roboflow.com/latest/metrics/mean_average_precision/#evaluate-targets-from-a-pytorch-dataloader).
+
+        For semantic segmentation, pass either a class-ID tensor or the result of
+        `post_process_semantic_segmentation(return_segmentation_scores=True)`.
+        Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
+        holds one score per detection. Every class in the map is kept, including id 0.
+        To load a Roboflow Inference result or build compact masks, use
+        :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`.
+
+        !!! tip "RF-DETR"
+
+            For RF-DETR, prefer the official
+            [`rfdetr`](https://github.com/roboflow/rf-detr) package maintained by
+            Roboflow: its `predict()` returns
+            :class:`~supervision.detection.core.Detections` directly. RF-DETR
+            results from Transformers can also be converted here.
+
+        For zero-shot object detection, pass the result of
+        `post_process_grounded_object_detection`. Class names come from its
+        `text_labels` rather than `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo set
+        `class_id` to the index of the matched text query; Grounding DINO reports
+        the matched phrases instead of indices, so its `class_id` is `None`.
 
         Args:
             transformers_results: Inference results from your Transformers model.
@@ -539,7 +701,6 @@ class Detections:
             )
             ```
         """
-
         if (
             transformers_results.__class__.__name__ == "Tensor"
             or "segmentation" in transformers_results
@@ -566,7 +727,8 @@ class Detections:
             raise ValueError(
                 "The provided Transformers results do not contain any valid fields."
                 " Expected fields are 'boxes', 'masks', 'segments_info' or"
-                " 'segmentation'."
+                " 'segmentation'. If you are using RF-DETR, consider the official"
+                " `rfdetr` package, whose predict() returns Detections directly."
             )
 
     @classmethod
@@ -585,7 +747,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
             from detectron2.config import get_cfg
@@ -617,17 +779,55 @@ class Detections:
         )
 
     @classmethod
-    def from_inference(cls, roboflow_result: dict[str, Any] | Any) -> Detections:
+    def from_inference(
+        cls,
+        roboflow_result: dict[str, Any] | Any,
+        *,
+        compact_masks: bool = False,
+    ) -> Detections:
         """
-        Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)
+        Create a :class:`~supervision.detection.core.Detections` object from the
+        [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
         package results. This method extracts bounding boxes, class IDs,
         confidences, and class names from the Roboflow API result and encapsulates
         them into a Detections object.
 
+        A semantic segmentation result, whose `predictions` hold one
+        `segmentation_mask` instead of a list of objects, is loaded with
+        :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`
+        and its defaults: one detection per class id, background id `0` dropped.
+
         Args:
             roboflow_result: The result from the
                 Roboflow API or Inference package containing predictions.
+            compact_masks: When `True`, return segmentation masks as
+                :class:`~supervision.detection.compact_mask.CompactMask`.
+                The default `False` preserves the existing dense NumPy mask
+                representation.
+
+                Warning:
+                    When `compact_masks=True`, the crop policy depends on how
+                    each prediction encodes its mask:
+
+                    - Native size-matched COCO-RLE (the RLE `size` equals the
+                      image size) is **cropped to the detector bounding box**
+                      (`xyxy`). For instance-segmentation models the detector
+                      box may not tightly bound the mask, so pixels beyond the
+                      box boundary are silently dropped.
+                    - Polygon-derived masks (`points`) are cropped to the
+                      axis-aligned bounds of their rounded vertices, clipped
+                      to the image. Every filled polygon pixel is retained.
+                    - Size-mismatched COCO-RLE masks are decoded, resized to
+                      the image, and retained full-frame.
+
+                    Because only the box-cropped path is lossy,
+                    `from_inference(r)` and
+                    `from_inference(r, compact_masks=True)` can return masks
+                    with different areas and IoU **only** for native
+                    size-matched COCO-RLE predictions. Use `compact_masks=True`
+                    only when the memory savings outweigh the boundary loss on
+                    that path.
 
         Returns:
             A Detections object containing the bounding boxes, class IDs,
@@ -635,28 +835,65 @@ class Detections:
                 `detections.data["class_name"]` is always present as a
                 string-dtype NumPy array aligned with the detections; it is
                 empty (shape `(0,)`, dtype str) when `predictions` is empty
-                or absent.
+                or absent. `detections.tracker_id` is `None` when no
+                predictions carry a tracker ID, or when only a subset do
+                (mixed batch) — in that case all tracker IDs are dropped to
+                preserve alignment with the bounding boxes. Similarly,
+                `detections.mask` is `None` when no predictions include mask
+                data, or when only a subset carry masks — all masks are dropped
+                to preserve xyxy alignment.
+                When `compact_masks=True` and all predictions carry mask data,
+                `detections.mask` is a
+                :class:`~supervision.detection.compact_mask.CompactMask` rather
+                than a dense boolean array.
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
 
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
-            model = get_model(model_id="yolov8s-640")
+            model = get_model(model_id="rfdetr-seg-small")
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
+            compact_detections = sv.Detections.from_inference(
+                result, compact_masks=True
+            )
             ```
         """
         if hasattr(roboflow_result, "dict"):
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(roboflow_result, "json"):
             roboflow_result = roboflow_result.json()
-        xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
-            roboflow_result=roboflow_result
+        semantic_predictions = (
+            roboflow_result.get("predictions")
+            if isinstance(roboflow_result, dict)
+            else None
         )
+        # Every other task returns a list (or, for multi-label classification, a
+        # dict keyed by class name), so only a semantic result holds this field.
+        if isinstance(semantic_predictions, dict) and (
+            "segmentation_mask" in semantic_predictions
+        ):
+            return cls.from_semantic_segmentation(
+                roboflow_result, compact_masks=compact_masks
+            )
+        masks: npt.NDArray[np.bool_] | CompactMask | None
+        # Design note (ADR): the `compact_masks` flag changes the runtime type of
+        # `detections.mask` from `NDArray[bool_]` to `CompactMask`, so every mask
+        # consumer must branch on `isinstance(detections.mask, CompactMask)`. A
+        # typed factory / `mask_format=` enum would be cleaner but would require a
+        # deprecation cycle if introduced later.
+        if compact_masks:
+            xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
+                roboflow_result=roboflow_result, compact_masks=True
+            )
+        else:
+            xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
+                roboflow_result=roboflow_result
+            )
 
         if np.asarray(xyxy).shape[0] == 0:
             empty_detection = cls.empty()
@@ -670,6 +907,95 @@ class Detections:
             mask=masks,
             tracker_id=trackers,
             data=data,
+        )
+
+    @classmethod
+    def from_semantic_segmentation(
+        cls,
+        segmentation_result: Any,
+        *,
+        class_map: dict[int, str] | dict[str, str] | None = None,
+        confidence_mask: Any = None,
+        background_id: int | None = 0,
+        compact_masks: bool = False,
+    ) -> Detections:
+        """
+        Create a :class:`~supervision.detection.core.Detections` object from a
+        semantic segmentation result, such as the one a
+        [Roboflow Inference](https://inference.roboflow.com/) semantic
+        segmentation model returns.
+
+        Each class id present in the map becomes one detection with a mask
+        covering every pixel of that class and the tight box around it.
+
+        :meth:`~supervision.detection.core.Detections.from_inference` calls this
+        method for a semantic result, so a whole Inference result loads either way.
+        Call this one directly for a raw map, to override the result's `class_map`
+        or `confidence_mask`, or to keep the background.
+
+        For Hugging Face Transformers models, use
+        :meth:`~supervision.detection.core.Detections.from_transformers`, which takes
+        the post-processed tensor directly and keeps every class.
+
+        Args:
+            segmentation_result: One Inference result or its `predictions`, as a dict
+                or an object, from which `segmentation_mask`, `class_map` and
+                `confidence_mask` are read. Also accepts the per-pixel class ids
+                alone, as a base64 PNG string without a data-URI prefix or an
+                `(H, W)` integer array or tensor. Class IDs must fit in `int64`.
+            class_map: Maps a class id, as an integer or as text, to its name, for
+                example `{"1": "road"}`. A class missing from it is named by its id.
+                Overrides the one inside `segmentation_result`.
+            confidence_mask: Optional per-pixel 8-bit confidence with the same
+                shape as the class ids, in the same formats and in the range 0-255.
+                When available,
+                `confidence` is each class's mean over its pixels divided by
+                255; otherwise `confidence` is `None`. Overrides the one inside
+                `segmentation_result`.
+            background_id: Class id left out of the result. Pass `None` to keep
+                every class.
+            compact_masks: When `True`, return
+                :class:`~supervision.detection.compact_mask.CompactMask`, built
+                one class at a time, instead of a dense `(N, H, W)` array.
+
+        Returns:
+            A Detections object with one entry per remaining class id.
+                `detections.data["class_name"]` is always present, empty when
+                no class remains.
+
+        Raises:
+            ValueError: If the input is a list or holds no map, a map is not valid
+                base64, not a PNG, not a single-channel integer `(H, W)` map, or the
+                two maps differ in shape, a class ID exceeds the `int64` range, or
+                confidence values are outside 0-255.
+
+        Example:
+            ```python
+            import supervision as sv
+            from inference import get_model
+
+            model = get_model(model_id="<SEMANTIC_SEGMENTATION_MODEL_ID>")
+            result = model.infer("<SOURCE_IMAGE_PATH>")[0]
+
+            detections = sv.Detections.from_semantic_segmentation(result)
+            ```
+        """
+        segmentation_mask, class_map, confidence_mask = read_semantic_result(
+            segmentation_result, class_map, confidence_mask
+        )
+        xyxy, confidence, class_id, masks, data = process_semantic_segmentation(
+            segmentation_mask=segmentation_mask,
+            class_map=class_map,
+            confidence_mask=confidence_mask,
+            background_id=background_id,
+            compact_masks=compact_masks,
+        )
+        if masks is None:
+            empty_detection = cls.empty()
+            empty_detection.data = data
+            return empty_detection
+        return cls(
+            xyxy=xyxy, confidence=confidence, class_id=class_id, mask=masks, data=data
         )
 
     @classmethod
@@ -704,12 +1030,33 @@ class Detections:
         sorted_generated_masks = sorted(
             sam_result, key=lambda x: x["area"], reverse=True
         )
+        if len(sorted_generated_masks) == 0:
+            return cls.empty()
 
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
-        mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
+        segmentations = [mask["segmentation"] for mask in sorted_generated_masks]
+        first_segmentation = segmentations[0]
 
-        if np.asarray(xywh).shape[0] == 0:
-            return cls.empty()
+        if all(isinstance(segmentation, np.ndarray) for segmentation in segmentations):
+            mask = np.stack(segmentations, axis=0)
+        elif all(isinstance(segmentation, dict) for segmentation in segmentations):
+            image_height, image_width = cast(
+                tuple[int, int], tuple(int(v) for v in first_segmentation["size"])
+            )
+            mask = np.stack(
+                [
+                    rle_to_mask(
+                        segmentation["counts"],
+                        (image_width, image_height),
+                    )
+                    for segmentation in segmentations
+                ],
+                axis=0,
+            )
+        else:
+            raise ValueError(
+                "SAM segmentations must all be dense arrays or COCO RLE dictionaries."
+            )
 
         xyxy = xywh_to_xyxy(xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
@@ -736,7 +1083,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference.models.sam3 import SegmentAnything3
             from inference.core.entities.requests.sam3 import Sam3Prompt
@@ -766,6 +1113,8 @@ class Detections:
             )
             ```
         """
+        from supervision import _cv2 as cv2
+
         width, height = _validate_resolution(resolution_wh)
 
         masks = []
@@ -816,6 +1165,27 @@ class Detections:
                 full_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
                 for poly in pred_masks:
                     polygon = np.array(poly, dtype=np.int32)
+                    if polygon.ndim != 2 or polygon.shape[0] < MIN_POLYGON_POINT_COUNT:
+                        if polygon.ndim == 2 and polygon.shape[1] == 2:
+                            if polygon.shape[0] == 1:
+                                x, y = polygon[0]
+                                if 0 <= x < width and 0 <= y < height:
+                                    full_mask[y, x] = True
+                            elif polygon.shape[0] == 2:
+                                # polygon_to_mask blanks < MIN_POLYGON_POINT_COUNT
+                                # vertices; draw the two-point line directly instead.
+                                line_mask = np.zeros((height, width), dtype=np.uint8)
+                                cv2.line(
+                                    line_mask,
+                                    tuple(polygon[0]),
+                                    tuple(polygon[1]),
+                                    color=(1,),
+                                    thickness=1,
+                                )
+                                np.logical_or(
+                                    full_mask, line_mask.astype(bool), out=full_mask
+                                )
+                        continue
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)
                     )
@@ -903,19 +1273,36 @@ class Detections:
             x1 = x0 + bbox["w"]
             y1 = y0 + bbox["h"]
 
-            for tag in tags:
-                confidence = tag["confidence"]
-                class_name: str = tag["name"]
-                class_id_val: int | None = inverted_map.get(class_name, None)
+            selected_tag: dict[str, Any] | None = None
+            selected_class_id: int | None = None
+            for tag in sorted(
+                tags, key=lambda candidate: candidate["confidence"], reverse=True
+            ):
+                class_name = tag["name"]
+                class_id_val = inverted_map.get(class_name, None)
 
                 if is_dynamic_mapping and class_id_val is None:
                     class_id_val = len(inverted_map)
                     inverted_map[class_name] = class_id_val
 
                 if class_id_val is not None:
-                    xyxy.append([x0, y0, x1, y1])
-                    confidences.append(confidence)
-                    class_ids.append(class_id_val)
+                    selected_tag = tag
+                    selected_class_id = class_id_val
+                    break
+
+            if selected_tag is None:
+                if tags:
+                    warnings.warn(
+                        "Azure detection skipped because none of its tags matched "
+                        "the provided class_map.",
+                        category=SupervisionWarnings,
+                        stacklevel=2,
+                    )
+                continue
+
+            xyxy.append([x0, y0, x1, y1])
+            confidences.append(selected_tag["confidence"])
+            class_ids.append(cast(int, selected_class_id))
 
         if len(xyxy) == 0:
             return Detections.empty()
@@ -969,517 +1356,35 @@ class Detections:
         )
 
     @classmethod
-    def from_lmm(
-        cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
-    ) -> Detections:
-        """
-        !!! deprecated "Deprecated"
-            `Detections.from_lmm` is **deprecated** and will be removed in `supervision-0.31.0`.
-            Please use `Detections.from_vlm` instead.
-
-        Creates a Detections object from the given result string based on the specified
-        Large Multimodal Model (LMM).
-
-        | Name                | Enum (sv.LMM)        | Tasks                   | Required parameters         | Optional parameters |
-        |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
-        | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
-        | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
-        | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
-        | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
-        | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
-        | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
-        | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
-
-        Args:
-            lmm: The type of LMM (Large Multimodal Model) to use.
-            result: The result string containing the detection data.
-            **kwargs: Additional keyword arguments required by the specified LMM.
-
-        Returns:
-            A new Detections object.
-
-        Raises:
-            ValueError: If the LMM is invalid, required arguments are missing, or
-                disallowed arguments are provided.
-            ValueError: If the specified LMM is not supported.
-
-        !!! example "PaliGemma"
-            ```python
-
-            import supervision as sv
-
-            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
-            detections = sv.Detections.from_lmm(
-                sv.LMM.PALIGEMMA,
-                paligemma_result,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog']
-            )
-            detections.xyxy
-            # array([[250., 250., 750., 750.]])
-
-            detections.class_id
-            # array([0])
-
-            detections.data
-            # {'class_name': array(['cat'], dtype='<U10')}
-            ```
-
-        !!! example "Qwen2.5-VL"
-
-            ??? tip "Prompt engineering"
-
-                To get the best results from Qwen2.5-VL, use clear and descriptive prompts
-                that specify exactly what you want to detect.
-
-                **For general object detection, use this comprehensive prompt:**
-
-                ```
-                Detect all objects in the image and return their locations and labels.
-                ```
-
-                **For specific object detection with detailed descriptions:**
-
-                ```
-                Detect the red object that is leading in this image and return its location and label.
-                ```
-
-                **For simple, targeted detection:**
-
-                ```
-                leading blue truck
-                ```
-
-                **Additional effective prompts:**
-
-                ```
-                Find all people and vehicles in this scene
-                ```
-
-                ```
-                Locate all animals in the image
-                ```
-
-                ```
-                Identify traffic signs and their positions
-                ```
-
-                **Tips for better results:**
-
-                - Use descriptive language that clearly specifies what to look for
-                - Include color, size, or position descriptors when targeting specific objects
-                - Be specific about the type of objects you want to detect
-                - The model responds well to both detailed instructions and concise phrases
-                - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
-
-
-            ```python
-            import supervision as sv
-
-            qwen_2_5_vl_result = \"\"\"```json
-            [
-                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
-                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
-            ]
-            ```\"\"\"
-            detections = sv.Detections.from_lmm(
-                sv.LMM.QWEN_2_5_VL,
-                qwen_2_5_vl_result,
-                input_wh=(1000, 1000),
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
-            detections.xyxy
-            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
-
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
-
-            detections.class_id
-            # array([0, 1])
-            ```
-
-        !!! example "Qwen3-VL"
-
-            ```python
-            import supervision as sv
-
-            qwen_3_vl_result = \"\"\"```json
-            [
-                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
-                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
-            ]
-            ```\"\"\"
-            detections = sv.Detections.from_lmm(
-                sv.LMM.QWEN_3_VL,
-                qwen_3_vl_result,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
-            detections.xyxy
-            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
-
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
-
-            detections.class_id
-            # array([0, 1])
-            ```
-
-        !!! example "Gemini 2.0"
-
-            ??? tip "Prompt engineering"
-
-                From Gemini 2.0 onwards, models are further trained to detect objects in
-                an image and get their bounding box coordinates. The coordinates,
-                relative to image dimensions, scale to [0, 1000]. You need to convert
-                these normalized coordinates back to pixel coordinates using your
-                original image size.
-
-                According to the Gemini API documentation on image prompts (see
-                https://ai.google.dev/gemini-api/docs/vision#image-input), when using a
-                single image with text, the recommended approach is to place the text
-                prompt after the image part in the contents array. This ordering has
-                been shown to produce significantly better results in practice.
-
-                For example, when calling the Gemini API directly, you can structure
-                the request like this, with the image part first and the text prompt
-                second in the `parts` list:
-
-                ```json
-                {
-                  "model": "models/gemini-2.0-flash",
-                  "contents": [
-                    {
-                      "role": "user",
-                      "parts": [
-                        {
-                          "inline_data": {
-                            "mime_type": "image/png",
-                            "data": "<BASE64_IMAGE_BYTES>"
-                          }
-                        },
-                        {
-                          "text": "Detect all the cats and dogs in the image..."
-                        }
-                      ]
-                    }
-                  ]
-                }
-                ```
-                To get the best results from Google Gemini 2.0, use the following prompt.
-
-                ```
-                Detect all the cats and dogs in the image. The box_2d should be
-                [ymin, xmin, ymax, xmax] normalized to 0-1000.
-                ```
-
-            ```python
-            import supervision as sv
-
-            gemini_response_text = \"\"\"```json
-                [
-                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
-                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
-                ]
-            ```\"\"\"
-
-            detections = sv.Detections.from_lmm(
-                sv.LMM.GOOGLE_GEMINI_2_0,
-                gemini_response_text,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
-
-            detections.xyxy
-            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
-
-            detections.class_id
-            # array([0, 1])
-            ```
-
-        !!! example "Gemini 2.5"
-
-            ??? tip "Prompt engineering"
-
-                To get the best results from Google Gemini 2.5, use the following prompt.
-
-                This prompt is designed to detect all visible objects in the image,
-                including small, distant, or partially visible ones, and to return
-                tight bounding boxes.
-
-                According to the Gemini API documentation on image prompts, when using
-                a single image with text, the recommended approach is to place the text
-                prompt after the image part in the `contents` array. See the official
-                Gemini vision docs for details:
-                https://ai.google.dev/gemini-api/docs/vision#multi-part-input
-
-                For example, using the `google-generativeai` client:
-
-                ```python
-                from google.generativeai import types
-
-                response = model.generate_content(
-                    contents=[
-                        types.Part.from_image(image_bytes),
-                        "Carefully examine this image and detect ALL visible objects, including "
-                        "small, distant, or partially visible ones.",
-                    ],
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                )
-                ```
-
-                This ordering (image first, then text) has been shown to produce
-                significantly better results in practice.
-
-                ```
-                Carefully examine this image and detect ALL visible objects, including
-                small, distant, or partially visible ones.
-
-                IMPORTANT: Focus on finding as many objects as possible, even if you are
-                only moderately confident.
-
-                Make sure each bounding box is as tight as possible.
-
-                Valid object classes: {class_list}
-
-                For each detected object, provide:
-                - "label": the exact class name from the list above
-                - "confidence": your certainty (between 0.0 and 1.0)
-                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0-1000
-                - "mask": the binary mask of the object as a base64-encoded string
-
-                Detect everything that matches the valid classes. Do not be
-                conservative; include objects even with moderate confidence.
-
-                Return a JSON array, for example:
-                [
-                    {
-                        "label": "person",
-                        "confidence": 0.95,
-                        "box_2d": [100, 200, 300, 400],
-                        "mask": "..."
-                    },
-                    {
-                        "label": "kite",
-                        "confidence": 0.80,
-                        "box_2d": [50, 150, 250, 350],
-                        "mask": "..."
-                    }
-                ]
-                ```
-
-                When using the google-genai library, it is recommended to set
-                thinking_budget=0 in thinking_config for more direct and faster responses.
-
-                ```python
-                from google.generativeai import types
-
-                model.generate_content(
-                    ...,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                    thinking_config=types.ThinkingConfig(
-                        thinking_budget=0
-                    )
-                )
-                ```
-
-                For a shorter prompt focused only on segmentation masks, you can use:
-
-                ```
-                Return a JSON list of segmentation masks. Each entry should include the
-                2D bounding box in the "box_2d" key, the segmentation mask in the "mask"
-                key, and the text label in the "label" key. Use descriptive labels.
-                ```
-
-            ```python
-            import supervision as sv
-
-            gemini_response_text = \"\"\"```json
-                [
-                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
-                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
-                ]
-            ```\"\"\"
-
-            detections = sv.Detections.from_lmm(
-                sv.LMM.GOOGLE_GEMINI_2_5,
-                gemini_response_text,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
-
-            detections.xyxy
-            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
-
-            detections.class_id
-            # array([0, 1])
-            ```
-
-        !!! example "Moondream"
-
-
-            ??? tip "Prompt engineering"
-
-                To get the best results from Moondream, use optimized prompts that leverage
-                its object detection capabilities effectively.
-
-                **For general object detection, use this simple prompt:**
-
-                ```
-                objects
-                ```
-
-                This single-word prompt instructs Moondream to detect all visible objects
-                and return them in the proper JSON format with normalized coordinates.
-
-
-            ```python
-            import supervision as sv
-
-            moondream_result = {
-                'objects': [
-                    {
-                        'x_min': 0.5704046934843063,
-                        'y_min': 0.20069346576929092,
-                        'x_max': 0.7049859315156937,
-                        'y_max': 0.3012596592307091
-                    },
-                    {
-                        'x_min': 0.6210969910025597,
-                        'y_min': 0.3300672620534897,
-                        'x_max': 0.8417936339974403,
-                        'y_max': 0.4961046129465103
-                    }
-                ]
-            }
-
-            detections = sv.Detections.from_lmm(
-                sv.LMM.MOONDREAM,
-                moondream_result,
-                resolution_wh=(1000, 1000),
-            )
-
-            detections.xyxy
-            # array([[1752.28,  818.82, 2165.72, 1229.14],
-            #        [1908.01, 1346.67, 2585.99, 2024.11]])
-            ```
-
-        !!! example "DeepSeek-VL2"
-
-
-            ??? tip "Prompt engineering"
-
-                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
-                its object detection and visual grounding capabilities effectively.
-
-                **For general object detection, use the following user prompt:**
-
-                ```
-                <image>\\n<|ref|>The giraffe at the front<|/ref|>
-                ```
-
-                **For visual grounding, use the following user prompt:**
-
-                ```
-                <image>\\n<|grounding|>Detect the giraffes
-                ```
-
-            ```python
-            from PIL import Image
-            import supervision as sv
-
-            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
-
-            detections = sv.Detections.from_vlm(
-                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
-            )
-
-            detections.xyxy
-            # array([[ 420,  293,  724,  982],
-            #        [  18,   33,  458, 1084]])
-
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
-            ```
-        """  # noqa: E501
-
-        warn_deprecated(
-            "`Detections.from_lmm` is deprecated since `supervision-0.26.0` "
-            "and will be removed in `supervision-0.31.0`. "
-            "Use `Detections.from_vlm` instead."
-        )
-
-        # filler logic mapping old from_lmm to new from_vlm
-        lmm_to_vlm = {
-            LMM.PALIGEMMA: VLM.PALIGEMMA,
-            LMM.FLORENCE_2: VLM.FLORENCE_2,
-            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
-            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
-            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
-            LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
-        }
-
-        if isinstance(lmm, LMM):
-            vlm = lmm_to_vlm[lmm]
-
-        elif isinstance(lmm, str):
-            try:
-                lmm_enum = LMM(lmm.lower())
-            except ValueError:
-                raise ValueError(
-                    f"Invalid LMM string '{lmm}'. Must be one of "
-                    f"{[m.value for m in LMM]}"
-                )
-            vlm = lmm_to_vlm[lmm_enum]
-
-        else:
-            raise ValueError(
-                f"Invalid type for 'lmm': {type(lmm)}. Must be LMM or str."
-            )
-
-        return cls.from_vlm(vlm=vlm, result=result, **kwargs)
-
-    @classmethod
     def from_vlm(
-        cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
+        cls,
+        vlm: VLM | str,
+        result: str | dict[str, Any] | tuple[str, list[Any]],
+        **kwargs: Any,
     ) -> Detections:
-        """
+        """Creates a Detections object from the given result string based on the
+        specified Vision Language Model, :class:`~supervision.detection.vlm.VLM`.
 
-        Creates a Detections object from the given result string based on the specified
-        Vision Language Model (VLM).
-
-        | Name                | Enum (sv.VLM)        | Tasks                   | Required parameters         | Optional parameters |
+        | Name                | VLM member           | Tasks                   | Required parameters         | Optional parameters |
         |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
-        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`,            | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.5   | `GOOGLE_GEMINI_3_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.6   | `GOOGLE_GEMINI_3_6`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.7   | `GOOGLE_GEMINI_3_7`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
+        | Kosmos-2            | `KOSMOS_2`           | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             vlm: The type of VLM (Vision Language Model) to use.
-            result: The result string containing the detection data.
+            result: The model output containing the detection data: a string for
+                text-based VLMs, a dict for Florence-2 and Moondream, or the
+                `(caption, entities)` tuple returned by Kosmos-2.
             **kwargs: Additional keyword arguments required by the specified VLM.
 
         Returns:
@@ -1491,25 +1396,23 @@ class Detections:
             ValueError: If the specified VLM is not supported.
 
         !!! example "PaliGemma"
-            ```python
+            ```pycon
+            >>> import supervision as sv
 
-            import supervision as sv
+            >>> paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.PALIGEMMA,
+            ...     paligemma_result,
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog']
+            ... )
+            >>> detections.xyxy
+            array([[250., 250., 750., 750.]])
+            >>> detections.class_id
+            array([0])
+            >>> detections.data
+            {'class_name': array(['cat'], dtype='<U4')}
 
-            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
-            detections = sv.Detections.from_vlm(
-                sv.VLM.PALIGEMMA,
-                paligemma_result,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog']
-            )
-            detections.xyxy
-            # array([[250., 250., 750., 750.]])
-
-            detections.class_id
-            # array([0])
-
-            detections.data
-            # {'class_name': array(['cat'], dtype='<U10')}
             ```
 
         !!! example "Qwen2.5-VL"
@@ -1560,63 +1463,57 @@ class Detections:
                 - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
 
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            qwen_2_5_vl_result = \"\"\"```json
-            [
-                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
-                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
-            ]
-            ```\"\"\"
-            detections = sv.Detections.from_vlm(
-                sv.VLM.QWEN_2_5_VL,
-                qwen_2_5_vl_result,
-                input_wh=(1000, 1000),
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
-            detections.xyxy
-            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+            >>> qwen_2_5_vl_result = \"\"\"```json
+            ... [
+            ...     {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+            ...     {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ... ]
+            ... ```\"\"\"
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.QWEN_2_5_VL,
+            ...     qwen_2_5_vl_result,
+            ...     input_wh=(1000, 1000),
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog'],
+            ... )
+            >>> detections.xyxy
+            array([[139., 768., 315., 954.],
+                   [366., 679., 536., 849.]])
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['cat', 'dog'], dtype='<U3')}
 
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
-
-            detections.class_id
-            # array([0, 1])
             ```
 
         !!! example "Qwen3-VL"
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            qwen_3_vl_result = \"\"\"```json
-            [
-                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
-                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
-            ]
-            ```\"\"\"
-            detections = sv.Detections.from_vlm(
-                sv.VLM.QWEN_3_VL,
-                qwen_3_vl_result,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
-            detections.xyxy
-            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+            >>> qwen_3_vl_result = \"\"\"```json
+            ... [
+            ...     {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+            ...     {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ... ]
+            ... ```\"\"\"
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.QWEN_3_VL,
+            ...     qwen_3_vl_result,
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog'],
+            ... )
+            >>> detections.xyxy
+            array([[139., 768., 315., 954.],
+                   [366., 679., 536., 849.]])
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['cat', 'dog'], dtype='<U3')}
 
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
-
-            detections.class_id
-            # array([0, 1])
             ```
 
         !!! example "Gemini 2.0"
@@ -1642,31 +1539,30 @@ class Detections:
                 [ymin, xmin, ymax, xmax] normalized to 0-1000.
                 ```
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            gemini_response_text = \"\"\"```json
-                [
-                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
-                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
-                ]
-            ```\"\"\"
+            >>> gemini_response_text = \"\"\"```json
+            ...     [
+            ...         {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+            ...         {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+            ...     ]
+            ... ```\"\"\"
 
-            detections = sv.Detections.from_vlm(
-                sv.VLM.GOOGLE_GEMINI_2_0,
-                gemini_response_text,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.GOOGLE_GEMINI_2_0,
+            ...     gemini_response_text,
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog'],
+            ... )
+            >>> detections.xyxy
+            array([[ 40., 543., 200., 728.],
+                   [352., 653., 522., 820.]])
+            >>> detections.data
+            {'class_name': array(['cat', 'dog'], dtype='<U3')}
+            >>> detections.class_id
+            array([0, 1])
 
-            detections.xyxy
-            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
-
-            detections.class_id
-            # array([0, 1])
             ```
 
         !!! example "Gemini 2.5"
@@ -1761,31 +1657,60 @@ class Detections:
                 key, and the text label in the "label" key. Use descriptive labels.
                 ```
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            gemini_response_text = \"\"\"```json
-                [
-                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
-                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
-                ]
-            ```\"\"\"
+            >>> gemini_response_text = \"\"\"```json
+            ...     [
+            ...         {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+            ...         {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+            ...     ]
+            ... ```\"\"\"
 
-            detections = sv.Detections.from_vlm(
-                sv.VLM.GOOGLE_GEMINI_2_5,
-                gemini_response_text,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.GOOGLE_GEMINI_2_5,
+            ...     gemini_response_text,
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog'],
+            ... )
+            >>> detections.xyxy
+            array([[ 40., 543., 200., 728.],
+                   [352., 653., 522., 820.]])
+            >>> detections.data
+            {'class_name': array(['cat', 'dog'], dtype='<U3')}
+            >>> detections.class_id
+            array([0, 1])
 
-            detections.xyxy
-            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+            ```
 
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+        !!! example "Google Gemini 3.6 / 3.7"
 
-            detections.class_id
-            # array([0, 1])
+            Gemini 3.6 and 3.7 return structured JSON with a top-level `boxes` key.
+            Each entry carries `box_2d` as `[y_min, x_min, y_max, x_max]`, a `label`,
+            and an optional `mask` polygon of `[x, y]` points, all normalized to
+            0-1000 across the full image. Use `sv.VLM.GOOGLE_GEMINI_3_7` the same way.
+
+            ```pycon
+            >>> import supervision as sv
+
+            >>> gemini_response_text = (
+            ...     '{"boxes": [{"box_2d": [250, 200, 750, 800], '
+            ...     '"mask": [[200, 250], [800, 250], [800, 750], [200, 750]], '
+            ...     '"label": "wooden bowl"}]}'
+            ... )
+
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.GOOGLE_GEMINI_3_6,
+            ...     gemini_response_text,
+            ...     resolution_wh=(100, 80),
+            ... )
+            >>> detections.xyxy
+            array([[20., 20., 80., 60.]])
+            >>> detections.mask.shape
+            (1, 80, 100)
+            >>> detections.data
+            {'class_name': array(['wooden bowl'], dtype='<U11')}
+
             ```
 
         !!! example "Moondream"
@@ -1806,35 +1731,35 @@ class Detections:
                 and return them in the proper JSON format with normalized coordinates.
 
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            moondream_result = {
-                'objects': [
-                    {
-                        'x_min': 0.5704046934843063,
-                        'y_min': 0.20069346576929092,
-                        'x_max': 0.7049859315156937,
-                        'y_max': 0.3012596592307091
-                    },
-                    {
-                        'x_min': 0.6210969910025597,
-                        'y_min': 0.3300672620534897,
-                        'x_max': 0.8417936339974403,
-                        'y_max': 0.4961046129465103
-                    }
-                ]
-            }
+            >>> moondream_result = {
+            ...     'objects': [
+            ...         {
+            ...             'x_min': 0.5704046934843063,
+            ...             'y_min': 0.20069346576929092,
+            ...             'x_max': 0.7049859315156937,
+            ...             'y_max': 0.3012596592307091
+            ...         },
+            ...         {
+            ...             'x_min': 0.6210969910025597,
+            ...             'y_min': 0.3300672620534897,
+            ...             'x_max': 0.8417936339974403,
+            ...             'y_max': 0.4961046129465103
+            ...         }
+            ...     ]
+            ... }
 
-            detections = sv.Detections.from_vlm(
-                sv.VLM.MOONDREAM,
-                moondream_result,
-                resolution_wh=(1000, 1000),
-            )
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.MOONDREAM,
+            ...     moondream_result,
+            ...     resolution_wh=(1000, 1000),
+            ... )
+            >>> detections.xyxy  # doctest: +ELLIPSIS
+            array([[570.404..., 200.693..., 704.985..., 301.259...],
+                   [621.096..., 330.067..., 841.793..., 496.104...]])
 
-            detections.xyxy
-            # array([[1752.28,  818.82, 2165.72, 1229.14],
-            #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
 
         !!! example "DeepSeek-VL2"
@@ -1857,105 +1782,237 @@ class Detections:
                 <image>\\n<|grounding|>Detect the giraffes
                 ```
 
-            ```python
-            from PIL import Image
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+            >>> deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
 
-            detections = sv.Detections.from_vlm(
-                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
-            )
+            >>> detections = sv.Detections.from_vlm(
+            ...     vlm=sv.VLM.DEEPSEEK_VL_2,
+            ...     result=deepseek_vl2_result,
+            ...     resolution_wh=(1000, 1000),
+            ... )
+            >>> detections.xyxy
+            array([[ 580.58057 ,  270.27026 , 1000.      ,  904.9049  ],
+                   [  26.026026,   31.03103 ,  632.6326  ,  998.999   ]],
+                  dtype=float32)
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['The giraffe at the back', 'The giraffe at the front'],
+                  dtype='<U24')}
 
-            detections.xyxy
-            # array([[ 420,  293,  724,  982],
-            #        [  18,   33,  458, 1084]])
-
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
             ```
 
+        !!! example "Kosmos-2"
+
+            ??? tip "Prompt engineering"
+                Kosmos-2 grounds phrases only when the prompt opens with the
+                `<grounding>` token.
+
+                **To ground a specific object, use the following user prompt:**
+
+                ```
+                <grounding>Detect the cats
+                ```
+
+                **To ground every phrase of a caption, use the following user prompt:**
+
+                ```
+                <grounding>Describe this image in detail
+                ```
+
+            `result` is the `(caption, entities)` pair returned by the model's
+            `AutoProcessor.post_process_generation`. An entity grounding several
+            regions contributes one detection per region.
+
+            ```pycon
+            >>> import supervision as sv
+
+            >>> kosmos_2_result = (
+            ...     'An image of a cat and a gramophone.',
+            ...     [
+            ...         ('a cat', (12, 17), [(0.265625, 0.015625, 0.703125, 0.984375)]),
+            ...         ('a gramophone', (24, 36), [(0.234375, 0.015625, 0.703125, 0.515625)]),
+            ...     ],
+            ... )
+
+            >>> detections = sv.Detections.from_vlm(
+            ...     vlm=sv.VLM.KOSMOS_2,
+            ...     result=kosmos_2_result,
+            ...     resolution_wh=(1000, 1000),
+            ... )
+            >>> detections.xyxy
+            array([[265.625,  15.625, 703.125, 984.375],
+                   [234.375,  15.625, 703.125, 515.625]])
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['a cat', 'a gramophone'], dtype='<U12')}
+
+            ```
         """  # noqa: E501
 
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
 
-        if vlm == VLM.PALIGEMMA:
-            assert isinstance(result, str)
-            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
-            data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
-                CLASS_NAME_DATA_FIELD: class_name,
-            }
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
-
-        if vlm == VLM.QWEN_2_5_VL:
-            assert isinstance(result, str)
-            xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
-                len(xyxy), dtype=float
-            )
-            return cls(
-                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
-            )
-
-        if vlm == VLM.QWEN_3_VL:
-            assert isinstance(result, str)
-            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence_arr = np.ones(len(xyxy), dtype=float)
-            return cls(
-                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
-            )
-
-        if vlm == VLM.DEEPSEEK_VL_2:
-            assert isinstance(result, str)
-            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+        # `_validate_vlm_parameters` already enforced `RESULT_TYPES[vlm]`, but the type
+        # checker cannot narrow `result` through that table lookup, so each group
+        # restates the type it expects before delegating to its handler.
+        if vlm in _VLM_BOX_PARSERS or vlm in _VLM_SEGMENTATION_PARSERS:
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
+            return cls._from_vlm_text_result(vlm, result, **kwargs)
 
         if vlm == VLM.FLORENCE_2:
-            assert isinstance(result, dict)
-            xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
-            if len(xyxy) == 0:
-                empty = cls.empty()
-                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
-                return empty
-
-            data = {}
-            if labels is not None:
-                data[CLASS_NAME_DATA_FIELD] = labels
-            if xyxyxyxy is not None:
-                data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
-
-            return cls(xyxy=xyxy, mask=mask, data=data)
-
-        if vlm == VLM.GOOGLE_GEMINI_2_0:
-            assert isinstance(result, str)
-            xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            if not isinstance(result, dict):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be dict."
+                )
+            return cls._from_florence_2_result(result, **kwargs)
 
         if vlm == VLM.MOONDREAM:
-            assert isinstance(result, dict)
-            xyxy = from_moondream(result, **kwargs)
-            return cls(xyxy=xyxy)
+            if not isinstance(result, dict):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be dict."
+                )
+            return cls._from_moondream_result(result, **kwargs)
 
-        if vlm == VLM.GOOGLE_GEMINI_2_5:
-            assert isinstance(result, str)
-            gemini_result = from_google_gemini_2_5(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
-            return cls(
-                xyxy=gemini_result[0],
-                class_id=gemini_result[1],
-                mask=gemini_result[4],
-                confidence=gemini_result[3],
-                data=data,
+        if vlm == VLM.KOSMOS_2:
+            if not isinstance(result, tuple):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be tuple."
+                )
+            return cls._from_kosmos_2_result(result, **kwargs)
+
+        raise ValueError(f"Unsupported VLM value: {vlm}.")
+
+    @classmethod
+    def _from_vlm_text_result(cls, vlm: VLM, result: str, **kwargs: Any) -> Detections:
+        """Build detections from the VLMs whose parser consumes a string result.
+
+        Covers both `_VLM_BOX_PARSERS`, which report boxes and labels only, and
+        `_VLM_SEGMENTATION_PARSERS`, which additionally report confidence and masks.
+        The two differ only in how many arrays their parser hands back, so they share
+        one construction site here rather than one near-identical branch each.
+
+        Args:
+            vlm: The VLM whose parser to dispatch to; must be a key of either
+                `_VLM_BOX_PARSERS` or `_VLM_SEGMENTATION_PARSERS`.
+            result: The raw string response from the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed :class:`~supervision.detection.core.Detections`.
+        """
+        mask: npt.NDArray[np.bool_] | CompactMask | None
+        confidence: npt.NDArray[np.floating] | None
+        if vlm in _VLM_BOX_PARSERS:
+            xyxy, class_id, class_name = _VLM_BOX_PARSERS[vlm](result, **kwargs)
+            mask = None
+            confidence = (
+                np.ones(len(xyxy), dtype=float) if vlm in _VLM_UNIT_CONFIDENCE else None
             )
+        else:
+            xyxy, class_id, class_name, confidence, mask = _VLM_SEGMENTATION_PARSERS[
+                vlm
+            ](result, **kwargs)
 
-        return cls.empty()
+        # Sorting is redundant for the Gemini parsers, which already order each box's
+        # corners, but it is idempotent and keeps every string-result VLM on one code
+        # path instead of tracking which parsers happen to emit ordered corners.
+        return cls(
+            xyxy=_sort_box_corners(xyxy),
+            class_id=class_id,
+            mask=mask,
+            confidence=confidence,
+            data={CLASS_NAME_DATA_FIELD: class_name},
+        )
+
+    @classmethod
+    def _from_florence_2_result(
+        cls, result: dict[str, Any], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Florence-2 task payload.
+
+        Florence-2 is the only VLM whose per-detection fields vary by task: labels are
+        absent for region proposals and oriented boxes are present only for
+        `<OCR_WITH_REGION>`, so `data` is assembled from whichever the task returned
+        rather than from a fixed set of keys.
+
+        Args:
+            result: The task payload returned by the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed :class:`~supervision.detection.core.Detections`, or an
+            empty one carrying an empty `class_name` array when the task
+            reported no boxes.
+        """
+        xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
+        xyxy = _sort_box_corners(xyxy)
+        if len(xyxy) == 0:
+            empty = cls.empty()
+            empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+            return empty
+
+        data: _DetectionDataType = {}
+        if labels is not None:
+            data[CLASS_NAME_DATA_FIELD] = labels
+        if xyxyxyxy is not None:
+            data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
+
+        return cls(xyxy=xyxy, mask=mask, data=data)
+
+    @classmethod
+    def _from_moondream_result(
+        cls, result: dict[str, Any], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Moondream payload.
+
+        Moondream reports boxes only - no labels, scores, or masks - so the result
+        carries `xyxy` and nothing else.
+
+        Args:
+            result: The JSON payload returned by the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed :class:`~supervision.detection.core.Detections`, carrying
+            boxes only.
+        """
+        xyxy = from_moondream(result, **kwargs)
+        return cls(xyxy=_sort_box_corners(xyxy))
+
+    @classmethod
+    def _from_kosmos_2_result(
+        cls, result: tuple[str, list[Any]], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Kosmos-2 grounding payload.
+
+        Kosmos-2 is the only VLM whose result is a `(caption, entities)` tuple rather
+        than a string or a mapping, so it gets its own construction site here.
+
+        Args:
+            result: The `(caption, entities)` pair returned by the model's
+                post-processor.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed :class:`~supervision.detection.core.Detections`, carrying
+            boxes and labels.
+        """
+        xyxy, class_id, class_name = from_kosmos_2(result, **kwargs)
+        return cls(
+            xyxy=_sort_box_corners(xyxy),
+            class_id=class_id,
+            data={CLASS_NAME_DATA_FIELD: class_name},
+        )
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list[Any]) -> Detections:
@@ -1964,6 +2021,10 @@ class Detections:
         [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.
 
         Results are placed in the `data` field with the key `"class_name"`.
+        When EasyOCR returns quadrilateral corners, the original corners are
+        preserved in ``ORIENTED_BOX_COORDINATES``. Call EasyOCR with
+        ``detail=1`` so bounding boxes are available; ``detail=0`` returns text
+        strings only and cannot be converted into detections.
 
         Args:
             easyocr_results: The output Results instance from EasyOCR.
@@ -1985,7 +2046,17 @@ class Detections:
         if len(easyocr_results) == 0:
             return cls.empty()
 
-        bbox = np.array([result[0] for result in easyocr_results])
+        if isinstance(easyocr_results[0], str):
+            raise ValueError(
+                "EasyOCR results produced with detail=0 do not include bounding "
+                "boxes. Call reader.readtext(..., detail=1) instead."
+            )
+
+        bbox = np.array([result[0] for result in easyocr_results], dtype=np.float32)
+        if bbox.ndim != 3 or bbox.shape[1:] != (4, 2):
+            raise ValueError(
+                "EasyOCR results must contain four corner points per detection."
+            )
         xyxy = np.hstack((np.min(bbox, axis=1), np.max(bbox, axis=1)))
         confidence = np.array(
             [
@@ -1995,12 +2066,14 @@ class Detections:
         )
         ocr_text = np.array([result[1] for result in easyocr_results])
 
+        data: _DetectionDataType = {
+            CLASS_NAME_DATA_FIELD: ocr_text,
+            ORIENTED_BOX_COORDINATES: bbox,
+        }
         return cls(
             xyxy=xyxy.astype(np.float32),
             confidence=confidence.astype(np.float32),
-            data={
-                CLASS_NAME_DATA_FIELD: ocr_text,
-            },
+            data=data,
         )
 
     @classmethod
@@ -2018,14 +2091,14 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from ncnn.model_zoo import get_model
             import supervision as sv
 
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = get_model(
                 "yolov8s",
-                target_size=640
+                target_size=640,
                 prob_threshold=0.5,
                 nms_threshold=0.45,
                 num_threads=4,
@@ -2063,18 +2136,20 @@ class Detections:
 
     @classmethod
     def empty(cls) -> Detections:
-        """
-        Create an empty Detections object with no bounding boxes,
-            confidences, or class IDs.
+        """Create an empty Detections object with no bounding boxes, confidences, or
+        class IDs.
 
         Returns:
             An empty Detections object.
 
         Example:
+            ```pycon
             >>> from supervision import Detections
             >>> empty_detections = Detections.empty()
             >>> empty_detections.xyxy.shape
             (0, 4)
+
+            ```
         """
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
@@ -2083,8 +2158,8 @@ class Detections:
         )
 
     def is_empty(self) -> bool:
-        """
-        Check whether the `Detections` object has zero bounding boxes.
+        """Check whether the :class:`~supervision.detection.core.Detections` object has
+        zero bounding boxes.
 
         Returns:
             `True` if there are no detections, `False` otherwise.
@@ -2108,8 +2183,7 @@ class Detections:
 
     @classmethod
     def merge(cls, detections_list: list[Detections]) -> Detections:
-        """
-        Merge a list of Detections objects into a single Detections object.
+        """Merge a list of Detections objects into a single Detections object.
 
         This method takes a list of Detections objects and combines their
         respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
@@ -2120,7 +2194,48 @@ class Detections:
 
         !!! Note
 
-            When merging, empty `Detections` objects are ignored.
+            When merging, empty :class:`~supervision.detection.core.Detections`
+            objects are ignored.
+
+        !!! Note
+
+            **Mask merge policy** — the output mask type follows these rules:
+
+            * All inputs carry
+              :class:`~supervision.detection.compact_mask.CompactMask`
+              → result mask is :class:`~supervision.detection.compact_mask.CompactMask`.
+            * Mixed dense `ndarray` +
+              :class:`~supervision.detection.compact_mask.CompactMask` inputs →
+              dense masks are converted to
+              :class:`~supervision.detection.compact_mask.CompactMask` via
+              :meth:`~supervision.detection.compact_mask.CompactMask.from_dense`;
+              result is :class:`~supervision.detection.compact_mask.CompactMask`.
+              No full
+              `(N, H, W)` stack is allocated.
+
+              !!! warning "Lossy conversion"
+
+                  :meth:`~supervision.detection.compact_mask.CompactMask.from_dense`
+                  crops each dense mask to its detection bounding box
+                  (`xyxy`). **True pixels outside the bounding box are silently
+                  discarded.** This matches the behaviour of
+                  :meth:`~supervision.detection.core.Detections.from_inference`
+                  with `compact_masks=True`. If pixel-perfect
+                  preservation is required, ensure all inputs are already
+                  :class:`~supervision.detection.compact_mask.CompactMask` or use the
+                  all-dense path (no
+                  :class:`~supervision.detection.compact_mask.CompactMask`
+                  inputs).
+
+            * All inputs carry dense `ndarray` → result is `ndarray` (backward
+              compatible).
+            * The pairwise merge path used by
+              :meth:`~supervision.detection.core.Detections.with_nms` /
+              :meth:`~supervision.detection.core.Detections.with_nmm`
+              (:func:`~supervision.detection.core.merge_inner_detection_object_pair`)
+              does **not** preserve
+              :class:`~supervision.detection.compact_mask.CompactMask` — mixed
+              inputs materialise to a dense `ndarray` on that path.
 
         Args:
             detections_list: A list of Detections objects to merge.
@@ -2128,7 +2243,17 @@ class Detections:
         Returns:
             A single Detections object containing the merged data from the input list.
 
+        Raises:
+            ValueError: If some :class:`~supervision.detection.core.Detections`
+                have a `mask` and others do not.
+            ValueError: If :class:`~supervision.detection.compact_mask.CompactMask`
+                inputs have different `image_shape` values.
+            ValueError: If a dense mask `(H, W)` shape differs from the
+                :class:`~supervision.detection.compact_mask.CompactMask`
+                `image_shape` when mixing mask types.
+
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> detections_1 = sv.Detections(
@@ -2150,6 +2275,36 @@ class Detections:
             array([1, 2, 1])
             >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
+
+            ```
+
+        Compact mask merge example:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+            from supervision.detection.compact_mask import CompactMask
+
+            H, W = 720, 1280
+            masks_a = np.zeros((2, H, W), dtype=bool)
+            masks_a[0, 100:200, 100:300] = True
+            xyxy_a = np.array([[100., 100., 299., 199.], [400., 300., 600., 500.]])
+            cm_a = CompactMask.from_dense(masks_a, xyxy_a, image_shape=(H, W))
+
+            det_compact = sv.Detections(
+                xyxy=xyxy_a, mask=cm_a, class_id=np.array([0, 1])
+            )
+
+            masks_b = np.zeros((1, H, W), dtype=bool)
+            masks_b[0, 50:100, 50:150] = True
+            xyxy_b = np.array([[50., 50., 149., 99.]])
+            det_dense = sv.Detections(xyxy=xyxy_b, mask=masks_b, class_id=np.array([2]))
+
+            # Dense mask is converted to CompactMask; no (N, H, W) stack allocated.
+            merged = sv.Detections.merge([det_compact, det_dense])
+            assert isinstance(merged.mask, CompactMask)
+            assert len(merged) == 3
+            ```
         """
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
@@ -2170,25 +2325,58 @@ class Detections:
 
         xyxy = np.vstack([d.xyxy for d in detections_list])
 
-        def stack_or_none(
-            name: str,
-        ) -> npt.NDArray[np.generic] | CompactMask | None:
-            if all(d.__getattribute__(name) is None for d in detections_list):
+        def stack_mask_or_none() -> npt.NDArray[np.generic] | CompactMask | None:
+            masks = [d.mask for d in detections_list]
+            if all(m is None for m in masks):
                 return None
-            if any(d.__getattribute__(name) is None for d in detections_list):
-                raise ValueError(f"All or none of the '{name}' fields must be None")
-            if name == "mask":
-                masks = [d.__getattribute__(name) for d in detections_list]
-                if all(isinstance(m, CompactMask) for m in masks):
-                    return CompactMask.merge(masks)
-                # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
-                return np.vstack([np.asarray(m) for m in masks])
-            return np.hstack([d.__getattribute__(name) for d in detections_list])
+            if any(m is None for m in masks):
+                raise ValueError("All or none of the 'mask' fields must be None")
+            if all(isinstance(m, CompactMask) for m in masks):
+                return CompactMask.merge(cast(list[CompactMask], masks))
+            if all(not isinstance(m, CompactMask) for m in masks):
+                # All-dense: preserve backward-compatible dense stacking.
+                return cast(
+                    npt.NDArray[np.generic], np.vstack([np.asarray(m) for m in masks])
+                )
+            # Mixed dense and CompactMask: convert dense masks to CompactMask to
+            # avoid materialising a full (N, H, W) stack.
+            compact_image_shapes = {
+                m.image_shape for m in masks if isinstance(m, CompactMask)
+            }
+            if len(compact_image_shapes) != 1:
+                raise ValueError(
+                    "Cannot merge CompactMask objects with different image shapes: "
+                    f"{sorted(compact_image_shapes)}"
+                )
+            image_shape: tuple[int, int] = next(iter(compact_image_shapes))
+            compact_list: list[CompactMask] = []
+            for d, m in zip(detections_list, masks):
+                if isinstance(m, CompactMask):
+                    compact_list.append(m)
+                else:
+                    dense = np.asarray(m, dtype=bool)
+                    if dense.shape[1:] != image_shape:
+                        raise ValueError(
+                            f"Dense mask shape {dense.shape[1:]} does not match "
+                            f"CompactMask image_shape {image_shape}."
+                        )
+                    compact_list.append(
+                        CompactMask.from_dense(dense, d.xyxy, image_shape)
+                    )
+            return CompactMask.merge(compact_list)
 
-        mask = stack_or_none("mask")
-        confidence = stack_or_none("confidence")
-        class_id = stack_or_none("class_id")
-        tracker_id = stack_or_none("tracker_id")
+        def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
+            values = [getattr(d, name) for d in detections_list]
+            if all(v is None for v in values):
+                return None
+            if any(v is None for v in values):
+                raise ValueError(f"All or none of the '{name}' fields must be None")
+            return cast(npt.NDArray[np.generic], np.hstack(values))
+
+        mask = cast(npt.NDArray[np.bool_] | CompactMask | None, stack_mask_or_none())
+        confidence = cast(npt.NDArray[np.floating] | None, stack_or_none("confidence"))
+        class_id = cast(npt.NDArray[np.integer] | None, stack_or_none("class_id"))
+        tracker_id = cast(npt.NDArray[np.integer] | None, stack_or_none("tracker_id"))
 
         data = merge_data([d.data for d in detections_list])
 
@@ -2206,75 +2394,242 @@ class Detections:
         )
 
     def get_anchors_coordinates(self, anchor: Position) -> npt.NDArray[np.generic]:
-        """
-        Calculates and returns the coordinates of a specific anchor point
-        within the bounding boxes defined by the `xyxy` attribute. The anchor
-        point can be any of the predefined positions in the `Position` enum,
-        such as `CENTER`, `CENTER_LEFT`, `BOTTOM_RIGHT`, etc.
+        """Compute anchor-point coordinates for each detection.
+
+        The anchor can be any position in the
+        :class:`~supervision.geometry.core.Position` enum, such as
+        `CENTER`, `CENTER_LEFT`, `BOTTOM_RIGHT`, etc.
+
+        Selection order:
+
+        1. If ``data[ORIENTED_BOX_COORDINATES]`` is set and ``anchor`` is not
+           ``Position.CENTER_OF_MASS``, coordinates are computed from the
+           oriented bounding box corners (result lies on the actual rotated
+           body).
+        2. If ``anchor`` is ``Position.CENTER_OF_MASS``, the detection mask
+           centroid is returned regardless of OBB data presence. An empty batch
+           returns no anchors, with or without a mask.
+        3. Otherwise, the anchor is derived from the axis-aligned envelope
+           (``xyxy``).
 
         Args:
-            anchor: An enum specifying the position of the anchor point within the
-                bounding box. Supported positions are defined in the `Position` enum.
+            anchor: Anchor position to compute. Supported positions are
+                defined in the :class:`~supervision.geometry.core.Position` enum.
 
         Returns:
-            An array of shape `(n, 2)`, where `n` is the number of bounding
-                boxes. Each row contains the `[x, y]` coordinates of the specified
-                anchor point for the corresponding bounding box.
+            Array of shape `(n, 2)` where each row is the `[x, y]` anchor
+            coordinate for the corresponding detection. Anchors that average
+            two corners of an integer box, such as `Position.CENTER`, are
+            returned as `float64`; a corner sum beyond `2**53` is rounded
+            once to the nearest `float64`. Anchors that are corners keep the
+            integer dtype of `xyxy`, and floating-point boxes keep their own
+            dtype.
 
         Raises:
-            ValueError: If the provided `anchor` is not supported.
+            ValueError: If the provided `anchor` is not supported, or if `anchor` is
+                ``Position.CENTER_OF_MASS`` and a non-empty batch has no mask.
+
+        Examples:
+            Axis-aligned detection:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0.0, 0.0, 10.0, 4.0]])
+            ... )
+            >>> detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+            array([[5., 4.]])
+
+            ```
+
+            Oriented (rotated) detection — anchor lies on the rotated body,
+            not the axis-aligned envelope:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> corners = np.array(
+            ...     [[[0.0, 0.0], [10.0, 0.0], [10.0, 4.0], [0.0, 4.0]]]
+            ... )
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0.0, 0.0, 10.0, 4.0]]),
+            ...     data={"xyxyxyxy": corners},
+            ... )
+            >>> detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+            array([[5., 4.]])
+
+            ```
         """
+        if ORIENTED_BOX_COORDINATES in self.data and anchor != Position.CENTER_OF_MASS:
+            return cast(
+                npt.NDArray[np.generic],
+                _oriented_box_anchors(
+                    np.asarray(self.data[ORIENTED_BOX_COORDINATES]), anchor
+                ),
+            )
+
+        xyxy = self.xyxy
+
+        def coordinates(
+            x: npt.NDArray[np.number], y: npt.NDArray[np.number]
+        ) -> npt.NDArray[np.generic]:
+            """Combine x and y coordinate arrays into anchor points."""
+            return cast(npt.NDArray[np.generic], np.array([x, y]).transpose())
+
         if anchor == Position.CENTER:
-            return np.array(
-                [
-                    (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return coordinates(
+                _box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+                _box_midpoint(xyxy[:, 1], xyxy[:, 3]),
+            )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
+                # `from_inference` and `from_ultralytics` return an empty batch without
+                # a mask when a model finds nothing. It has no anchors to compute.
+                if len(self) == 0:
+                    return np.empty((0, 2), dtype=np.int_)
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
             return calculate_masks_centroids(masks=self.mask)
         elif anchor == Position.CENTER_LEFT:
-            return np.array(
-                [
-                    self.xyxy[:, 0],
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return coordinates(xyxy[:, 0], _box_midpoint(xyxy[:, 1], xyxy[:, 3]))
         elif anchor == Position.CENTER_RIGHT:
-            return np.array(
-                [
-                    self.xyxy[:, 2],
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return coordinates(xyxy[:, 2], _box_midpoint(xyxy[:, 1], xyxy[:, 3]))
         elif anchor == Position.BOTTOM_CENTER:
-            return np.array(
-                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
-            ).transpose()
+            return coordinates(_box_midpoint(xyxy[:, 0], xyxy[:, 2]), xyxy[:, 3])
         elif anchor == Position.BOTTOM_LEFT:
-            return np.array([self.xyxy[:, 0], self.xyxy[:, 3]]).transpose()
+            return coordinates(xyxy[:, 0], xyxy[:, 3])
         elif anchor == Position.BOTTOM_RIGHT:
-            return np.array([self.xyxy[:, 2], self.xyxy[:, 3]]).transpose()
+            return coordinates(xyxy[:, 2], xyxy[:, 3])
         elif anchor == Position.TOP_CENTER:
-            return np.array(
-                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 1]]
-            ).transpose()
+            return coordinates(_box_midpoint(xyxy[:, 0], xyxy[:, 2]), xyxy[:, 1])
         elif anchor == Position.TOP_LEFT:
-            return np.array([self.xyxy[:, 0], self.xyxy[:, 1]]).transpose()
+            return coordinates(xyxy[:, 0], xyxy[:, 1])
         elif anchor == Position.TOP_RIGHT:
-            return np.array([self.xyxy[:, 2], self.xyxy[:, 1]]).transpose()
+            return coordinates(xyxy[:, 2], xyxy[:, 1])
 
         raise ValueError(f"{anchor} is not supported.")
 
-    def __getitem__(
-        self, index: int | slice | list[int] | npt.NDArray[np.generic] | str
-    ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
+    def get_data(self, key: str) -> _DetectionDataValueType | None:
+        """Get a value from the detection data dictionary.
+
+        Args:
+            key: Data field name.
+
+        Returns:
+            The stored data value, or `None` when the key is absent.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision import Detections
+            >>> detections = Detections(
+            ...     xyxy=np.array([[0, 0, 1, 1]]),
+            ...     data={"class_name": np.array(["cat"])},
+            ... )
+            >>> detections.get_data("class_name").tolist()
+            ['cat']
+
+            ```
         """
-        Get a subset of the Detections object or access an item from its data field.
+        return self.data.get(key)
+
+    def select(
+        self,
+        index: int | np.integer[Any] | slice | list[int] | npt.NDArray[np.generic],
+    ) -> Detections:
+        """Get a subset of the Detections object.
+
+        Args:
+            index: Row index, indices, slice, or boolean mask selecting detections.
+
+        Returns:
+            A new :class:`~supervision.detection.core.Detections` instance
+            containing the selected rows. Always returns a fresh copy — arrays
+            and metadata are never shared with the original,
+            even when the selection is empty or the input has zero detections.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision import Detections
+            >>> detections = Detections(xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
+            >>> detections.select([1]).xyxy.tolist()
+            [[1, 1, 2, 2]]
+
+            ```
+        """
+        mask: npt.NDArray[np.bool_] | CompactMask | None
+        if len(self) == 0:
+            if isinstance(self.mask, CompactMask):
+                mask = self.mask[:0]
+            elif self.mask is not None:
+                mask = self.mask[:0].copy()
+            else:
+                mask = None
+            data = {
+                key: value.copy() if isinstance(value, np.ndarray) else list(value)
+                for key, value in self.data.items()
+            }
+            return Detections(
+                xyxy=self.xyxy.copy(),
+                mask=mask,
+                confidence=(
+                    self.confidence.copy() if self.confidence is not None else None
+                ),
+                class_id=self.class_id.copy() if self.class_id is not None else None,
+                tracker_id=(
+                    self.tracker_id.copy() if self.tracker_id is not None else None
+                ),
+                data=data,
+                metadata=dict(self.metadata),
+            )
+        if isinstance(index, (int, np.integer)):
+            index = [int(index)]
+        array_index = cast(
+            slice | list[int] | npt.NDArray[np.integer | np.bool_], index
+        )
+        data = {
+            key: value.copy() if isinstance(value, np.ndarray) else list(value)
+            for key, value in get_data_item(self.data, array_index).items()
+        }
+        if isinstance(self.mask, CompactMask):
+            mask = self.mask[cast(Any, array_index)]
+        elif self.mask is not None:
+            mask = self.mask[cast(Any, array_index)].copy()
+        else:
+            mask = None
+        return Detections(
+            xyxy=self.xyxy[array_index].copy(),
+            mask=mask,
+            confidence=(
+                self.confidence[array_index].copy()
+                if self.confidence is not None
+                else None
+            ),
+            class_id=(
+                self.class_id[array_index].copy() if self.class_id is not None else None
+            ),
+            tracker_id=(
+                self.tracker_id[array_index].copy()
+                if self.tracker_id is not None
+                else None
+            ),
+            data=data,
+            metadata=dict(self.metadata),
+        )
+
+    def __getitem__(
+        self,
+        index: int
+        | np.integer[Any]
+        | slice
+        | list[int]
+        | npt.NDArray[np.generic]
+        | str,
+    ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
+        """Get a subset of the Detections object or access an item from its data field.
 
         When provided with an integer, slice, list of integers, or a numpy array, this
         method returns a new Detections object that represents a subset of the original
@@ -2289,39 +2644,42 @@ class Detections:
             A subset of the Detections object or an item from the data field.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array(
+            ...         [[10, 10, 50, 50], [60, 10, 180, 50], [10, 60, 50, 180]]
+            ...     ),
+            ...     confidence=np.array([0.9, 0.4, 0.7]),
+            ...     class_id=np.array([0, 1, 0]),
+            ...     data={'feature_vector': np.array([1.0, 2.0, 3.0])},
+            ... )
+            >>> detections[0].xyxy
+            array([[10, 10, 50, 50]])
+            >>> detections[0:2].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 60,  10, 180,  50]])
+            >>> detections[[0, 2]].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections[detections.class_id == 0].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections[detections.confidence > 0.5].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections['feature_vector']
+            array([1., 2., 3.])
 
-            detections = sv.Detections()
-
-            first_detection = detections[0]
-            first_10_detections = detections[0:10]
-            some_detections = detections[[0, 2, 4]]
-            class_0_detections = detections[detections.class_id == 0]
-            high_confidence_detections = detections[detections.confidence > 0.5]
-
-            feature_vector = detections['feature_vector']
             ```
         """
         if isinstance(index, str):
-            return self.data.get(index)
-        if len(self) == 0:
-            return self
-        if isinstance(index, int):
-            index = [index]
-        return Detections(
-            xyxy=self.xyxy[index],
-            mask=self.mask[index] if self.mask is not None else None,
-            confidence=self.confidence[index] if self.confidence is not None else None,
-            class_id=self.class_id[index] if self.class_id is not None else None,
-            tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
-            data=get_data_item(self.data, index),
-            metadata=self.metadata,
-        )
+            return self.get_data(index)
+        return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
-        """
-        Set a value in the data dictionary of the Detections object.
+        """Set a value in the data dictionary of the Detections object.
 
         Args:
             key: The key in the data dictionary to set.
@@ -2329,7 +2687,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -2345,6 +2703,25 @@ class Detections:
                  in detections.class_id
              ]
             ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 10, 50, 50], [60, 10, 180, 50]]),
+            ...     class_id=np.array([0, 1]),
+            ... )
+            >>> names = {0: 'person', 1: 'car'}
+            >>> detections['names'] = [names[c] for c in detections.class_id]
+            >>> detections['names']
+            array(['person', 'car'], dtype='<U6')
+
+            ```
+
+        Raises:
+            TypeError: If `value` is not a `np.ndarray` or `list`.
+            ValueError: If `value` has a length or shape incompatible with
+                the detection count.
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")
@@ -2352,28 +2729,32 @@ class Detections:
         if isinstance(value, list):
             value = np.array(value)
 
+        _validate_data({key: value}, len(self))
         self.data[key] = value
 
     @property
     def area(self) -> npt.NDArray[np.generic]:
-        """
-        Calculate the area of each detection in the set of object detections.
+        """Calculate the area of each detection in the set of object detections.
 
         Selection order:
 
         1. If ``mask`` is set, return the area of each mask.
         2. Else, if ``data[ORIENTED_BOX_COORDINATES]`` is set, return the area of
            the rotated body (shoelace formula on the four corners).
-        3. Otherwise, return the axis-aligned box area (``box_area``).
+        3. Otherwise, return the axis-aligned box area
+           (:meth:`~supervision.detection.core.Detections.box_area`).
 
         **OBB dispatch contract**: presence of ``data[ORIENTED_BOX_COORDINATES]``
         with shape ``(N, 4, 2)`` is the canonical signal that a detection carries
         oriented bounding box geometry. The same presence-of-key check governs
-        ``with_nms``, ``with_nmm``, and this property — always store OBB corners
+        :meth:`~supervision.detection.core.Detections.with_nms`,
+        :meth:`~supervision.detection.core.Detections.with_nmm`, and this
+        property — always store OBB corners
         under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
 
-        **Return dtype**: ``float64`` (OBB branch), input dtype (AABB fallback),
-        ``int64`` (mask branch).
+        **Return dtype**: ``float64`` (OBB branch and integer AABB fallback),
+        ``float32`` (float16 AABB fallback), other floating input dtype
+        (floating AABB fallback), ``int64`` (mask branch).
 
         Returns:
             An array containing the area of each detection
@@ -2381,6 +2762,7 @@ class Detections:
                 where n is the number of detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> corners = np.array(
@@ -2393,63 +2775,203 @@ class Detections:
             ... )
             >>> detections.area
             array([50.])
+
+            Mask branch returns ``int64`` pixel counts:
+
+            >>> mask = np.zeros((2, 10, 10), dtype=bool)
+            >>> mask[0, :3, :3] = True   # 9 pixels
+            >>> mask[1, :5, :5] = True   # 25 pixels
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array(
+            ...         [[0, 0, 10, 10], [0, 0, 10, 10]], dtype=np.float32
+            ...     ),
+            ...     mask=mask,
+            ... )
+            >>> detections.area
+            array([ 9, 25])
+
+            ```
         """
-        if self.mask is not None:
-            if isinstance(self.mask, CompactMask):
-                return self.mask.area
-            return np.array([np.sum(mask) for mask in self.mask])
-        if ORIENTED_BOX_COORDINATES in self.data:
-            return obb_polygon_area(self.data[ORIENTED_BOX_COORDINATES])
-        return self.box_area
+        return detection_area(self)
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
-        """
-        Calculate the area of each bounding box in the set of object detections.
+        """Calculate the area of each bounding box in the set of object detections.
 
         Returns:
             An array of floats containing the area of each bounding
-                box in the format of `(area_1, area_2, ..., area_n)`,
-                where n is the number of detections.
+            box in the format of `(area_1, area_2, ..., area_n)`,
+                where n is the number of detections. Integer coordinates
+                produce ``float64``; ``float16`` coordinates produce ``float32``
+                to avoid overflow and underflow. Other floating coordinates
+                preserve their dtype.
         """
-        return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+        xyxy = self.xyxy
+        if np.issubdtype(xyxy.dtype, np.integer):
+            # Subtract as Python integers first: converting corners to float64
+            # would collapse adjacent 64-bit coordinates above 2**53, while
+            # native integer subtraction can overflow across the dtype range.
+            integer_coordinates = xyxy.astype(object)
+            widths = integer_coordinates[:, 2] - integer_coordinates[:, 0]
+            heights = integer_coordinates[:, 3] - integer_coordinates[:, 1]
+            return np.asarray(widths, dtype=np.float64) * np.asarray(
+                heights, dtype=np.float64
+            )
+
+        if np.issubdtype(xyxy.dtype, np.float16):
+            xyxy = xyxy.astype(np.float32)
+        widths = xyxy[:, 2] - xyxy[:, 0]
+        heights = xyxy[:, 3] - xyxy[:, 1]
+        return widths * heights
 
     @property
     def box_aspect_ratio(self) -> npt.NDArray[np.generic]:
-        """
-        Compute the aspect ratio (width divided by height) for each bounding box.
+        """Compute the aspect ratio (width divided by height) for each bounding box.
 
         Returns:
             Array of shape `(N,)` containing aspect ratios, where `N` is the
                 number of boxes (width / height for each box).
 
         Examples:
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> xyxy = np.array([
+            ...     [10, 10, 50, 50],
+            ...     [60, 10, 180, 50],
+            ...     [10, 60, 50, 180],
+            ... ])
+            >>> detections = sv.Detections(xyxy=xyxy)
+            >>> detections.box_aspect_ratio
+            array([1.        , 3.        , 0.33333333])
+            >>> ar = detections.box_aspect_ratio
+            >>> detections[(ar < 2.0) & (ar > 0.5)].xyxy
+            array([[10, 10, 50, 50]])
 
-            xyxy = np.array([
-                [10, 10, 50, 50],
-                [60, 10, 180, 50],
-                [10, 60, 50, 180],
-            ])
-
-            detections = sv.Detections(xyxy=xyxy)
-
-            detections.box_aspect_ratio
-            # array([1.0, 3.0, 0.33333333])
-
-            ar = detections.box_aspect_ratio
-            detections[(ar < 2.0) & (ar > 0.5)].xyxy
-            # array([[10., 10., 50., 50.]])
             ```
         """
-        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
-        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+        xyxy = self.xyxy
+        if np.issubdtype(xyxy.dtype, np.integer):
+            # Subtract before converting to float64 to preserve narrow boxes at
+            # large integer origins and differences spanning the dtype range.
+            dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+            integer_coordinates = xyxy.astype(dtype)
+            widths: npt.NDArray[np.generic] = np.asarray(
+                integer_coordinates[:, 2] - integer_coordinates[:, 0], dtype=np.float64
+            )
+            heights: npt.NDArray[np.generic] = np.asarray(
+                integer_coordinates[:, 3] - integer_coordinates[:, 1], dtype=np.float64
+            )
+        else:
+            widths = xyxy[:, 2] - xyxy[:, 0]
+            heights = xyxy[:, 3] - xyxy[:, 1]
 
         aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
         np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
         return aspect_ratios
+
+    def to_compact_masks(self) -> Detections:
+        """Return a copy of this Detections with masks converted to CompactMask.
+
+        The dense :attr:`~supervision.detection.core.Detections.mask` field
+        (``NDArray[np.bool_]``) is converted to a
+        :class:`~supervision.detection.compact_mask.CompactMask` without changing
+        mask pixels. When :attr:`~supervision.detection.core.Detections.mask` is
+        already a
+        :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
+        the instance is returned unchanged.
+
+        Note:
+            The crop boundaries are set to the **full image dimensions**, not the
+            detector bounding box. No bbox-crop memory savings apply: the RLE
+            sparsity still reduces storage versus a dense array, but the
+            ``O(bbox_area)`` savings available from
+            ``from_inference(..., compact_masks=True)`` are absent here because
+            every crop spans the whole frame. Call
+            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
+            resulting mask to tighten crops to their bounding boxes, at the cost
+            of potential pixel loss outside those boxes.
+
+        Returns:
+            A new :class:`~supervision.detection.core.Detections` instance with
+            ``mask`` set to a :class:`~supervision.detection.compact_mask.CompactMask`,
+            or ``self``
+            when conversion is not needed.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     mask=np.ones((1, 20, 20), dtype=bool),
+            ... )
+            >>> compact = detections.to_compact_masks()
+            >>> type(compact.mask).__name__
+            'CompactMask'
+            >>> compact.mask.image_shape
+            (20, 20)
+            >>> np.array_equal(compact.mask.to_dense(), detections.mask)
+            True
+
+            ```
+        """
+        from supervision.detection.compact_mask import CompactMask
+
+        if self.mask is None or isinstance(self.mask, CompactMask):
+            return self
+        image_shape = (int(self.mask.shape[1]), int(self.mask.shape[2]))
+        full_image_xyxy = np.tile(
+            np.array(
+                [[0, 0, image_shape[1] - 1, image_shape[0] - 1]], dtype=np.float64
+            ),
+            (len(self), 1),
+        )
+        new = self.__class__(
+            xyxy=self.xyxy,
+            mask=CompactMask.from_dense(
+                masks=self.mask,
+                xyxy=full_image_xyxy,
+                image_shape=image_shape,
+            ),
+            confidence=self.confidence,
+            class_id=self.class_id,
+            tracker_id=self.tracker_id,
+            data=self.data,
+            metadata=dict(self.metadata),
+        )
+        return new
+
+    def _build_nms_predictions(
+        self, class_agnostic: bool, operation_name: str
+    ) -> npt.NDArray[np.floating]:
+        """Stack xyxy + confidence (+ class_id) for NMS/NMM/Soft-NMS dispatch.
+
+        Callers must already have verified `self.confidence is not None`.
+        """
+        if class_agnostic:
+            return cast(
+                npt.NDArray[np.floating],
+                np.hstack(
+                    (self.xyxy, cast(np.ndarray, self.confidence).reshape(-1, 1))
+                ),
+            )
+        if self.class_id is None:
+            raise ValueError(
+                f"Detections class_id must be given for {operation_name} to be "
+                f"executed. If you intended to perform class agnostic "
+                f"{operation_name} set class_agnostic=True."
+            )
+        return cast(
+            npt.NDArray[np.floating],
+            np.hstack(
+                (
+                    self.xyxy,
+                    cast(np.ndarray, self.confidence).reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            ),
+        )
 
     def with_nms(
         self,
@@ -2457,11 +2979,11 @@ class Detections:
         class_agnostic: bool = False,
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
-        """
-        Performs non-max suppression on detection set. Dispatch order: (1) if mask
-        data present, IoU mask is used; (2) else if oriented-box coordinates
-        (``data[ORIENTED_BOX_COORDINATES]``) present, oriented-box IoU is used; (3)
-        otherwise, axis-aligned box IoU is used.
+        """Performs non-max suppression on detection set.
+
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
+        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
+        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -2478,30 +3000,18 @@ class Detections:
                 after non-maximum suppression.
 
         Raises:
-            AssertionError: If `confidence` is None and class_agnostic is False.
+            ValueError: If `confidence` is None and class_agnostic is False.
                 If `class_id` is None and class_agnostic is False.
         """
         if len(self) == 0:
             return self
 
-        assert self.confidence is not None, (
-            "Detections confidence must be given for NMS to be executed."
-        )
+        if self.confidence is None:
+            raise ValueError(
+                "Detections confidence must be given for NMS to be executed."
+            )
 
-        if class_agnostic:
-            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
-        else:
-            assert self.class_id is not None, (
-                "Detections class_id must be given for NMS to be executed. If you"
-                " intended to perform class agnostic NMS set class_agnostic=True."
-            )
-            predictions = np.hstack(
-                (
-                    self.xyxy,
-                    self.confidence.reshape(-1, 1),
-                    self.class_id.reshape(-1, 1),
-                )
-            )
+        predictions = self._build_nms_predictions(class_agnostic, "NMS")
 
         if self.mask is not None:
             indices = mask_non_max_suppression(
@@ -2513,9 +3023,7 @@ class Detections:
         elif ORIENTED_BOX_COORDINATES in self.data:
             indices = oriented_box_non_max_suppression(
                 predictions=predictions,
-                oriented_boxes=np.asarray(
-                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
-                ),
+                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
@@ -2526,7 +3034,107 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
 
-        return cast(Detections, self[indices])
+        return self.select(indices)
+
+    def with_soft_nms(
+        self,
+        sigma: float = 0.5,
+        class_agnostic: bool = False,
+        score_threshold: float | None = None,
+    ) -> Detections:
+        """Performs Gaussian Soft Non-Maximum Suppression on detection set.
+
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) otherwise,
+        axis-aligned box IoU is used. Oriented-box detections are not given
+        dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
+
+        Unlike :meth:`~supervision.detection.core.Detections.with_nms`, which
+        discards overlapping detections outright,
+        Soft-NMS keeps every detection and instead rescales its confidence by
+        `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
+        overlap. By default (`score_threshold=None`) nothing is dropped — the
+        method only rescales confidence, despite the "suppression" name; pass
+        `score_threshold` to additionally filter the decayed scores into a real
+        subset, matching
+        :meth:`~supervision.detection.core.Detections.with_nms`'s return contract.
+
+        Args:
+            sigma: Controls the strength of the confidence decay; must be
+                greater than `0`. The lower the value the stronger the decay.
+                No value of `sigma` reproduces
+                :meth:`~supervision.detection.core.Detections.with_nms`'s hard cutoff —
+                Soft-NMS never drops detections on its own.
+            class_agnostic: Whether to perform class-agnostic Soft-NMS. If
+                True, the class_id of each detection will be ignored.
+                Defaults to False.
+            score_threshold: If given, detections whose decayed confidence is
+                at or below this value are dropped, producing a real subset
+                (like :meth:`~supervision.detection.core.Detections.with_nms`). If
+                `None` (default), all detections are
+                kept, with their confidence rescaled in place on the returned
+                copy.
+
+        Returns:
+            A new Detections object with decayed confidence scores and,
+                if `score_threshold` is given, filtered to a real subset.
+                The original :class:`~supervision.detection.core.Detections`
+                instance is never modified.
+
+        Raises:
+            ValueError: If `confidence` is None.
+                If `class_id` is None and class_agnostic is False.
+                If `sigma` is not greater than `0`.
+
+        Example:
+            Two identical boxes show that Soft-NMS decays the lower score but
+            keeps both detections by default. A score threshold removes the
+            detection whose decayed score falls below it.
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 4, 4], [0, 0, 4, 4]], dtype=np.float32),
+            ...     confidence=np.array([0.9, 0.8], dtype=np.float32),
+            ...     class_id=np.array([0, 0]),
+            ... )
+            >>> softened = detections.with_soft_nms(sigma=0.5)
+            >>> len(softened), np.round(softened.confidence, 3).tolist()
+            (2, [0.9, 0.108])
+            >>> filtered = detections.with_soft_nms(sigma=0.5, score_threshold=0.2)
+            >>> len(filtered), np.round(filtered.confidence, 3).tolist()
+            (1, [0.9])
+
+            ```
+        """
+        if len(self) == 0:
+            return self
+
+        if self.confidence is None:
+            raise ValueError(
+                "Detections confidence must be given for Soft-NMS to be executed."
+            )
+
+        predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
+
+        if self.mask is not None:
+            decayed_confidence = mask_soft_non_max_suppression(
+                predictions=predictions,
+                masks=self.mask,
+                sigma=sigma,
+            )
+        else:
+            decayed_confidence = box_soft_non_max_suppression(
+                predictions=predictions,
+                sigma=sigma,
+            )
+
+        result = self.select(np.arange(len(self)))
+        result.confidence = decayed_confidence
+
+        if score_threshold is None:
+            return result
+        return result.select(decayed_confidence > score_threshold)
 
     def with_nmm(
         self,
@@ -2539,6 +3147,10 @@ class Detections:
         Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
         oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
         oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
+
+        Compact masks remain compressed while forming candidate and output unions;
+        no full-image mask stack is allocated for merging. Overlap evaluation still
+        decodes overlapping mask crops.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -2565,7 +3177,7 @@ class Detections:
             Groups of size 1 keep the original OBB unchanged.
 
         Raises:
-            AssertionError: If `confidence` is None or `class_id` is None and
+            ValueError: If `confidence` is None or `class_id` is None and
                 class_agnostic is False.
 
         ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width="800" }
@@ -2573,24 +3185,12 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert self.confidence is not None, (
-            "Detections confidence must be given for NMM to be executed."
-        )
+        if self.confidence is None:
+            raise ValueError(
+                "Detections confidence must be given for NMM to be executed."
+            )
 
-        if class_agnostic:
-            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
-        else:
-            assert self.class_id is not None, (
-                "Detections class_id must be given for NMM to be executed. If you"
-                " intended to perform class agnostic NMM set class_agnostic=True."
-            )
-            predictions = np.hstack(
-                (
-                    self.xyxy,
-                    self.confidence.reshape(-1, 1),
-                    self.class_id.reshape(-1, 1),
-                )
-            )
+        predictions = self._build_nms_predictions(class_agnostic, "NMM")
 
         if self.mask is not None:
             merge_groups = mask_non_max_merge(
@@ -2602,9 +3202,7 @@ class Detections:
         elif ORIENTED_BOX_COORDINATES in self.data:
             merge_groups = oriented_box_non_max_merge(
                 predictions=predictions,
-                oriented_boxes=np.asarray(
-                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
-                ),
+                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
@@ -2617,14 +3215,130 @@ class Detections:
 
         result: list[Detections] = []
         for merge_group in merge_groups:
-            group = [cast(Detections, self[i]) for i in merge_group]
+            group = [self.select(i) for i in merge_group]
             result.append(_merge_detection_group(group))
 
         return Detections.merge(result)
 
+    def remap_classes(
+        self,
+        classes: Sequence[str],
+        class_name_mapping: Mapping[str, str] | None = None,
+    ) -> Detections:
+        """Remap class names and keep only the detections of a target class list.
+
+        Use this to line model predictions up with a dataset: class names are
+        optionally renamed, detections whose name is not in ``classes`` are
+        dropped, and ``class_id`` becomes the index of each name in ``classes``.
+        For a different filter, chain :meth:`select` or boolean indexing.
+
+        Args:
+            classes: Target class names, for example ``dataset.classes``. Each kept
+                detection's ``class_id`` is the index of its name in this sequence,
+                so the names must be unique.
+            class_name_mapping: Optional mapping from model class names to names
+                in ``classes``, for example ``{"dog": "animal"}``. Keys are class
+                names, not class ids, and every target must be in ``classes``.
+
+        Returns:
+            A new :class:`~supervision.detection.core.Detections` holding the
+            detections whose remapped class name is in ``classes``, with
+            ``class_id`` and ``data["class_name"]`` rewritten to match. The input
+            is not modified.
+
+        Raises:
+            ValueError: If ``data`` has no ``class_name`` entry, ``classes`` holds
+                duplicate names, or ``class_name_mapping`` maps to a name that is
+                not in ``classes``. Class names must have shape ``(N,)`` or
+                ``(N, 1)`` for ``N`` detections.
+            TypeError: If ``class_name_mapping`` is not a mapping or has keys that
+                are not strings.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]]),
+            ...     class_id=np.array([0, 1, 2]),
+            ...     data={"class_name": np.array(["dog", "cat", "car"])},
+            ... )
+            >>> mapping = {"dog": "animal", "cat": "animal"}
+            >>> remapped = detections.remap_classes(["animal", "car"], mapping)
+            >>> remapped.class_id.tolist()
+            [0, 0, 1]
+            >>> remapped["class_name"].tolist()
+            ['animal', 'animal', 'car']
+
+            ```
+        """
+        # Get class names for each detection
+        class_names = self.data.get(CLASS_NAME_DATA_FIELD)
+        if class_names is None:
+            raise ValueError(
+                f"Detections must have {CLASS_NAME_DATA_FIELD!r} in .data "
+                "to use remap_classes()."
+            )
+        class_list = list(classes)
+        class_index = {name: index for index, name in enumerate(class_list)}
+        # Repeated names collapse into one key (last index wins), so a size
+        # mismatch means duplicates; this keeps the common unique path linear
+        if len(class_index) != len(class_list):
+            counts = Counter(class_list)
+            duplicates = sorted(name for name, count in counts.items() if count > 1)
+            raise ValueError(f"classes holds duplicate names: {duplicates}")
+        if class_name_mapping is not None:
+            if not isinstance(class_name_mapping, Mapping):
+                raise TypeError(
+                    "class_name_mapping must be a mapping of class names, "
+                    f"got {type(class_name_mapping).__name__}."
+                )
+            # An id mapping such as {0: 1} would otherwise be ignored silently
+            bad_keys = [key for key in class_name_mapping if not isinstance(key, str)]
+            if bad_keys:
+                raise TypeError(
+                    "class_name_mapping keys must be class names (str), "
+                    f"class ids are not supported; got {bad_keys}."
+                )
+            # A misspelled target would otherwise drop its detections without a trace
+            unknown_targets = sorted(
+                {t for t in class_name_mapping.values() if t not in class_index},
+                key=str,
+            )
+            if unknown_targets:
+                raise ValueError(
+                    "class_name_mapping maps to names missing from classes: "
+                    f"{unknown_targets}"
+                )
+        class_names = np.asarray(class_names, dtype=str)
+        if class_names.shape not in ((len(self),), (len(self), 1)):
+            raise ValueError("class_name must have shape (N,) or (N, 1).")
+        class_names = class_names.reshape(len(self))
+        # Remap and look up the distinct names only, so the Python-level work
+        # scales with the number of classes, not with the number of detections
+        unique_names, inverse = np.unique(class_names, return_inverse=True)
+        if class_name_mapping is not None:
+            unique_names = np.array(
+                [class_name_mapping.get(name, name) for name in unique_names],
+                dtype=str,
+            )
+        # -1 marks names outside classes; those detections are filtered out
+        # Explicit dtype: an empty result would otherwise get float64 ids
+        unique_ids = np.array(
+            [class_index.get(name, -1) for name in unique_names], dtype=int
+        )
+        class_id = unique_ids[inverse]
+        keep = class_id >= 0
+        # select() copies every field, including data of any shape, and handles
+        # empty and fully filtered results
+        result = self.select(keep)
+        result.class_id = class_id[keep]
+        result.data[CLASS_NAME_DATA_FIELD] = unique_names[inverse][keep]
+        return result
+
 
 def _merge_obb_corners(
-    corners_list: list[npt.NDArray[np.floating]],
+    corners_list: list[npt.NDArray[np.number]],
 ) -> npt.NDArray[np.floating]:
     """Merge multiple OBB corner arrays using winner-angle projection.
 
@@ -2637,17 +3351,36 @@ def _merge_obb_corners(
         corners_list: List of (4, 2) corner arrays. First is the winner.
 
     Returns:
-        Merged OBB corners as a (4, 2) float32 array.
+        Merged OBB corners as a (4, 2) floating-point array. Its dtype matches
+        floating inputs and is float64 for integer inputs.
     """
-    all_corners = np.concatenate(corners_list, axis=0).astype(np.float32)
+    input_dtype = np.result_type(*[corners.dtype for corners in corners_list])
+    output_dtype = (
+        input_dtype if np.issubdtype(input_dtype, np.floating) else np.float64
+    )
+    origin = corners_list[0][0]
+    stacked = np.concatenate(corners_list, axis=0)
+    # Translate to the winner's first corner before any float math so large
+    # integer coordinates (e.g. geospatial or stitched frames) are reduced to
+    # local extents. Object arithmetic keeps those integer differences exact
+    # and avoids unsigned wrap-around for corners lying below the origin.
+    if np.issubdtype(input_dtype, np.integer):
+        all_corners = np.asarray(
+            stacked.astype(object) - origin.astype(object), dtype=np.float64
+        )
+    else:
+        all_corners = stacked.astype(np.float64, copy=False) - origin.astype(
+            np.float64, copy=False
+        )
     # Use winner's first edge to derive orientation angle -- avoids
-    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects).
-    winner_edge = corners_list[0][1] - corners_list[0][0]
-    angle = float(np.arctan2(winner_edge[1], winner_edge[0]))
+    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects). Read it
+    # off the translated corners so it inherits the same wrap-safety.
+    winner_edge = all_corners[1] - all_corners[0]
+    angle = float(np.arctan2(float(winner_edge[1]), float(winner_edge[0])))
     cos, sin = float(np.cos(angle)), float(np.sin(angle))
 
     # De-rotate all corners into the winner's local frame
-    to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float32)
+    to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float64)
     local_corners = all_corners @ to_local
     x_min = float(local_corners[:, 0].min())
     x_max = float(local_corners[:, 0].max())
@@ -2655,23 +3388,26 @@ def _merge_obb_corners(
     y_max = float(local_corners[:, 1].max())
 
     # Rotate the enclosing AABB back to world frame
-    to_world = np.array([[cos, sin], [-sin, cos]], dtype=np.float32)
+    to_world = np.array([[cos, sin], [-sin, cos]], dtype=np.float64)
     merged: npt.NDArray[np.floating] = (
         np.array(
             [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]],
-            dtype=np.float32,
+            dtype=np.float64,
         )
         @ to_world
     )
-    return merged
+    return cast(npt.NDArray[np.floating], (merged + origin).astype(output_dtype))
 
 
 def _merge_detection_group(detections: list[Detections]) -> Detections:
     """Merge a group of single-object Detections into one merged detection.
 
-    Used internally by :meth:`Detections.with_nmm` to combine each merge group
-    into a single output detection. The highest-confidence detection is the
-    "winner" whose class_id, tracker_id, and data fields are preserved.
+    Used internally by :meth:`~supervision.detection.core.Detections.with_nmm`
+    to combine each merge group into a single output detection. The
+    highest-confidence detection is the
+    "winner" whose class_id, tracker_id, and data fields are preserved. Box
+    extents are widened before subtraction to keep confidence weights finite
+    and avoid integer wraparound.
 
     Args:
         detections: List of Detections, each containing exactly one object.
@@ -2691,9 +3427,25 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
 
     # Area-weighted confidence: each box contributes proportionally to its
     # footprint so large overlapping boxes dominate over small slivers.
-    all_xyxy = np.array([d.xyxy[0] for d in detections], dtype=np.float32)
-    areas = (all_xyxy[:, 2] - all_xyxy[:, 0]) * (all_xyxy[:, 3] - all_xyxy[:, 1])
+    all_xyxy = np.array([d.xyxy[0] for d in detections])
+    # Widen before subtracting: casting wrapped or infinite extents afterwards
+    # cannot recover their areas. Python integers also preserve narrow boxes at
+    # large 64-bit origins, where casting the corners to float64 would lose pixels.
+    area_dtype = (
+        object
+        if np.issubdtype(all_xyxy.dtype, np.integer)
+        else np.promote_types(all_xyxy.dtype, np.float64)
+    )
+    area_coordinates = all_xyxy.astype(area_dtype)
+    widths = np.asarray(
+        area_coordinates[:, 2] - area_coordinates[:, 0], dtype=np.float64
+    )
+    heights = np.asarray(
+        area_coordinates[:, 3] - area_coordinates[:, 1], dtype=np.float64
+    )
+    areas = widths * heights
 
+    confidence: npt.NDArray[np.floating] | None
     if winner.confidence is not None:
         total_area = float(areas.sum())
         if total_area > 0:
@@ -2734,10 +3486,18 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         )
         data = winner.data
 
-    # Mask union via logical OR
+    # Mask union via logical OR. Preserve CompactMask outputs without re-cropping
+    # to the merged box, because source masks may legitimately extend outside it.
     masks = [d.mask for d in detections if d.mask is not None]
     if masks:
-        mask = np.logical_or.reduce(np.concatenate(masks, axis=0))[np.newaxis]
+        if all(isinstance(m, CompactMask) for m in masks):
+            compact_masks = cast(list[CompactMask], masks)
+            mask = _compact_mask_union(compact_masks)
+        else:
+            dense_masks = [
+                m.to_dense() if isinstance(m, CompactMask) else m for m in masks
+            ]
+            mask = np.logical_or.reduce(np.concatenate(dense_masks, axis=0))[np.newaxis]
     else:
         mask = None
 
@@ -2758,9 +3518,8 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
 def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
 ) -> Detections:
-    """
-    Merges two Detections objects into a single Detections object.
-    Assumes each Detections contains exactly one object.
+    """Merges two Detections objects into a single Detections object. Assumes each
+    Detections contains exactly one object.
 
     A `winning` detection is determined based on the confidence score of the two
     input detections. This winning detection is then used to specify which
@@ -2784,18 +3543,21 @@ def merge_inner_detection_object_pair(
 
     Example:
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = get_model(model_id="yolov8s-640")
+        model = get_model(model_id="rfdetr-small")
 
         result = model.infer(image)[0]
         detections = sv.Detections.from_inference(result)
 
-        merged_detections = merge_object_detection_pair(
-            detections[0], detections[1])
+        from supervision.detection.core import merge_inner_detection_object_pair
+
+        merged_detections = merge_inner_detection_object_pair(
+            detections[0], detections[1]
+        )
         ```
     """
     if len(detections_1) != 1 or len(detections_2) != 1:
@@ -2825,7 +3587,10 @@ def merge_inner_detection_object_pair(
     if detections_1.mask is None and detections_2.mask is None:
         merged_mask = None
     else:
-        merged_mask = np.logical_or(detections_1.mask, detections_2.mask)
+        merged_mask = np.logical_or(
+            cast(npt.NDArray[Any], detections_1.mask),
+            cast(npt.NDArray[Any], detections_2.mask),
+        )
 
     if detections_1.confidence is None or detections_2.confidence is None:
         winning_detection = detections_1
@@ -2853,22 +3618,16 @@ def merge_inner_detections_objects(
     threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> Detections:
-    """
-    Given N detections each of length 1 (exactly one object inside), combine them into a
-    single detection object of length 1. The contained inner object will be the merged
-    result of all the input detections.
+    """Given N detections each of length 1 (exactly one object inside), combine them
+    into a single detection object of length 1. The contained inner object will be the
+    merged result of all the input detections.
 
     For example, this lets you merge N boxes into one big box, N masks into one mask,
     etc.
     """
     detections_1 = detections[0]
     for detections_2 in detections[1:]:
-        if detections_1.mask is not None and detections_2.mask is not None:
-            iou = mask_iou_batch(detections_1.mask, detections_2.mask, overlap_metric)[
-                0
-            ]
-        else:
-            iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy, overlap_metric)[0]
+        iou = detection_iou(detections_1, detections_2, overlap_metric)[0]
         if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
@@ -2879,10 +3638,9 @@ def merge_inner_detections_objects(
 def merge_inner_detections_objects_without_iou(
     detections: list[Detections],
 ) -> Detections:
-    """
-    Given N detections each of length 1 (exactly one object inside), combine them into a
-    single detection object of length 1. The contained inner object will be the merged
-    result of all the input detections.
+    """Given N detections each of length 1 (exactly one object inside), combine them
+    into a single detection object of length 1. The contained inner object will be the
+    merged result of all the input detections.
 
     For example, this lets you merge N boxes into one big box, N masks into one mask,
     etc.
@@ -2893,8 +3651,7 @@ def merge_inner_detections_objects_without_iou(
 def _validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
 ) -> None:
-    """
-    Verify that for each optional field in the Detections, both instances either have
+    """Verify that for each optional field in the Detections, both instances either have
     the field set to None or both have it set to non-None values.
 
     `data` field is ignored.

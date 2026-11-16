@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 import os
 from collections.abc import Iterable
 
-import cv2
 import numpy as np
 from inference.models.utils import get_roboflow_model
 from tqdm import tqdm
+from trackers import ByteTrackTracker
 
 import supervision as sv
 
@@ -61,7 +59,7 @@ class DetectionsManager:
 
 def initiate_polygon_zones(
     polygons: list[np.ndarray],
-    triggering_anchors: Iterable[sv.Position] = [sv.Position.CENTER],
+    triggering_anchors: Iterable[sv.Position] = (sv.Position.CENTER,),
 ) -> list[sv.PolygonZone]:
     return [
         sv.PolygonZone(
@@ -88,7 +86,7 @@ class VideoProcessor:
         self.target_video_path = target_video_path
 
         self.model = get_roboflow_model(model_id=model_id, api_key=roboflow_api_key)
-        self.tracker = sv.ByteTrack()
+        self.tracker = ByteTrackTracker(track_activation_threshold=confidence_threshold)
 
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
         self.zones_in = initiate_polygon_zones(ZONE_IN_POLYGONS, [sv.Position.CENTER])
@@ -103,7 +101,7 @@ class VideoProcessor:
         )
         self.detections_manager = DetectionsManager()
 
-    def process_video(self):
+    def process_video(self) -> None:
         frame_generator = sv.get_video_frames_generator(
             source_path=self.source_video_path
         )
@@ -114,12 +112,14 @@ class VideoProcessor:
                     annotated_frame = self.process_frame(frame)
                     sink.write_frame(annotated_frame)
         else:
+            window = sv.ImageWindow("Processed Video")
             for frame in tqdm(frame_generator, total=self.video_info.total_frames):
                 annotated_frame = self.process_frame(frame)
-                cv2.imshow("Processed Video", annotated_frame)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+                window.show(annotated_frame)
+                key = window.wait_key(1)
+                if not window.is_open or key == "q":
                     break
-            cv2.destroyAllWindows()
+            window.close()
 
     def annotate_frame(
         self, frame: np.ndarray, detections: sv.Detections
@@ -162,7 +162,8 @@ class VideoProcessor:
         )[0]
         detections = sv.Detections.from_inference(results)
         detections.class_id = np.zeros(len(detections))
-        detections = self.tracker.update_with_detections(detections)
+        detections = self.tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         detections_in_zones = []
         detections_out_zones = []
@@ -187,8 +188,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Traffic Flow Analysis with Inference and ByteTrack.
+    """Traffic Flow Analysis with Inference and ByteTrackTracker.
 
     Args:
         source_video_path: Path to the source video file

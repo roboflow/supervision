@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from enum import Enum
 from typing import Any, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
-from supervision.detection.compact_mask import CompactMask
-from supervision.detection.utils.masks import resize_masks
+from supervision._cv2._geometry import _intersect_convex_convex
+from supervision.detection.compact_mask import CompactMask, _compact_mask_union
+from supervision.utils.internal import warn_deprecated
 
 
 class OverlapFilter(Enum):
-    """
-    Enum specifying the strategy for filtering overlapping detections.
+    """Enum specifying the strategy for filtering overlapping detections.
 
     Attributes:
         NONE: Do not filter detections based on overlap.
@@ -52,8 +51,7 @@ class OverlapFilter(Enum):
 
 
 class OverlapMetric(Enum):
-    """
-    Enum specifying the metric for measuring overlap between detections.
+    """Enum specifying the metric for measuring overlap between detections.
 
     Attributes:
         IOU: Intersection over Union. A region-overlap metric that compares
@@ -87,17 +85,31 @@ class OverlapMetric(Enum):
         )
 
 
+def _validate_iou_threshold(iou_threshold: float) -> None:
+    """Raise `ValueError` when an IoU threshold falls outside `[0, 1]`."""
+    if not 0 <= iou_threshold <= 1:
+        raise ValueError(
+            "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+            f"{iou_threshold} given."
+        )
+
+
+def _coordinate_difference(upper: np.number, lower: np.number) -> float:
+    """Subtract box coordinates without overflowing integer NumPy scalars."""
+    return float(np.asarray(upper).item() - np.asarray(lower).item())
+
+
 def box_iou(
-    box_true: list[float] | npt.NDArray[np.floating],
-    box_detection: list[float] | npt.NDArray[np.floating],
+    box_true: list[float] | npt.NDArray[np.number],
+    box_detection: list[float] | npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> float:
-    """
-    Compute overlap metric between two bounding boxes.
+    """Compute overlap metric between two bounding boxes.
 
     Supports standard IOU (intersection-over-union) and IOS
     (intersection-over-smaller-area) metrics. Returns the overlap value in range
-    `[0, 1]`.
+    `[0, 1]`. Integer coordinates are subtracted before conversion to floating
+    point so large origins remain precise while area products avoid integer overflow.
 
     Args:
         box_true: Ground truth box in format
@@ -112,6 +124,7 @@ def box_iou(
         Overlap value between boxes in `[0, 1]`.
 
     Raises:
+        TypeError: If either box contains complex coordinates.
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
@@ -127,21 +140,30 @@ def box_iou(
         ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
-    x_min_true, y_min_true, x_max_true, y_max_true = np.array(box_true)
-    x_min_det, y_min_det, x_max_det, y_max_det = np.array(box_detection)
+    box_true_array = np.asarray(box_true)
+    box_detection_array = np.asarray(box_detection)
+    if np.iscomplexobj(box_true_array) or np.iscomplexobj(box_detection_array):
+        raise TypeError("box coordinates must be real-valued")
+
+    x_min_true, y_min_true, x_max_true, y_max_true = box_true_array
+    x_min_det, y_min_det, x_max_det, y_max_det = box_detection_array
 
     x_min_inter = max(x_min_true, x_min_det)
     y_min_inter = max(y_min_true, y_min_det)
     x_max_inter = min(x_max_true, x_max_det)
     y_max_inter = min(y_max_true, y_max_det)
 
-    inter_w = max(0.0, x_max_inter - x_min_inter)
-    inter_h = max(0.0, y_max_inter - y_min_inter)
+    inter_w = max(0.0, _coordinate_difference(x_max_inter, x_min_inter))
+    inter_h = max(0.0, _coordinate_difference(y_max_inter, y_min_inter))
 
     area_inter = inter_w * inter_h
 
-    area_true = (x_max_true - x_min_true) * (y_max_true - y_min_true)
-    area_det = (x_max_det - x_min_det) * (y_max_det - y_min_det)
+    area_true = _coordinate_difference(x_max_true, x_min_true) * _coordinate_difference(
+        y_max_true, y_min_true
+    )
+    area_det = _coordinate_difference(x_max_det, x_min_det) * _coordinate_difference(
+        y_max_det, y_min_det
+    )
 
     if overlap_metric == OverlapMetric.IOU:
         area_norm = area_true + area_det - area_inter
@@ -164,8 +186,7 @@ def box_iou_batch(
     boxes_detection: npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> npt.NDArray[np.float32]:
-    """
-    Compute pairwise overlap scores between batches of bounding boxes.
+    """Compute pairwise overlap scores between batches of bounding boxes.
 
     Supports standard IOU (intersection-over-union) and IOS
     (intersection-over-smaller-area) metrics for all `boxes_true` and
@@ -215,17 +236,36 @@ def box_iou_batch(
 
         ```
     """
+    return _box_overlap_float64(boxes_true, boxes_detection, overlap_metric).astype(
+        np.float32
+    )
+
+
+def _box_overlap_float64(
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+) -> npt.NDArray[np.float64]:
+    """Compute pairwise IOU or IOS without rounding overlaps to float32."""
     overlap_metric = OverlapMetric.from_value(overlap_metric)
-    x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T
-    x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T
+    # Upcast the corners to float64 right after unpacking so every subtraction
+    # and multiplication below runs in float64. This prevents integer-dtype
+    # overflow: an int32 box area such as 50000 * 50000 = 2.5e9 wraps to a
+    # negative value in int32 before any later cast could run, yielding wrong
+    # (often zero) IoU. Upcasting here also gives full float64 precision to
+    # float64/int64 callers. It does NOT recover precision already lost when a
+    # caller stores coordinates as float32 upstream, because that float32
+    # rounding happens before this function is ever called.
+    x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T.astype(np.float64)
+    x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T.astype(np.float64)
     count_true, count_det = boxes_true.shape[0], boxes_detection.shape[0]
 
     if count_true == 0 or count_det == 0:
         return cast(
-            npt.NDArray[np.float32], np.empty((count_true, count_det), dtype=np.float32)
+            npt.NDArray[np.float64], np.empty((count_true, count_det), dtype=np.float64)
         )
 
-    x_min_inter = np.empty((count_true, count_det), dtype=np.float32)
+    x_min_inter = np.empty((count_true, count_det), dtype=np.float64)
     x_max_inter = np.empty_like(x_min_inter)
     y_min_inter = np.empty_like(x_min_inter)
     y_max_inter = np.empty_like(x_min_inter)
@@ -256,55 +296,15 @@ def box_iou_batch(
             "only 'IOU' and 'IOS' are supported"
         )
 
-    out: npt.NDArray[np.float32] = np.zeros_like(area_inter, dtype=np.float32)
+    out: npt.NDArray[np.float64] = np.zeros_like(area_inter, dtype=np.float64)
     np.divide(area_inter, area_norm, out=out, where=area_norm > 0)
     return out
 
 
-def _jaccard(box_a: list[float], box_b: list[float], is_crowd: bool) -> float:
-    """
-    Calculate the Jaccard index (intersection over union) between two bounding boxes.
-    If a gt object is marked as "iscrowd", a dt is allowed to match any subregion
-    of the gt. Choosing gt'=intersect(dt,gt). Since by definition union(gt',dt)=dt, computing
-    iou(gt,dt,iscrowd) = iou(gt',dt) = area(intersect(gt,dt)) / area(dt)
-
-    Args:
-        box_a: Box coordinates in the format [x, y, width, height].
-        box_b: Box coordinates in the format [x, y, width, height].
-        iscrowd: Flag indicating if the second box is a crowd region or not.
-
-    Returns:
-        Jaccard index between the two bounding boxes.
-    """  # noqa: E501
-    # Smallest number to avoid division by zero
-    EPS = np.spacing(1)
-
-    xa, ya, x2a, y2a = box_a[0], box_a[1], box_a[0] + box_a[2], box_a[1] + box_a[3]
-    xb, yb, x2b, y2b = box_b[0], box_b[1], box_b[0] + box_b[2], box_b[1] + box_b[3]
-
-    # Innermost left x
-    xi = max(xa, xb)
-    # Innermost right x
-    x2i = min(x2a, x2b)
-    # Same for y
-    yi = max(ya, yb)
-    y2i = min(y2a, y2b)
-
-    # Calculate areas
-    Aa = max(x2a - xa, 0.0) * max(y2a - ya, 0.0)
-    Ab = max(x2b - xb, 0.0) * max(y2b - yb, 0.0)
-    Ai = max(x2i - xi, 0.0) * max(y2i - yi, 0.0)
-
-    if is_crowd:
-        return float(Ai / (Aa + EPS))
-
-    return float(Ai / (Aa + Ab - Ai + EPS))
-
-
 def box_iou_batch_with_jaccard(
-    boxes_true: list[list[float]],
-    boxes_detection: list[list[float]],
-    is_crowd: list[bool],
+    boxes_true: Sequence[Sequence[float]],
+    boxes_detection: Sequence[Sequence[float]],
+    is_crowd: Sequence[bool],
 ) -> npt.NDArray[np.float64]:
     """
     Calculate the intersection over union (IoU) between detection bounding boxes (dt)
@@ -312,15 +312,26 @@ def box_iou_batch_with_jaccard(
     Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
 
     Args:
-        boxes_true: List of ground-truth bounding boxes in the
+        boxes_true: Sequence of ground-truth bounding boxes in the
             format [x, y, width, height].
-        boxes_detection: List of detection bounding boxes in the
+        boxes_detection: Sequence of detection bounding boxes in the
             format [x, y, width, height].
-        is_crowd: List indicating if each ground-truth bounding box
+        is_crowd: Sequence indicating if each ground-truth bounding box
             is a crowd region or not.
 
+    Note:
+        This function expects bounding boxes in ``[x, y, width, height]`` format
+        (COCO convention). All other batch IoU functions in this module use
+        ``[x_min, y_min, x_max, y_max]``.
+
+        NaN coordinates propagate silently: if any box value is ``NaN``, the
+        corresponding IoU values will be ``NaN``.
+
     Returns:
-        Array of IoU values of shape (len(dt), len(gt)).
+        Array of IoU values of shape ``(len(boxes_detection), len(boxes_true))``,
+        where row ``i`` contains the IoU of detection ``i`` against all ground-truth
+        boxes, and column ``j`` contains the IoU of all detections against ground-truth
+        box ``j``.
 
     Examples:
         ```pycon
@@ -346,22 +357,60 @@ def box_iou_batch_with_jaccard(
 
         ```
     """
-    assert len(is_crowd) == len(boxes_true), (
-        "`is_crowd` must have the same length as `boxes_true`"
-    )
+    if len(is_crowd) != len(boxes_true):
+        raise ValueError(
+            f"`is_crowd` length ({len(is_crowd)}) must match "
+            f"`boxes_true` length ({len(boxes_true)})."
+        )
     if len(boxes_detection) == 0 or len(boxes_true) == 0:
-        return cast(npt.NDArray[np.float64], np.array([]))
-    ious: npt.NDArray[np.float64] = np.zeros(
-        (len(boxes_detection), len(boxes_true)), dtype=np.float64
+        return np.empty((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+
+    # Smallest number to avoid division by zero.
+    eps = np.spacing(1)
+    gt = np.asarray(boxes_true, dtype=np.float64)
+    dt = np.asarray(boxes_detection, dtype=np.float64)
+    crowd = np.asarray(is_crowd, dtype=bool)
+
+    # Boxes are [x, y, w, h]. Build the far corners as `x2 = x + w` (rather than
+    # reusing `w`) so that the area/intersection arithmetic is bit-identical to
+    # the per-pair reference it replaces.
+    gt_x2, gt_y2 = gt[:, 0] + gt[:, 2], gt[:, 1] + gt[:, 3]
+    dt_x2, dt_y2 = dt[:, 0] + dt[:, 2], dt[:, 1] + dt[:, 3]
+
+    # Pairwise intersection: rows index detections, columns index ground truth.
+    inter_x1 = np.maximum(dt[:, 0][:, None], gt[:, 0][None, :])
+    inter_y1 = np.maximum(dt[:, 1][:, None], gt[:, 1][None, :])
+    inter_x2 = np.minimum(dt_x2[:, None], gt_x2[None, :])
+    inter_y2 = np.minimum(dt_y2[:, None], gt_y2[None, :])
+    area_inter = np.maximum(inter_x2 - inter_x1, 0.0) * np.maximum(
+        inter_y2 - inter_y1, 0.0
     )
-    for gt_idx, gt_box in enumerate(boxes_true):
-        for det_idx, det_box in enumerate(boxes_detection):
-            ious[det_idx, gt_idx] = _jaccard(det_box, gt_box, is_crowd[gt_idx])
-    return ious
+
+    area_det = np.maximum(dt_x2 - dt[:, 0], 0.0) * np.maximum(dt_y2 - dt[:, 1], 0.0)
+    area_gt = np.maximum(gt_x2 - gt[:, 0], 0.0) * np.maximum(gt_y2 - gt[:, 1], 0.0)
+
+    # For a crowd ground truth a detection may match any subregion, so its union
+    # collapses to the detection area; otherwise use the standard box union.
+    iou: npt.NDArray[np.float64] = np.empty((len(dt), len(gt)), dtype=np.float64)
+    if not np.any(crowd):
+        area_norm = area_det[:, None] + area_gt[None, :] - area_inter + eps
+    else:
+        area_norm = np.where(
+            crowd[None, :],
+            area_det[:, None] + eps,
+            area_det[:, None] + area_gt[None, :] - area_inter + eps,
+        )
+    np.divide(area_inter, area_norm, out=iou)
+    return iou
 
 
-def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+def _polygon_areas(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
     """Compute the area of each oriented-box polygon using the shoelace formula.
+
+    Each polygon is translated to its own first corner before the shoelace
+    products, keeping representable integer coordinates with large origins (e.g.
+    geospatial frames) local before conversion to float64. Float inputs that
+    were already quantized retain their input precision.
 
     Args:
         polygons: ``(N, 4, 2)`` array of polygon corners.
@@ -369,13 +418,21 @@ def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floatin
     Returns:
         ``(N,)`` array of polygon areas.
     """
-    x = polygons[:, :, 0]
-    y = polygons[:, :, 1]
+    origin = polygons[:, 0:1, :]
+    if np.issubdtype(polygons.dtype, np.integer):
+        translated = np.asarray(
+            polygons.astype(object) - origin.astype(object), dtype=np.float64
+        )
+    else:
+        polygons_float = polygons.astype(np.float64, copy=False)
+        translated = polygons_float - origin.astype(np.float64, copy=False)
+    x = translated[:, :, 0]
+    y = translated[:, :, 1]
     cross = x * np.roll(y, -1, axis=1) - np.roll(x, -1, axis=1) * y
-    return cast(npt.NDArray[np.floating], 0.5 * np.abs(cross.sum(axis=1)))
+    return cast(npt.NDArray[np.float64], 0.5 * np.abs(cross.sum(axis=1)))
 
 
-def _aabb_envelopes(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+def _aabb_envelopes(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     """Compute the axis-aligned bounding envelope of each oriented box.
 
     Args:
@@ -392,8 +449,8 @@ def _aabb_envelopes(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floati
 
 
 def _overlapping_envelope_pairs(
-    envelopes_true: npt.NDArray[np.floating],
-    envelopes_detection: npt.NDArray[np.floating],
+    envelopes_true: npt.NDArray[np.number],
+    envelopes_detection: npt.NDArray[np.number],
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """Return index pairs ``(i, j)`` whose axis-aligned envelopes overlap.
 
@@ -423,14 +480,99 @@ def _overlapping_envelope_pairs(
     return cast(tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]], np.nonzero(overlap))
 
 
+def _oriented_box_pair_intersections(
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    is_self_comparison: bool = False,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], npt.NDArray[np.float64]]:
+    """Compute exact intersection areas of the oriented box pairs that may overlap.
+
+    Only pairs whose axis-aligned envelopes overlap are returned; every other
+    pair has no intersection. For a self comparison only pairs with
+    `row <= col` are returned, since the result is symmetric.
+
+    Args:
+        boxes_true: Convex quads shaped `(N, 4, 2)`.
+        boxes_detection: Convex quads shaped `(M, 4, 2)`.
+        is_self_comparison: Whether both arguments are the same boxes.
+
+    Returns:
+        Row indices into `boxes_true`, column indices into `boxes_detection`,
+        and the intersection area of each such pair.
+    """
+    envelopes_true = _aabb_envelopes(boxes_true)
+    envelopes_detection = (
+        envelopes_true if is_self_comparison else _aabb_envelopes(boxes_detection)
+    )
+    rows, cols = _overlapping_envelope_pairs(envelopes_true, envelopes_detection)
+    if is_self_comparison:
+        upper = rows <= cols
+        rows, cols = rows[upper], cols[upper]
+
+    local_origins_true = envelopes_true[:, :2]
+    local_origins_detection = envelopes_detection[:, :2]
+    if np.issubdtype(boxes_true.dtype, np.integer):
+        local_polygons_true = np.asarray(
+            boxes_true.astype(object) - local_origins_true[:, None, :].astype(object),
+            dtype=np.float32,
+        )
+    else:
+        local_polygons_true = (boxes_true - local_origins_true[:, None, :]).astype(
+            np.float32
+        )
+    if np.issubdtype(boxes_detection.dtype, np.integer):
+        local_polygons_detection = np.asarray(
+            boxes_detection.astype(object)
+            - local_origins_detection[:, None, :].astype(object),
+            dtype=np.float32,
+        )
+    else:
+        local_polygons_detection = (
+            boxes_detection - local_origins_detection[:, None, :]
+        ).astype(np.float32)
+    # Float32 inputs already have quantized origins, so their envelope minima
+    # can be reused without loss. Float64 inputs may retain unit differences at
+    # large origins; keep their pair offsets in float64 until each pair's local
+    # cast instead of rounding absolute minima to float32 up front.
+    origins_true_float32 = (
+        local_origins_true if boxes_true.dtype == np.float32 else None
+    )
+    origins_detection_float32 = (
+        local_origins_detection if boxes_detection.dtype == np.float32 else None
+    )
+    polygon_i_buffer = np.empty((4, 2), dtype=np.float32)
+    polygon_j_buffer = np.empty((4, 2), dtype=np.float32)
+    intersections = np.zeros(len(rows), dtype=np.float64)
+    for index, (i, j) in enumerate(zip(rows, cols)):
+        # Rebase precomputed local polygons to the shared overlap origin. This
+        # preserves translation-invariant float32 geometry without repeating
+        # corner reductions and casts for every candidate pair.
+        if origins_true_float32 is not None and origins_detection_float32 is not None:
+            origin_i = origins_true_float32[i]
+            origin_j = origins_detection_float32[j]
+        else:
+            origin_i = local_origins_true[i]
+            origin_j = local_origins_detection[j]
+        pair_origin = np.minimum(origin_i, origin_j)
+        offset_i = (origin_i - pair_origin).astype(np.float32, copy=False)
+        offset_j = (origin_j - pair_origin).astype(np.float32, copy=False)
+        np.add(local_polygons_true[i], offset_i, out=polygon_i_buffer)
+        np.add(local_polygons_detection[j], offset_j, out=polygon_j_buffer)
+        # Not cv2.intersectConvexConvex: it returns wrong areas for nearly collinear
+        # overlapping edges and zero for polygons far below one coordinate unit.
+        intersections[index], _ = _intersect_convex_convex(
+            polygon_i_buffer, polygon_j_buffer
+        )
+    return rows, cols, intersections
+
+
 def oriented_box_iou_batch(
     boxes_true: npt.NDArray[np.number],
     boxes_detection: npt.NDArray[np.number],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Compute pairwise overlap scores between two sets of oriented bounding boxes
-    using the configured `overlap_metric`.
+    """Compute pairwise overlap scores between two sets of oriented bounding boxes using
+    the configured `overlap_metric`.
 
     Overlap areas are computed exactly via convex-polygon intersection, gated by
     a cheap axis-aligned envelope pre-filter — no rasterization is involved, so
@@ -442,9 +584,8 @@ def oriented_box_iou_batch(
 
     Note:
         Inputs must be **convex** quads with finite coordinates. Self-intersecting
-        or non-convex polygons produce undefined results via
-        ``cv2.intersectConvexConvex``. NaN or Inf coordinates propagate silently
-        as ``0.0`` — validate inputs before calling if needed.
+        or non-convex polygons produce undefined results. NaN or Inf coordinates
+        propagate silently as ``0.0`` — validate inputs before calling if needed.
 
         When ``boxes_true is boxes_detection`` (the same Python object, not just
         equal values), the function computes only the upper triangle of the
@@ -468,7 +609,7 @@ def oriented_box_iou_batch(
     Returns:
         Overlap matrix of shape `(N, M)`, where entry `[i, j]` is the overlap
         score between `boxes_true[i]` and `boxes_detection[j]`, in the range
-        `[0, 1]` under the configured :attr:`overlap_metric`.
+        `[0, 1]` under the configured ``overlap_metric``.
 
     Raises:
         ValueError: If ``boxes_true`` or ``boxes_detection`` is 3-D with inner
@@ -477,16 +618,19 @@ def oriented_box_iou_batch(
             column count other than 8.
         ValueError: If ``boxes_true`` or ``boxes_detection`` is not 2-D or 3-D.
         ValueError: If ``overlap_metric`` is not
-            :attr:`~supervision.config.OverlapMetric.IOU` or
-            :attr:`~supervision.config.OverlapMetric.IOS`.
+            :attr:`~supervision.detection.utils.iou_and_nms.OverlapMetric.IOU` or
+            :attr:`~supervision.detection.utils.iou_and_nms.OverlapMetric.IOS`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> a = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32)
         >>> b = np.array([[[1, 0], [3, 0], [3, 2], [1, 2]]], dtype=np.float32)
         >>> sv.oriented_box_iou_batch(a, b)  # doctest: +ELLIPSIS
         array([[0.333...]])
+
+        ```
     """
 
     for name, arr in (("boxes_true", boxes_true), ("boxes_detection", boxes_detection)):
@@ -518,8 +662,8 @@ def oriented_box_iou_batch(
     # Capture identity before reshape: NMS / NMM pass the same array twice, so
     # the matrix is symmetric and we can compute only its upper triangle.
     is_self_comparison = boxes_true is boxes_detection
-    boxes_true = boxes_true.reshape(-1, 4, 2).astype(np.float64)
-    boxes_detection = boxes_detection.reshape(-1, 4, 2).astype(np.float64)
+    boxes_true = boxes_true.reshape(-1, 4, 2)
+    boxes_detection = boxes_detection.reshape(-1, 4, 2)
 
     n, m = len(boxes_true), len(boxes_detection)
     if n == 0 or m == 0:
@@ -527,43 +671,239 @@ def oriented_box_iou_batch(
 
     areas_true = _polygon_areas(boxes_true)
     areas_detection = _polygon_areas(boxes_detection)
-
-    envelopes_true = _aabb_envelopes(boxes_true)
-    envelopes_detection = (
-        envelopes_true if is_self_comparison else _aabb_envelopes(boxes_detection)
+    rows, cols, intersections = _oriented_box_pair_intersections(
+        boxes_true, boxes_detection, is_self_comparison
     )
-    rows, cols = _overlapping_envelope_pairs(envelopes_true, envelopes_detection)
-    if is_self_comparison:
-        upper = rows <= cols
-        rows, cols = rows[upper], cols[upper]
-
-    polygons_true = [box.astype(np.float32) for box in boxes_true]
-    polygons_detection = [box.astype(np.float32) for box in boxes_detection]
+    if normalize_by_union:
+        denominators = areas_true[rows] + areas_detection[cols] - intersections
+    else:
+        denominators = np.minimum(areas_true[rows], areas_detection[cols])
+    valid = (intersections > 0) & (denominators > 0)
+    rows, cols = rows[valid], cols[valid]
+    scores = intersections[valid] / denominators[valid]
 
     ious: npt.NDArray[np.float64] = np.zeros((n, m), dtype=np.float64)
-    for i, j in zip(rows, cols):
-        intersection, _ = cv2.intersectConvexConvex(
-            polygons_true[i], polygons_detection[j]
-        )
-        if intersection <= 0:
-            continue
-        denominator = (
-            areas_true[i] + areas_detection[j] - intersection
-            if normalize_by_union
-            else min(areas_true[i], areas_detection[j])
-        )
-        if denominator > 0:
-            score = intersection / denominator
-            ious[i, j] = score
-            if is_self_comparison:
-                ious[j, i] = score
+    ious[rows, cols] = scores
+    if is_self_comparison:
+        ious[cols, rows] = scores
 
-    # DO NOT remove this clip. cv2.intersectConvexConvex computes in float32
-    # internally while polygon areas are computed in float64; the intersection
-    # area can exceed the float64 area by ~25 ULP (~1e-7), producing raw IoU
-    # or IoS values microscopically above 1.0 for identical boxes. The clip is
+    # DO NOT remove this clip. Intersections are computed on float32-rounded
+    # polygons while polygon areas use the original coordinates; the intersection
+    # area can exceed the polygon area by ~1e-7 relative, producing raw IoU or
+    # IoS values microscopically above 1.0 for identical boxes. The clip is
     # load-bearing, not defensive duplication.
     return cast(npt.NDArray[np.floating], np.clip(ious, 0.0, 1.0))
+
+
+#: Per-keypoint OKS sigmas of the 17-point COCO person skeleton, in COCO keypoint
+#: order (nose, eyes, ears, shoulders, elbows, wrists, hips, knees, ankles), as
+#: used by `pycocotools`.
+_COCO_KEYPOINT_SIGMAS: npt.NDArray[np.float64] = (
+    np.array(
+        [
+            0.26,
+            0.25,
+            0.25,
+            0.35,
+            0.35,
+            0.79,
+            0.79,
+            0.72,
+            0.72,
+            0.62,
+            0.62,
+            1.07,
+            1.07,
+            0.87,
+            0.87,
+            0.89,
+            0.89,
+        ],
+        dtype=np.float64,
+    )
+    / 10.0
+)
+
+
+def _validate_keypoint_sigmas(sigmas: npt.NDArray[np.float64]) -> None:
+    """Check that every per-keypoint OKS sigma is positive and finite.
+
+    The shape is not checked, so callers that do not know the skeleton yet can
+    reject bad values early.
+
+    Args:
+        sigmas: Per-keypoint OKS sigmas.
+
+    Raises:
+        ValueError: If any sigma is zero, negative, NaN or infinite.
+    """
+    if not np.all(np.isfinite(sigmas) & (sigmas > 0)):
+        raise ValueError("`sigmas` must be positive and finite.")
+
+
+def _resolve_keypoint_sigmas(
+    sigmas: npt.ArrayLike | None, num_keypoints: int
+) -> npt.NDArray[np.float64]:
+    """Return per-keypoint OKS sigmas, defaulting to COCO only for 17 keypoints.
+
+    Raises:
+        ValueError: If `sigmas` is `None` for a skeleton that is not 17 points
+            long, or if `sigmas` does not hold one positive value per keypoint.
+    """
+    if sigmas is None:
+        if num_keypoints != len(_COCO_KEYPOINT_SIGMAS):
+            raise ValueError(
+                f"OKS needs one sigma per keypoint, and the COCO preset only "
+                f"covers 17-point skeletons; got {num_keypoints} keypoints. "
+                f"Pass `sigmas` with shape ({num_keypoints},) for this skeleton."
+            )
+        return _COCO_KEYPOINT_SIGMAS
+    resolved = np.asarray(sigmas, dtype=np.float64)
+    if resolved.shape != (num_keypoints,):
+        raise ValueError(
+            f"`sigmas` must have shape ({num_keypoints},) to match the number of "
+            f"keypoints; got {resolved.shape}."
+        )
+    _validate_keypoint_sigmas(resolved)
+    return resolved
+
+
+def _keypoint_oks_batch(
+    keypoints_true: npt.NDArray[np.number],
+    keypoints_detection: npt.NDArray[np.number],
+    area_true: npt.NDArray[np.number],
+    sigmas: npt.ArrayLike | None = None,
+    visible_true: npt.NDArray[np.bool_] | None = None,
+    xyxy_true: npt.NDArray[np.number] | None = None,
+) -> npt.NDArray[np.float64]:
+    """Compute pairwise Object Keypoint Similarity (OKS) between keypoint sets.
+
+    OKS is the keypoint counterpart of IoU used by COCO keypoint evaluation:
+
+    `OKS = mean over visible i of exp(-d_i^2 / (2 * area * (2 * sigma_i)^2))`
+
+    where `d_i` is the distance between the `i`-th target and detected keypoint,
+    `area` is the target's object area, and only the target's visible keypoints
+    contribute. The arithmetic follows `pycocotools` `COCOeval.computeOks`, and
+    the result is float64 so that values compared with OKS thresholds match it.
+
+    Args:
+        keypoints_true: Target keypoints of shape `(N, K, 2)`.
+        keypoints_detection: Detected keypoints of shape `(M, K, 2)`. Detection
+            visibility is not used, as in COCO.
+        area_true: Object area of each target, shape `(N,)`. COCO uses the
+            annotated segmentation area here.
+        sigmas: Per-keypoint falloff constants of shape `(K,)`. Defaults to
+            `_COCO_KEYPOINT_SIGMAS` when `K == 17` and is required otherwise.
+        visible_true: Boolean mask of shape `(N, K)` marking labelled target
+            keypoints. When `None`, all target keypoints are visible.
+        xyxy_true: Target boxes of shape `(N, 4)` in `(x_min, y_min, x_max,
+            y_max)` format, used only for targets with no visible keypoint.
+            As in `pycocotools`, such a target's box of width `w` and height
+            `h` is expanded to `[x_min - w, x_min + 2w] x [y_min - h, y_min + 2h]`,
+            `d_i` becomes the distance from each detected keypoint to that
+            expanded box (`0` inside it), and the mean runs over all `K`
+            keypoints. When `None`, a target with no visible keypoint has OKS
+            `0` with every detection.
+
+    Returns:
+        OKS matrix of shape `(N, M)`, where entry `[i, j]` is the similarity
+            between `keypoints_true[i]` and `keypoints_detection[j]`.
+
+    Raises:
+        ValueError: If the shapes are inconsistent, or `sigmas` is missing for a
+            skeleton that is not 17 points long.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.iou_and_nms import _keypoint_oks_batch
+        >>> keypoints_true = np.array([[[10, 10], [20, 10], [15, 20]]])
+        >>> keypoints_detection = np.array([
+        ...     [[10, 10], [20, 10], [15, 20]],
+        ...     [[12, 10], [20, 13], [15, 20]],
+        ... ])
+        >>> _keypoint_oks_batch(
+        ...     keypoints_true,
+        ...     keypoints_detection,
+        ...     area_true=np.array([100.0]),
+        ...     sigmas=np.array([0.25, 0.25, 0.25]),
+        ... )
+        array([[1.        , 0.91946...]])
+
+        ```
+    """
+    keypoints_true = np.asarray(keypoints_true)
+    keypoints_detection = np.asarray(keypoints_detection)
+    count_true, count_det = len(keypoints_true), len(keypoints_detection)
+    if count_true == 0 or count_det == 0:
+        return np.zeros((count_true, count_det), dtype=np.float64)
+
+    if (
+        keypoints_true.ndim != 3
+        or keypoints_true.shape[2] != 2
+        or keypoints_detection.shape[1:] != keypoints_true.shape[1:]
+    ):
+        raise ValueError(
+            "`keypoints_true` and `keypoints_detection` must have shapes (N, K, 2) "
+            f"and (M, K, 2); got {keypoints_true.shape} and "
+            f"{keypoints_detection.shape}."
+        )
+    num_keypoints = keypoints_true.shape[1]
+    area = np.asarray(area_true, dtype=np.float64)
+    if area.shape != (count_true,):
+        raise ValueError(
+            f"`area_true` must have shape ({count_true},); got {area.shape}."
+        )
+    if visible_true is None:
+        visible = np.ones((count_true, num_keypoints), dtype=bool)
+    else:
+        visible = np.asarray(visible_true, dtype=bool)
+        if visible.shape != (count_true, num_keypoints):
+            raise ValueError(
+                f"`visible_true` must have shape ({count_true}, {num_keypoints}); "
+                f"got {visible.shape}."
+            )
+    boxes = None
+    if xyxy_true is not None:
+        boxes = np.asarray(xyxy_true, dtype=np.float64)
+        if boxes.shape != (count_true, 4):
+            raise ValueError(
+                f"`xyxy_true` must have shape ({count_true}, 4); got {boxes.shape}."
+            )
+    variances = (_resolve_keypoint_sigmas(sigmas, num_keypoints) * 2) ** 2
+
+    true_xy = keypoints_true.astype(np.float64)[:, None, :, :]
+    detection_xy = keypoints_detection.astype(np.float64)[None, :, :, :]
+    dx = detection_xy[..., 0] - true_xy[..., 0]
+    dy = detection_xy[..., 1] - true_xy[..., 1]
+    num_visible = visible.sum(axis=1)
+    use_box = np.zeros(count_true, dtype=bool)
+    if boxes is not None:
+        use_box = num_visible == 0
+        # COCO xywh, then the same expansion and operation order as
+        # pycocotools `computeOks`.
+        x, y = boxes[:, 0], boxes[:, 1]
+        w, h = boxes[:, 2] - x, boxes[:, 3] - y
+        x0, x1 = (x - w)[:, None, None], (x + w * 2)[:, None, None]
+        y0, y1 = (y - h)[:, None, None], (y + h * 2)[:, None, None]
+        xd, yd = detection_xy[..., 0], detection_xy[..., 1]
+        box_dx = np.maximum(0, x0 - xd) + np.maximum(0, xd - x1)
+        box_dy = np.maximum(0, y0 - yd) + np.maximum(0, yd - y1)
+        dx = np.where(use_box[:, None, None], box_dx, dx)
+        dy = np.where(use_box[:, None, None], box_dy, dy)
+    # Same operation order as pycocotools, so OKS values that land on a
+    # threshold round the same way there and here.
+    error = (dx**2 + dy**2) / variances / (area[:, None, None] + np.spacing(1)) / 2
+    counted = visible | use_box[:, None]
+    finite_coordinates = np.isfinite(dx) & np.isfinite(dy)
+    similarity = np.where(
+        counted[:, None, :] & finite_coordinates, np.exp(-error), 0.0
+    ).sum(axis=2)
+    num_counted = counted.sum(axis=1)[:, None]
+    oks = np.zeros((count_true, count_det), dtype=np.float64)
+    np.divide(similarity, num_counted, out=oks, where=num_counted > 0)
+    return oks
 
 
 def compact_mask_iou_batch(
@@ -571,7 +911,8 @@ def compact_mask_iou_batch(
     masks_detection: Any,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """Compute pairwise overlap between two :class:`CompactMask` collections.
+    """Compute pairwise overlap between two
+    :class:`~supervision.detection.compact_mask.CompactMask` collections.
 
     Avoids materialising full ``(N, H, W)`` arrays by:
 
@@ -583,19 +924,31 @@ def compact_mask_iou_batch(
        participates in many pairs.
 
     The result is numerically identical to running the dense
-    :func:`mask_iou_batch` on ``np.asarray(masks_true)`` /
-    ``np.asarray(masks_detection)``.
+    :func:`~supervision.detection.utils.iou_and_nms.mask_iou_batch` on
+    ``np.asarray(masks_true)`` / ``np.asarray(masks_detection)``.
 
     Args:
         masks_true: :class:`~supervision.detection.compact_mask.CompactMask`
             holding the ground-truth masks.
         masks_detection: :class:`~supervision.detection.compact_mask.CompactMask`
             holding the detection masks.
-        overlap_metric: :class:`OverlapMetric` — ``IOU`` or ``IOS``.
+        overlap_metric: :class:`~supervision.detection.utils.iou_and_nms.OverlapMetric`
+            — ``IOU`` or ``IOS``.
 
     Returns:
         Float array of shape ``(N1, N2)`` with pairwise overlap values.
     """
+    if masks_true.image_shape != masks_detection.image_shape:
+        raise ValueError(
+            "masks_true and masks_detection must share the same (H, W); got "
+            f"{masks_true.image_shape} and {masks_detection.image_shape}."
+        )
+    if overlap_metric not in (OverlapMetric.IOU, OverlapMetric.IOS):
+        raise ValueError(
+            f"overlap_metric {overlap_metric} is not supported, "
+            "only 'IOU' and 'IOS' are supported"
+        )
+
     n1: int = len(masks_true)
     n2: int = len(masks_detection)
     result: npt.NDArray[np.floating] = np.zeros((n1, n2), dtype=float)
@@ -605,6 +958,12 @@ def compact_mask_iou_batch(
 
     areas_a: npt.NDArray[np.int64] = masks_true.area
     areas_b: npt.NDArray[np.int64] = masks_detection.area
+    # Keep the arithmetic aligned with the dense matmul implementation. For
+    # images up to 2**24 pixels it intentionally uses float32 counts; this
+    # matters at an NMS threshold such as 0.1, where float32's rounded value
+    # is just above the threshold while the exact Python float is not.
+    pixel_count = masks_true.image_shape[0] * masks_true.image_shape[1]
+    count_dtype = np.float32 if pixel_count <= 2**24 else np.float64
 
     # Inclusive per-mask bounding boxes obtained from public accessors.
     # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
@@ -650,9 +1009,9 @@ def compact_mask_iou_batch(
         ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
         sub_b = crops_b[idx_b][ly1 - oy_b : ly2 - oy_b + 1, lx1 - ox_b : lx2 - ox_b + 1]
 
-        inter = int(np.logical_and(sub_a, sub_b).sum())
-        area_a_i = int(areas_a[idx_a])
-        area_b_j = int(areas_b[idx_b])
+        inter = count_dtype(np.logical_and(sub_a, sub_b).sum())
+        area_a_i = count_dtype(areas_a[idx_a])
+        area_b_j = count_dtype(areas_b[idx_b])
 
         if overlap_metric == OverlapMetric.IOU:
             union = area_a_i + area_b_j - inter
@@ -660,11 +1019,6 @@ def compact_mask_iou_batch(
         elif overlap_metric == OverlapMetric.IOS:
             small = min(area_a_i, area_b_j)
             result[idx_a, idx_b] = inter / small if small > 0 else 0.0
-        else:
-            raise ValueError(
-                f"overlap_metric {overlap_metric} is not supported, "
-                "only 'IOU' and 'IOS' are supported"
-            )
 
     return result
 
@@ -674,10 +1028,10 @@ def _mask_iou_batch_split(
     masks_detection: npt.NDArray[Any],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Internal function.
-    Compute Intersection over Union (IoU) of two sets of masks -
-        `masks_true` and `masks_detection`.
+    """Internal function.
+
+    Compute Intersection over Union (IoU) of two sets of masks - `masks_true` and
+    `masks_detection`.
 
     Args:
         masks_true: 3D `np.ndarray` representing ground-truth masks.
@@ -694,11 +1048,15 @@ def _mask_iou_batch_split(
     # ~4096x4096) we promote to float64 so the counts stay exact.
     pixels = int(np.prod(masks_true.shape[1:]))
     count_dtype = np.float32 if pixels <= 2**24 else np.float64
-    true_flat = masks_true.reshape(masks_true.shape[0], pixels).astype(
-        count_dtype, copy=False
+    true_flat = cast(
+        npt.NDArray[np.floating],
+        masks_true.reshape(masks_true.shape[0], pixels).astype(count_dtype, copy=False),
     )
-    detection_flat = masks_detection.reshape(masks_detection.shape[0], pixels).astype(
-        count_dtype, copy=False
+    detection_flat = cast(
+        npt.NDArray[np.floating],
+        masks_detection.reshape(masks_detection.shape[0], pixels).astype(
+            count_dtype, copy=False
+        ),
     )
     with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
         intersection_area: npt.NDArray[np.floating[Any]] = true_flat @ detection_flat.T
@@ -734,19 +1092,20 @@ def _mask_iou_batch_split(
 
 
 def mask_iou_batch(
-    masks_true: npt.NDArray[Any],
-    masks_detection: npt.NDArray[Any],
+    masks_true: npt.NDArray[Any] | CompactMask,
+    masks_detection: npt.NDArray[Any] | CompactMask,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     memory_limit: int = 1024 * 5,
 ) -> npt.NDArray[np.floating]:
-    """
-    Compute Intersection over Union (IoU) of two sets of masks -
-        `masks_true` and `masks_detection`.
+    """Compute Intersection over Union (IoU) of two sets of masks - `masks_true` and
+    `masks_detection`.
 
     Accepts both dense ``(N, H, W)`` boolean arrays and
     :class:`~supervision.detection.compact_mask.CompactMask` objects.
     When both inputs are :class:`~supervision.detection.compact_mask.CompactMask`,
-    the computation uses :func:`compact_mask_iou_batch` to avoid materialising
+    the computation uses
+    :func:`~supervision.detection.utils.iou_and_nms.compact_mask_iou_batch`
+    to avoid materialising
     full ``(N, H, W)`` arrays.
 
     Args:
@@ -769,6 +1128,19 @@ def mask_iou_batch(
         ValueError: If ``masks_true`` or ``masks_detection`` are not 3D
             ``(N, H, W)`` arrays, or if they do not share the same
             spatial dimensions ``(H, W)``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> masks_true = np.zeros((1, 4, 4), dtype=bool)
+        >>> masks_true[:, :2, :2] = True
+        >>> masks_detection = np.zeros((1, 4, 4), dtype=bool)
+        >>> masks_detection[:, :3, :3] = True
+        >>> sv.mask_iou_batch(masks_true, masks_detection)
+        array([[0.44444445]])
+
+        ```
     """
 
     if isinstance(masks_true, CompactMask) and isinstance(masks_detection, CompactMask):
@@ -831,13 +1203,12 @@ def mask_iou_batch(
 
 def mask_non_max_suppression(
     predictions: npt.NDArray[np.floating],
-    masks: npt.NDArray[Any],
+    masks: npt.NDArray[Any] | CompactMask,
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression (NMS) on segmentation predictions.
+    """Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
     IoU is computed exactly on the full-resolution masks for both dense and
     :class:`~supervision.detection.compact_mask.CompactMask` inputs.  The
@@ -864,13 +1235,25 @@ def mask_non_max_suppression(
             non-maximum suppression.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the closed
-            range from `0` to `1`.
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_non_max_suppression(predictions, masks, iou_threshold=0.5)
+        array([ True, False])
+
+        ```
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    _validate_iou_threshold(iou_threshold)
     rows, columns = predictions.shape
 
     if columns == 5:
@@ -896,13 +1279,101 @@ def mask_non_max_suppression(
     return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
 
 
+def mask_soft_non_max_suppression(
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[Any] | CompactMask,
+    sigma: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    mask_dimension: int = 640,
+) -> npt.NDArray[np.floating]:
+    """Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
+
+    Unlike
+    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`,
+    which discards overlapping masks outright,
+    Soft-NMS keeps every detection and instead rescales its confidence by
+    `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
+    overlap — the caller decides whether and where to threshold the result.
+    A smaller `sigma` produces a stronger decay.
+
+    The 3rd positional parameter here is `sigma`, not `iou_threshold` as in
+    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` —
+    Soft-NMS has no threshold to suppress at, only a decay strength, so the two
+    signatures intentionally diverge at that
+    position.
+
+    IoU is computed exactly on the full-resolution masks for both dense and
+    :class:`~supervision.detection.compact_mask.CompactMask` inputs. The
+    `mask_dimension` parameter is kept for signature parity with
+    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` but
+    is not used — dense masks are **not** resized
+    before IoU computation.
+
+    Args:
+        predictions: A 2D array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or
+            `(N, 6)`, where N is the number of predictions.
+        masks: A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        sigma: Controls the strength of the confidence decay; must be greater
+            than `0`. No value of `sigma` reproduces hard
+            :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`
+            output — Soft-NMS never drops masks, only rescales confidence.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of masks (e.g., IoU, IoS).
+        mask_dimension: Deprecated, unused. Kept for signature parity with
+            :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`.
+
+    Returns:
+        An array containing the updated (decayed) confidence scores, in the
+            same order as the input `predictions`.
+
+    Raises:
+        ValueError: If `sigma` is not greater than `0`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_soft_non_max_suppression(predictions, masks, sigma=0.5)
+        array([0.9       , 0.10826823])
+
+        ```
+    """
+    _validate_sigma(sigma)
+    rows, columns = predictions.shape
+
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(rows)]
+
+    sort_index = predictions[:, 4].argsort()[::-1]
+    predictions = predictions[sort_index]
+    masks = masks[sort_index]
+
+    ious = mask_iou_batch(masks, masks, overlap_metric)
+    categories = predictions[:, 5]
+
+    decayed = _soft_nms_decay_from_iou_matrix(
+        ious, categories, predictions[:, 4], sigma
+    )
+    return decayed[sort_index.argsort()]
+
+
 def _prepare_predictions_for_nms(
     predictions: npt.NDArray[np.floating],
 ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     """Add an agnostic class column when missing, sort by descending score.
 
-    Returns the score-descending sort index, the reordered predictions, and the
-    category vector for the loop callers to consume.
+    Returns the score-descending sort index, the reordered predictions, and the category
+    vector for the loop callers to consume.
     """
     rows, columns = predictions.shape
     if columns == 5:
@@ -920,9 +1391,9 @@ def _nms_loop_from_iou_matrix(
 ) -> npt.NDArray[np.bool_]:
     """Greedy NMS suppression loop given a precomputed pairwise IoU matrix.
 
-    Assumes `ious` is square with row/column order matching `categories`.
-    Detections sharing a category whose IoU exceeds `iou_threshold` are dropped
-    in favour of the higher-confidence entry.
+    Assumes `ious` is square with row/column order matching `categories`. Detections
+    sharing a category whose IoU exceeds `iou_threshold` are dropped in favour of the
+    higher-confidence entry.
     """
     rows = len(ious)
     ious = ious - np.eye(rows)
@@ -935,13 +1406,44 @@ def _nms_loop_from_iou_matrix(
     return keep
 
 
+def _validate_sigma(sigma: float) -> None:
+    """Raise `ValueError` when a Soft-NMS `sigma` is not strictly positive."""
+    if not sigma > 0:
+        raise ValueError(f"Value of `sigma` must be greater than 0, {sigma} given.")
+
+
+def _soft_nms_decay_from_iou_matrix(
+    ious: npt.NDArray[np.floating],
+    categories: npt.NDArray[np.floating],
+    scores: npt.NDArray[np.floating],
+    sigma: float,
+) -> npt.NDArray[np.floating]:
+    """Vectorized Gaussian Soft-NMS confidence decay given a precomputed IoU matrix.
+
+    Assumes `ious`, `categories`, and `scores` are all sorted by descending score
+    (as produced by
+    :func:`~supervision.detection.utils.iou_and_nms._prepare_predictions_for_nms`),
+    and that `ious` is square with
+    row/column order matching `categories`. Each detection's score is decayed once
+    per higher-scoring, same-category detection that precedes it — equivalent to
+    the reference single-pass (no re-sort) Soft-NMS loop, computed as a single
+    vectorized closed form: `decayed[j] = scores[j] * exp(-sum_i(ious[i, j]**2) /
+    sigma)` summed over same-category `i < j`.
+    """
+    rows = len(ious)
+    same_category = categories[:, None] == categories[None, :]
+    precedes = np.triu(np.ones((rows, rows), dtype=bool), k=1)
+    weighted_iou_sq = np.where(precedes & same_category, ious**2, 0.0)
+    decay_exponent = weighted_iou_sq.sum(axis=0)
+    return cast(npt.NDArray[np.floating], scores * np.exp(-decay_exponent / sigma))
+
+
 def box_non_max_suppression(
     predictions: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression (NMS) on object detection predictions.
+    """Perform Non-Maximum Suppression (NMS) on object detection predictions.
 
     Args:
         predictions: An array of object detection predictions in
@@ -957,27 +1459,93 @@ def box_non_max_suppression(
             non-maximum suppression.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the
-            closed range from `0` to `1`.
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_non_max_suppression(predictions, iou_threshold=0.5)
+        array([ True, False])
+
+        ```
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    _validate_iou_threshold(iou_threshold)
     sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
     ious = box_iou_batch(predictions[:, :4], predictions[:, :4], overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
-    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
+    result: npt.NDArray[np.bool_] = keep[sort_index.argsort()]
+    return result
+
+
+def box_soft_non_max_suppression(
+    predictions: npt.NDArray[np.floating],
+    sigma: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> npt.NDArray[np.floating]:
+    """Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
+
+    Unlike
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
+    which discards overlapping boxes outright,
+    Soft-NMS keeps every detection and instead rescales its confidence by
+    `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
+    overlap — the caller decides whether and where to threshold the result.
+    A smaller `sigma` produces a stronger decay.
+
+    Args:
+        predictions: An array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`.
+        sigma: Controls the strength of the confidence decay; must be greater
+            than `0`. No value of `sigma` reproduces hard
+            :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`
+            output — Soft-NMS never drops boxes, only rescales confidence.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
+
+    Returns:
+        An array containing the updated (decayed) confidence scores, in the
+            same order as the input `predictions`.
+
+    Raises:
+        ValueError: If `sigma` is not greater than `0`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_soft_non_max_suppression(predictions, sigma=0.5)
+        array([0.9       , 0.10826823])
+
+        ```
+    """
+    _validate_sigma(sigma)
+    sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
+    ious = box_iou_batch(predictions[:, :4], predictions[:, :4], overlap_metric)
+    decayed = _soft_nms_decay_from_iou_matrix(
+        ious, categories, predictions[:, 4], sigma
+    )
+    result_scores: npt.NDArray[np.floating] = decayed[sort_index.argsort()]
+    return result_scores
 
 
 def _group_overlapping_masks(
-    predictions: npt.NDArray[np.float64],
-    masks: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[np.bool_],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging to avoid detecting too many
+    """Apply greedy version of non-maximum merging to avoid detecting too many.
 
     Args:
         predictions: An array of shape `(n, 5)` containing
@@ -1029,13 +1597,13 @@ def _group_overlapping_masks(
 
 def mask_non_max_merge(
     predictions: npt.NDArray[np.floating],
-    masks: npt.NDArray[Any],
+    masks: npt.NDArray[Any] | CompactMask,
     iou_threshold: float = 0.5,
-    mask_dimension: int = 640,
+    *args: Any,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    mask_dimension: int = 640,
 ) -> list[list[int]]:
-    """
-    Perform Non-Maximum Merging (NMM) on segmentation predictions.
+    """Perform Non-Maximum Merging (NMM) on segmentation predictions.
 
     Args:
         predictions: A 2D array of object detection predictions in
@@ -1046,11 +1614,12 @@ def mask_non_max_merge(
             Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
             dimensions of each mask.
         iou_threshold: The intersection-over-union threshold
-            to use for non-maximum suppression.
-        mask_dimension: The dimension to which the masks should be
-            resized before computing IOU values. Defaults to 640.
+            to use for non-maximum merging.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
+        mask_dimension: Deprecated in `0.30.0`, removed in `0.33.0`. No longer
+            used; the parameter is silently ignored. Passing `mask_dimension`
+            positionally emits a deprecation warning.
 
     Returns:
         A list of groups of prediction indices. Each inner list contains
@@ -1059,63 +1628,95 @@ def mask_non_max_merge(
             kept together as a single detection by non-maximum merging.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the closed
-            range from `0` to `1`.
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+        TypeError: If more than five positional arguments are passed.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_non_max_merge(predictions, masks, iou_threshold=0.5)
+        [[0, 1]]
+
+        ```
     """
 
-    if isinstance(masks, CompactMask):
-        # _group_overlapping_masks needs dense arrays for logical_or union merging.
-        # Note: np.asarray(masks) first materialises a full-resolution (N, H, W)
-        # dense array before downscaling with resize_masks. This reduces the size
-        # of the array used for overlap computation but does not avoid the initial
-        # full-frame materialisation, which may still be memory-intensive for very
-        # large images or object counts.
-        masks = resize_masks(np.asarray(masks), mask_dimension)
-    else:
-        masks = resize_masks(masks, mask_dimension)
-    masks_resized = masks
-
-    if predictions.shape[1] == 5:
-        return _group_overlapping_masks(
-            predictions, masks_resized, iou_threshold, overlap_metric
+    _validate_iou_threshold(iou_threshold)
+    if len(args) > 2:
+        raise TypeError(
+            "mask_non_max_merge accepts at most five positional arguments. "
+            "Pass overlap_metric and mask_dimension by keyword."
         )
+    if args:
+        warn_deprecated(
+            "Passing `overlap_metric` or `mask_dimension` positionally to "
+            "`mask_non_max_merge` is deprecated in `0.30.0` and will be removed "
+            "in `0.33.0`. Pass them by keyword instead."
+        )
+        first = args[0]
+        if isinstance(first, OverlapMetric):
+            overlap_metric = first
+        else:
+            mask_dimension = cast(int, first)
+        if len(args) == 2:
+            second = args[1]
+            if isinstance(first, OverlapMetric):
+                mask_dimension = cast(int, second)
+            else:
+                overlap_metric = cast(OverlapMetric, second)
 
-    category_ids = predictions[:, 5]
-    merge_groups = []
-    for category_id in np.unique(category_ids):
-        curr_indices = np.where(category_ids == category_id)[0]
-        merge_class_groups = _group_overlapping_masks(
-            predictions[curr_indices],
-            masks_resized[curr_indices],
+    del mask_dimension
+
+    def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
+        if isinstance(masks, CompactMask):
+            return _group_overlapping_masks_pairwise(
+                predictions[global_indices],
+                masks[global_indices],
+                iou_threshold,
+                overlap_metric,
+            )
+        return _group_overlapping_masks(
+            predictions[global_indices],
+            masks[global_indices],
             iou_threshold,
             overlap_metric,
         )
 
-        for merge_class_group in merge_class_groups:
-            merge_groups.append(curr_indices[merge_class_group].tolist())
-
-    for merge_group in merge_groups:
-        if len(merge_group) == 0:
-            raise ValueError(
-                f"Empty group detected when non-max-merging detections: {merge_groups}"
-            )
-    return merge_groups
+    return _non_max_merge_per_category(predictions, group_within)
 
 
-def _greedy_nmm_via_iou_callback(
-    predictions: npt.NDArray[np.float64],
-    iou_against_candidate: Callable[
-        [npt.NDArray[np.int_], int], npt.NDArray[np.floating]
-    ],
-    iou_threshold: float,
+def _update_mask_candidate(
+    masks: npt.NDArray[Any] | CompactMask,
+    candidate: npt.NDArray[Any] | CompactMask,
+    above_idx: npt.NDArray[np.int_],
+) -> npt.NDArray[Any] | CompactMask:
+    """Union newly matched masks into the candidate, retaining compact storage."""
+    if isinstance(masks, CompactMask):
+        compact_candidate = cast(CompactMask, candidate)
+        return _compact_mask_union([masks[above_idx], compact_candidate])
+    dense_candidate = cast(npt.NDArray[Any], candidate)
+    dense_union: npt.NDArray[Any] = np.logical_or.reduce(
+        np.concatenate([masks[above_idx], dense_candidate]),
+        axis=0,
+        keepdims=True,
+    )
+    return dense_union
+
+
+def _greedy_nmm_via_mask_candidate(
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[Any] | CompactMask,
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """Greedy non-maximum merging loop, independent of how overlap is computed.
-
-    ``iou_against_candidate(order_indices, candidate_idx)`` must return the IoU
-    vector between every prediction in ``order_indices`` and the candidate at
-    ``candidate_idx``. Predictions whose IoU meets ``iou_threshold`` are
-    grouped with the candidate.
-    """
+    """Group masks by exact overlap while updating the merged candidate union."""
     merge_groups: list[list[int]] = []
     scores = predictions[:, 4]
     order = scores.argsort()
@@ -1125,25 +1726,43 @@ def _greedy_nmm_via_iou_callback(
         if len(order) == 0:
             merge_groups.append([idx])
             break
-        ious = iou_against_candidate(order, idx)
-        above_threshold = ious >= iou_threshold
-        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
+        candidate = masks[[idx]]
+        merge_group = [idx]
+        while len(order) > 0:
+            ious = mask_iou_batch(masks[order], candidate, overlap_metric).flatten()
+            above_threshold = ious >= iou_threshold
+            if not above_threshold.any():
+                break
+            above_idx = order[above_threshold]
+            candidate = _update_mask_candidate(masks, candidate, above_idx)
+            merge_group.extend(np.flip(above_idx).tolist())
+            order = order[~above_threshold]
         merge_groups.append(merge_group)
-        order = order[~above_threshold]
     return merge_groups
 
 
+def _group_overlapping_masks_pairwise(
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[Any] | CompactMask,
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> list[list[int]]:
+    return _greedy_nmm_via_mask_candidate(
+        predictions, masks, iou_threshold, overlap_metric
+    )
+
+
 def _non_max_merge_per_category(
-    predictions: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
     group_within: Callable[[npt.NDArray[np.int_]], list[list[int]]],
 ) -> list[list[int]]:
-    """Dispatch NMM grouping per class, then translate local indices back to
-    the global row positions of ``predictions``.
+    """Dispatch NMM grouping per class, then translate local indices back to the global
+    row positions of ``predictions``.
 
-    ``group_within(global_indices)`` must return merge groups expressed in
-    terms of *positions inside `global_indices`*, not absolute row positions.
-    When ``predictions`` has no class column, a single pass over all rows is
-    performed instead of per-category iteration.
+    ``group_within(global_indices)`` must return merge groups expressed in terms of
+    *positions inside `global_indices`*, not absolute row positions. When
+    ``predictions`` has no class column, a single pass over all rows is performed
+    instead of per-category iteration.
     """
     if predictions.shape[1] == 5:
         global_indices = np.arange(len(predictions), dtype=int)
@@ -1167,12 +1786,11 @@ def _non_max_merge_per_category(
 
 
 def _group_overlapping_boxes(
-    predictions: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging to avoid detecting too many
+    """Apply greedy version of non-maximum merging to avoid detecting too many
     overlapping bounding boxes for a given object.
 
     Args:
@@ -1188,29 +1806,34 @@ def _group_overlapping_boxes(
         Groups of prediction indices to be merged.
             Each group may have 1 or more elements.
     """
-
-    def iou_against_candidate(
-        order: npt.NDArray[np.int_], idx: int
-    ) -> npt.NDArray[np.floating]:
-        return box_iou_batch(
+    merge_groups: list[list[int]] = []
+    scores = predictions[:, 4]
+    order = scores.argsort()
+    while len(order) > 0:
+        idx = int(order[-1])
+        order = order[:-1]
+        if len(order) == 0:
+            merge_groups.append([idx])
+            break
+        ious = box_iou_batch(
             predictions[order][:, :4],
             predictions[idx : idx + 1, :4],
             overlap_metric,
         ).flatten()
-
-    return _greedy_nmm_via_iou_callback(
-        predictions, iou_against_candidate, iou_threshold
-    )
+        above_threshold = ious >= iou_threshold
+        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
+        merge_groups.append(merge_group)
+        order = order[~above_threshold]
+    return merge_groups
 
 
 def box_non_max_merge(
-    predictions: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging per category to avoid detecting
-    too many overlapping bounding boxes for a given object.
+    """Apply greedy version of non-maximum merging per category to avoid detecting too
+    many overlapping bounding boxes for a given object.
 
     Args:
         predictions: An array of shape `(n, 5)` or `(n, 6)`
@@ -1225,7 +1848,25 @@ def box_non_max_merge(
     Returns:
         list[list[int]]: Groups of prediction indices be merged.
             Each group may have 1 or more elements.
+
+    Raises:
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_non_max_merge(predictions, iou_threshold=0.5)
+        [[0, 1]]
+
+        ```
     """
+    _validate_iou_threshold(iou_threshold)
 
     def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
         return _group_overlapping_boxes(
@@ -1235,19 +1876,383 @@ def box_non_max_merge(
     return _non_max_merge_per_category(predictions, group_within)
 
 
+def _validate_num_models(num_models: int | None) -> None:
+    """Reject a Weighted Box Fusion model count that is not a positive integer.
+
+    ``None`` passes and means no rescaling. A ``bool`` is rejected even though it
+    is an ``int`` subclass, because ``True`` silently standing for one model
+    would hide a caller mistake.
+
+    Args:
+        num_models: The model count passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`.
+
+    Raises:
+        ValueError: If `num_models` is not `None` and not a positive integer.
+    """
+    if num_models is None:
+        return
+    is_integer = isinstance(num_models, (int, np.integer)) and not isinstance(
+        num_models, bool
+    )
+    if not is_integer or num_models < 1:
+        raise ValueError(
+            f"num_models must be a positive integer or None, got {num_models!r}. "
+            "Pass the number of models whose predictions were concatenated, "
+            "or leave it as None to keep the plain mean confidence."
+        )
+
+
+def _validate_fusion_predictions_shape(predictions: npt.NDArray[np.number]) -> None:
+    """Reject Weighted Box Fusion predictions not shaped `(n, 5)` or `(n, 6)`.
+
+    Without this check a `(n, 4)` array or a single 1-D row fails later with an
+    opaque ``IndexError``, and a `(n, 7)` array is silently cut down to six
+    columns. Empty input must carry five or six columns as well, so the empty
+    result keeps the same column count as a fused one.
+
+    Args:
+        predictions: The predictions passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`.
+
+    Raises:
+        ValueError: If `predictions` is not a 2-D array with 5 or 6 columns.
+    """
+    if predictions.ndim != 2 or predictions.shape[1] not in (5, 6):
+        raise ValueError(
+            "Predictions passed to box_weighted_box_fusion must have shape (n, 5) "
+            "or (n, 6), one [x1, y1, x2, y2, confidence] row per box with an "
+            f"optional class id column, got shape {predictions.shape}. Stack the "
+            "boxes, confidences and class ids into one 2-D array before fusing."
+        )
+
+
+def _validate_fusion_confidences(confidences: npt.NDArray[np.number]) -> None:
+    """Reject Weighted Box Fusion confidences that are negative or not finite.
+
+    Confidences weight the fused coordinates, so a negative score turns the
+    weighted mean into an extrapolation outside every member box, and a NaN or
+    infinite score makes the fused box or score NaN. Zero is allowed: a cluster
+    whose scores are all zero is fused with a plain average instead.
+
+    Args:
+        confidences: The confidence column of the predictions passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`,
+            shape `(n,)`.
+
+    Raises:
+        ValueError: If any confidence is negative, NaN, or infinite.
+    """
+    invalid = ~np.isfinite(confidences) | (confidences < 0)
+    if invalid.any():
+        invalid_rows = np.flatnonzero(invalid)
+        raise ValueError(
+            "Confidences passed to box_weighted_box_fusion must be finite and "
+            f"non-negative, got {confidences[invalid_rows[:5]].tolist()} at rows "
+            f"{invalid_rows[:5].tolist()}. Drop or clip those predictions before "
+            "fusing them."
+        )
+
+
+def _best_matching_cluster(
+    fused_boxes: npt.NDArray[np.float64],
+    box: npt.NDArray[np.float64],
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+) -> int:
+    """Pick the cluster a box should join during Weighted Box Fusion.
+
+    The box is compared with every cluster's current fused box in one batched
+    overlap call, and the cluster with the highest overlap wins (the first one
+    on ties). The box joins it only when that overlap is strictly greater than
+    ``iou_threshold``, as in the WBF paper and its reference implementation.
+
+    Args:
+        fused_boxes: Current fused boxes of the existing clusters, shape `(k, 4)`
+            in `[x1, y1, x2, y2]` format; `k` may be `0`.
+        box: The candidate box, shape `(4,)` in `[x1, y1, x2, y2]` format.
+        iou_threshold: Overlap that the best match must strictly exceed.
+        overlap_metric: Metric used to compute the overlap.
+
+    Returns:
+        Index of the cluster to join, or `-1` when there is no cluster yet or
+            no overlap exceeds `iou_threshold`.
+    """
+    if len(fused_boxes) == 0:
+        return -1
+    overlaps = _box_overlap_float64(fused_boxes, box[np.newaxis, :], overlap_metric)[
+        :, 0
+    ]
+    best_cluster = int(overlaps.argmax())
+    if overlaps[best_cluster] > iou_threshold:
+        return best_cluster
+    return -1
+
+
+def _fuse_single_class_boxes(
+    boxes: npt.NDArray[np.number],
+    scores: npt.NDArray[np.number],
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.int64]]:
+    """Cluster and fuse the boxes of one class with Weighted Box Fusion.
+
+    Boxes are visited in descending score order; a stable sort keeps equal
+    scores in input order. Each box joins the cluster chosen by
+    :func:`~supervision.detection.utils.iou_and_nms._best_matching_cluster` or
+    starts a new one. After every join, the cluster's fused box is recomputed
+    from running sums, so later boxes are matched against its updated position
+    rather than against the cluster's first box. The fused box is the
+    confidence-weighted average of the cluster's boxes, or their plain average
+    when the cluster's scores sum to zero.
+
+    Args:
+        boxes: Boxes of a single class, shape `(n, 4)` in `[x1, y1, x2, y2]`
+            format, with `n >= 1`.
+        scores: Confidence scores aligned with `boxes`, shape `(n,)`.
+        iou_threshold: Overlap that a box must strictly exceed to join a cluster.
+        overlap_metric: Metric used to compute the overlap.
+
+    Returns:
+        A tuple `(fused_boxes, mean_scores, cluster_sizes)` with shapes
+            `(k, 4)`, `(k,)` and `(k,)`, one entry per cluster in creation order.
+    """
+    boxes_float = boxes.astype(np.float64)
+    scores_float = scores.astype(np.float64)
+    box_count = len(boxes_float)
+    fused_boxes = np.empty((box_count, 4), dtype=np.float64)
+    cluster_origins = np.empty((box_count, 4), dtype=np.float64)
+    weighted_offset_sums = np.zeros((box_count, 4), dtype=np.float64)
+    offset_sums = np.zeros((box_count, 4), dtype=np.float64)
+    score_sums = np.zeros(box_count, dtype=np.float64)
+    cluster_sizes = np.zeros(box_count, dtype=np.int64)
+    cluster_count = 0
+
+    # WBF is order dependent: every box is matched against fused boxes that the
+    # higher-scoring boxes before it have already moved, so the visit itself is
+    # sequential; only the overlap against all current clusters is vectorized.
+    for box_index in np.argsort(-scores_float, kind="stable"):
+        box = boxes_float[box_index]
+        score = scores_float[box_index]
+        cluster = _best_matching_cluster(
+            fused_boxes[:cluster_count], box, iou_threshold, overlap_metric
+        )
+        if cluster < 0:
+            cluster = cluster_count
+            cluster_count += 1
+            # A new cluster starts exactly at its first box, so a later box
+            # whose overlap equals the threshold is not tipped over it by
+            # rounding in the weighted average.
+            fused_boxes[cluster] = box
+            cluster_origins[cluster] = box
+
+        # Sum offsets from the cluster's first box instead of absolute
+        # coordinates: with large coordinates the absolute sums lose low bits,
+        # which would shift a cluster of identical boxes and split it.
+        offset = box - cluster_origins[cluster]
+        weighted_offset_sums[cluster] += score * offset
+        offset_sums[cluster] += offset
+        score_sums[cluster] += score
+        cluster_sizes[cluster] += 1
+        if cluster_sizes[cluster] == 1:
+            continue
+
+        # Fall back to a plain average when the scores sum to zero (all-zero
+        # scores), so the weighted mean stays defined instead of dividing by 0.
+        if score_sums[cluster] > 0:
+            mean_offset = weighted_offset_sums[cluster] / score_sums[cluster]
+        else:
+            mean_offset = offset_sums[cluster] / cluster_sizes[cluster]
+        fused_boxes[cluster] = cluster_origins[cluster] + mean_offset
+
+    sizes = cluster_sizes[:cluster_count]
+    mean_scores = score_sums[:cluster_count] / sizes
+    return fused_boxes[:cluster_count], mean_scores, sizes
+
+
+def box_weighted_box_fusion(
+    predictions: npt.NDArray[np.floating],
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    num_models: int | None = None,
+) -> npt.NDArray[np.floating]:
+    """
+    Fuse overlapping object detection boxes with Weighted Box Fusion (WBF).
+
+    Unlike :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
+    which discards overlapping boxes, and
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge`, which only
+    returns groups of overlapping indices, WBF replaces each group of overlapping
+    boxes with a single box whose coordinates are the confidence-weighted average
+    of the group and whose score is the group's mean confidence. This keeps
+    information from every box in a cluster instead of dropping all but one, which
+    typically produces better localized boxes when combining predictions from
+    several models or augmentations. Based on Solovyev et al., "Weighted Boxes
+    Fusion: Ensembling boxes from different object detection models" (2019).
+
+    Boxes are clustered sequentially within each class (across all boxes when
+    there is no class column). They are visited in descending confidence order,
+    and each box is compared with the current fused box of every existing
+    cluster. The box joins the cluster with the highest overlap only when that
+    overlap is strictly greater than `iou_threshold`, and that cluster's fused
+    box is then recomputed; otherwise the box starts a new cluster. Because a
+    fused box moves as boxes join it, a box can join a cluster even when its
+    overlap with the cluster's highest-scoring box alone is too low, unlike the
+    seed-anchored grouping of
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge`.
+
+    !!! warning
+
+        The fused score is the mean confidence of the cluster, not its maximum,
+        so it can be lower than the score of the best box in the cluster. For
+        example, a `0.95` detection fused with an overlapping `0.15` box scores
+        `0.55`, where
+        :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`
+        would keep `0.95`. Revisit any downstream confidence filter tuned for
+        non-maximum suppression before switching to WBF.
+
+    Args:
+        predictions: An array of shape `(n, 5)` or `(n, 6)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2]`, the
+            confidence scores, and optionally the class ids. Omit the class_id
+            column to allow boxes of different classes to be fused together.
+            Confidences must be finite and non-negative; a cluster whose
+            confidences are all zero is fused with a plain, unweighted average.
+        iou_threshold: The overlap threshold used to decide whether a box joins
+            an existing cluster, measured against that cluster's current fused
+            box. The comparison is exclusive, as in the WBF paper: the overlap
+            must be strictly greater than this value, so an overlap exactly
+            equal to it keeps the box out of the cluster. Defaults to 0.5.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
+        num_models: Number of models (or test-time augmentations) whose
+            predictions were concatenated into `predictions`. When set, each
+            fused score is multiplied by `min(T, num_models) / num_models`, as in
+            the WBF paper, where `T` is the number of boxes in the cluster. A box
+            that only some of the models predicted is demoted, so a single-model
+            false positive no longer keeps its full score. `T` counts boxes, not
+            distinct models: a model that puts two boxes into one cluster counts
+            twice. Defaults to `None`, which keeps the plain mean confidence.
+
+    Returns:
+        An array of fused predictions with the same number of columns as the
+            input (`(m, 5)` or `(m, 6)`, with `m <= n`), ordered by descending
+            fused confidence. Fused boxes with equal confidence come back in a
+            deterministic order: ascending class id first, then, within a
+            class, the order in which their clusters were started (descending
+            score of the first box, input order among equal scores). The dtype
+            is `numpy.result_type(predictions.dtype, numpy.float32)` for empty
+            and non-empty input alike: float32 input stays float32, float64
+            input stays float64, and integer input becomes floating point
+            (float32 for 8- and 16-bit integers, float64 for wider ones).
+
+    Raises:
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`, if `num_models` is not `None` and not a
+            positive integer, if `overlap_metric` is not a valid overlap
+            metric (checked even when no overlap needs computing), if
+            `predictions` is not a 2-D array with 5 or 6 columns (empty input
+            included), or if any confidence is negative, NaN, or infinite.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0.0, 0.0, 10.0, 10.0, 0.9, 0],
+        ...     [1.0, 1.0, 11.0, 11.0, 0.8, 0],
+        ... ])
+        >>> fused = sv.box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        >>> fused[:, 4]
+        array([0.85])
+
+        ```
+
+        Rescale scores when fusing the predictions of two models. The second
+        box was predicted by only one model, so its score is halved:
+
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0.0, 0.0, 10.0, 10.0, 0.9, 0],
+        ...     [50.0, 50.0, 60.0, 60.0, 0.9, 0],
+        ...     [1.0, 1.0, 11.0, 11.0, 0.8, 0],
+        ... ])
+        >>> sv.box_weighted_box_fusion(predictions)[:, 4]
+        array([0.9 , 0.85])
+        >>> sv.box_weighted_box_fusion(predictions, num_models=2)[:, 4]
+        array([0.85, 0.45])
+
+        ```
+    """
+    _validate_iou_threshold(iou_threshold)
+    _validate_num_models(num_models)
+    # Resolve the metric before any early return: with empty input or one box
+    # per class no overlap is ever computed, so a bad value would pass silently.
+    overlap_metric = OverlapMetric.from_value(overlap_metric)
+    _validate_fusion_predictions_shape(predictions)
+    # One output dtype for the empty and the fused path: float inputs keep their
+    # precision, while integer inputs become floating point because fused
+    # coordinates and scores are averages.
+    output_dtype = np.result_type(predictions.dtype, np.float32)
+    if len(predictions) == 0:
+        empty_result: npt.NDArray[np.floating] = predictions.astype(output_dtype)
+        return empty_result
+    _validate_fusion_confidences(predictions[:, 4])
+
+    has_class_column = predictions.shape[1] > 5
+    if has_class_column:
+        class_ids = predictions[:, 5]
+    else:
+        class_ids = np.zeros(len(predictions))
+    unique_class_ids, class_positions = np.unique(class_ids, return_inverse=True)
+
+    fused_per_class: list[npt.NDArray[np.float64]] = []
+    for class_position, class_id in enumerate(unique_class_ids):
+        in_class = class_positions == class_position
+        fused_boxes, fused_scores, cluster_sizes = _fuse_single_class_boxes(
+            predictions[in_class, :4],
+            predictions[in_class, 4],
+            iou_threshold,
+            overlap_metric,
+        )
+        if num_models is not None:
+            # Paper rescale: a cluster backed by fewer boxes than there are
+            # models is demoted in proportion to the models that missed it.
+            rescale = np.minimum(cluster_sizes, num_models) / num_models
+            fused_scores = fused_scores * rescale
+        columns = [fused_boxes, fused_scores[:, np.newaxis]]
+        if has_class_column:
+            columns.append(np.full((len(fused_scores), 1), class_id, dtype=np.float64))
+        fused_per_class.append(np.hstack(columns))
+    # Fusion runs in float64 so the strict threshold comparison does not move.
+    # The cast to the output dtype comes before sorting, so scores that only
+    # become equal when rounded (e.g. to float32) still follow the tie order.
+    fused = np.concatenate(fused_per_class).astype(output_dtype, copy=False)
+
+    # A stable sort on the negated score keeps equal scores in matching order
+    # (class id ascending, then cluster creation order), so ties come back
+    # deterministic instead of reversed or scrambled by an unstable sort.
+    descending_score = np.argsort(-fused[:, 4], kind="stable")
+    result: npt.NDArray[np.floating] = fused[descending_score]
+    return result
+
+
 def oriented_box_non_max_suppression(
     predictions: npt.NDArray[np.floating],
     oriented_boxes: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression on oriented bounding box predictions.
+    """Perform Non-Maximum Suppression on oriented bounding box predictions.
 
-    Overlap is computed via :func:`oriented_box_iou_batch` on the four
-    corners of each box, so detections whose axis-aligned bounding boxes
+    Overlap is computed via
+    :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch` on
+    the four corners of each box, so detections whose axis-aligned bounding boxes
     overlap heavily but whose oriented bodies do not are kept — unlike
-    :func:`box_non_max_suppression`, which would suppress them.
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
+    which would suppress them.
 
     Args:
         predictions: An array of object detection predictions in the
@@ -1268,12 +2273,13 @@ def oriented_box_non_max_suppression(
             to keep after non-maximum suppression.
 
     Raises:
-        AssertionError: If ``iou_threshold`` is not within the closed
-            range from 0 to 1.
+        ValueError: If ``iou_threshold`` is not within the closed range
+            from 0 to 1.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
             mismatched lengths or invalid shapes.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> oriented_boxes = np.array([
@@ -1291,11 +2297,10 @@ def oriented_box_non_max_suppression(
         ... )
         >>> keep
         array([ True, False])
+
+        ```
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    _validate_iou_threshold(iou_threshold)
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
         if name == "predictions":
             if arr.ndim != 2 or arr.shape[1] not in (5, 6):
@@ -1327,7 +2332,8 @@ def oriented_box_non_max_suppression(
     # same object intentional — triggers upper-triangle optimization
     ious = oriented_box_iou_batch(oriented_boxes, oriented_boxes, overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
-    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
+    result: npt.NDArray[np.bool_] = keep[sort_index.argsort()]
+    return result
 
 
 def _group_overlapping_oriented_boxes(
@@ -1336,23 +2342,31 @@ def _group_overlapping_oriented_boxes(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Greedy non-maximum merging on oriented boxes. Mirrors
-    :func:`_group_overlapping_boxes` but uses :func:`oriented_box_iou_batch`.
-    """
+    """Greedy non-maximum merging on oriented boxes.
 
-    def iou_against_candidate(
-        order: npt.NDArray[np.int_], idx: int
-    ) -> npt.NDArray[np.floating]:
-        return oriented_box_iou_batch(
+    Mirrors
+    :func:`~supervision.detection.utils.iou_and_nms._group_overlapping_boxes`
+    but uses :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`.
+    """
+    merge_groups: list[list[int]] = []
+    scores = predictions[:, 4]
+    order = scores.argsort()
+    while len(order) > 0:
+        idx = int(order[-1])
+        order = order[:-1]
+        if len(order) == 0:
+            merge_groups.append([idx])
+            break
+        ious = oriented_box_iou_batch(
             oriented_boxes[order],
             oriented_boxes[idx][None, ...],
             overlap_metric,
         ).flatten()
-
-    return _greedy_nmm_via_iou_callback(
-        predictions, iou_against_candidate, iou_threshold
-    )
+        above_threshold = ious >= iou_threshold
+        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
+        merge_groups.append(merge_group)
+        order = order[~above_threshold]
+    return merge_groups
 
 
 def oriented_box_non_max_merge(
@@ -1361,12 +2375,12 @@ def oriented_box_non_max_merge(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Perform Non-Maximum Merging on oriented bounding box predictions,
-    grouped per category.
+    """Perform Non-Maximum Merging on oriented bounding box predictions, grouped per
+    category.
 
-    Mirrors :func:`box_non_max_merge` but uses oriented-box IoU, so groups
-    of rotated detections sharing the same body — rather than the same
+    Mirrors :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge`
+    but uses oriented-box IoU, so groups of rotated detections sharing the same
+    body — rather than the same
     axis-aligned bounding box — are merged.
 
     Args:
@@ -1387,12 +2401,13 @@ def oriented_box_non_max_merge(
             or more elements.
 
     Raises:
-        AssertionError: If ``iou_threshold`` is not within the closed
-            range from 0 to 1.
+        ValueError: If ``iou_threshold`` is not within the closed range
+            from 0 to 1.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
             mismatched lengths or invalid shapes.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> oriented_boxes = np.array([
@@ -1410,6 +2425,8 @@ def oriented_box_non_max_merge(
         ... )
         >>> len(groups)
         1
+
+        ```
     """
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
         if name == "predictions":
@@ -1437,10 +2454,7 @@ def oriented_box_non_max_merge(
             f"`predictions` and `oriented_boxes` must have the same length, "
             f"got {len(predictions)} and {len(oriented_boxes)}."
         )
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    _validate_iou_threshold(iou_threshold)
 
     def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
         return _group_overlapping_oriented_boxes(

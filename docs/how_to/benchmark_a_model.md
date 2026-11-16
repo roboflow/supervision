@@ -42,13 +42,8 @@ We'll use the following libraries:
 - `supervision` to evaluate the model results
 
 ```bash
-pip install roboflow supervision
-pip install git+https://github.com/roboflow/inference.git@linas/allow-latest-rc-supervision
+pip install roboflow inference "supervision[metrics]"
 ```
-
-!!! info
-
-    We're updating `inference` at the moment. Please install it as shown above.
 
 Here's how you can download a dataset:
 
@@ -80,7 +75,17 @@ This will create a folder called `Corgi-v2-4` with the dataset in the current wo
 
 Let's load a model.
 
-Select and instantiate the detection or segmentation model you want to benchmark. Supervision works with Roboflow Inference for both local and cloud-deployed models, as well as Ultralytics YOLO checkpoints. Choose the tab below that matches your preferred framework, then pass images to the loaded model during the evaluation loop.
+Select and instantiate the detection or segmentation model you want to benchmark. Supervision works with [RF-DETR](https://github.com/roboflow/rf-detr) directly, with Roboflow Inference for both local and cloud-deployed models, and with Ultralytics YOLO checkpoints. Choose the tab below that matches your preferred framework, then pass images to the loaded model during the evaluation loop.
+
+=== "RF-DETR"
+
+    RF-DETR ships pre-trained detection and segmentation checkpoints in the [`rfdetr`](https://github.com/roboflow/rf-detr) package. Its `predict` method returns a `Detections` object directly -- no conversion step needed in the evaluation loop below.
+
+    ```python
+    from rfdetr.detr import RFDETRSegSmall
+
+    model = RFDETRSegSmall()
+    ```
 
 === "Inference, Local"
 
@@ -146,9 +151,36 @@ At this stage, you should have:
 
 With these ready, we can now run the model and obtain predictions. We'll use `supervision` to create a dataset iterator, and then run the model on each image.
 
+If you already use a PyTorch DataLoader with Hugging Face DETR, see [Evaluate targets from a PyTorch DataLoader](../metrics/mean_average_precision.md#evaluate-targets-from-a-pytorch-dataloader) for converting ground-truth labels and predictions into paired `Detections` objects.
+
+=== "RF-DETR"
+
+    ```python
+    import supervision as sv
+
+    test_set = sv.DetectionDataset.from_yolo(
+        images_directory_path=f"{dataset.location}/test/images",
+        annotations_directory_path=f"{dataset.location}/test/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
+    )
+
+    image_paths = []
+    predictions_list = []
+    targets_list = []
+
+    for image_path, image, label in test_set:
+        # RF-DETR drops predictions below 0.5 by default; mAP needs the full PR curve.
+        predictions = model.predict(image[:, :, ::-1], threshold=0.0)
+
+        image_paths.append(image_path)
+        predictions_list.append(predictions)
+        targets_list.append(label)
+    ```
+
 === "Inference"
 
     ```python
+    import numpy as np
     import supervision as sv
 
     test_set = sv.DetectionDataset.from_yolo(
@@ -201,6 +233,9 @@ Did you notice an issue in the above logic? Since we're using an unrelated datas
 We need to remap them to match the dataset classes. Here's how to do it:
 
 ```python
+import numpy as np
+
+
 def remap_classes(
     detections: sv.Detections,
     class_ids_from_to: dict[int, int],
@@ -214,10 +249,46 @@ def remap_classes(
     new_class_names = [
         class_names_from_to.get(name, name) for name in detections["class_name"]
     ]
-    predictions["class_name"] = np.array(new_class_names)
+    detections["class_name"] = np.array(new_class_names)
 ```
 
 Let's also remove the predictions that are not in the dataset classes.
+
+=== "RF-DETR"
+
+    Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`. RF-DETR ships with COCO class configuration, matching the mapping used below. Filter the remapped class IDs rather than model-generated class names so the benchmark remains compatible with RF-DETR versions whose sparse COCO name lookup differs.
+
+    ```python
+    import numpy as np
+    import supervision as sv
+
+    test_set = sv.DetectionDataset.from_yolo(
+        images_directory_path=f"{dataset.location}/test/images",
+        annotations_directory_path=f"{dataset.location}/test/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
+    )
+
+    image_paths = []
+    predictions_list = []
+    targets_list = []
+
+    for image_path, image, label in test_set:
+        # RF-DETR drops predictions below 0.5 by default; mAP needs the full PR curve.
+        predictions = model.predict(image[:, :, ::-1], threshold=0.0)
+
+        remap_classes(
+            detections=predictions,
+            class_ids_from_to={18: 0},
+            class_names_from_to={"dog": "Corgi"},
+        )
+        predictions = predictions[
+            np.isin(predictions.class_id, np.arange(len(test_set.classes)))
+        ]
+
+        image_paths.append(image_path)
+        predictions_list.append(predictions)
+        targets_list.append(label)
+    ```
 
 === "Inference"
 
@@ -328,6 +399,20 @@ Here, predictions in purple are targets (ground truth), and predictions in teal 
     Use `sv.BoxAnnotator` for object detection and `sv.OrientedBoxAnnotator` for OBB.
 
     See [annotator documentation](https://supervision.roboflow.com/latest/detection/annotators/) for even more options.
+
+## Visual Benchmarking
+
+To inspect where a model succeeds and fails, pass `save_directory_path` to `sv.ConfusionMatrix.benchmark(...)`. For every dataset image it writes a 2x2 result grid — `Ground Truth`, `True Positives`, `False Positives`, and `False Negatives` panels — directly into that directory, reusing the original image filenames. This makes it easy to skim through per-image outcomes alongside the aggregate confusion matrix.
+
+```python
+import supervision as sv
+
+confusion_matrix = sv.ConfusionMatrix.benchmark(
+    dataset=test_set,
+    callback=callback,
+    save_directory_path="./results",
+)
+```
 
 ## Benchmarking Metrics
 
@@ -462,7 +547,7 @@ Yes, if you want to evaluate their bounding boxes. Convert model outputs to `Det
 
 ### What is a ConfusionMatrix and how do I use it?
 
-`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `metric.plot()` to render a heatmap.
+`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `confusion_matrix.plot()` to render a heatmap. If you want per-image validation visualizations saved to disk, pass `save_directory_path="./results"` to `sv.ConfusionMatrix.benchmark(...)`; it will write 2x2 result grids directly into that directory using the original image filenames, with `Ground Truth`, `True Positives`, `False Positives`, and `False Negatives` panels.
 
 ## Author
 

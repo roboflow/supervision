@@ -1,65 +1,366 @@
-from __future__ import annotations
-
+import base64
+import binascii
+import io
 import logging
 from itertools import chain
-from typing import Any, Union, cast
+from typing import Any, Literal, cast, overload
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+from PIL import Image
 
+from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.compact_mask import CompactMask, _polygon_to_compact_mask
+from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
+from supervision.utils.internal import _to_numpy
 
 logger = logging.getLogger(__name__)
 
 
+def _full_image_xyxy(
+    count: int,
+    image_height: int,
+    image_width: int,
+    dtype: npt.DTypeLike = np.float64,
+) -> npt.NDArray[Any]:
+    """Return full-frame inclusive boxes for lossless mask compaction."""
+    return np.tile(
+        np.array([[0, 0, image_width - 1, image_height - 1]], dtype=dtype),
+        (count, 1),
+    )
+
+
+def _valid_rle_payload(prediction: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the first valid RLE payload from ``rle`` then ``rle_mask``."""
+    for key in ("rle", "rle_mask"):
+        rle_data = prediction.get(key)
+        if isinstance(rle_data, dict) and {"size", "counts"}.issubset(rle_data):
+            return rle_data
+    return None
+
+
 def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
+    """Extract boolean masks from Ultralytics results, cropping letterbox padding.
+
+    Handles the case where the inference resolution differs from the original image
+    shape by recovering the rounded letterbox content size, cropping its padding,
+    and resizing each proto mask back to `orig_shape`. Thresholds at 0.5 to match
+    Ultralytics' semantics and avoid dilating masks through float interpolation.
+
+    Args:
+        yolov8_results: Ultralytics results object with `.masks` and `.orig_shape`.
+
+    Returns:
+        Boolean array of shape `(N, H, W)` aligned with the detections, or `None`
+        when no masks are present.
+    """
     if not yolov8_results.masks:
         return None
 
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    pad = (0, 0)
+    top, left = 0, 0
+    bottom, right = inference_shape
 
     if inference_shape != orig_shape:
         gain = min(
             inference_shape[0] / orig_shape[0],
             inference_shape[1] / orig_shape[1],
         )
-        pad = (
-            (inference_shape[1] - orig_shape[1] * gain) / 2,
-            (inference_shape[0] - orig_shape[0] * gain) / 2,
-        )
-
-    top, left = int(pad[1]), int(pad[0])
-    bottom, right = int(inference_shape[0] - pad[1]), int(inference_shape[1] - pad[0])
+        # LetterBox rounds the resized content before splitting padding. An odd
+        # padding pixel belongs to the bottom/right, not to the content crop.
+        content_height = max(round(orig_shape[0] * gain), 1)
+        content_width = max(round(orig_shape[1] * gain), 1)
+        top = (inference_shape[0] - content_height) // 2
+        left = (inference_shape[1] - content_width) // 2
+        bottom = top + content_height
+        right = left + content_width
 
     mask_maps = []
-    masks = yolov8_results.masks.data.cpu().numpy()
+    masks = _to_numpy(yolov8_results.masks.data)
     for i in range(masks.shape[0]):
         mask = masks[i]
         mask = mask[top:bottom, left:right]
 
         if mask.shape != orig_shape:
-            mask = cv2.resize(mask, (orig_shape[1], orig_shape[0]))
+            # `cv2.resize` interpolates the float proto mask, so threshold at 0.5
+            # (matching Ultralytics' own semantics) instead of casting every
+            # nonzero interpolated value to True, which would dilate the mask.
+            mask = cv2.resize(mask, (orig_shape[1], orig_shape[0])) > 0.5
+        # else: slice-crop (no interpolation) preserves the binary 0/1 float values
+        # produced by Ultralytics; the final np.asarray(..., dtype=bool) is equivalent.
 
         mask_maps.append(mask)
 
     return cast(npt.NDArray[np.bool_], np.asarray(mask_maps, dtype=bool))
 
 
+def extract_ultralytics_semantic_masks(
+    ultralytics_results: Any,
+) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.bool_]]:
+    """Split an Ultralytics semantic class map into one mask per class present.
+
+    `semantic_mask` holds one class ID per pixel at the original image size. Its
+    labels are read as Ultralytics' `Results.summary` reads them: a single-class
+    model writes `1` for its class over a `0` background, and IDs missing from
+    `names`, such as the `255` that `classes` filtering writes, are ignored. On a
+    model with 256 or more classes `255` is a real class ID, so pixels that
+    `classes` filtering drops are read as that class, as in `Results.summary`.
+
+    The class map is split here instead of through
+    :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`
+    because that path copies the map to `int64`, collects one mask per class in a
+    list before stacking them, and returns floating-point `xyxy`, which costs more
+    time and memory on large maps and differs from the integer `xyxy` that
+    :func:`~supervision.detection.utils.converters.mask_to_xyxy` gives the other
+    mask-only branch of
+    :meth:`~supervision.detection.core.Detections.from_ultralytics`. It also keeps
+    IDs missing from the class map under their number, where this helper skips
+    them as `Results.summary` does.
+
+    Args:
+        ultralytics_results: Ultralytics results object with `.semantic_mask` and
+            `.names`.
+
+    Returns:
+        Class IDs in ascending order and their boolean masks of shape `(N, H, W)`.
+    """
+    class_map = _to_numpy(ultralytics_results.semantic_mask.data)
+    names = ultralytics_results.names
+    map_values = np.unique(class_map)
+    if len(names) == 1:
+        map_values = map_values[map_values == 1]
+        class_ids = np.zeros(len(map_values), dtype=int)
+    else:
+        map_values = map_values[np.isin(map_values, list(names))]
+        class_ids = map_values.astype(int)
+    masks = class_map[np.newaxis] == map_values[:, np.newaxis, np.newaxis]
+    return class_ids, masks
+
+
+def _resolve_rle_mask(
+    rle_data: dict[str, Any],
+    image_height: int,
+    image_width: int,
+    compact_masks: bool,
+) -> tuple[npt.NDArray[np.bool_] | None, dict[str, Any] | None]:
+    """Decode one RLE prediction into (dense_mask, compact_pending).
+
+    Returns ``(dense_mask, None)`` when ``compact_masks=False`` or when the
+    RLE size does not match the image size (fall back to dense decode).
+    Returns ``(None, rle_data)`` when ``compact_masks=True`` and the RLE size
+    matches, deferring the item to the post-loop batch call.
+    Returns ``(None, None)`` on decode failure (caller should skip mask).
+
+    Args:
+        rle_data: Validated COCO RLE dict with ``"size"`` and ``"counts"`` keys.
+        image_height: Full-image height in pixels.
+        image_width: Full-image width in pixels.
+        compact_masks: Whether to return a deferred item for batch processing.
+
+    Returns:
+        A 2-tuple ``(dense_mask, pending)`` where at most one element is
+        non-``None``.
+    """
+    try:
+        h, w = rle_data["size"]
+        if compact_masks and (h, w) == (image_height, image_width):
+            # Sizes match; defer to the post-loop CompactMask.from_coco_rle call.
+            return None, rle_data
+        if compact_masks and (h, w) != (image_height, image_width):
+            logger.debug(
+                "compact_masks=True: RLE size %s does not match image "
+                "size (%d, %d); falling back to dense decode.",
+                (h, w),
+                image_height,
+                image_width,
+            )
+        mask: npt.NDArray[np.bool_] = rle_to_mask(rle_data["counts"], (w, h))
+        if (h, w) != (image_height, image_width):
+            mask = cv2.resize(
+                mask.astype(np.uint8),
+                (image_width, image_height),
+                interpolation=cv2.INTER_NEAREST,
+            ).astype(bool)
+        return mask, None
+    except (ValueError, AssertionError, KeyError, TypeError, OverflowError) as exc:
+        logger.warning(
+            "Failed to decode RLE mask payload; falling back to box-only "
+            "detection. Reason: %s",
+            exc,
+        )
+        return None, None
+
+
+def _all_present_or_none(
+    values: list[Any],
+    label: str,
+    dtype: npt.DTypeLike,
+) -> npt.NDArray[Any] | None:
+    # Identity check (`v is None`) is required when values may contain numpy arrays:
+    # `None in values` triggers element-wise comparison and raises ValueError.
+    missing = sum(v is None for v in values)
+    if 0 < missing < len(values):
+        logger.warning(
+            "Partial %s in batch; dropping all to preserve alignment with xyxy.", label
+        )
+    if not values or missing > 0:
+        return None
+    return np.array(values, dtype=dtype)
+
+
+def _decode_compact_masks(
+    coco_rle_pending: list[tuple[int, Any, list[float]]],
+    polygon_compact_map: dict[int, CompactMask],
+    image_height: int,
+    image_width: int,
+    n_predictions: int,
+) -> CompactMask | None:
+    """Decode deferred COCO-RLE entries and merge with polygon compact masks.
+
+    Attempts a single batched ``CompactMask.from_coco_rle`` call for all pending
+    items to eliminate per-prediction call overhead on the happy path.  On any
+    decode failure the call is retried per-prediction so that one malformed RLE
+    payload does not abort the entire batch.
+
+    Isolation note: this function isolates the *decode* step only.  If the
+    per-prediction fallback still leaves some predictions without masks, the
+    mixed-modality guard drops ALL masks to preserve alignment with ``xyxy``.
+
+    Args:
+        coco_rle_pending: Deferred COCO-RLE items collected during the prediction
+            loop, each as ``(xyxy_idx, rle_dict, bbox)``.
+        polygon_compact_map: Already-decoded polygon masks keyed by ``xyxy_idx``.
+        image_height: Frame height in pixels.
+        image_width: Frame width in pixels.
+        n_predictions: Total number of accepted predictions; used by the
+            mixed-modality alignment guard.
+
+    Returns:
+        A merged :class:`~supervision.detection.compact_mask.CompactMask` when
+        all predictions that carry masks decoded successfully, or ``None``
+        when no masks are present or the mixed-modality guard triggers.
+
+    Examples:
+        ```pycon
+        >>> _decode_compact_masks([], {}, 1080, 1920, 5) is None
+        True
+
+        ```
+    """
+    coco_compact_map: dict[int, CompactMask] = {}
+    if coco_rle_pending:
+        pending_indices = [t[0] for t in coco_rle_pending]
+        pending_rles = [t[1] for t in coco_rle_pending]
+        pending_xyxy = np.array([t[2] for t in coco_rle_pending], dtype=np.float64)
+        try:
+            batch_cm = CompactMask.from_coco_rle(
+                pending_rles, pending_xyxy, (image_height, image_width)
+            )
+            for local_idx, global_idx in enumerate(pending_indices):
+                coco_compact_map[global_idx] = batch_cm[local_idx : local_idx + 1]
+        except (ValueError, AssertionError, KeyError, TypeError, OverflowError) as exc:
+            logger.warning(
+                "Batch compact RLE decode failed (%s); retrying "
+                "per-prediction for fault isolation.",
+                exc,
+            )
+            for xyxy_idx, rle_dict, bbox in coco_rle_pending:
+                try:
+                    single_cm = CompactMask.from_coco_rle(
+                        [rle_dict],
+                        np.array([bbox], dtype=np.float64),
+                        (image_height, image_width),
+                    )
+                    coco_compact_map[xyxy_idx] = single_cm[0:1]
+                except (
+                    ValueError,
+                    AssertionError,
+                    KeyError,
+                    TypeError,
+                    OverflowError,
+                ) as per_exc:
+                    logger.warning(
+                        "Compact RLE decode failed for prediction at index %d; "
+                        "dropping that mask. Reason: %s",
+                        xyxy_idx,
+                        per_exc,
+                    )
+    all_compact = {**coco_compact_map, **polygon_compact_map}
+    compact_parts: list[CompactMask] = [
+        all_compact[i] for i in sorted(all_compact.keys())
+    ]
+    if 0 < len(compact_parts) < n_predictions:
+        logger.warning(
+            "Mixed-modality compact batch: %d of %d predictions carry masks; "
+            "dropping all masks to preserve alignment with xyxy.",
+            len(compact_parts),
+            n_predictions,
+        )
+        compact_parts = []
+    return CompactMask.merge(compact_parts) if compact_parts else None
+
+
+@overload
 def process_roboflow_result(
     roboflow_result: dict[str, Any],
+    *,
+    compact_masks: Literal[False] = False,
 ) -> tuple[
     npt.NDArray[np.floating],
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
     npt.NDArray[np.bool_] | None,
     npt.NDArray[np.integer] | None,
-    dict[str, npt.NDArray[np.generic]],
+    _DetectionDataType,
+]: ...
+
+
+@overload
+def process_roboflow_result(
+    roboflow_result: dict[str, Any],
+    *,
+    compact_masks: Literal[True],
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    CompactMask | None,
+    npt.NDArray[np.integer] | None,
+    _DetectionDataType,
+]: ...
+
+
+@overload
+def process_roboflow_result(
+    roboflow_result: dict[str, Any],
+    *,
+    compact_masks: bool,
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | CompactMask | None,
+    npt.NDArray[np.integer] | None,
+    _DetectionDataType,
+]: ...
+
+
+def process_roboflow_result(
+    roboflow_result: dict[str, Any],
+    *,
+    compact_masks: bool = False,
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | CompactMask | None,
+    npt.NDArray[np.integer] | None,
+    _DetectionDataType,
 ]:
     """Parse a Roboflow API or Inference package result into detection arrays.
 
@@ -71,18 +372,39 @@ def process_roboflow_result(
     Args:
         roboflow_result: Raw dict from the Roboflow REST API or the Inference
             package (after ``.dict()`` serialisation).
+        compact_masks: When ``True``, return segmentation masks as
+            :class:`~supervision.detection.compact_mask.CompactMask` instead of
+            a dense boolean array when mask data is present.
 
     Returns:
         A 6-tuple of ``(xyxy, confidence, class_id, masks, tracker_ids, data)``
-        where each array is aligned with the others. ``masks`` and
-        ``tracker_ids`` are ``None`` when absent from the predictions.
+        where each array is aligned with the others. ``masks`` is ``None``
+        when no predictions include mask data, or when only a subset do
+        (mixed-modality batch) — in that case all masks are dropped to preserve
+        alignment with ``xyxy``. Note: a single malformed polygon prediction
+        (fewer than 3 points) in an otherwise fully-segmented batch causes all
+        masks to be dropped from the result; the detection itself is kept as a
+        box-only entry with a ``logger.warning``. When ``compact_masks=True``
+        and masks are
+        present, ``masks`` is a
+        :class:`~supervision.detection.compact_mask.CompactMask`; otherwise it
+        is a dense boolean array. ``tracker_ids`` is ``None`` when no predictions
+        carry a tracker ID, or when only a subset do (mixed batch) — in that case all
+        tracker IDs are dropped to preserve alignment with ``xyxy``.
+
+    Raises:
+        ValueError: If a polygon prediction has a vertex that is not a finite
+            number.
 
     Examples:
+        ```pycon
         >>> from supervision.detection.utils.internal import process_roboflow_result
         >>> result = {"predictions": [], "image": {"width": 100, "height": 100}}
         >>> _, _, _, _, _, data = process_roboflow_result(result)
         >>> data["class_name"].dtype.kind
         'U'
+
+        ```
     """
     if not roboflow_result["predictions"]:
         return (
@@ -98,8 +420,14 @@ def process_roboflow_result(
     confidence: list[float] = []
     class_id: list[int] = []
     class_name: list[str] = []
-    masks: list[npt.NDArray[np.bool_]] = []
-    tracker_ids: list[int] = []
+    masks: list[npt.NDArray[np.bool_] | None] = []
+    # Deferred COCO-RLE processing: collect validated pairs here, then after the
+    # loop attempt a single batched from_coco_rle call (happy path). If that batch
+    # call fails, fall back to decoding each pending prediction individually for
+    # fault isolation.
+    _coco_rle_pending: list[tuple[int, Any, list[float]]] = []  # (xyxy_idx, rle, bbox)
+    _polygon_compact_map: dict[int, CompactMask] = {}  # xyxy_idx → CompactMask
+    tracker_ids: list[int | None] = []
 
     image_width = int(roboflow_result["image"]["width"])
     image_height = int(roboflow_result["image"]["height"])
@@ -114,58 +442,101 @@ def process_roboflow_result(
         x_max = x_min + width
         y_max = y_min + height
 
-        rle_data = prediction.get("rle") or prediction.get("rle_mask")
-        if not isinstance(rle_data, dict) or not {
-            "size",
-            "counts",
-        }.issubset(rle_data):
-            rle_data = None
+        rle_data = _valid_rle_payload(prediction)
+        mask: npt.NDArray[np.bool_] | None = None
+        compact_mask: CompactMask | None = None
         if rle_data is not None:
-            try:
-                h, w = rle_data["size"]
-                mask = rle_to_mask(rle_data["counts"], (w, h))
-                if (h, w) != (image_height, image_width):
-                    mask = cv2.resize(
-                        mask.astype(np.uint8),
-                        (image_width, image_height),
-                        interpolation=cv2.INTER_NEAREST,
-                    ).astype(bool)
-            except (ValueError, AssertionError, KeyError, TypeError) as exc:
-                logger.warning(
-                    "Failed to decode RLE mask payload; falling back to box-only "
-                    "detection. Reason: %s",
-                    exc,
-                )
+            _dense, _pending = _resolve_rle_mask(
+                rle_data, image_height, image_width, compact_masks
+            )
+            if _dense is None and _pending is None:
+                # Decode failed; treat as no-mask prediction.
                 rle_data = None
+            elif _pending is None:
+                # Dense result: compact_masks=False, or size-mismatch fallback.
+                mask = _dense
+                if compact_masks and mask is not None:
+                    compact_mask = CompactMask.from_dense(
+                        masks=mask[np.newaxis, ...],
+                        xyxy=_full_image_xyxy(1, image_height, image_width),
+                        image_shape=(image_height, image_width),
+                    )
+            # else: _pending set → deferred to batch; mask and compact_mask stay None
         if rle_data is not None:
+            xyxy_idx = len(xyxy)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            masks.append(mask)
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            if compact_masks:
+                if compact_mask is not None:
+                    # Fallback dense path (size mismatch): compact_mask always set.
+                    _polygon_compact_map[xyxy_idx] = compact_mask
+                else:
+                    # Main COCO-RLE path: (h, w) == image size; defer to batch.
+                    # Pass the detector bbox so _rle_split_cols only walks
+                    # crop columns, not the full image width.
+                    _coco_rle_pending.append(
+                        (
+                            xyxy_idx,
+                            rle_data,
+                            [x_min, y_min, x_max, y_max],
+                        )
+                    )
+            elif mask is not None:
+                masks.append(mask)
+            tracker_ids.append(prediction.get("tracker_id"))
         elif "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            masks.append(None)
+            tracker_ids.append(prediction.get("tracker_id"))
         elif len(prediction["points"]) >= 3:
-            polygon = np.array(
-                [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
+            vertices = np.array(
+                [[point["x"], point["y"]] for point in prediction["points"]],
+                dtype=np.float64,
             )
-            mask = polygon_to_mask(
-                polygon, resolution_wh=(image_width, image_height)
-            ).astype(bool)
+            if not np.isfinite(vertices).all():
+                raise ValueError(
+                    f"Polygon prediction of class {prediction['class']!r} has a "
+                    "vertex that is not a finite number."
+                )
+            if compact_masks:
+                # Encodes the object's rounded vertex extent, not the frame.
+                compact_mask = _polygon_to_compact_mask(
+                    vertices=vertices, resolution_wh=(image_width, image_height)
+                )
+            else:
+                # Vertices are sub-pixel floats; round them like the dataset loaders
+                # do, since truncating shifts the mask up and to the left by up to a
+                # pixel.
+                polygon = np.round(vertices).astype(np.int32)
+                mask = polygon_to_mask(
+                    polygon, resolution_wh=(image_width, image_height)
+                ).astype(bool)
+            xyxy_idx = len(xyxy)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            masks.append(mask)
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            if compact_mask is not None:
+                _polygon_compact_map[xyxy_idx] = compact_mask
+            else:
+                masks.append(mask)
+            tracker_ids.append(prediction.get("tracker_id"))
+        else:
+            logger.warning(
+                "Invalid polygon prediction with fewer than 3 points; falling back "
+                "to box-only detection."
+            )
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
+            confidence.append(prediction["confidence"])
+            masks.append(None)
+            tracker_ids.append(prediction.get("tracker_id"))
 
     xyxy_arr: npt.NDArray[np.floating] = (
         np.array(xyxy, dtype=np.float64) if len(xyxy) > 0 else np.empty((0, 4))
@@ -181,13 +552,21 @@ def process_roboflow_result(
     class_name_arr: npt.NDArray[np.str_] = (
         np.array(class_name) if len(class_name) > 0 else np.empty(0, dtype=str)
     )
-    masks_arr: npt.NDArray[np.bool_] | None = (
-        np.array(masks, dtype=bool) if len(masks) > 0 else None
+    masks_arr: npt.NDArray[np.bool_] | CompactMask | None
+    if compact_masks:
+        masks_arr = _decode_compact_masks(
+            _coco_rle_pending,
+            _polygon_compact_map,
+            image_height,
+            image_width,
+            len(xyxy),
+        )
+    else:
+        masks_arr = _all_present_or_none(masks, "mask", dtype=bool)
+    tracker_id_arr: npt.NDArray[np.integer] | None = _all_present_or_none(
+        tracker_ids, "tracker_id", dtype=np.int64
     )
-    tracker_id_arr: npt.NDArray[np.integer] | None = (
-        np.array(tracker_ids, dtype=np.int64) if len(tracker_ids) > 0 else None
-    )
-    data: dict[str, npt.NDArray[np.generic]] = {CLASS_NAME_DATA_FIELD: class_name_arr}
+    data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
     return (
         xyxy_arr,
@@ -199,12 +578,223 @@ def process_roboflow_result(
     )
 
 
-def is_data_equal(
-    data_a: dict[str, npt.NDArray[np.generic] | list[Any]],
-    data_b: dict[str, npt.NDArray[np.generic] | list[Any]],
-) -> bool:
+def _is_semantic_map_payload(value: Any) -> bool:
+    """Tell a raw map (base64 string, array or tensor) from a result object."""
+    return isinstance(value, (str, np.ndarray)) or hasattr(value, "cpu")
+
+
+def _read_semantic_field(source: Any, field: str) -> Any:
+    """Read a field from a dict or an attribute-style Inference response."""
+    if isinstance(source, dict):
+        return source.get(field)
+    return getattr(source, field, None)
+
+
+def read_semantic_result(
+    segmentation_result: Any,
+    class_map: dict[int, str] | dict[str, str] | None,
+    confidence_mask: Any,
+) -> tuple[Any, dict[int, str] | dict[str, str] | None, Any]:
+    """Find the map, class names and confidence inside a semantic segmentation input.
+
+    A raw map passes through. A Roboflow Inference result, or its ``predictions``,
+    is read as a dict or as an object, because the HTTP client returns the former and
+    ``model.infer`` the latter. Explicit arguments win over the result's own fields.
+
+    Args:
+        segmentation_result: A raw map, an Inference result or its ``predictions``.
+        class_map: Explicit class names, or ``None`` to use the result's.
+        confidence_mask: Explicit confidence map, or ``None`` to use the result's.
+
+    Returns:
+        ``(segmentation_mask, class_map, confidence_mask)``.
+
+    Raises:
+        ValueError: If the input is a list of results or holds no map.
     """
-    Compares the data payloads of two Detections instances.
+    if _is_semantic_map_payload(segmentation_result):
+        return segmentation_result, class_map, confidence_mask
+    if isinstance(segmentation_result, (list, tuple)):
+        raise ValueError(
+            "from_semantic_segmentation() operates on a single result at a time. You "
+            "can retrieve it like so: result = model.infer(image)[0]"
+        )
+    predictions = _read_semantic_field(segmentation_result, "predictions")
+    source = segmentation_result if predictions is None else predictions
+    segmentation_mask = _read_semantic_field(source, "segmentation_mask")
+    if segmentation_mask is None:
+        raise ValueError(
+            "Expected a semantic segmentation result holding 'segmentation_mask', a "
+            "base64 PNG string, or an (H, W) integer array, got "
+            f"{type(segmentation_result).__name__}."
+        )
+    if class_map is None:
+        class_map = _read_semantic_field(source, "class_map")
+    if confidence_mask is None:
+        confidence_mask = _read_semantic_field(source, "confidence_mask")
+    return segmentation_mask, class_map, confidence_mask
+
+
+def decode_semantic_label_map(payload: Any, field: str) -> npt.NDArray[np.integer]:
+    """Decode a semantic segmentation map into an ``(H, W)`` integer array.
+
+    Args:
+        payload: Base64 PNG string without a data-URI prefix, as Roboflow Inference
+            returns it, or an ``(H, W)`` integer array or tensor.
+        field: Name of the argument being decoded, used in error messages.
+
+    Returns:
+        The map with its integer values unchanged, so class ids keep their meaning.
+
+    Raises:
+        ValueError: If the payload is not a string, array or tensor, not valid base64,
+            not a decodable PNG, or not a single-channel integer ``(H, W)`` map.
+    """
+    if not _is_semantic_map_payload(payload):
+        raise ValueError(
+            f"{field} must be a base64 PNG string or an (H, W) integer array, got "
+            f"{type(payload).__name__}."
+        )
+    if isinstance(payload, str):
+        try:
+            png_bytes = base64.b64decode(payload, validate=True)
+        except binascii.Error as error:
+            raise ValueError(
+                f"{field} is not valid base64; pass the raw base64 PNG that Inference "
+                "returns, without a data-URI prefix."
+            ) from error
+        try:
+            with Image.open(io.BytesIO(png_bytes)) as image:
+                if image.format != "PNG":
+                    raise ValueError(f"{field} must be a PNG image.")
+                array = np.asarray(image)
+        except OSError as error:
+            raise ValueError(f"{field} is not a decodable PNG.") from error
+    else:
+        array = _to_numpy(payload)
+    if array.ndim != 2 or not np.issubdtype(array.dtype, np.integer):
+        raise ValueError(
+            f"{field} must be a single-channel integer (H, W) array, got shape "
+            f"{array.shape} and dtype {array.dtype}."
+        )
+    return cast(npt.NDArray[np.integer], array)
+
+
+def process_semantic_segmentation(
+    segmentation_mask: Any,
+    class_map: dict[int, str] | dict[str, str] | None,
+    confidence_mask: Any,
+    background_id: int | None,
+    compact_masks: bool,
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating] | None,
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | CompactMask | None,
+    _DetectionDataType,
+]:
+    """Split a semantic segmentation map into one mask per class id.
+
+    The background id is dropped, class names come from ``class_map`` with the id
+    as text when a class is not listed, and confidence is the class's mean 8-bit
+    ``confidence_mask`` over its pixels divided by 255.
+
+    Args:
+        segmentation_mask: Per-pixel class ids, see :func:`decode_semantic_label_map`.
+        class_map: Maps a class id, as an integer or as text, to its name, or ``None``.
+        confidence_mask: Per-pixel 8-bit confidence of the same shape, or ``None``.
+        background_id: Class id to leave out, or ``None`` to keep every class.
+        compact_masks: Return a :class:`~supervision.detection.compact_mask.CompactMask`
+            built one class at a time instead of a dense stack.
+
+    Returns:
+        ``(xyxy, confidence, class_id, masks, data)`` aligned on the first axis;
+            ``confidence`` is ``None`` without ``confidence_mask`` and ``masks`` is
+            ``None`` when no class remains.
+
+    Raises:
+        ValueError: If a map cannot be decoded or the two maps differ in shape.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.internal import (
+        ...     process_semantic_segmentation,
+        ... )
+        >>> label_map = np.array([[0, 1, 1], [0, 2, 2]], dtype=np.uint8)
+        >>> xyxy, _, class_id, masks, data = process_semantic_segmentation(
+        ...     label_map, {"1": "road"}, None, 0, False
+        ... )
+        >>> class_id.tolist(), masks.shape, data["class_name"].tolist()
+        ([1, 2], (2, 2, 3), ['road', '2'])
+
+        ```
+    """
+    label_map = decode_semantic_label_map(segmentation_mask, "segmentation_mask")
+    if np.issubdtype(label_map.dtype, np.unsignedinteger) and np.any(
+        label_map > np.iinfo(np.int64).max
+    ):
+        raise ValueError("segmentation_mask class IDs must fit in int64.")
+    # Normalize before comparing IDs: mixed uint64/int64 comparisons can lose precision.
+    label_map = label_map.astype(np.int64, copy=False)
+    confidence_map = None
+    if confidence_mask is not None:
+        confidence_map = decode_semantic_label_map(confidence_mask, "confidence_mask")
+        if confidence_map.shape != label_map.shape:
+            raise ValueError(
+                "confidence_mask and segmentation_mask must have the same shape, got "
+                f"{confidence_map.shape} and {label_map.shape}."
+            )
+        if np.any((confidence_map < 0) | (confidence_map > 255)):
+            raise ValueError("confidence_mask values must be between 0 and 255.")
+    # Inference keys class_map by text and Hugging Face id2label by integer.
+    names_by_id = {str(key): name for key, name in (class_map or {}).items()}
+
+    class_ids = np.unique(label_map)
+    if background_id is not None:
+        class_ids = class_ids[class_ids != background_id]
+    class_names = np.array(
+        [names_by_id.get(str(class_id), str(class_id)) for class_id in class_ids],
+        dtype=str,
+    )
+    data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
+    if class_ids.size == 0:
+        return np.empty((0, 4)), None, class_ids, None, data
+
+    boxes: list[list[int]] = []
+    masks: list[Any] = []
+    scores: list[float] = []
+    # The loop runs over class ids, never pixels. Building one class at a time keeps
+    # peak memory at one (H, W) plane when compact masks are requested.
+    for class_id in class_ids:
+        mask = label_map == class_id
+        rows = np.flatnonzero(mask.any(axis=1))
+        cols = np.flatnonzero(mask.any(axis=0))
+        box = [int(cols[0]), int(rows[0]), int(cols[-1]), int(rows[-1])]
+        boxes.append(box)
+        if compact_masks:
+            masks.append(
+                CompactMask.from_dense(
+                    masks=mask[np.newaxis],
+                    xyxy=np.array([box]),
+                    image_shape=label_map.shape,
+                )
+            )
+        else:
+            masks.append(mask)
+        if confidence_map is not None:
+            scores.append(float(confidence_map[mask].mean()) / 255.0)
+
+    result_masks = CompactMask.merge(masks) if compact_masks else np.stack(masks)
+    confidence = np.array(scores, dtype=np.float64) if scores else None
+    return np.array(boxes, dtype=np.float64), confidence, class_ids, result_masks, data
+
+
+def is_data_equal(
+    data_a: _DetectionDataType,
+    data_b: _DetectionDataType,
+) -> bool:
+    """Compares the data payloads of two Detections instances.
 
     Args:
         data_a, data_b: The data payloads of the instances.
@@ -217,9 +807,8 @@ def is_data_equal(
     )
 
 
-def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) -> bool:
-    """
-    Compares the metadata payloads of two Detections instances.
+def is_metadata_equal(metadata_a: _MetadataType, metadata_b: _MetadataType) -> bool:
+    """Compares the metadata payloads of two Detections instances.
 
     Args:
         metadata_a, metadata_b: The metadata payloads of the instances.
@@ -228,21 +817,14 @@ def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) ->
         True if the metadata payloads are equal, False otherwise.
     """
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
-        np.array_equal(metadata_a[key], metadata_b[key])
-        if (
-            isinstance(metadata_a[key], np.ndarray)
-            and isinstance(metadata_b[key], np.ndarray)
-        )
-        else metadata_a[key] == metadata_b[key]
-        for key in metadata_a
+        metadata_values_equal(metadata_a[key], metadata_b[key]) for key in metadata_a
     )
 
 
 def merge_data(
-    data_list: list[dict[str, npt.NDArray[np.generic] | list[Any]]],
-) -> dict[str, npt.NDArray[np.generic] | list[Any]]:
-    """
-    Merges the data payloads of a list of Detections instances.
+    data_list: list[_DetectionDataType],
+) -> _DetectionDataType:
+    """Merges the data payloads of a list of Detections instances.
 
     Warning: Assumes that empty detections were filtered-out before passing data to
     this function.
@@ -296,12 +878,43 @@ def merge_data(
                 f"types are allowed."
             )
 
-    return cast(dict[str, Union[npt.NDArray[np.generic], list[Any]]], merged_data)
+    return cast(_DetectionDataType, merged_data)
 
 
-def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
+def metadata_values_equal(value_a: Any, value_b: Any) -> bool:
+    """Check whether two metadata values can merge into one.
+
+    The predicate is total: any value type may be passed, and comparisons that a
+    type does not support resolve to `False` rather than propagating an exception.
+
+    Args:
+        value_a, value_b: The metadata values to compare.
+
+    Returns:
+        True if both values are considered equal, False otherwise.
     """
-    Merge metadata from a list of metadata dictionaries.
+    if isinstance(value_a, np.ndarray) and isinstance(value_b, np.ndarray):
+        # `equal_nan` makes an array holding NaN equal to itself, but NumPy rejects
+        # the argument for non-floating dtypes, so it is only passed when both
+        # operands are float arrays.
+        both_floating = np.issubdtype(value_a.dtype, np.floating) and np.issubdtype(
+            value_b.dtype, np.floating
+        )
+        if both_floating:
+            return bool(np.array_equal(value_a, value_b, equal_nan=True))
+        return bool(np.array_equal(value_a, value_b))
+    if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
+        return False
+    try:
+        return bool(value_a == value_b)
+    except (ValueError, RuntimeError, TypeError):
+        # Containers of arrays (list/dict/tuple of ndarray) and tensor types return
+        # an elementwise result whose truth value is ambiguous; treat as unequal.
+        return False
+
+
+def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
+    """Merge metadata from a list of metadata dictionaries.
 
     This function combines the metadata dictionaries. If a key appears in more than one
     dictionary, the values must be identical for the merge to succeed.
@@ -317,7 +930,7 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
 
     Raises:
         ValueError: If there are conflicting values for the same key or if
-        dictionaries have different keys.
+            dictionaries have different keys.
     """
     if not metadata_list:
         return {}
@@ -326,7 +939,7 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All metadata dictionaries must have the same keys to merge.")
 
-    merged_metadata: dict[str, Any] = {}
+    merged_metadata: _MetadataType = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key not in merged_metadata:
@@ -334,31 +947,81 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
                 continue
 
             other_value = merged_metadata[key]
-            if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
-                if not np.array_equal(merged_metadata[key], value):
+            if not metadata_values_equal(value, other_value):
+                if isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
-                        "{type(value)}, {type(other_value)}."
+                        f"{type(value)}, {type(other_value)}."
                     )
-            elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
-                # Since [] == np.array([]).
-                raise ValueError(
-                    f"Conflicting metadata for key: '{key}': "
-                    "{type(value)}, {type(other_value)}."
-                )
-            else:
-                if merged_metadata[key] != value:
-                    raise ValueError(f"Conflicting metadata for key: '{key}'.")
+                raise ValueError(f"Conflicting metadata for key: '{key}'.")
 
     return merged_metadata
 
 
-def get_data_item(
-    data: dict[str, npt.NDArray[np.generic] | list[Any]],
-    index: int | slice | list[int] | npt.NDArray[np.integer | np.bool_],
-) -> dict[str, npt.NDArray[np.generic] | list[Any]]:
+def merge_metadata_lenient(
+    metadata_list: list[_MetadataType],
+) -> tuple[_MetadataType, set[str]]:
+    """Merge metadata dictionaries, dropping keys that cannot be reconciled.
+
+    Unlike :func:`~supervision.detection.utils.internal.merge_metadata`, which
+    raises on any disagreement, this variant applies a lenient policy: a key
+    survives only when every dictionary carries it
+    and all of its values compare equal under
+    :func:`~supervision.detection.utils.internal.metadata_values_equal`. Every
+    other key is dropped and reported back so the caller can react to the loss.
+
+    A single traversal both detects conflicts and builds the merged dictionary;
+    the surviving value is the one from the first dictionary that carried the key.
+
+    Warning: Assumes that empty detections were filtered-out before passing metadata
+    to this function.
+
+    Args:
+        metadata_list: A list of metadata dictionaries to merge.
+
+    Returns:
+        A 2-tuple of the merged metadata dictionary and the set of dropped keys.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.internal import merge_metadata_lenient
+        >>> merge_metadata_lenient([{"a": 1, "b": 2}, {"a": 1, "b": 3}])
+        ({'a': 1}, {'b'})
+
+        ```
     """
-    Retrieve a subset of the data dictionary based on the given index.
+    merged_metadata: _MetadataType = {}
+    occurrences: dict[str, int] = {}
+    conflicting: set[str] = set()
+
+    for metadata in metadata_list:
+        for key, value in metadata.items():
+            occurrences[key] = occurrences.get(key, 0) + 1
+            if key in conflicting:
+                continue
+            if key not in merged_metadata:
+                merged_metadata[key] = value
+            elif not metadata_values_equal(merged_metadata[key], value):
+                conflicting.add(key)
+
+    dropped_keys = {
+        key
+        for key, count in occurrences.items()
+        if key in conflicting or count != len(metadata_list)
+    }
+    return {
+        key: value for key, value in merged_metadata.items() if key not in dropped_keys
+    }, dropped_keys
+
+
+def get_data_item(
+    data: _DetectionDataType,
+    index: int | slice | list[int] | npt.NDArray[np.integer | np.bool_],
+) -> _DetectionDataType:
+    """Retrieve a subset of the data dictionary based on the given index.
+
+    Boolean lists act as masks. Integer-list selection allocates positions only
+    for the requested rows, independent of the total number of data rows.
 
     Args:
         data: The data dictionary of the Detections object.
@@ -367,15 +1030,20 @@ def get_data_item(
     Returns:
         A subset of the data dictionary corresponding to the specified index.
     """
-    subset_data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
+    subset_data: _DetectionDataType = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
-            subset_data[key] = value[index]
+            subset_data[key] = value if value.ndim == 0 else value[index]
         elif isinstance(value, list):
             if isinstance(index, slice):
                 subset_data[key] = value[index]
             elif isinstance(index, list):
-                subset_data[key] = [value[i] for i in index]
+                positions = np.asarray(index)
+                if positions.dtype == bool:
+                    # Only masks need full-row positions; integer selections
+                    # must not allocate for rows that were not requested.
+                    positions = np.arange(len(value))[positions]
+                subset_data[key] = [value[i] for i in positions]
             elif isinstance(index, np.ndarray):
                 if index.dtype == bool:
                     subset_data[key] = [
@@ -396,14 +1064,31 @@ def get_data_item(
 def cross_product(
     anchors: npt.NDArray[np.number], vector: Vector
 ) -> npt.NDArray[np.number]:
-    """
-    Get array of cross products of each anchor with a vector.
+    """Get signed z-component of cross product (2-D determinant) per anchor.
+
+    Replaces the deprecated `np.cross` 2-D path (NumPy 2.0) with an explicit
+    determinant: ``a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]``.
+
     Args:
-        anchors: Array of anchors of shape (number of anchors, detections, 2)
-        vector: Vector to calculate cross product with
+        anchors: Array of anchors of shape (number of anchors, detections, 2).
+        vector: Vector to calculate cross product with.
 
     Returns:
-        Array of cross products of shape (number of anchors, detections)
+        Array of signed cross-product values, shape (number of anchors,
+        detections). Positive = anchor is to the left of the vector direction;
+        negative = to the right; zero = on the line.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.geometry.core import Point, Vector
+        >>> anchors = np.array([[[10.0, 5.0]], [[20.0, 5.0]]])
+        >>> vector = Vector(start=Point(0, 0), end=Point(1, 0))
+        >>> cross_product(anchors, vector)
+        array([[5.],
+               [5.]])
+
+        ```
     """
     vector_at_zero = np.array(
         [
@@ -412,6 +1097,8 @@ def cross_product(
         ]
     )
     vector_start = np.array([vector.start.x, vector.start.y])
+    diff = anchors - vector_start
     return cast(
-        npt.NDArray[np.number], np.cross(vector_at_zero, anchors - vector_start)
+        npt.NDArray[np.number],
+        vector_at_zero[0] * diff[..., 1] - vector_at_zero[1] * diff[..., 0],
     )

@@ -12,6 +12,12 @@ status: new
 :::supervision.utils.image.crop_image
 
 <div class="md-typeset">
+    <h2><a href="#supervision.utils.image.load_image_from_url">load_image_from_url</a></h2>
+</div>
+
+:::supervision.utils.image.load_image_from_url
+
+<div class="md-typeset">
     <h2><a href="#supervision.utils.image.scale_image">scale_image</a></h2>
 </div>
 

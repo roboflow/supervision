@@ -1,25 +1,33 @@
 from __future__ import annotations
 
-from copy import deepcopy
+from copy import copy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.utils.internal import get_data_item
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
     mask_iou_batch,
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricTarget
+from supervision.metrics.core import (
+    Metric,
+    MetricResult,
+    MetricTarget,
+    PlotDetails,
+    _append_object_size_plot_details,
+)
 from supervision.metrics.utils.object_size import (
+    SIZE_THRESHOLDS,
     ObjectSizeCategory,
-    get_detection_size_category,
+    get_detection_areas,
 )
 from supervision.metrics.utils.utils import ensure_pandas_installed
 
@@ -28,9 +36,8 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class MeanAverageRecallResult:
-    """
-    The results of the Mean Average Recall metric calculation.
+class MeanAverageRecallResult(MetricResult):
+    """The results of the Mean Average Recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -38,18 +45,19 @@ class MeanAverageRecallResult:
         metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
         mAR_at_1: the Mean Average Recall, when considering only the top
-            highest confidence detection for each class.
+            highest confidence detection for each class in each image.
         mAR_at_10: the Mean Average Recall, when considering top 10
-            highest confidence detections for each class.
+            highest confidence detections for each class in each image.
         mAR_at_100: the Mean Average Recall, when considering top 100
-            highest confidence detections for each class.
-        recall_per_class: the recall scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
+            highest confidence detections for each class in each image.
+        recall_per_class: the recall scores per max detection count, class and
+            IoU threshold. Shape:
+            `(num_max_detections, num_target_classes, num_iou_thresholds)`.
         max_detections: the array with maximum number of detections
             considered.
         iou_thresholds: the IoU thresholds used in the calculations.
         matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `recall_per_class`.
+            Corresponds to the class axis of `recall_per_class`.
         small_objects: the Mean Average Recall
             metric results for small objects (area < 32²).
         medium_objects: the Mean Average Recall
@@ -83,8 +91,7 @@ class MeanAverageRecallResult:
     large_objects: MeanAverageRecallResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon
@@ -111,7 +118,12 @@ class MeanAverageRecallResult:
             max detections: [  1  10 100]
             IoU thresh:     [0.5  0.55 ... 0.95]
             mAR per class:
-              0: [1. ... 1.]
+              @1:
+                0: [1. ... 1.]
+              @10:
+                0: [1. ... 1.]
+              @100:
+                0: [1. ... 1.]
             ...
             Medium objects:
               MeanAverageRecallResult:
@@ -133,10 +145,12 @@ class MeanAverageRecallResult:
         )
         if self.recall_per_class.size == 0:
             out_str += "  No results\n"
-        for class_id, recall_of_class in zip(
-            self.matched_classes, self.recall_per_class
+        for max_detections, recalls_at_k in zip(
+            self.max_detections, self.recall_per_class
         ):
-            out_str += f"  {class_id}: {recall_of_class}\n"
+            out_str += f"  @{max_detections}:\n"
+            for class_id, recall_of_class in zip(self.matched_classes, recalls_at_k):
+                out_str += f"    {class_id}: {recall_of_class}\n"
 
         indent = "  "
         if self.small_objects is not None:
@@ -152,8 +166,7 @@ class MeanAverageRecallResult:
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -161,7 +174,7 @@ class MeanAverageRecallResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data = {
+        pandas_data: dict[str, Any] = {
             "mAR @ 1": self.mAR_at_1,
             "mAR @ 10": self.mAR_at_10,
             "mAR @ 100": self.mAR_at_100,
@@ -182,63 +195,61 @@ class MeanAverageRecallResult:
 
         return pd.DataFrame(pandas_data, index=[0])
 
-    def plot(self) -> None:
-        """
-        Plot the Mean Average Recall results.
+    def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
+        """Return bar-chart data for mAR scores.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
-            ){ align=center width="800" }
+        Args:
+            include_object_sizes: When ``True``, include bars for
+                small / medium / large object-size categories.
         """
         labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
         values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
         colors = [LEGACY_COLOR_PALETTE[0]] * 3
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["mAR @ 1", "mAR @ 10", "mAR @ 100"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [
+                result.mAR_at_1,
+                result.mAR_at_10,
+                result.mAR_at_100,
+            ],
+        )
 
-        if self.small_objects is not None:
-            small_objects = self.small_objects
-            labels += ["Small: mAR @ 1", "Small: mAR @ 10", "Small: mAR @ 100"]
-            values += [
-                small_objects.mAR_at_1,
-                small_objects.mAR_at_10,
-                small_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 3
+        size_suffix = ", by Object Size" if include_object_sizes else ""
+        title = (
+            f"Mean Average Recall{size_suffix}\n(target: {self.metric_target.value})"
+        )
+        return PlotDetails(labels=labels, values=values, colors=colors, title=title)
 
-        if self.medium_objects is not None:
-            medium_objects = self.medium_objects
-            labels += ["Medium: mAR @ 1", "Medium: mAR @ 10", "Medium: mAR @ 100"]
-            values += [
-                medium_objects.mAR_at_1,
-                medium_objects.mAR_at_10,
-                medium_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 3
+    def plot(self) -> None:
+        """Plot the Mean Average Recall results.
 
-        if self.large_objects is not None:
-            large_objects = self.large_objects
-            labels += ["Large: mAR @ 1", "Large: mAR @ 10", "Large: mAR @ 100"]
-            values += [
-                large_objects.mAR_at_1,
-                large_objects.mAR_at_10,
-                large_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 3
+        ![example_plot](\
+        https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
+        ){ align=center width="800" }
+        """
+        from matplotlib import pyplot as plt
+
+        details = self._get_plot_details()
 
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
-        title = (
-            f"Mean Average Recall, by Object Size\n(target: {self.metric_target.value})"
-        )
-        ax.set_title(title, fontweight="bold")
+        ax.set_title(details.title, fontweight="bold")
 
-        x_positions = range(len(labels))
-        bars = ax.bar(x_positions, values, color=colors, align="center")
+        x_positions = range(len(details.labels))
+        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
 
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xticklabels(details.labels, rotation=45, ha="right")
 
         for bar in bars:
             y_value = bar.get_height()
@@ -256,17 +267,23 @@ class MeanAverageRecallResult:
         plt.show()
 
 
-class MeanAverageRecall(Metric):
-    """
-    Mean Average Recall (mAR) measures how well the model detects
-    and retrieves relevant objects by averaging recall over multiple
-    IoU thresholds, classes and detection limits.
+class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
+    """Mean Average Recall (mAR) measures how well the model detects and retrieves
+    relevant objects by averaging recall over multiple IoU thresholds, classes and
+    detection limits.
 
     Intuitively, while Recall measures the ability to find all relevant
     objects, mAR narrows down how many detections are considered for each
-    class. For example, mAR @ 100 considers the top 100 highest confidence
-    detections for each class. mAR @ 1 considers only the highest
-    confidence detection for each class.
+    image and class. For example, mAR @ 100 considers the top 100 highest
+    confidence detections of each class in each image. mAR @ 1 considers only
+    the highest confidence detection of each class in each image. This matches
+    the `maxDets` limit of COCO evaluation, so with a single class the limit
+    applies to the whole image.
+
+    Targets marked as crowd regions in `targets.data["iscrowd"]`, loaded by
+    :meth:`~supervision.dataset.core.DetectionDataset.from_coco`, or marked in
+    `targets.data["ignore"]` are COCO ignore regions: they are not counted as
+    missed objects.
 
     Examples:
         ```pycon
@@ -298,8 +315,7 @@ class MeanAverageRecall(Metric):
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
     ):
-        """
-        Initialize the Mean Average Recall metric.
+        """Initialize the Mean Average Recall metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -312,9 +328,7 @@ class MeanAverageRecall(Metric):
         self.max_detections = np.array([1, 10, 100])
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -323,8 +337,7 @@ class MeanAverageRecall(Metric):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> MeanAverageRecall:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -350,99 +363,143 @@ class MeanAverageRecall(Metric):
         return self
 
     def compute(self) -> MeanAverageRecallResult:
-        """
-        Calculate the Mean Average Recall metric based on the stored predictions
-        and ground-truth, at different IoU thresholds and maximum detection counts.
+        """Calculate the Mean Average Recall metric based on the stored predictions and
+        ground-truth, at different IoU thresholds and maximum detection counts.
 
         Returns:
             The Mean Average Recall metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
-
-        small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
+        result.small_objects = self._compute(
             self._predictions_list, self._targets_list, ObjectSizeCategory.SMALL
         )
-        result.small_objects = self._compute(small_predictions, small_targets)
-
-        medium_predictions, medium_targets = (
-            self._filter_predictions_and_targets_by_size(
-                self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
-            )
+        result.medium_objects = self._compute(
+            self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
         )
-        result.medium_objects = self._compute(medium_predictions, medium_targets)
-
-        large_predictions, large_targets = self._filter_predictions_and_targets_by_size(
+        result.large_objects = self._compute(
             self._predictions_list, self._targets_list, ObjectSizeCategory.LARGE
         )
-        result.large_objects = self._compute(large_predictions, large_targets)
 
         return result
 
     def _compute(
-        self, predictions_list: list[Detections], targets_list: list[Detections]
+        self,
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
+        size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> MeanAverageRecallResult:
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        # COCO treats crowd and `ignore`-flagged targets as ignore regions: they
+        # are never counted as misses, and a prediction on one is not a hit.
+        targets_list = [self._drop_ignored_targets(targets) for targets in targets_list]
+        if size_category != ObjectSizeCategory.ANY:
+            # Recall is unaffected by false-positive bookkeeping, and out-of-bucket
+            # predictions must still consume top-K rank slots, so bucket-filtering
+            # the targets is all the size handling mAR needs.
+            targets_list = [
+                self._filter_detections_by_size(targets, size_category)
+                for targets in targets_list
+            ]
+
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
             target_contents = self._detections_content(targets)
-
             if len(targets) > 0:
+                if predictions.class_id is None or targets.class_id is None:
+                    raise ValueError(
+                        "MeanAverageRecall metric requires `class_id` on both "
+                        "predictions and targets."
+                    )
                 if len(predictions) == 0:
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    if len(target_class_ids) == 0:
+                        continue
                     stats.append(
                         (
+                            np.zeros(
+                                (0, iou_thresholds.size, self.max_detections.size),
+                                dtype=bool,
+                            ),
                             np.zeros((0, iou_thresholds.size), dtype=bool),
                             np.zeros((0,), dtype=int),
                             np.zeros((0,), dtype=int),
-                            targets.class_id,
+                            target_class_ids,
                         )
                     )
 
                 else:
+                    if predictions.confidence is None:
+                        raise ValueError(
+                            "MeanAverageRecall metric requires `confidence` on "
+                            "predictions."
+                        )
+                    prediction_class_ids = np.asarray(
+                        predictions.class_id, dtype=np.int32
+                    )
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    prediction_confidence = np.asarray(
+                        predictions.confidence, dtype=np.float32
+                    )
                     if self._metric_target == MetricTarget.BOXES:
-                        iou = box_iou_batch(target_contents, prediction_contents)
+                        # BOXES target never yields CompactMask; narrow for mypy.
+                        iou = box_iou_batch(
+                            cast(npt.NDArray[np.number], target_contents),
+                            cast(npt.NDArray[np.number], prediction_contents),
+                        )
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        # OBB target never yields CompactMask; narrow for mypy.
+                        # The float32 cast matches `box_iou_batch`: the thresholds
+                        # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
+                        # a float64 IoU exactly on one of them would fall below it.
                         iou = oriented_box_iou_batch(
-                            target_contents, prediction_contents
-                        )
+                            cast(npt.NDArray[np.number], target_contents),
+                            cast(npt.NDArray[np.number], prediction_contents),
+                        ).astype(np.float32)
                     else:
                         raise ValueError(
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    matches = self._match_detection_batch(
-                        predictions.class_id
-                        if predictions.class_id is not None
-                        else np.array([]),
-                        targets.class_id
-                        if targets.class_id is not None
-                        else np.array([]),
-                        iou,
+                    # A stable sort keeps tied scores in input order, as COCO's
+                    # mergesort does, so equal-score boxes cross the K cutoff alike.
+                    sorted_indices = np.argsort(-prediction_confidence, kind="stable")
+                    sorted_class_ids = prediction_class_ids[sorted_indices]
+                    # COCO applies the detection limit to each (image, class) pair,
+                    # so every prediction is ranked among its own class only.
+                    class_ranks = self._rank_within_class(sorted_class_ids)
+                    matches = self._match_top_predictions(
+                        sorted_class_ids,
+                        class_ranks,
+                        target_class_ids,
+                        iou[:, sorted_indices],
                         iou_thresholds,
                     )
-
-                    sorted_indices = np.argsort(
-                        -cast(npt.NDArray[np.float32], predictions.confidence)
+                    ignored_matches = np.zeros(
+                        (len(sorted_indices), iou_thresholds.size), dtype=bool
                     )
+
                     stats.append(
                         (
-                            matches[sorted_indices],
-                            np.arange(len(predictions)),
-                            cast(npt.NDArray[np.int32], predictions.class_id)[
-                                sorted_indices
-                            ],
-                            cast(npt.NDArray[np.int32], targets.class_id),
+                            matches,
+                            ignored_matches,
+                            class_ranks,
+                            sorted_class_ids,
+                            target_class_ids,
                         )
                     )
 
         if not stats:
+            max_detection_count = self.max_detections.shape[0]
             return MeanAverageRecallResult(
                 metric_target=self._metric_target,
-                recall_scores=np.zeros(iou_thresholds.shape[0]),
-                recall_per_class=np.zeros((0, iou_thresholds.shape[0])),
+                recall_scores=np.zeros(max_detection_count),
+                recall_per_class=np.zeros(
+                    (max_detection_count, 0, iou_thresholds.shape[0])
+                ),
                 max_detections=self.max_detections,
                 iou_thresholds=iou_thresholds,
                 matched_classes=np.array([], dtype=int),
@@ -452,14 +509,14 @@ class MeanAverageRecall(Metric):
             )
 
         concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-        recall_scores_per_k, recall_per_class, unique_classes = (
+        recall_scores_per_k, recall_per_class_at_k, unique_classes = (
             self._compute_average_recall_for_classes(*concatenated_stats)
         )
 
         return MeanAverageRecallResult(
             metric_target=self._metric_target,
             recall_scores=recall_scores_per_k,
-            recall_per_class=recall_per_class,
+            recall_per_class=recall_per_class_at_k,
             max_detections=self.max_detections,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
@@ -468,10 +525,117 @@ class MeanAverageRecall(Metric):
             large_objects=None,
         )
 
+    @staticmethod
+    def _rank_within_class(
+        sorted_class_ids: npt.NDArray[np.int32],
+    ) -> npt.NDArray[np.int64]:
+        """Rank each prediction among the predictions of its own class.
+
+        COCO evaluates every (image, category) pair on its own and keeps the top
+        `maxDets` detections of that category, so the detection limit has to count
+        predictions per class rather than per image.
+
+        Args:
+            sorted_class_ids: shape (P,), prediction class ids sorted by descending
+                confidence.
+
+        Returns:
+            shape (P,), the zero-based rank of each prediction within its class,
+                where rank 0 is that class's highest confidence prediction.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.metrics import MeanAverageRecall
+            >>> class_ids = np.array([0, 1, 0, 0, 1])
+            >>> MeanAverageRecall._rank_within_class(class_ids).tolist()
+            [0, 0, 1, 2, 1]
+
+            ```
+        """
+        positions = np.arange(sorted_class_ids.shape[0])
+        # A stable sort groups each class while keeping its confidence order intact.
+        grouped_order = np.argsort(sorted_class_ids, kind="stable")
+        grouped_class_ids = sorted_class_ids[grouped_order]
+        is_group_start = np.ones(positions.shape, dtype=bool)
+        is_group_start[1:] = grouped_class_ids[1:] != grouped_class_ids[:-1]
+        group_start = np.maximum.accumulate(np.where(is_group_start, positions, 0))
+
+        class_ranks = np.empty(positions.shape, dtype=np.int64)
+        class_ranks[grouped_order] = positions - group_start
+        return class_ranks
+
+    def _match_top_predictions(
+        self,
+        sorted_prediction_class_ids: npt.NDArray[np.int32],
+        class_ranks: npt.NDArray[np.int64],
+        target_class_ids: npt.NDArray[np.int32],
+        sorted_iou: npt.NDArray[np.float32],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.bool_]:
+        """Match one image's predictions separately for each detection limit.
+
+        For each IoU threshold, predictions are visited in descending confidence
+        order and each claims its highest-IoU eligible unmatched target. Each limit
+        matches only the top K predictions of each class, as COCO does for every
+        (image, class) pair. Matching never pairs predictions with targets of another
+        class, so dropping one class's excess predictions cannot change how another
+        class is matched. Equal-IoU ties select the last eligible target in input
+        order, matching COCO.
+
+        Args:
+            sorted_prediction_class_ids: shape (P,), prediction class ids sorted by
+                descending confidence.
+            class_ranks: shape (P,), rank of each prediction within its own class, in
+                the same order.
+            target_class_ids: shape (T,), target class ids.
+            sorted_iou: shape (T, P), IoU with prediction columns in the same order.
+            iou_thresholds: shape (Th,), IoU thresholds.
+
+        Returns:
+            shape (P, Th, K), whether each prediction is a true positive when only
+                the top `max_detections[k]` predictions of each class are matched;
+                predictions ranked below that limit within their class are `False`.
+        """
+        prediction_count = sorted_prediction_class_ids.shape[0]
+        matches = np.zeros(
+            (prediction_count, iou_thresholds.size, self.max_detections.size),
+            dtype=bool,
+        )
+        for limit_index, max_detections in enumerate(self.max_detections):
+            # Ascending indices keep the confidence order the matcher relies on.
+            within_limit = np.flatnonzero(class_ranks < max_detections)
+            limit_class_ids = sorted_prediction_class_ids[within_limit]
+            limit_iou = sorted_iou[:, within_limit]
+            for threshold_index, threshold in enumerate(iou_thresholds):
+                matched_targets = np.zeros(target_class_ids.size, dtype=bool)
+                for prediction_index, class_id in enumerate(limit_class_ids):
+                    eligible_targets = (
+                        (target_class_ids == class_id)
+                        & ~matched_targets
+                        & (limit_iou[:, prediction_index] >= threshold)
+                    )
+                    if not eligible_targets.any():
+                        continue
+
+                    # COCO visits detections by score, then assigns each its best
+                    # unmatched target; the shared matcher instead ranks all pairs.
+                    # COCO lets the last eligible target win an equal-IoU tie.
+                    eligible_indices = np.flatnonzero(eligible_targets)[::-1]
+                    target_index = eligible_indices[
+                        np.argmax(limit_iou[eligible_indices, prediction_index])
+                    ]
+                    matched_targets[target_index] = True
+                    matches[
+                        within_limit[prediction_index], threshold_index, limit_index
+                    ] = True
+        return matches
+
     def _compute_average_recall_for_classes(
         self,
         matches: npt.NDArray[np.bool_],
-        prediction_indices: npt.NDArray[np.int32],
+        ignored_matches: npt.NDArray[np.bool_],
+        class_ranks: npt.NDArray[np.int64],
         prediction_class_ids: npt.NDArray[np.int32],
         true_class_ids: npt.NDArray[np.int32],
     ) -> tuple[
@@ -479,14 +643,32 @@ class MeanAverageRecall(Metric):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
+        """Compute recall per detection limit and class from all images' matches.
+
+        `matches` has shape (P, Th, K) and holds, for each detection limit, the matches
+        of that limit's own top predictions of each class; the other arrays have one row
+        or entry per prediction, or per target for `true_class_ids`. `class_ranks` is
+        each prediction's rank within its class in its own image.
+        """
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
-        recalls_at_k = []
-        for max_detections in self.max_detections:
-            # Shape: PxTh,P,C,C -> CxThx3
+        if unique_classes.size == 0:
+            max_detection_count = self.max_detections.shape[0]
+            num_thresholds = matches.shape[1]
+            return (
+                np.zeros(max_detection_count, dtype=np.float64),
+                np.zeros((max_detection_count, 0, num_thresholds), dtype=np.float64),
+                unique_classes,
+            )
+
+        recalls_at_k: list[npt.NDArray[np.float64]] = []
+        for limit_index, max_detections in enumerate(self.max_detections):
+            # Shape: PxThxK,P,C,C -> CxThx3
+            is_within_limit = class_ranks < max_detections
             confusion_matrix = self._compute_confusion_matrix(
-                matches[prediction_indices < max_detections],
-                prediction_class_ids[prediction_indices < max_detections],
+                matches[is_within_limit, :, limit_index],
+                ignored_matches[is_within_limit],
+                prediction_class_ids[is_within_limit],
                 unique_classes,
                 class_counts,
             )
@@ -496,54 +678,23 @@ class MeanAverageRecall(Metric):
             recalls_at_k.append(recall_per_class)
 
         # Shape: KxCxTh -> KxC
-        recalls_at_k = np.array(recalls_at_k)
-        average_recall_per_class = np.mean(recalls_at_k, axis=2)
+        recall_per_class_at_k = np.array(recalls_at_k)
+        average_recall_per_class = np.mean(recall_per_class_at_k, axis=2)
 
         # Shape: KxC -> K
         recall_scores = np.mean(average_recall_per_class, axis=1)
 
-        return recall_scores, recall_per_class, unique_classes
-
-    @staticmethod
-    def _match_detection_batch(
-        predictions_classes: npt.NDArray[np.int32],
-        target_classes: npt.NDArray[np.int32],
-        iou: npt.NDArray[np.float32],
-        iou_thresholds: npt.NDArray[np.float32],
-    ) -> npt.NDArray[np.bool_]:
-        num_predictions, num_iou_levels = (
-            predictions_classes.shape[0],
-            iou_thresholds.shape[0],
-        )
-        correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-        correct_class = target_classes[:, None] == predictions_classes
-
-        for i, iou_level in enumerate(iou_thresholds):
-            matched_indices = np.where((iou >= iou_level) & correct_class)
-
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
-        result_correct: npt.NDArray[np.bool_] = correct
-        return result_correct
+        return recall_scores, recall_per_class_at_k, unique_classes
 
     @staticmethod
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
+        sorted_ignored_matches: npt.NDArray[np.bool_],
         sorted_prediction_class_ids: npt.NDArray[np.int32],
-        unique_classes: npt.NDArray[np.int32],
-        class_counts: npt.NDArray[np.int32],
+        unique_classes: npt.NDArray[np.integer],
+        class_counts: npt.NDArray[np.integer],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -551,6 +702,8 @@ class MeanAverageRecall(Metric):
         Args:
             sorted_matches: shape (P, Th), that is True
                 if the prediction is a true positive at the given IoU threshold.
+            sorted_ignored_matches: shape (P, Th), that is True
+                if the prediction should not affect the given IoU threshold.
             sorted_prediction_class_ids: shape (P,), containing
                 the class id for each prediction.
             unique_classes: shape (C,), containing the unique
@@ -582,13 +735,14 @@ class MeanAverageRecall(Metric):
                 false_negatives = np.full(num_thresholds, num_true)
             elif num_true == 0:
                 true_positives = np.zeros(num_thresholds)
-                false_positives = np.full(num_thresholds, num_predictions)
+                false_positives = (~sorted_ignored_matches[is_class]).sum(0)
                 false_negatives = np.zeros(num_thresholds)
             else:
                 limited_matches = sorted_matches[is_class]
+                limited_ignored_matches = sorted_ignored_matches[is_class]
                 true_positives = limited_matches.sum(0)
 
-                false_positives = (1 - limited_matches).sum(0)
+                false_positives = (~limited_matches & ~limited_ignored_matches).sum(0)
                 false_negatives = num_true - true_positives
 
             confusion_matrix[class_idx] = np.stack(
@@ -602,8 +756,7 @@ class MeanAverageRecall(Metric):
     def _compute_recall(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the recall from the confusion matrix.
+        """Broadcastable function, computing the recall from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
@@ -621,25 +774,45 @@ class MeanAverageRecall(Metric):
         false_negatives = confusion_matrix[..., 2]
 
         denominator = true_positives + false_negatives
-        recall = np.where(denominator == 0, 0, true_positives / denominator)
+        recall = np.divide(
+            true_positives,
+            denominator,
+            out=np.zeros_like(denominator, dtype=np.float64),
+            where=denominator != 0,
+        )
 
         result_recall: npt.NDArray[np.float64] = recall
         return result_recall
 
-    def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
-        """Return boxes, masks or oriented bounding boxes from detections."""
+    def _detections_content(
+        self, detections: Detections
+    ) -> npt.NDArray[Any] | CompactMask:
+        """Return boxes, masks or oriented bounding boxes from detections.
+
+        For the mask target this may return a
+        :class:`~supervision.detection.compact_mask.CompactMask` rather than a
+        dense boolean array when the detections carry compact masks. Oriented
+        corners retain their precision until IoU translates them into a local frame;
+        float16 corners are promoted before subtracting potentially large extents.
+        """
         if self._metric_target == MetricTarget.BOXES:
-            result_boxes: npt.NDArray[np.float32] = detections.xyxy
-            return result_boxes
+            return cast(npt.NDArray[Any], detections.xyxy)
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                result_masks: npt.NDArray[np.bool_] = detections.mask
-                return result_masks
+                # detections.mask is NDArray[bool] | CompactMask; return as-is.
+                return detections.mask
+            if len(detections) > 0:
+                raise ValueError(
+                    "MeanAverageRecall with `MetricTarget.MASKS` requires "
+                    "detections to include masks."
+                )
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is not None and len(obb) > 0:
-                result_obb: npt.NDArray[np.float32] = np.array(obb, dtype=np.float32)
+                result_obb: npt.NDArray[Any] = np.array(obb)
+                if np.issubdtype(result_obb.dtype, np.float16):
+                    result_obb = result_obb.astype(np.float32)
                 return result_obb
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
@@ -659,48 +832,67 @@ class MeanAverageRecall(Metric):
 
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
+    @staticmethod
+    def _drop_ignored_targets(targets: Detections) -> Detections:
+        """Return targets without the COCO ignore regions among them.
+
+        A target is an ignore region when ``data["iscrowd"]`` or ``data["ignore"]``
+        is set for it, the same rule
+        :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
+        applies.
+        """
+        data = targets.data or {}
+        ignored = np.zeros(len(targets), dtype=bool)
+        for field in (ISCROWD_DATA_FIELD, "ignore"):
+            if field in data:
+                ignored |= np.asarray(data[field]).astype(bool)
+        if not ignored.any():
+            return targets
+        # A boolean mask always selects a `Detections`; narrow for mypy.
+        return cast(Detections, targets[~ignored])
+
     def _filter_detections_by_size(
         self, detections: Detections, size_category: ObjectSizeCategory
     ) -> Detections:
-        """Return a copy of detections with contents filtered by object size."""
-        new_detections = deepcopy(detections)
+        """Select a copy of the rows in the inclusive COCO size range.
+
+        Slice the selected rows on a shallow copy to avoid copying unused
+        masks and metadata. The targets were validated at construction, so
+        do not revalidate accepted non-bool masks during each size filter.
+
+        Matches
+        :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
+        and pycocotools: small is ``[0, 32²]``, medium ``[32², 96²]``, large
+        ``[96², 1e5²]``. Boundary areas therefore belong to both neighbouring
+        buckets. The half-open bins in
+        :class:`~supervision.metrics.utils.object_size.ObjectSizeCategory` stay
+        for general filtering; mAR needs the inclusive COCO semantics.
+        """
         if detections.is_empty() or size_category == ObjectSizeCategory.ANY:
-            return new_detections
+            size_mask = np.ones(len(detections), dtype=bool)
+        else:
+            areas = get_detection_areas(detections, self._metric_target)
+            small_area, medium_area = SIZE_THRESHOLDS
+            max_all_area = 1e5**2
+            if size_category == ObjectSizeCategory.SMALL:
+                size_mask = (areas >= 0) & (areas <= small_area)
+            elif size_category == ObjectSizeCategory.MEDIUM:
+                size_mask = (areas >= small_area) & (areas <= medium_area)
+            elif size_category == ObjectSizeCategory.LARGE:
+                size_mask = (areas >= medium_area) & (areas <= max_all_area)
+            else:
+                raise ValueError(f"Invalid size category: {size_category}")
 
-        sizes = get_detection_size_category(new_detections, self._metric_target)
-        size_mask = sizes == size_category.value
-
-        new_detections.xyxy = new_detections.xyxy[size_mask]
-        if new_detections.mask is not None:
-            new_detections.mask = new_detections.mask[size_mask]
-        if new_detections.class_id is not None:
-            new_detections.class_id = new_detections.class_id[size_mask]
-        if new_detections.confidence is not None:
-            new_detections.confidence = new_detections.confidence[size_mask]
-        if new_detections.tracker_id is not None:
-            new_detections.tracker_id = new_detections.tracker_id[size_mask]
-        if new_detections.data is not None:
-            for key, value in new_detections.data.items():
-                new_detections.data[key] = np.array(value)[size_mask]
-
-        return new_detections
-
-    def _filter_predictions_and_targets_by_size(
-        self,
-        predictions_list: list[Detections],
-        targets_list: list[Detections],
-        size_category: ObjectSizeCategory,
-    ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
-        new_predictions_list = []
-        new_targets_list = []
-        for predictions, targets in zip(predictions_list, targets_list):
-            new_predictions_list.append(
-                self._filter_detections_by_size(predictions, size_category)
-            )
-            new_targets_list.append(
-                self._filter_detections_by_size(targets, size_category)
-            )
-        return new_predictions_list, new_targets_list
+        selected = copy(detections)
+        selected.xyxy = detections.xyxy[size_mask]
+        if detections.mask is not None:
+            selected.mask = detections.mask[size_mask]
+        if detections.class_id is not None:
+            selected.class_id = detections.class_id[size_mask]
+        if detections.confidence is not None:
+            selected.confidence = detections.confidence[size_mask]
+        if detections.tracker_id is not None:
+            selected.tracker_id = detections.tracker_id[size_mask]
+        if detections.data is not None:
+            selected.data = get_data_item(detections.data, size_mask)
+        return selected

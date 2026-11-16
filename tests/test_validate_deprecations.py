@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import warnings
 from collections.abc import Callable
 
@@ -20,8 +18,6 @@ from supervision.validators import (
     validate_detections_fields,
     validate_key_point_confidence,
     validate_key_points_fields,
-    validate_keypoint_confidence,
-    validate_keypoints_fields,
     validate_mask,
     validate_resolution,
     validate_tracker_id,
@@ -39,14 +35,13 @@ def _detections() -> Detections:
 
 
 @pytest.mark.parametrize(
-    ("call", "version"),
+    ("fn_call", "version"),
     [
         (lambda: validate_xyxy(np.array([[0, 0, 1, 1]])), "0.29.0"),
         (lambda: validate_mask(np.array([[[True]]]), 1), "0.29.0"),
         (lambda: validate_class_id(np.array([0]), 1), "0.29.0"),
         (lambda: validate_confidence(np.array([0.5]), 1), "0.29.0"),
         (lambda: validate_key_point_confidence(np.array([[0.5]]), 1, 1), "0.29.0"),
-        (lambda: validate_keypoint_confidence(np.array([[0.5]]), 1, 1), "0.27.0"),
         (lambda: validate_tracker_id(np.array([1]), 1), "0.29.0"),
         (lambda: validate_data({"id": [1]}, 1), "0.29.0"),
         (lambda: validate_xy(np.array([[[0, 0]]]), 1, 1), "0.29.0"),
@@ -64,10 +59,6 @@ def _detections() -> Detections:
         (
             lambda: validate_key_points_fields(np.array([[[0, 0]]]), None, None, {}),
             "0.29.0",
-        ),
-        (
-            lambda: validate_keypoints_fields(np.array([[[0, 0]]]), None, None, {}),
-            "0.27.0",
         ),
         (lambda: validate_resolution((1, 1)), "0.29.0"),
         (
@@ -94,9 +85,12 @@ def _detections() -> Detections:
         ),
     ],
 )
-def test_validate_public_shims_warn(call: Callable[[], object], version: str) -> None:
+def test_validate_public_shims_warn(
+    fn_call: Callable[[], object], version: str
+) -> None:
+    """Public validation shims emit their documented deprecation warning."""
     with pytest.warns(FutureWarning, match=f"deprecated since v{version}"):
-        call()
+        fn_call()
 
 
 def test_private_validation_paths_do_not_warn() -> None:

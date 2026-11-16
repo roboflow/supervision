@@ -320,7 +320,7 @@ Use NumPy-style boolean indexing: `detections[detections.class_id == 0]` for cla
 
 ### How do I filter by bounding box area?
 
-`detections[detections.area > 1000]` filters by pixel area. If masks are present, `detections.area` uses mask area; otherwise it uses bounding box area from `xyxy`. Use `detections.box_area` when you specifically need bounding box area.
+`detections[detections.area > 1000]` filters by pixel area. If masks are present, `detections.area` uses mask area; otherwise, if oriented-box coordinates are present, it uses oriented polygon area; all remaining detections use bounding box area from `xyxy`. Use `detections.box_area` when you specifically need axis-aligned bounding box area.
 
 ### Can I filter by box aspect ratio or dimensions?
 

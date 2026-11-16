@@ -1,67 +1,30 @@
-<details>
-<summary>Before submitting</summary>
-
-- [ ] Self-reviewed the code
-- [ ] Updated documentation, follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
-- [ ] Added docs entry for autogeneration (if new functions/classes)
-- [ ] Added/updated tests
-- [ ] All tests pass locally
-
-</details>
-
 ## Description
 
-<!-- Provide a clear and concise description of your changes -->
-
-## Type of Change
-
-<!-- Mark the relevant option with an "x" and delete the others -->
-
-- 🐛 Bug fix (non-breaking change which fixes an issue)
-- ✨ New feature (non-breaking change which adds functionality)
-- 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- 📝 Documentation update
-- 🧪 Test update
-- 🔨 Refactoring (no functional changes)
-- ⚡ Performance improvement
-- 🔧 Chore (dependencies, configs, etc.)
+<!-- What was broken or missing, and what this PR does about it. Include a minimal repro for bug fixes. -->
 
 ## Motivation and Context
 
-<!-- Why is this change required? What problem does it solve? -->
+<!-- Why this change is needed. Link the issue if there is one. -->
 
-<!-- If it fixes an open issue, please link to the issue here -->
-
-Closes #(issue)
+<!-- Closes #(issue) -->
 
 ## Changes Made
 
-<!-- List the main changes made in this PR -->
+<!-- Bullet list of the actual changes. Note anything deliberately left out of scope. -->
 
--
 -
 -
 
 ## Testing
 
-<!-- Describe the tests you ran and how to reproduce them -->
+<!-- Commands you ran and their output (e.g. `uv run pytest`, `uv run pre-commit run --all-files`). -->
 
-- [ ] I have tested this code locally
-- [ ] I have added unit tests that prove my fix is effective or that my feature works
-- [ ] All new and existing tests pass
+<!-- For bug fixes: show the new test failing on `develop` and passing with this change. -->
 
-## Google Colab (optional)
-
-<!-- If applicable, provide a link to a Google Colab notebook demonstrating the feature/fix -->
-
-<!-- Ensure the notebook is publicly accessible -->
-
-Colab link:
-
-## Screenshots/Videos (optional)
-
-<!-- If applicable, add screenshots or videos to demonstrate the changes -->
+- [ ] Added/updated tests, and the full suite passes locally
+- [ ] Updated docs (docstrings / mkdocs entry) for new or changed public API
+- [ ] Added a changelog entry in `docs/changelog.md` under `Unreleased` (skip for lint/type/format-only or pure doc changes)
 
 ## Additional Notes
 
-<!-- Any additional information that reviewers should know -->
+<!-- Judgment calls, things you considered and rejected, follow-up issues worth opening. -->

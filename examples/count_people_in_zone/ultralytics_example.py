@@ -1,6 +1,5 @@
 import json
 
-import cv2
 import numpy as np
 from tqdm import tqdm
 from ultralytics import YOLO
@@ -11,8 +10,7 @@ COLORS = sv.ColorPalette.DEFAULT
 
 
 def load_zones_config(file_path: str) -> list[np.ndarray]:
-    """
-    Load polygon zone configurations from a JSON file.
+    """Load polygon zone configurations from a JSON file.
 
     This function reads a JSON file which contains polygon coordinates, and
     converts them into a list of NumPy arrays. Each polygon is represented as
@@ -64,9 +62,8 @@ def detect(
     confidence_threshold: float = 0.5,
     iou_threshold: float = 0.7,
 ) -> sv.Detections:
-    """
-    Detect objects in a frame using a YOLO model, filtering detections by class ID and
-        confidence threshold.
+    """Detect objects in a frame using a YOLO model, filtering detections by class ID
+    and confidence threshold.
 
     Args:
         frame (np.ndarray): The frame to process, expected to be a NumPy array.
@@ -99,8 +96,7 @@ def annotate(
     box_annotators: list[sv.BoxAnnotator],
     detections: sv.Detections,
 ) -> np.ndarray:
-    """
-    Annotate a frame with zone and box annotations based on given detections.
+    """Annotate a frame with zone and box annotations based on given detections.
 
     Args:
         frame (np.ndarray): The original frame to be annotated.
@@ -116,7 +112,7 @@ def annotate(
     """
     annotated_frame = frame.copy()
     for zone, zone_annotator, box_annotator in zip(
-        zones, zone_annotators, box_annotators
+        zones, zone_annotators, box_annotators, strict=True
     ):
         detections_in_zone = detections[zone.trigger(detections=detections)]
         annotated_frame = zone_annotator.annotate(scene=annotated_frame)
@@ -133,9 +129,8 @@ def main(
     target_video_path: str | None = None,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
-):
-    """
-    Counting people in zones with YOLO and Supervision.
+) -> None:
+    """Counting people in zones with YOLO and Supervision.
 
     Args:
         zone_configuration_path: Path to the zone configuration JSON file
@@ -167,6 +162,7 @@ def main(
                 )
                 sink.write_frame(annotated_frame)
     else:
+        window = sv.ImageWindow("Processed Video")
         for frame in tqdm(frames_generator, total=video_info.total_frames):
             detections = detect(frame, model, confidence_threshold, iou_threshold)
             annotated_frame = annotate(
@@ -176,11 +172,12 @@ def main(
                 box_annotators=box_annotators,
                 detections=detections,
             )
-            cv2.imshow("Processed Video", annotated_frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            window.show(annotated_frame)
+            key = window.wait_key(1)
+            if not window.is_open or key == "q":
                 break
 
-        cv2.destroyAllWindows()
+        window.close()
 
 
 if __name__ == "__main__":

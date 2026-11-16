@@ -1,12 +1,12 @@
-from __future__ import annotations
+import time
 
 import cv2
 import numpy as np
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
+from trackers import ByteTrackTracker
 from ultralytics import YOLO
 from utils.general import find_in_list, load_zones_config
-from utils.timers import ClockBasedTimer
 
 import supervision as sv
 
@@ -18,16 +18,24 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: list[int]):
+    def __init__(
+        self,
+        zone_configuration_path: str,
+        classes: list[int],
+        confidence_threshold: float,
+    ) -> None:
         self.classes = classes
-        self.tracker = sv.ByteTrack(minimum_matching_threshold=0.8)
+        self.tracker = ByteTrackTracker(
+            minimum_iou_threshold=0.2, track_activation_threshold=confidence_threshold
+        )
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones_config(file_path=zone_configuration_path)
-        self.timers = [ClockBasedTimer() for _ in self.polygons]
         self.zones = [
             sv.PolygonZone(
                 polygon=polygon,
                 triggering_anchors=(sv.Position.CENTER,),
+                # Ignore boxes flickering across the edge for under 3 frames.
+                minimum_crossing_threshold=3,
             )
             for polygon in self.polygons
         ]
@@ -37,7 +45,8 @@ class CustomSink:
         fps = self.fps_monitor.fps
 
         detections = detections[find_in_list(detections.class_id, self.classes)]
-        detections = self.tracker.update_with_detections(detections)
+        detections = self.tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         annotated_frame = frame.image.copy()
         annotated_frame = sv.draw_text(
@@ -53,8 +62,14 @@ class CustomSink:
                 scene=annotated_frame, polygon=zone.polygon, color=COLORS.by_idx(idx)
             )
 
-            detections_in_zone = detections[zone.trigger(detections)]
-            time_in_zone = self.timers[idx].tick(detections_in_zone)
+            zone.trigger(detections, timestamp=time.monotonic())
+            time_in_zone = zone.time_in_zone(detections)
+            # Dwell is NaN until confirmed inside or first seen inside,
+            # so only objects confirmed inside, or first seen inside, are
+            # drawn and labelled.
+            is_in_zone = ~np.isnan(time_in_zone)
+            detections_in_zone = detections[is_in_zone]
+            time_in_zone = time_in_zone[is_in_zone]
             custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
 
             annotated_frame = COLOR_ANNOTATOR.annotate(
@@ -63,8 +78,8 @@ class CustomSink:
                 custom_color_lookup=custom_color_lookup,
             )
             labels = [
-                f"#{tracker_id} {int(time // 60):02d}:{int(time % 60):02d}"
-                for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)
+                f"#{tracker_id} {int(t // 60):02d}:{int(t % 60):02d}"
+                for tracker_id, t in zip(detections_in_zone.tracker_id, time_in_zone)
             ]
             annotated_frame = LABEL_ANNOTATOR.annotate(
                 scene=annotated_frame,
@@ -85,8 +100,7 @@ def main(
     iou_threshold: float = 0.7,
     classes: list[int] = [],
 ) -> None:
-    """
-    Calculating detections dwell time in zones, using RTSP stream.
+    """Calculating detections dwell time in zones, using RTSP stream.
 
     Args:
         zone_configuration_path: Path to the zone configuration JSON file
@@ -107,7 +121,11 @@ def main(
             sv.Detections.from_ultralytics(results).with_nms(threshold=iou_threshold)
         ]
 
-    sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
+    sink = CustomSink(
+        zone_configuration_path=zone_configuration_path,
+        classes=classes,
+        confidence_threshold=confidence_threshold,
+    )
 
     pipeline = InferencePipeline.init_with_custom_logic(
         video_reference=rtsp_url,

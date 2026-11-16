@@ -1,42 +1,147 @@
 from __future__ import annotations
 
-import itertools
-import math
 import os
 import shutil
-from collections.abc import Callable
-from functools import partial
-from typing import Any, Literal, cast
+import tempfile
+import urllib.parse
+from hashlib import md5
+from pathlib import Path
+from types import TracebackType
+from typing import Any, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import TargetMode, deprecated
 from PIL import Image
 
+from supervision import _cv2 as cv2
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
-from supervision.draw.utils import calculate_optimal_text_scale, draw_text
-from supervision.geometry.core import Point
 from supervision.utils.conversion import (
-    cv2_to_pillow,
     ensure_cv2_image_for_standalone_function,
-    images_to_cv2,
 )
-from supervision.utils.iterables import create_batches, fill
+from supervision.utils.file import (
+    SUPERVISION_CACHE_DIR,
+    _download_to_file,
+    _normalize_http_url,
+)
 
-RelativePosition = Literal["top", "bottom"]
+DEFAULT_IMAGE_URL_CACHE_DIR = SUPERVISION_CACHE_DIR / "image-url"
 
-MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
+
+def _get_image_url_cache_path(value: str, cache_dir: str | Path | None) -> Path:
+    """Build the cache file path for a URL: `<cache root>/<md5(url)><suffix>`."""
+    cache_root = (
+        DEFAULT_IMAGE_URL_CACHE_DIR
+        if cache_dir is None
+        else Path(cache_dir).expanduser().resolve()
+    )
+    url_path = urllib.parse.urlparse(value).path
+    suffix = Path(url_path).suffix or ".image"
+    url_hash = md5(value.encode("utf-8"), usedforsecurity=False).hexdigest()
+    return cache_root / f"{url_hash}{suffix}"
+
+
+def _decode_image_from_bytes(
+    value: bytes,
+    cv_imread_flags: int,
+) -> npt.NDArray[np.uint8]:
+    """Decode raw image bytes into an OpenCV image, raising on undecodable data."""
+    image = cv2.imdecode(
+        np.frombuffer(value, dtype=np.uint8),
+        cv_imread_flags,
+    )
+    if image is None:
+        raise ValueError("Data pointed by URL could not be decoded into image.")
+
+    return cast(npt.NDArray[np.uint8], image)
+
+
+def load_image_from_url(
+    value: str,
+    cv_imread_flags: int = cv2.IMREAD_COLOR,
+    timeout: float = 30.0,
+    use_cache: bool = True,
+    cache_dir: str | Path | None = None,
+    force_reload: bool = False,
+) -> npt.NDArray[np.uint8]:
+    """Load an image from a URL as an OpenCV image.
+
+    Args:
+        value: HTTP(S) URL of the image.
+        cv_imread_flags: OpenCV image read flag passed to `cv2.imdecode`.
+            Defaults to `cv2.IMREAD_COLOR`.
+        timeout: Request timeout in seconds. Defaults to `30.0`.
+        use_cache: If `True`, cache downloaded image bytes locally and reuse them
+            on repeated calls. Defaults to `True`.
+        cache_dir: Directory where downloaded image bytes are cached. If `None`,
+            uses the system temporary directory. Defaults to `None`.
+        force_reload: If `True`, re-download the image and refresh the cache.
+            Defaults to `False`.
+
+    Returns:
+        Image as a NumPy array in the format selected by `cv_imread_flags`.
+
+    Raises:
+        ValueError: If the URL is invalid or the downloaded bytes cannot be decoded.
+        requests.RequestException: If the request fails or returns an error status.
+
+    Note:
+        Without OpenCV, ``cv_imread_flags=0`` (``IMREAD_GRAYSCALE``) returns a
+        two-dimensional ``uint8`` image. Pillow-backed grayscale conversions for
+        other codecs or color modes can differ from OpenCV's decoder, even when
+        their shape and dtype agree.
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        image = sv.load_image_from_url(
+            "https://media.roboflow.com/quickstart/dog.jpeg"
+        )
+        image.shape
+
+        ```
+    """
+    prepared_url = _normalize_http_url(url=value)
+    if not use_cache:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_target = Path(temp_dir) / "image"
+            _download_to_file(prepared_url, temp_target, timeout=timeout)
+            return _decode_image_from_bytes(
+                value=temp_target.read_bytes(),
+                cv_imread_flags=cv_imread_flags,
+            )
+
+    cache_path = _get_image_url_cache_path(
+        value=prepared_url,
+        cache_dir=cache_dir,
+    )
+    if cache_path.exists() and not force_reload:
+        try:
+            return _decode_image_from_bytes(
+                value=cache_path.read_bytes(),
+                cv_imread_flags=cv_imread_flags,
+            )
+        except ValueError:
+            cache_path.unlink(missing_ok=True)
+
+    _download_to_file(prepared_url, cache_path, timeout=timeout)
+    try:
+        return _decode_image_from_bytes(
+            value=cache_path.read_bytes(),
+            cv_imread_flags=cv_imread_flags,
+        )
+    except ValueError:
+        cache_path.unlink(missing_ok=True)
+        raise
 
 
 @ensure_cv2_image_for_standalone_function
 def crop_image(
     image: ImageType,
-    xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
+    xyxy: npt.NDArray[np.number] | list[int] | tuple[int, int, int, int],
 ) -> ImageType:
-    """
-    Crop image based on bounding box coordinates.
+    """Crop image based on bounding box coordinates.
 
     Args:
         image: The image to crop.
@@ -46,6 +151,11 @@ def crop_image(
     Returns:
         Cropped image matching input
             type.
+
+    Note:
+        Coordinates are rounded to integers and clipped to the image bounds
+        before slicing. This keeps NumPy and Pillow inputs aligned and avoids
+        negative-index wrap-around on NumPy arrays.
 
     Examples:
         ```pycon
@@ -74,27 +184,52 @@ def crop_image(
 
     ![crop-image](https://media.roboflow.com/supervision-docs/supervision-docs-crop-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    if isinstance(xyxy, (list, tuple)):
-        xyxy = np.array(xyxy)
-
-    xyxy = np.round(xyxy).astype(int)
-    x_min, y_min, x_max, y_max = xyxy.flatten()
+    xyxy_arr = np.asarray(xyxy, dtype=np.float64).round()
+    x_min, y_min, x_max, y_max = xyxy_arr.flatten()
 
     if isinstance(image, np.ndarray):
+        height, width = image.shape[:2]
+        x_min = int(np.clip(x_min, 0, width))
+        y_min = int(np.clip(y_min, 0, height))
+        x_max = int(np.clip(x_max, 0, width))
+        y_max = int(np.clip(y_max, 0, height))
         return image[y_min:y_max, x_min:x_max]
 
     if isinstance(image, Image.Image):
-        return image.crop((x_min, y_min, x_max, y_max))
+        width, height = image.size
+        x_min = int(np.clip(x_min, 0, width))
+        y_min = int(np.clip(y_min, 0, height))
+        x_max = int(np.clip(x_max, 0, width))
+        y_max = int(np.clip(y_max, 0, height))
+        return image.crop((float(x_min), float(y_min), float(x_max), float(y_max)))
 
     raise TypeError(
         f"`image` must be a numpy.ndarray or PIL.Image.Image. Received {type(image)}"
     )
 
 
+def _keep_single_channel_axis(
+    result: npt.NDArray[Any], image: npt.NDArray[Any]
+) -> npt.NDArray[Any]:
+    """Give ``result`` back the channel axis of an ``(H, W, 1)`` ``image``.
+
+    OpenCV's ``resize`` and ``copyMakeBorder`` return ``(H, W)`` for an ``(H, W, 1)``
+    input, while the NumPy fallback keeps the axis, so the shape would otherwise depend
+    on whether OpenCV is installed.
+    """
+    if image.ndim == 3 and image.shape[2] == 1 and result.ndim == 2:
+        return result[..., np.newaxis]
+    return result
+
+
+def _is_single_channel(image: npt.NDArray[Any]) -> bool:
+    """Return whether ``image`` is grayscale, shaped ``(H, W)`` or ``(H, W, 1)``."""
+    return image.ndim == 2 or (image.ndim == 3 and image.shape[2] == 1)
+
+
 @ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
-    """
-    Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
+    """Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
 
     Args:
         image: The image to scale.
@@ -105,7 +240,13 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
             type.
 
     Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
         ValueError: If scale factor is non-positive.
+
+    Note:
+        Each axis keeps at least one pixel, so a factor small enough to round an
+        axis of a small image down to zero returns a one-pixel-wide or
+        one-pixel-tall image rather than raising.
 
     Examples:
         ```pycon
@@ -132,14 +273,17 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
 
     ![scale-image](https://media.roboflow.com/supervision-docs/supervision-docs-scale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
     width_old, height_old = image.shape[1], image.shape[0]
-    width_new = int(width_old * scale_factor)
-    height_new = int(height_old * scale_factor)
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    # A small factor on a small image truncates an axis to zero, and `cv2.resize`
+    # answers a zero-sized target with a bare assertion. One pixel is the smallest
+    # image that still exists, so clamp there instead.
+    width_new = max(1, int(width_old * scale_factor))
+    height_new = max(1, int(height_old * scale_factor))
+    resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
 
 @ensure_cv2_image_for_standalone_function
@@ -148,8 +292,7 @@ def resize_image(
     resolution_wh: tuple[int, int],
     keep_aspect_ratio: bool = False,
 ) -> ImageType:
-    """
-    Resize image to specified resolution. Can optionally maintain aspect ratio.
+    """Resize image to specified resolution. Can optionally maintain aspect ratio.
 
     Args:
         image: The image to resize.
@@ -160,6 +303,16 @@ def resize_image(
     Returns:
         Resized image matching input
             type.
+
+    Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
+    Note:
+        With `keep_aspect_ratio=True` the fitted axis is rounded down to a whole
+        pixel and keeps at least one pixel, so an aspect ratio too extreme to fit
+        the target box returns a one-pixel-wide or one-pixel-tall image rather
+        than raising. A target with the same aspect ratio as the image returns
+        exactly the target size.
 
     Examples:
         ```pycon
@@ -190,20 +343,26 @@ def resize_image(
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
     if keep_aspect_ratio:
-        image_ratio = image.shape[1] / image.shape[0]
-        target_ratio = resolution_wh[0] / resolution_wh[1]
-        if image_ratio >= target_ratio:
-            width_new = resolution_wh[0]
-            height_new = int(resolution_wh[0] / image_ratio)
+        height_old, width_old = image.shape[:2]
+        target_width, target_height = resolution_wh
+        # Compare and scale with integer products, not float ratios. A ratio such as
+        # 640 / 427 is inexact, so `640 / (640 / 427)` gives 426.99999999999994 and
+        # `int()` dropped a pixel from a fitted axis whose exact size is whole.
+        # The fitted axis truncates to zero once the aspect ratio outgrows the target
+        # box, and `cv2.resize` answers a zero-sized target with a bare assertion.
+        # One pixel is the smallest image that still exists, so clamp there instead.
+        if width_old * target_height >= target_width * height_old:
+            width_new = target_width
+            height_new = max(1, int(target_width * height_old // width_old))
         else:
-            height_new = resolution_wh[1]
-            width_new = int(resolution_wh[1] * image_ratio)
+            height_new = target_height
+            width_new = max(1, int(target_height * width_old // height_old))
     else:
         width_new, height_new = resolution_wh
 
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
 
 @ensure_cv2_image_for_standalone_function
@@ -212,20 +371,22 @@ def letterbox_image(
     resolution_wh: tuple[int, int],
     color: tuple[int, int, int] | Color = Color.BLACK,
 ) -> ImageType:
-    """
-    Resize image and pad with color to achieve desired resolution while
-    maintaining aspect ratio.
+    """Resize image and pad with color to achieve desired resolution while maintaining
+    aspect ratio.
 
     Args:
         image: The image to resize and pad. Accepts BGR arrays of shape
             ``(H, W, 3)``, BGRA arrays of shape ``(H, W, 4)``, grayscale
-            arrays of shape ``(H, W)``, or a PIL ``Image``.
+            arrays of shape ``(H, W)`` or ``(H, W, 1)``, or a PIL ``Image``.
         resolution_wh: Target resolution as `(width, height)`.
         color: Padding color. If tuple, should be in BGR format.
-            Defaults to `Color.BLACK`.
+            Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
 
     Returns:
         Letterboxed image matching input type.
+
+    Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
     Note:
         For BGRA inputs, the alpha channel in the padding region is set to
@@ -252,7 +413,6 @@ def letterbox_image(
 
     ![letterbox-image](https://media.roboflow.com/supervision-docs/supervision-docs-letterbox-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
     color = unify_to_bgr(color=color)
     resized_image = resize_image(
         image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
@@ -271,48 +431,50 @@ def letterbox_image(
         cv2.BORDER_CONSTANT,
         value=color,
     )
+    return cast(
+        npt.NDArray[np.uint8], _keep_single_channel_axis(image_with_borders, image)
+    )
 
-    return image_with_borders
+
+def _match_overlay_to_scene_channels(
+    overlay: npt.NDArray[np.uint8], roi: npt.NDArray[np.uint8]
+) -> npt.NDArray[np.uint8]:
+    """Return ``overlay`` in the channel layout of the scene region ``roi``.
+
+    A grayscale scene, shaped ``(H, W)`` or ``(H, W, 1)``, takes a BGR overlay, such as
+    an icon, as its gray luminance. A grayscale overlay is reshaped to the scene's
+    layout, because ``cv2.resize`` drops the channel axis of a crop taken from an ``(H,
+    W, 1)`` scene.
+    """
+    if roi.ndim == 3 and roi.shape[2] != 1:
+        return overlay
+    if overlay.ndim == 3 and overlay.shape[2] == 3:
+        overlay = cast(
+            npt.NDArray[np.uint8],
+            cv2.cvtColor(np.ascontiguousarray(overlay), cv2.COLOR_BGR2GRAY),
+        )
+    return overlay.reshape(roi.shape)
 
 
-@deprecated(  # type: ignore[untyped-decorator]
-    target=TargetMode.NOTIFY,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def overlay_image(
+def _overlay_image(
     image: npt.NDArray[np.uint8],
     overlay: npt.NDArray[np.uint8],
     anchor: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
-    """
-    Overlay image onto scene at specified anchor point. Handles cases where
-    overlay position is partially or completely outside scene bounds.
+    """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
 
     Args:
-        image: Background scene with shape `(height, width, 3)`.
-        overlay: Image to overlay with shape
-            `(height, width, 3)` or `(height, width, 4)`.
-        anchor: Coordinates `(x, y)` where top-left corner
-            of overlay will be placed.
+        image: Background array, BGR of shape ``(H, W, 3)`` or grayscale of
+            shape ``(H, W)`` or ``(H, W, 1)``. Modified in place and returned.
+        overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``, or
+            grayscale like ``image``; channel 4, when present, is treated as
+            alpha. A BGR overlay is drawn as gray luminance on a grayscale
+            ``image``.
+        anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
+            be negative (partial off-screen placement is clipped).
 
     Returns:
-        Scene with overlay applied, shape `(height, width, 3)`.
-
-    Examples:
-        ```pycon
-        >>> import numpy as np
-        >>> import supervision as sv
-        >>> image = np.zeros((1000, 1000, 3), dtype=np.uint8)
-        >>> overlay = np.zeros((400, 400, 3), dtype=np.uint8)
-        >>> overlay[:] = (0, 255, 0)  # Green overlay
-        >>> result_image = sv.overlay_image(
-        ...     image=image, overlay=overlay, anchor=(200, 400)
-        ... )
-        >>> result_image.shape
-        (1000, 1000, 3)
-
-        ```
+        The ``image`` array with the overlay applied.
     """
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]
@@ -334,20 +496,23 @@ def overlay_image(
     crop_x_max = image_width - max((anchor_x + image_width) - scene_width, 0)
     crop_y_max = image_height - max((anchor_y + image_height) - scene_height, 0)
 
-    if overlay.shape[2] == 4:
-        b, g, r, alpha = cv2.split(
-            overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
-        )
-        alpha = alpha[:, :, None] / 255.0
-        overlay_color = cv2.merge((b, g, r))
+    overlay_crop = overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
+    roi = image[y_min:y_max, x_min:x_max]
+    alpha = None
+    if overlay_crop.ndim == 3 and overlay_crop.shape[2] == 4:
+        alpha = overlay_crop[:, :, 3]
+        overlay_crop = overlay_crop[:, :, :3]
+    overlay_crop = _match_overlay_to_scene_channels(overlay=overlay_crop, roi=roi)
 
-        roi = image[y_min:y_max, x_min:x_max]
-        roi[:] = roi * (1 - alpha) + overlay_color * alpha
-        image[y_min:y_max, x_min:x_max] = roi
+    if alpha is not None:
+        alpha_f32 = alpha.astype(np.float32) / 255.0
+        if roi.ndim == 3:
+            alpha_f32 = alpha_f32[:, :, None]
+        overlay_color = overlay_crop.astype(np.float32)
+        blended = roi.astype(np.float32) * (1 - alpha_f32) + overlay_color * alpha_f32
+        image[y_min:y_max, x_min:x_max] = np.clip(blended, 0, 255).astype(np.uint8)
     else:
-        image[y_min:y_max, x_min:x_max] = overlay[
-            crop_y_min:crop_y_max, crop_x_min:crop_x_max
-        ]
+        image[y_min:y_max, x_min:x_max] = overlay_crop
 
     return image
 
@@ -358,20 +523,23 @@ def tint_image(
     color: Color = Color.BLACK,
     opacity: float = 0.5,
 ) -> ImageType:
-    """
-    Tint image with solid color overlay at specified opacity.
+    """Tint image with solid color overlay at specified opacity.
 
     Args:
-        image: The image to tint.
-        color: Overlay tint color. Defaults to `Color.BLACK`.
+        image: The image to tint. Accepts BGR arrays of shape ``(H, W, 3)``,
+            grayscale arrays of shape ``(H, W)`` or ``(H, W, 1)``, or a PIL
+            ``Image``.
+        color: Overlay tint color. Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
         opacity: Blend ratio between overlay and image (0.0-1.0).
             Defaults to `0.5`.
 
     Returns:
         Tinted image matching input
-            type.
+            type. The input image is left unchanged. A grayscale input comes back
+            as a BGR array (or an RGB ``Image``), since the tint has a color.
 
     Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
         ValueError: If opacity is outside range [0.0, 1.0].
 
     Examples:
@@ -384,31 +552,41 @@ def tint_image(
         ... )
         >>> tinted_image.shape
         (100, 100, 3)
+        >>> int(image.max())
+        0
 
         ```
 
     ![tint-image](https://media.roboflow.com/supervision-docs/supervision-docs-tint-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
+    assert isinstance(image, np.ndarray)
+    if _is_single_channel(image):
+        # A three-channel overlay cannot be blended into a single-channel image.
+        image = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
-    cv2.addWeighted(
-        src1=overlay, alpha=opacity, src2=image, beta=1 - opacity, gamma=0, dst=image
+    # No `dst`: let the blend allocate its own buffer. Passing `image` there wrote
+    # the tint back into the caller's array for a NumPy input, while a Pillow input
+    # was shielded by the ndarray conversion the decorator makes.
+    return cast(
+        npt.NDArray[np.uint8],
+        cv2.addWeighted(
+            src1=overlay, alpha=opacity, src2=image, beta=1 - opacity, gamma=0
+        ),
     )
-    return image
 
 
 @ensure_cv2_image_for_standalone_function
 def grayscale_image(image: ImageType) -> ImageType:
-    """
-    Convert image to 3-channel grayscale. Luminance channel is broadcast to
-    all three channels for compatibility with color-based drawing helpers.
+    """Convert image to 3-channel grayscale. Luminance channel is broadcast to all three
+    channels for compatibility with color-based drawing helpers.
 
     Args:
-        image: The image to convert to
-            grayscale.
+        image: The image to convert to grayscale. Accepts BGR arrays of shape
+            ``(H, W, 3)``, grayscale arrays of shape ``(H, W)`` or ``(H, W, 1)``,
+            or a PIL ``Image``.
 
     Returns:
         3-channel grayscale image
@@ -427,13 +605,16 @@ def grayscale_image(image: ImageType) -> ImageType:
 
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
+    assert isinstance(image, np.ndarray)
+    if _is_single_channel(image):
+        return cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
+    grayscaled = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    return cast(npt.NDArray[np.uint8], cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR))
 
 
 def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
-    """
-    Get image width and height as a tuple `(width, height)` for various image formats.
+    """Get image width and height as a tuple `(width, height)` for various image
+    formats.
 
     Supports both `numpy.ndarray` images (with shape `(H, W, ...)`) and
     `PIL.Image.Image` inputs.
@@ -479,20 +660,27 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
 
 
 class ImageSink:
+    """Save sequential images into a directory through a context manager.
+
+    :class:`~supervision.utils.image.ImageSink` creates the target directory on
+    entry and writes each image using
+    :meth:`~supervision.utils.image.ImageSink.save_image`, incrementing the image
+    name pattern after every save.
+    """
+
     def __init__(
         self,
         target_dir_path: str,
         overwrite: bool = False,
         image_name_pattern: str = "image_{:05d}.png",
-    ):
-        """
-        Initialize context manager for saving images to directory.
+    ) -> None:
+        """Initialize context manager for saving images to directory.
 
         Args:
             target_dir_path: Target directory path where images will be
                 saved.
             overwrite: Whether to overwrite existing directory.
-                Defaults to `False`.
+                Also permits replacing an existing image file. Defaults to `False`.
             image_name_pattern: File name pattern for saved images.
                 Defaults to `"image_{:05d}.png"`.
 
@@ -531,8 +719,7 @@ class ImageSink:
     def save_image(
         self, image: npt.NDArray[np.uint8], image_name: str | None = None
     ) -> None:
-        """
-        Save image to target directory with optional custom filename.
+        """Save image to target directory with optional custom filename.
 
         Args:
             image: Image to save with shape `(height, width, 3)`
@@ -540,385 +727,29 @@ class ImageSink:
             image_name: Custom filename for saved image. If
                 `None`, generates name using `image_name_pattern`. Defaults to
                 `None`.
+
+        Raises:
+            ValueError: If the target path contains an embedded null character.
+            FileExistsError: If `overwrite` is `False` and the target file exists.
+            OSError: If `cv2.imwrite` cannot write the image to disk.
         """
         if image_name is None:
             image_name = self.image_name_pattern.format(self.image_count)
 
         image_path = os.path.join(self.target_dir_path, image_name)
-        cv2.imwrite(image_path, image)
+        # Native image writers can truncate at NUL, bypassing the existence guard.
+        if "\0" in image_path:
+            raise ValueError("Image path contains an embedded null character")
+        if not self.overwrite and os.path.lexists(image_path):
+            raise FileExistsError(f"Image already exists: {image_path}")
+        if not cv2.imwrite(image_path, image):
+            raise OSError(f"Failed to save image to path: {image_path}")
         self.image_count += 1
 
     def __exit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: Any,
+        exc_traceback: TracebackType | None,
     ) -> None:
         pass
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=TargetMode.NOTIFY,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def create_tiles(
-    images: list[ImageType],
-    grid_size: tuple[int | None, int | None] | None = None,
-    single_tile_size: tuple[int, int] | None = None,
-    tile_scaling: Literal["min", "max", "avg"] = "avg",
-    tile_padding_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
-    tile_margin: int = 10,
-    tile_margin_color: tuple[int, int, int] | Color = Color.from_hex("#BFBEBD"),
-    return_type: Literal["auto", "cv2", "pillow"] = "auto",
-    titles: list[str | None] | None = None,
-    titles_anchors: Point | list[Point | None] | None = None,
-    titles_color: tuple[int, int, int] | Color = Color.from_hex("#262523"),
-    titles_scale: float | None = None,
-    titles_thickness: int = 1,
-    titles_padding: int = 10,
-    titles_text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
-    titles_background_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
-    default_title_placement: RelativePosition = "top",
-) -> ImageType:
-    """
-    Creates tiles mosaic from input images, automating grid placement and
-    converting images to common resolution maintaining aspect ratio. It is
-    also possible to render text titles on tiles, using optional set of
-    parameters specifying text drawing (see parameters description).
-
-    Automated grid placement will try to maintain square shape of grid
-    (with size being the nearest integer square root of #images), up to two exceptions:
-    * if there are up to 3 images - images will be displayed in single row
-    * if square-grid placement causes last row to be empty - number of rows is trimmed
-        until last row has at least one image
-
-    Args:
-        images: Images to create tiles. Elements can be either np.ndarray or
-            PIL.Image, and a common representation will be agreed by the
-            function.
-        grid_size: Expected grid size in format (n_rows, n_cols). If not
-            given, automated grid placement will be applied. One may also
-            provide only one out of two elements of the tuple - then grid
-            will be created with either n_rows or n_cols fixed, leaving the
-            other dimension to be adjusted by the number of images.
-        single_tile_size: Size of a single tile element provided in
-            (width, height) format. If not given, size of tile will be
-            automatically calculated based on `tile_scaling`.
-        tile_scaling: Strategy used to calculate tile size when
-            `single_tile_size` is not given, using the min / max / avg size
-            of images provided in `images`.
-        tile_padding_color: Color to be used in the image letterbox procedure
-            while standardizing tile sizes. If a tuple is provided, it should
-            be in BGR order.
-        tile_margin: Size of margin between tiles, in pixels.
-        tile_margin_color: Color of the tile margin. If a tuple is provided,
-            it should be in BGR order.
-        return_type: Format of the returned image. One may choose a specific
-            format ("cv2" or "pillow") to enforce conversion. "auto" mode
-            takes a majority vote between types of elements in `images`,
-            resolving draws in favour of OpenCV format. "auto" can be safely
-            used when all input images are of the same type.
-        titles: Optional titles to be added to tiles. Elements of that list
-            may be empty - then a specific tile, in the order presented in
-            `images`, will not be filled with a title. It is possible to
-            provide a list of titles shorter than `images` - then remaining
-            titles will be assumed empty.
-        titles_anchors: Anchor points for titles. It is possible to specify
-            an anchor either globally or for specific tiles, following the
-            order of `images`. If not given, either globally or for a
-            specific element of the list, it will be calculated
-            automatically based on `default_title_placement`.
-        titles_color: Color of the title text. If a tuple is provided, it
-            should be in BGR order.
-        titles_scale: Scale of titles. If not provided, the value will be
-            calculated using `calculate_optimal_text_scale(...)`.
-        titles_thickness: Thickness of title text.
-        titles_padding: Size of title padding.
-        titles_text_font: Font used to render titles. Must be an integer
-            constant representing an OpenCV font.
-            (See docs: https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html)
-        titles_background_color: Color of the title text padding.
-        default_title_placement: Title anchor placement used when an explicit
-            anchor is not provided.
-
-    Returns:
-        ImageType: Image with all input images located in tiles grid. The output type is
-            determined by `return_type` parameter.
-
-    Raises:
-        ValueError: In case when input images list is empty, provided `grid_size` is too
-            small to fit all images, `tile_scaling` mode is invalid.
-    """
-    if len(images) == 0:
-        raise ValueError("Could not create image tiles from empty list of images.")
-    if return_type == "auto":
-        return_type = _negotiate_tiles_format(images=images)
-    tile_padding_color = unify_to_bgr(color=tile_padding_color)
-    tile_margin_color = unify_to_bgr(color=tile_margin_color)
-    images = images_to_cv2(images=images)
-    if single_tile_size is None:
-        single_tile_size = _aggregate_images_shape(images=images, mode=tile_scaling)
-    resized_images = [
-        letterbox_image(
-            image=i, resolution_wh=single_tile_size, color=tile_padding_color
-        )
-        for i in images
-    ]
-    grid_size = _establish_grid_size(images=images, grid_size=grid_size)
-    if len(images) > grid_size[0] * grid_size[1]:
-        raise ValueError(
-            f"Could not place {len(images)} in grid with size: {grid_size}."
-        )
-    if titles is not None:
-        titles = fill(sequence=titles, desired_size=len(images), content=None)
-    if isinstance(titles_anchors, list):
-        titles_anchors_sequence = titles_anchors
-    else:
-        titles_anchors_sequence = [titles_anchors]
-    titles_anchors = fill(
-        sequence=titles_anchors_sequence, desired_size=len(images), content=None
-    )
-    titles_color = unify_to_bgr(color=titles_color)
-    titles_background_color = unify_to_bgr(color=titles_background_color)
-    tiles = _generate_tiles(
-        images=resized_images,
-        grid_size=grid_size,
-        single_tile_size=single_tile_size,
-        tile_padding_color=tile_padding_color,
-        tile_margin=tile_margin,
-        tile_margin_color=tile_margin_color,
-        titles=titles,
-        titles_anchors=titles_anchors,
-        titles_color=titles_color,
-        titles_scale=titles_scale,
-        titles_thickness=titles_thickness,
-        titles_padding=titles_padding,
-        titles_text_font=titles_text_font,
-        titles_background_color=titles_background_color,
-        default_title_placement=default_title_placement,
-    )
-    if return_type == "pillow":
-        tiles = cv2_to_pillow(image=tiles)
-    return cast(ImageType, tiles)
-
-
-def _negotiate_tiles_format(images: list[ImageType]) -> Literal["cv2", "pillow"]:
-    number_of_np_arrays = sum(issubclass(type(i), np.ndarray) for i in images)
-    if number_of_np_arrays * 2 >= len(images):
-        return "cv2"
-    return "pillow"
-
-
-def _calculate_aggregated_images_shape(
-    images: list[npt.NDArray[np.uint8]], aggregator: Callable[[list[int]], float]
-) -> tuple[int, int]:
-    height = round(aggregator([i.shape[0] for i in images]))
-    width = round(aggregator([i.shape[1] for i in images]))
-    return width, height
-
-
-SHAPE_AGGREGATION_FUN = {
-    "min": partial(_calculate_aggregated_images_shape, aggregator=np.min),
-    "max": partial(_calculate_aggregated_images_shape, aggregator=np.max),
-    "avg": partial(_calculate_aggregated_images_shape, aggregator=np.average),
-}
-
-
-def _aggregate_images_shape(
-    images: list[npt.NDArray[np.uint8]], mode: Literal["min", "max", "avg"]
-) -> tuple[int, int]:
-    if mode not in SHAPE_AGGREGATION_FUN:
-        raise ValueError(
-            f"Could not aggregate images shape - provided unknown mode: {mode}. "
-            f"Supported modes: {list(SHAPE_AGGREGATION_FUN.keys())}."
-        )
-    return SHAPE_AGGREGATION_FUN[mode](images)
-
-
-def _establish_grid_size(
-    images: list[npt.NDArray[np.uint8]],
-    grid_size: tuple[int | None, int | None] | None,
-) -> tuple[int, int]:
-    if grid_size is None or all(e is None for e in grid_size):
-        return _negotiate_grid_size(images=images)
-    if grid_size[0] is None:
-        columns = grid_size[1]
-        assert columns is not None
-        return math.ceil(len(images) / columns), columns
-    if grid_size[1] is None:
-        rows = grid_size[0]
-        assert rows is not None
-        return rows, math.ceil(len(images) / rows)
-    return cast(tuple[int, int], grid_size)
-
-
-def _negotiate_grid_size(images: list[npt.NDArray[np.uint8]]) -> tuple[int, int]:
-    if len(images) <= MAX_COLUMNS_FOR_SINGLE_ROW_GRID:
-        return 1, len(images)
-    nearest_sqrt = math.ceil(np.sqrt(len(images)))
-    proposed_columns = nearest_sqrt
-    proposed_rows = nearest_sqrt
-    while proposed_columns * (proposed_rows - 1) >= len(images):
-        proposed_rows -= 1
-    return proposed_rows, proposed_columns
-
-
-def _generate_tiles(
-    images: list[npt.NDArray[np.uint8]],
-    grid_size: tuple[int, int],
-    single_tile_size: tuple[int, int],
-    tile_padding_color: tuple[int, int, int],
-    tile_margin: int,
-    tile_margin_color: tuple[int, int, int],
-    titles: list[str | None] | None,
-    titles_anchors: list[Point | None],
-    titles_color: tuple[int, int, int],
-    titles_scale: float | None,
-    titles_thickness: int,
-    titles_padding: int,
-    titles_text_font: int,
-    titles_background_color: tuple[int, int, int],
-    default_title_placement: RelativePosition,
-) -> npt.NDArray[np.uint8]:
-    images = _draw_texts(
-        images=images,
-        titles=titles,
-        titles_anchors=titles_anchors,
-        titles_color=titles_color,
-        titles_scale=titles_scale,
-        titles_thickness=titles_thickness,
-        titles_padding=titles_padding,
-        titles_text_font=titles_text_font,
-        titles_background_color=titles_background_color,
-        default_title_placement=default_title_placement,
-    )
-    rows, columns = grid_size
-    tiles_elements = list(create_batches(sequence=images, batch_size=columns))
-    while len(tiles_elements[-1]) < columns:
-        tiles_elements[-1].append(
-            _generate_color_image(shape=single_tile_size, color=tile_padding_color)
-        )
-    while len(tiles_elements) < rows:
-        tiles_elements.append(
-            [_generate_color_image(shape=single_tile_size, color=tile_padding_color)]
-            * columns
-        )
-    return _merge_tiles_elements(
-        tiles_elements=tiles_elements,
-        grid_size=grid_size,
-        single_tile_size=single_tile_size,
-        tile_margin=tile_margin,
-        tile_margin_color=tile_margin_color,
-    )
-
-
-def _draw_texts(
-    images: list[npt.NDArray[np.uint8]],
-    titles: list[str | None] | None,
-    titles_anchors: list[Point | None],
-    titles_color: tuple[int, int, int],
-    titles_scale: float | None,
-    titles_thickness: int,
-    titles_padding: int,
-    titles_text_font: int,
-    titles_background_color: tuple[int, int, int],
-    default_title_placement: RelativePosition,
-) -> list[npt.NDArray[np.uint8]]:
-    if titles is None:
-        return images
-    prepared_titles_anchors = _prepare_default_titles_anchors(
-        images=images,
-        titles_anchors=titles_anchors,
-        default_title_placement=default_title_placement,
-    )
-    if titles_scale is None:
-        image_height, image_width = images[0].shape[:2]
-        titles_scale = calculate_optimal_text_scale(
-            resolution_wh=(image_width, image_height)
-        )
-    result = []
-    for image, text, anchor in zip(images, titles, prepared_titles_anchors):
-        if text is None:
-            result.append(image)
-            continue
-        processed_image = draw_text(
-            scene=image,
-            text=text,
-            text_anchor=anchor,
-            text_color=Color.from_bgr_tuple(titles_color),
-            text_scale=titles_scale,
-            text_thickness=titles_thickness,
-            text_padding=titles_padding,
-            text_font=titles_text_font,
-            background_color=Color.from_bgr_tuple(titles_background_color),
-        )
-        result.append(processed_image)
-    return result
-
-
-def _prepare_default_titles_anchors(
-    images: list[npt.NDArray[np.uint8]],
-    titles_anchors: list[Point | None],
-    default_title_placement: RelativePosition,
-) -> list[Point]:
-    result = []
-    for image, anchor in zip(images, titles_anchors):
-        if anchor is not None:
-            result.append(anchor)
-            continue
-        image_height, image_width = image.shape[:2]
-        if default_title_placement == "top":
-            default_anchor = Point(x=image_width / 2, y=image_height * 0.1)
-        else:
-            default_anchor = Point(x=image_width / 2, y=image_height * 0.9)
-        result.append(default_anchor)
-    return result
-
-
-def _merge_tiles_elements(
-    tiles_elements: list[list[npt.NDArray[np.uint8]]],
-    grid_size: tuple[int, int],
-    single_tile_size: tuple[int, int],
-    tile_margin: int,
-    tile_margin_color: tuple[int, int, int],
-) -> npt.NDArray[np.uint8]:
-    vertical_padding: npt.NDArray[np.uint8] = (
-        np.ones((single_tile_size[1], tile_margin, 3), dtype=np.uint8)
-        * tile_margin_color
-    )
-    merged_rows = [
-        np.concatenate(
-            list(
-                itertools.chain.from_iterable(
-                    zip(row, [vertical_padding] * grid_size[1])
-                )
-            )[:-1],
-            axis=1,
-        )
-        for row in tiles_elements
-    ]
-    row_width = merged_rows[0].shape[1]
-    horizontal_padding = (
-        np.ones((tile_margin, row_width, 3), dtype=np.uint8) * tile_margin_color
-    )
-    rows_with_paddings = []
-    for row in merged_rows:
-        rows_with_paddings.append(row)
-        rows_with_paddings.append(horizontal_padding)
-    return cast(
-        npt.NDArray[np.uint8],
-        np.concatenate(
-            rows_with_paddings[:-1],
-            axis=0,
-        ).astype(np.uint8),
-    )
-
-
-def _generate_color_image(
-    shape: tuple[int, int], color: tuple[int, int, int]
-) -> npt.NDArray[np.uint8]:
-    return cast(
-        npt.NDArray[np.uint8],
-        np.ones((*shape[::-1], 3), dtype=np.uint8) * color,
-    )

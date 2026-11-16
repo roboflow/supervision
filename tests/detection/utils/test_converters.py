@@ -1,11 +1,12 @@
-from __future__ import annotations
-
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 
+import supervision as sv
 from supervision.detection.utils.converters import (
     _base48_decode,
     _base48_encode,
@@ -14,12 +15,16 @@ from supervision.detection.utils.converters import (
     _mask_to_rle_counts,
     _rle_counts_to_mask,
     is_compressed_rle,
+    mask_to_polygons,
     mask_to_rle,
     mask_to_xyxy,
+    polygon_to_mask,
+    polygon_to_xyxy,
     rle_to_mask,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_mask,
+    xyxy_to_polygons,
     xyxy_to_xcycarh,
     xyxy_to_xywh,
 )
@@ -48,6 +53,150 @@ def test_xywh_to_xyxy(xywh: np.ndarray, expected_result: np.ndarray) -> None:
     np.testing.assert_array_equal(result, expected_result)
 
 
+class TestXywhToXyxy:
+    @pytest.mark.parametrize(
+        ("xywh", "expected"),
+        [
+            pytest.param(
+                np.array([[200, 20, 100, 40]], dtype=np.uint8),
+                [[200, 20, 300, 60]],
+                id="unsigned-overflow",
+            ),
+            pytest.param(
+                np.array([[100, 10, 60, 20]], dtype=np.int8),
+                [[100, 10, 160, 30]],
+                id="signed-overflow",
+            ),
+            pytest.param(
+                np.array([[200, 220, 100, 80], [10, 20, 0, 0]], dtype=np.uint8),
+                [[200, 220, 300, 300], [10, 20, 10, 20]],
+                id="multiple-rows-both-axes-and-zero-extents",
+            ),
+            pytest.param(
+                np.array([[-100, -20, 120, 40]], dtype=np.int8),
+                [[-100, -20, 20, 20]],
+                id="negative-origins",
+            ),
+            pytest.param(
+                np.array([[2**53 + 1, 2**63 - 2, 3, 1]], dtype=np.int64),
+                [[2**53 + 1, 2**63 - 2, 2**53 + 4, 2**63 - 1]],
+                id="exact-int64-beyond-float-precision",
+            ),
+            pytest.param(
+                np.array([[2**63 - 5, 0, 4, 0]], dtype=np.uint64),
+                [[2**63 - 5, 0, 2**63 - 1, 0]],
+                id="uint64-corners-fit-int64",
+            ),
+        ],
+    )
+    def test_preserves_integer_geometry(
+        self, xywh: np.ndarray, expected: list[list[int]]
+    ) -> None:
+        """Integer corners remain exact and the source array stays unchanged."""
+        original = xywh.copy()
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.int64))
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(xywh, original)
+        assert not np.shares_memory(result, xywh)
+
+    @pytest.mark.parametrize(
+        ("xywh", "expected"),
+        [
+            pytest.param(
+                np.array([[2**63 - 1, 0, 1, 0]], dtype=np.int64),
+                [[2**63 - 1, 0, 2**63, 0]],
+                id="above-int64-maximum",
+            ),
+            pytest.param(
+                np.array([[-(2**63), 0, -1, 0]], dtype=np.int64),
+                [[-(2**63), 0, -(2**63) - 1, 0]],
+                id="below-int64-minimum",
+            ),
+            pytest.param(
+                np.array([[2**64 - 1, 0, 2**64 - 1, 0]], dtype=np.uint64),
+                [[2**64 - 1, 0, 2**65 - 2, 0]],
+                id="uint64-maximum-does-not-wrap",
+            ),
+        ],
+    )
+    def test_returns_float64_outside_int64(
+        self, xywh: np.ndarray, expected: list[list[int]]
+    ) -> None:
+        """Corners outside int64 use float64 instead of wrapping."""
+        original = xywh.copy()
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.float64))
+        assert result.dtype == np.float64
+        np.testing.assert_array_equal(xywh, original)
+
+    @pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+    def test_preserves_floating_dtype(self, dtype: str) -> None:
+        """Floating boxes retain their dtype, fractions, and source values."""
+        xywh = np.array([[10.5, -20.25, 30.25, 40.5]], dtype=dtype)
+        original = xywh.copy()
+        expected = np.array([[10.5, -20.25, 40.75, 20.25]], dtype=dtype)
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, expected)
+        assert result.dtype == xywh.dtype
+        np.testing.assert_array_equal(xywh, original)
+        assert not np.shares_memory(result, xywh)
+
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    def test_preserves_non_native_floating_byte_order(self, dtype: str) -> None:
+        """Floating boxes retain their non-native byte order and coordinates."""
+        non_native_dtype = np.dtype(dtype).newbyteorder("S")
+        xywh = np.array([[10.5, -20.25, 30.25, 40.5]], dtype=non_native_dtype)
+
+        result = xywh_to_xyxy(xywh)
+
+        np.testing.assert_array_equal(result, [[10.5, -20.25, 40.75, 20.25]])
+        assert result.dtype == non_native_dtype
+
+    @pytest.mark.parametrize(
+        ("dtype", "expected_dtype"),
+        [
+            pytest.param("uint8", "int64", id="empty-uint8"),
+            pytest.param("int64", "int64", id="empty-int64"),
+            pytest.param("uint64", "int64", id="empty-uint64"),
+            pytest.param("float32", "float32", id="empty-float32"),
+        ],
+    )
+    def test_preserves_empty_shape(self, dtype: str, expected_dtype: str) -> None:
+        """Empty batches keep four coordinate columns and the documented dtype."""
+        xywh = np.empty((0, 4), dtype=dtype)
+
+        result = xywh_to_xyxy(xywh)
+
+        assert result.shape == (0, 4)
+        assert result.dtype == np.dtype(expected_dtype)
+
+    def test_keeps_the_full_crop(self) -> None:
+        """A valid uint8 box yields its full 100-pixel-wide public image crop."""
+        image = np.arange(80 * 320, dtype=np.uint16).astype(np.uint8).reshape(80, 320)
+        xywh = np.array([[200, 20, 100, 40]], dtype=np.uint8)
+
+        crop = sv.crop_image(image, sv.xywh_to_xyxy(xywh)[0])
+
+        np.testing.assert_array_equal(crop, image[20:60, 200:300])
+        assert crop.shape == (40, 100)
+
+    def test_matches_the_expected_box_overlap(self) -> None:
+        """Public IoU sees the converted uint8 box as the expected rectangle."""
+        xywh = np.array([[200, 20, 100, 40]], dtype=np.uint8)
+        expected = np.array([[200, 20, 300, 60]], dtype=np.int64)
+
+        overlap = sv.box_iou_batch(sv.xywh_to_xyxy(xywh), expected)
+
+        np.testing.assert_array_equal(overlap, [[1.0]])
+
+
 @pytest.mark.parametrize(
     ("xyxy", "expected_result"),
     [
@@ -69,6 +218,96 @@ def test_xywh_to_xyxy(xywh: np.ndarray, expected_result: np.ndarray) -> None:
 def test_xyxy_to_xywh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
     result = xyxy_to_xywh(xyxy)
     np.testing.assert_array_equal(result, expected_result)
+
+
+class TestXyxyToXywhIntegerGeometry:
+    """Tests for exact box extents without integer wraparound."""
+
+    def test_preserves_small_extents_above_int64_range(self) -> None:
+        """Unsigned corners retain their small separation before float conversion."""
+        xyxy = np.array([[2**64 - 5, 0, 2**64 - 1, 2]], dtype=np.uint64)
+
+        result = xyxy_to_xywh(xyxy)
+
+        np.testing.assert_array_equal(
+            result, np.array([[2**64 - 5, 0, 4, 2]], dtype=np.float64)
+        )
+        assert result.dtype == np.float64
+
+    @pytest.mark.parametrize("dtype", ["int8", "int16", "int32"])
+    def test_preserves_extents_across_zero(self, dtype: str) -> None:
+        """Ordered signed corners can span more than the source dtype allows."""
+        limits = np.iinfo(dtype)
+        lower, upper = int(limits.min) + 1, int(limits.max) - 1
+        xyxy = np.array([[lower, lower, upper, upper]], dtype=dtype)
+        original = xyxy.copy()
+
+        result = xyxy_to_xywh(xyxy)
+
+        np.testing.assert_array_equal(
+            result, [[lower, lower, upper - lower, upper - lower]]
+        )
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(xyxy, original)
+
+    @pytest.mark.parametrize(
+        ("coordinates", "expected", "expected_dtype"),
+        [
+            pytest.param(
+                [-(2**63), 0, 2**63 - 1, 1],
+                [-(2**63), 0, 2**64 - 1, 1],
+                "float64",
+                id="span-exceeds-int64",
+            ),
+            pytest.param(
+                [2**53 + 1, 0, 2**53 + 4, 1],
+                [2**53 + 1, 0, 3, 1],
+                "int64",
+                id="exact-large-origin",
+            ),
+            pytest.param(
+                [-(2**63), 0, -(2**63) + 3, 1],
+                [-(2**63), 0, 3, 1],
+                "int64",
+                id="minimum-origin",
+            ),
+        ],
+    )
+    def test_handles_int64_boundaries(
+        self, coordinates: list[int], expected: list[int], expected_dtype: str
+    ) -> None:
+        """Extreme corners avoid wraparound and preserve exact int64 results."""
+        xyxy = np.array([coordinates], dtype=np.int64)
+        original = xyxy.copy()
+
+        result = xyxy_to_xywh(xyxy)
+
+        np.testing.assert_array_equal(
+            result, np.array([expected], dtype=expected_dtype)
+        )
+        assert result.dtype == np.dtype(expected_dtype)
+        np.testing.assert_array_equal(xyxy, original)
+
+    @pytest.mark.parametrize(
+        "dtype", ["uint8", "int16", "uint64", "float16", "float32", "float64"]
+    )
+    def test_preserves_regular_and_empty_inputs(self, dtype: str) -> None:
+        """Ordinary and empty inputs preserve geometry and documented output types."""
+        xyxy = np.array([[10, 20, 30, 40], [5, 5, 5, 5]], dtype=dtype)
+        original = xyxy.copy()
+
+        result = xyxy_to_xywh(xyxy)
+        empty = xyxy_to_xywh(xyxy[:0])
+
+        np.testing.assert_array_equal(result, [[10, 20, 20, 20], [5, 5, 0, 0]])
+        expected_dtype = (
+            np.dtype(dtype) if dtype.startswith("float") else np.dtype("int64")
+        )
+        assert result.dtype == expected_dtype
+        assert empty.shape == (0, 4)
+        assert empty.dtype == expected_dtype
+        np.testing.assert_array_equal(xyxy, original)
+        assert not np.shares_memory(result, xyxy)
 
 
 @pytest.mark.parametrize(
@@ -125,19 +364,38 @@ def test_xyxy_to_xcycarh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
 @pytest.mark.parametrize(
     ("xcycwh", "expected_result"),
     [
-        (np.array([[50, 50, 20, 30]]), np.array([[40, 35, 60, 65]])),  # standard case
-        (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
-        (
+        pytest.param(
+            np.array([[50, 50, 20, 30]]),
+            np.array([[40, 35, 60, 65]]),
+            id="standard-case",
+        ),
+        pytest.param(
+            np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]]), id="zero-size"
+        ),
+        pytest.param(
             np.array([[50, 50, 100, 100]]),
             np.array([[0, 0, 100, 100]]),
-        ),  # large bounding box centered at (50, 50)
-        (
+            id="large-centered-box",
+        ),
+        pytest.param(
             np.array([[-10, -10, 20, 30]]),
             np.array([[-20, -25, 0, 5]]),
-        ),  # negative coordinates
-        (np.array([[50, 50, 0, 30]]), np.array([[50, 35, 50, 65]])),  # zero width
-        (np.array([[50, 50, 20, 0]]), np.array([[40, 50, 60, 50]])),  # zero height
-        (np.array([]).reshape(0, 4), np.array([]).reshape(0, 4)),  # empty array
+            id="negative-coordinates",
+        ),
+        pytest.param(
+            np.array([[50, 50, 0, 30]]), np.array([[50, 35, 50, 65]]), id="zero-width"
+        ),
+        pytest.param(
+            np.array([[50, 50, 20, 0]]), np.array([[40, 50, 60, 50]]), id="zero-height"
+        ),
+        pytest.param(
+            np.array([[50, 50, 21, 31]]),
+            np.array([[39.5, 34.5, 60.5, 65.5]]),
+            id="integer-odd-dimensions-preserve-fractional-half-extents",
+        ),
+        pytest.param(
+            np.array([]).reshape(0, 4), np.array([]).reshape(0, 4), id="empty-input"
+        ),
     ],
 )
 def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None:
@@ -309,24 +567,57 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
         ),
     ],
 )
-def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) -> None:
+def test_xyxy_to_mask(
+    boxes: np.ndarray, resolution_wh: tuple[int, int], expected: np.ndarray
+) -> None:
+    """Boxes are rasterized into boolean masks of the requested resolution."""
     result = xyxy_to_mask(boxes, resolution_wh)
     assert result.dtype == np.bool_
     assert result.shape == expected.shape
     np.testing.assert_array_equal(result, expected)
 
 
-def _mask_to_xyxy_reference(masks: np.ndarray) -> np.ndarray:
+class TestXyxyToMaskOffFrame:
+    @pytest.mark.parametrize("coordinate_convention", ["inclusive", "exclusive"])
+    @pytest.mark.parametrize(
+        "box",
+        [
+            pytest.param([-2, 1, -0.2, 2], id="left-of-frame"),
+            pytest.param([1, -2, 2, -0.2], id="above-frame"),
+        ],
+    )
+    def test_fully_outside_fractional_box_has_empty_mask(
+        self,
+        box: list[float],
+        coordinate_convention: Literal["inclusive", "exclusive"],
+    ) -> None:
+        """A box wholly outside the image must not fill an edge pixel."""
+        boxes = np.array([box], dtype=float)
+
+        result = xyxy_to_mask(boxes, (5, 5), coordinate_convention)
+
+        assert not result.any()
+
+
+def _mask_to_xyxy_reference(
+    masks: np.ndarray, coordinate_convention: str = "inclusive"
+) -> np.ndarray:
     """Per-mask `np.where` loop used as a ground-truth oracle."""
     xyxy = np.zeros((masks.shape[0], 4), dtype=int)
     for i, mask in enumerate(masks):
         rows, cols = np.where(mask)
         if len(rows) > 0 and len(cols) > 0:
+            if coordinate_convention == "exclusive":
+                x_max = int(cols.max()) + 1
+                y_max = int(rows.max()) + 1
+            else:
+                x_max = int(cols.max())
+                y_max = int(rows.max())
             xyxy[i, :] = [
                 int(cols.min()),
                 int(rows.min()),
-                int(cols.max()),
-                int(rows.max()),
+                x_max,
+                y_max,
             ]
     return xyxy
 
@@ -395,6 +686,52 @@ class TestMaskToXyxy:
         assert result.dtype == reference.dtype
         np.testing.assert_array_equal(result, reference)
 
+    def test_mask_to_xyxy_exclusive_matches_reference(self) -> None:
+        """Exclusive bounds should return one-past-the-end coordinates."""
+        masks = np.array(
+            [
+                [[False, False], [False, True]],
+                [[True, True], [True, True]],
+            ],
+            dtype=bool,
+        )
+
+        result = mask_to_xyxy(masks, coordinate_convention="exclusive")
+        reference = _mask_to_xyxy_reference(masks, coordinate_convention="exclusive")
+
+        np.testing.assert_array_equal(result, reference)
+
+    def test_xyxy_to_mask_exclusive_round_trip(self) -> None:
+        """Exclusive boxes should round-trip through `xyxy_to_mask`."""
+        boxes = np.array([[1, 1, 3, 3], [0, 0, 2, 1]], dtype=float)
+
+        result = xyxy_to_mask(
+            boxes=boxes,
+            resolution_wh=(4, 4),
+            coordinate_convention="exclusive",
+        )
+
+        expected = np.array(
+            [
+                [
+                    [False, False, False, False],
+                    [False, True, True, False],
+                    [False, True, True, False],
+                    [False, False, False, False],
+                ],
+                [
+                    [True, True, False, False],
+                    [False, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, False],
+                ],
+            ],
+            dtype=bool,
+        )
+
+        assert result.dtype == np.bool_
+        np.testing.assert_array_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     ("mask", "compressed", "expected_rle", "exception"),
@@ -456,21 +793,21 @@ class TestMaskToXyxy:
             np.array([[[]]]).astype(bool),
             False,
             None,
-            pytest.raises(AssertionError, match="Input mask must be 2D"),
-        ),  # raises AssertionError because mask dimensionality is not 2D
+            pytest.raises(ValueError, match="Input mask must be 2D"),
+        ),  # raises ValueError because mask dimensionality is not 2D
         (
             np.array([[]]).astype(bool),
             False,
             None,
-            pytest.raises(AssertionError, match="Input mask cannot be empty"),
-        ),  # raises AssertionError because mask is empty
+            pytest.raises(ValueError, match="Input mask cannot be empty"),
+        ),  # raises ValueError because mask is empty
     ],
 )
 def test_mask_to_rle(
     mask: npt.NDArray[np.bool_],
     compressed: bool,
     expected_rle: list[int] | str | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = mask_to_rle(mask=mask, compressed=compressed)
@@ -583,7 +920,7 @@ def test_rle_to_mask(
     rle: npt.NDArray[np.int_],
     resolution_wh: tuple[int, int],
     expected_mask: npt.NDArray[np.bool_],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = rle_to_mask(rle=rle, resolution_wh=resolution_wh)
@@ -880,3 +1217,275 @@ def test_mask_rle_counts_round_trip(mask_2d: npt.NDArray[np.bool_]) -> None:
     rle = _mask_to_rle_counts(mask_2d)
     recovered = _rle_counts_to_mask(rle, h, w)
     np.testing.assert_array_equal(recovered, mask_2d)
+
+
+# ---------------------------------------------------------------------------
+# xyxy_to_polygons
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("box", "expected_shape"),
+    [
+        pytest.param(
+            np.array([[0, 0, 10, 20]], dtype=np.float32),
+            (1, 4, 2),
+            id="single-box",
+        ),
+        pytest.param(
+            np.array([[0, 0, 10, 20], [5, 5, 15, 25]], dtype=np.float32),
+            (2, 4, 2),
+            id="two-boxes",
+        ),
+        pytest.param(
+            np.empty((0, 4), dtype=np.float32),
+            (0, 4, 2),
+            id="empty",
+        ),
+    ],
+)
+def test_xyxy_to_polygons_shape(
+    box: npt.NDArray[np.float32], expected_shape: tuple[int, ...]
+) -> None:
+    """xyxy_to_polygons returns (N, 4, 2) with correct dtype and corner ordering."""
+    result = xyxy_to_polygons(box)
+    assert result.shape == expected_shape
+    assert result.dtype == box.dtype
+
+
+def test_xyxy_to_polygons_corners() -> None:
+    """The four polygon corners match the four corners of the input box."""
+    box = np.array([[2, 3, 8, 11]], dtype=np.int32)
+    result = xyxy_to_polygons(box)
+    # corners: TL, TR, BR, BL
+    expected = np.array([[[2, 3], [8, 3], [8, 11], [2, 11]]], dtype=np.int32)
+    np.testing.assert_array_equal(result, expected)
+
+
+# ---------------------------------------------------------------------------
+# polygon_to_mask
+# ---------------------------------------------------------------------------
+
+
+def test_polygon_to_mask_fills_interior() -> None:
+    """A square polygon fills the interior pixels with 1s."""
+    polygon = np.array([[1, 1], [5, 1], [5, 5], [1, 5]], dtype=np.int32)
+    mask = polygon_to_mask(polygon, resolution_wh=(8, 8))
+    assert mask.shape == (8, 8)
+    assert mask.dtype == np.uint8
+    # interior pixel should be 1
+    assert mask[3, 3] == 1
+    # corner outside polygon should be 0
+    assert mask[0, 0] == 0
+
+
+def test_polygon_to_mask_full_canvas() -> None:
+    """A polygon covering the entire canvas yields an all-ones mask."""
+    w, h = 10, 10
+    polygon = np.array([[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]], dtype=np.int32)
+    mask = polygon_to_mask(polygon, resolution_wh=(w, h))
+    assert mask.sum() == w * h
+
+
+def test_polygon_to_mask_accepts_list_of_vertices() -> None:
+    """A Python list of [x, y] vertices produces the same mask as an ndarray.
+
+    Uses an asymmetric polygon on a non-square canvas so a mask with the right pixel
+    count but wrong placement (or a swapped x/y axis) would fail.
+    """
+    vertices = [[1, 2], [7, 2], [7, 5], [1, 5]]
+    list_mask = polygon_to_mask(vertices, resolution_wh=(9, 6))
+    ndarray_mask = polygon_to_mask(np.array(vertices), resolution_wh=(9, 6))
+    assert list_mask.shape == (6, 9)
+    assert list_mask.dtype == np.uint8
+    np.testing.assert_array_equal(list_mask, ndarray_mask)
+
+
+def test_polygon_to_mask_empty_vertices_returns_zeros() -> None:
+    """An empty vertex list returns an all-zero mask of the requested size."""
+    mask = polygon_to_mask([], resolution_wh=(8, 8))
+    assert mask.shape == (8, 8)
+    assert mask.dtype == np.uint8
+    assert mask.sum() == 0
+
+
+def test_polygon_to_mask_empty_ndarray_returns_zeros() -> None:
+    """An empty (0, 2) ndarray returns an all-zero mask, not just an empty list.
+
+    Every internal caller passes ndarrays, so this pins the shape the literal `[]` test
+    above does not cover.
+    """
+    mask = polygon_to_mask(np.empty((0, 2)), resolution_wh=(8, 8))
+    assert mask.shape == (8, 8)
+    assert mask.sum() == 0
+
+
+@pytest.mark.parametrize(
+    "polygon",
+    [
+        pytest.param(np.array([[3, 3]]), id="single-vertex"),
+        pytest.param(np.array([[3, 3], [5, 5]]), id="two-vertices"),
+    ],
+)
+def test_polygon_to_mask_degenerate_polygon_returns_zeros(
+    polygon: npt.NDArray[np.number],
+) -> None:
+    """Fewer than MIN_POLYGON_POINT_COUNT vertices return an all-zero mask.
+
+    A 1- or 2-vertex "polygon" encloses no area; without this guard it drew a stray
+    pixel or a bare line instead of the documented empty result.
+    """
+    mask = polygon_to_mask(polygon, resolution_wh=(8, 8))
+    assert mask.sum() == 0
+
+
+@pytest.mark.parametrize(
+    "polygon",
+    [
+        pytest.param(((1, 1), (5, 1), (5, 5), (1, 5)), id="tuple-of-tuples"),
+        pytest.param(
+            np.array([[1, 1], [5, 1], [5, 5], [1, 5]], dtype=np.float64),
+            id="float-dtype-ndarray",
+        ),
+    ],
+)
+def test_polygon_to_mask_accepts_non_list_array_like(
+    polygon: npt.NDArray[np.number],
+) -> None:
+    """Tuple input and non-default numeric dtypes are accepted, not just plain list.
+
+    The widened type hint's whole purpose is non-ndarray, non-int input; a regression
+    narrowing back to list-only or int-only would leave CI green if only list input were
+    tested.
+    """
+    mask = polygon_to_mask(polygon, resolution_wh=(8, 8))
+    assert mask.sum() == 25
+
+
+@pytest.mark.parametrize(
+    ("polygon", "match"),
+    [
+        pytest.param(5, "Polygon must have shape", id="scalar"),
+        pytest.param([1, 2, 3, 4], "Polygon must have shape", id="flat-1d-list"),
+        pytest.param(np.zeros((3, 3)), "Polygon must have shape", id="n-by-3-array"),
+        pytest.param([[1, 2], [3]], "inhomogeneous shape", id="ragged-nested-list"),
+        pytest.param(
+            [["a", "b"], ["c", "d"]],
+            "Polygon must have shape",
+            id="non-numeric-strings",
+        ),
+    ],
+)
+def test_polygon_to_mask_rejects_malformed_input(polygon: Any, match: str) -> None:
+    """Malformed polygon input raises ValueError instead of a raw OpenCV/NumPy error.
+
+    A scalar, flat 1-D list, wrong-width array, ragged nested list, or non-numeric dtype
+    is not a valid (N, 2) polygon and must fail loud with a clear message rather than an
+    opaque assertion or crash.
+    """
+    with pytest.raises(ValueError, match=match):
+        polygon_to_mask(polygon, resolution_wh=(8, 8))
+
+
+# ---------------------------------------------------------------------------
+# mask_to_polygons
+# ---------------------------------------------------------------------------
+
+
+def test_mask_to_polygons_empty_mask_returns_empty_list() -> None:
+    """An all-False mask produces no polygons."""
+    mask = np.zeros((20, 20), dtype=bool)
+    result = mask_to_polygons(mask)
+    assert result == []
+
+
+def test_mask_to_polygons_single_region() -> None:
+    """A mask with one connected region produces exactly one polygon."""
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[4:16, 4:16] = True
+    result = mask_to_polygons(mask)
+    assert len(result) == 1
+    assert result[0].shape[1] == 2
+
+
+def test_mask_to_polygons_two_regions() -> None:
+    """A mask with two disconnected blobs produces two polygons."""
+    mask = np.zeros((30, 60), dtype=bool)
+    mask[2:8, 2:8] = True
+    mask[2:8, 30:36] = True
+    result = mask_to_polygons(mask)
+    assert len(result) == 2
+
+
+def test_mask_to_polygons_returns_hole_contour_as_extra_polygon() -> None:
+    """A mask with a hole yields the outer contour plus one polygon for the hole."""
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[2:18, 2:18] = True
+    mask[7:13, 7:13] = False
+
+    result = mask_to_polygons(mask)
+
+    assert len(result) == 2
+
+
+def test_mask_to_polygons_polygon_to_mask_round_trip() -> None:
+    """mask_to_polygons -> polygon_to_mask recovers most of the original mask area."""
+    h, w = 20, 20
+    mask = np.zeros((h, w), dtype=bool)
+    mask[3:14, 3:14] = True
+    polygons = mask_to_polygons(mask)
+    assert len(polygons) == 1
+    recovered = polygon_to_mask(polygons[0], resolution_wh=(w, h)).astype(bool)
+    intersection = (mask & recovered).sum()
+    union = (mask | recovered).sum()
+    iou = intersection / union
+    assert iou > 0.9
+
+
+# ---------------------------------------------------------------------------
+# polygon_to_xyxy
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("polygon", "expected"),
+    [
+        pytest.param(
+            np.array([[1, 2], [5, 2], [5, 8], [1, 8]]),
+            np.array([1, 2, 5, 8]),
+            id="rectangle",
+        ),
+        pytest.param(
+            np.array([[3, 3], [7, 1], [10, 6], [5, 9]]),
+            np.array([3, 1, 10, 9]),
+            id="irregular-quad",
+        ),
+        pytest.param(
+            np.array([[4, 4]]),
+            np.array([4, 4, 4, 4]),
+            id="single-point",
+        ),
+        pytest.param(
+            np.empty((0, 2), dtype=int),
+            np.array([0, 0, 0, 0]),
+            id="empty-polygon-int",
+        ),
+        pytest.param(
+            np.empty((0, 2), dtype=np.float32),
+            np.zeros(4, dtype=np.float32),
+            id="empty-polygon-float32",
+        ),
+        pytest.param(
+            [],
+            np.array([0, 0, 0, 0]),
+            id="empty-polygon-list",
+        ),
+    ],
+)
+def test_polygon_to_xyxy(
+    polygon: npt.NDArray[np.number], expected: npt.NDArray[np.number]
+) -> None:
+    """polygon_to_xyxy returns the tight axis-aligned bounding box."""
+    result = polygon_to_xyxy(polygon)
+    assert result.dtype == expected.dtype
+    np.testing.assert_array_equal(result, expected)

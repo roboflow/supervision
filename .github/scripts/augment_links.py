@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Script to augment relative links in markdown files to GitHub URLs.
-"""
+"""Script to augment relative links in markdown files to GitHub URLs."""
 
 import argparse
 import os
@@ -15,13 +13,17 @@ def get_repo_root() -> str:
     return os.path.dirname(os.path.dirname(script_dir))
 
 
-def augment_links_in_file(file_path: str, branch: str = "main") -> None:
-    """
-    Augment relative links in a markdown file to GitHub URLs.
+def augment_links_in_file(
+    file_path: str, branch: str = "main", repo: str = "roboflow/supervision"
+) -> None:
+    """Augment relative links in a markdown file to GitHub URLs.
 
     Args:
         file_path: Path to the markdown file.
         branch: Branch name, default "main".
+        repo: `owner/name` of the repository that holds `branch`, default
+            "roboflow/supervision". Pull requests from forks must pass the
+            fork, because their branch does not exist upstream.
     """
     repo_root = get_repo_root()
 
@@ -32,6 +34,7 @@ def augment_links_in_file(file_path: str, branch: str = "main") -> None:
         content = f.read()
 
     def replace_link(match: Match[str]) -> str:
+        """Rewrite one markdown link to a GitHub URL when it points at a repo path."""
         full_match = match.group(0)
         text = match.group(2)
         url = match.group(3)
@@ -42,7 +45,7 @@ def augment_links_in_file(file_path: str, branch: str = "main") -> None:
                 # Use 'tree' for directories and 'blob' for files
                 ref = "tree" if os.path.isdir(abs_path) else "blob"
                 rel_to_root = os.path.relpath(abs_path, repo_root)
-                new_url = f"https://github.com/roboflow/supervision/{ref}/{branch}/{rel_to_root}"
+                new_url = f"https://github.com/{repo}/{ref}/{branch}/{rel_to_root}"
                 if full_match.startswith("!"):
                     return f"![{text}]({new_url})"
                 else:
@@ -55,15 +58,21 @@ def augment_links_in_file(file_path: str, branch: str = "main") -> None:
 
 
 def main() -> None:
+    """Entry point: rewrite relative links in every markdown file given on argv."""
     parser = argparse.ArgumentParser(
         description="Augment relative links to GitHub URLs."
     )
     parser.add_argument("--branch", default="main", help="Branch name")
+    parser.add_argument(
+        "--repo",
+        default="roboflow/supervision",
+        help="Repository holding the branch, as owner/name",
+    )
     parser.add_argument("files", nargs="+", help="Files to process")
     args = parser.parse_args()
 
     for file in args.files:
-        augment_links_in_file(file, args.branch)
+        augment_links_in_file(file, args.branch, args.repo)
 
 
 if __name__ == "__main__":

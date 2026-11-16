@@ -1,6 +1,11 @@
 import pytest
 
-from supervision.geometry.core import Point, Vector
+from supervision.geometry.core import Point, Position, Vector
+
+
+def test_position_list_returns_enum_values_in_definition_order() -> None:
+    """Position.list returns stable string values for public option lists."""
+    assert Position.list() == [position.value for position in Position]
 
 
 @pytest.mark.parametrize(
@@ -29,8 +34,7 @@ from supervision.geometry.core import Point, Vector
 def test_vector_cross_product(
     vector: Vector, point: Point, expected_result: float
 ) -> None:
-    """
-    Verify that Vector.cross_product correctly calculates the scalar value.
+    """Verify that Vector.cross_product correctly calculates the scalar value.
 
     Scenario: Computing the cross product between a vector and a point.
     Expected: Correct scalar value is returned, which is used to determine which side
@@ -62,8 +66,7 @@ def test_vector_cross_product(
     ],
 )
 def test_vector_magnitude(vector: Vector, expected_result: float) -> None:
-    """
-    Verify that Vector.magnitude correctly calculates Euclidean distance.
+    """Verify that Vector.magnitude correctly calculates Euclidean distance.
 
     Scenario: Calculating the magnitude (length) of a vector.
     Expected: Correct Euclidean distance between start and end points is returned,

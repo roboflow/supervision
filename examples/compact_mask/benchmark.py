@@ -2,29 +2,49 @@
 
 Demonstrates that ``CompactMask`` is a drop-in replacement for dense
 ``(N, H, W)`` bool arrays in ``supervision.Detections``, while using
-significantly less memory and enabling faster annotation.
+significantly less memory and enabling faster annotation. The annotation
+timing reports frame size, detection count, mask area ratio, and
+``MaskAnnotator`` speedup from ROI-only blending.
 
 Run with:
     uv run python examples/compact_mask/benchmark.py
 
+``--section`` selects what runs: ``matrix`` is the synthetic dense-vs-compact
+scenario matrix, ``yolo`` measures ``DetectionDataset.from_yolo`` loading with and
+without ``compact_masks=True``, and ``all`` (default) runs both. For example,
+``uv run python examples/compact_mask/benchmark.py --section yolo`` skips the matrix.
+
 No GPU or real model is required — everything is synthesized with NumPy.
 Mask complexity is controlled by ``num_vertices``: random polygons with more
 vertices produce jaggier boundaries and more RLE runs per row.
+
+The YOLO section generates 16 images with 8 small polygons each using the
+``vision-synth`` package (``pip install vision-synth``), loads them in three fresh
+processes per mode, and reports mask buffer bytes, load time and peak RSS.
+Peak RSS comes from the POSIX ``resource`` module, so that section is skipped on
+platforms without it, such as Windows. Peak RSS includes interpreter, import and input
+generation overhead; mask buffer bytes exclude Python objects and allocator overhead.
+Pixel equality between dense and compact loading is checked in a separate process so
+decoding does not inflate the measured RSS. Compression and timing differ for real
+datasets, especially fragmented masks.
 """
 
-from __future__ import annotations
-
+import argparse
 import dataclasses
 import gc
 import json
 import math
+import statistics
+import subprocess
+import sys
+import tempfile
 import time
 import tracemalloc
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
 
 import cv2
 import numpy as np
@@ -42,7 +62,12 @@ from rich.progress import (
 from rich.table import Table
 
 import supervision as sv
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask, _nearest_source_index
+
+try:
+    import resource
+except ImportError:  # Windows has no POSIX resource module
+    resource = None
 
 console = Console(width=240, force_terminal=True)
 
@@ -74,7 +99,7 @@ class ScenarioResult:
     name: str
     resolution: str  # e.g. "1920x1080"
     num_objects: int
-    fill_name: str  # e.g. "5%"
+    fill_name: str  # mask area ratio, e.g. "5%"
     num_vertices: int  # polygon vertex count — complexity proxy
     # memory (theoretical: raw numpy nbytes)
     dense_bytes: int
@@ -147,9 +172,9 @@ def _make_polygon_mask(
 ) -> np.ndarray:
     """Random polygon mask.
 
-    *num_vertices* is a direct complexity proxy: more vertices → more
-    independent radius samples → jaggier boundary → more RLE runs per row.
-    No smoothing is applied so the relationship is monotone.
+    *num_vertices* is a direct complexity proxy: more vertices → more independent radius
+    samples → jaggier boundary → more RLE runs per row. No smoothing is applied so the
+    relationship is monotone.
     """
     angles = np.sort(rng.uniform(0, 2 * np.pi, num_vertices))
     radii = rng.uniform(0.3, 1.0, num_vertices)
@@ -240,10 +265,9 @@ def compact_memory_bytes_theoretical(compact_mask: CompactMask) -> int:
 def measure_peak_bytes(func: Callable[[], object]) -> int:
     """Wrapper that runs *func* under tracemalloc and returns peak allocation.
 
-    tracemalloc captures every Python-level allocation — numpy buffers, list
-    nodes, object headers — giving the true heap cost of anything *func*
-    builds. The return value of *func* is discarded so the object does not
-    stay alive.
+    tracemalloc captures every Python-level allocation — numpy buffers, list nodes,
+    object headers — giving the true heap cost of anything *func* builds. The return
+    value of *func* is discarded so the object does not stay alive.
     """
     tracemalloc.start()
     tracemalloc.clear_traces()
@@ -280,16 +304,16 @@ def time_reps(
 ) -> float:
     """Run *func* *reps* times and return mean wall-clock seconds per call.
 
-    When ``parallel > 1``, up to ``parallel`` calls run simultaneously in
-    threads. Numpy and OpenCV release the GIL for their C-level work, so
-    threads can execute in parallel on multi-core machines. Each thread
-    records its own elapsed time; the mean across all *reps* is returned.
+    When ``parallel > 1``, up to ``parallel`` calls run simultaneously in threads. Numpy
+    and OpenCV release the GIL for their C-level work, so threads can execute in
+    parallel on multi-core machines. Each thread records its own elapsed time; the mean
+    across all *reps* is returned.
 
-    When ``parallel == 1`` the original sequential loop is used, avoiding
-    any thread-scheduling overhead and improving accuracy for cheap functions.
+    When ``parallel == 1`` the original sequential loop is used, avoiding any thread-
+    scheduling overhead and improving accuracy for cheap functions.
 
-    A full GC cycle is run before timing so accumulated garbage from earlier
-    stages does not trigger collection mid-measurement and inflate results.
+    A full GC cycle is run before timing so accumulated garbage from earlier stages does
+    not trigger collection mid-measurement and inflate results.
     """
     gc.collect()
     if parallel <= 1:
@@ -333,13 +357,12 @@ def stage_build(
 def _resize_dense_to_shape(masks: np.ndarray, new_h: int, new_w: int) -> np.ndarray:
     """Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w).
 
-    Uses floor-division indexing (``arange * src // dst``) to match the
-    strategy in ``_rle_resize``, ensuring pixel-exact parity for correctness
-    comparisons in :func:`stage_resize`.
+    Gathers pixels with the same per-axis sampling map as ``CompactMask.resize``, so the
+    result is the dense reference for the exact-equality check in :func:`stage_resize`.
     """
     orig_h, orig_w = masks.shape[1], masks.shape[2]
-    x = np.arange(new_w) * orig_w // new_w
-    y = np.arange(new_h) * orig_h // new_h
+    x = _nearest_source_index(orig_w, new_w)
+    y = _nearest_source_index(orig_h, new_h)
     xv, yv = np.meshgrid(x, y)
     return masks[:, yv, xv]
 
@@ -352,9 +375,9 @@ def stage_encode(
 ) -> float:
     """Per-mask encode time: encode each mask individually and average over N.
 
-    Calling from_dense one mask at a time (rather than batching all N) isolates
-    the per-shape cost — each polygon has a different RLE run count, so the
-    average reflects true shape variance.
+    Calling from_dense one mask at a time (rather than batching all N) isolates the per-
+    shape cost — each polygon has a different RLE run count, so the average reflects
+    true shape variance.
     """
     num_masks = len(masks_dense)
     image_shape = (image_height, image_width)
@@ -371,8 +394,8 @@ def stage_encode(
 def stage_decode(compact_mask: CompactMask) -> float:
     """Per-mask decode time: decode each mask individually and average over N.
 
-    Building a list via compact_mask[i] decodes each crop separately, giving
-    the per-mask cost of materialising a single RLE back to a dense array.
+    Building a list via compact_mask[i] decodes each crop separately, giving the per-
+    mask cost of materialising a single RLE back to a dense array.
     """
     num_masks = len(compact_mask)
     return time_reps(lambda: [compact_mask[i] for i in range(num_masks)]) / max(
@@ -436,8 +459,8 @@ def stage_iou(
 ) -> tuple[float, float, bool | None]:
     """Time pairwise self-IoU using dense (N,H,W) AND and compact crop filter.
 
-    Correctness is checked on the first 10 masks only to keep it fast,
-    regardless of whether full dense IoU timing is skipped.
+    Correctness is checked on the first 10 masks only to keep it fast, regardless of
+    whether full dense IoU timing is skipped.
     """
     correct_n = min(len(compact_mask), 10)
     iou_compact_small = sv.mask_iou_batch(
@@ -468,21 +491,22 @@ def stage_nms(
     dense_skipped: bool,
     iou_dense_skipped: bool,
 ) -> tuple[float, float, bool | None, int]:
-    """Time mask NMS. Dense resizes to 640 before IoU; compact uses exact crop IoU.
+    """Time mask NMS.
 
-    Compact NMS is strictly more accurate than dense: it computes pixel-level IoU
-    directly on the full-resolution RLE crops instead of a lossy 640px-downsampled
-    approximation.  For pairs whose true IoU is very close to the 0.5 threshold,
-    the resize step in the dense path can flip a keep/suppress decision.
+    Dense resizes to 640 before IoU; compact uses exact crop IoU.
+        Compact NMS is strictly more accurate than dense: it computes pixel-level IoU
+        directly on the full-resolution RLE crops instead of a lossy 640px-downsampled
+        approximation.  For pairs whose true IoU is very close to the 0.5 threshold,
+        the resize step in the dense path can flip a keep/suppress decision.
 
-    ``n_diff`` counts detections whose decision differs between the two paths.
-    ``nms_ok`` is True when ``n_diff == 0``.
+        ``n_diff`` counts detections whose decision differs between the two paths.
+        ``nms_ok`` is True when ``n_diff == 0``.
 
-    Dense NMS is skipped when ``dense_skipped`` *or* ``iou_dense_skipped`` is True:
-    NMS calls mask_iou_batch internally so the cost is the same as IoU.
+        Dense NMS is skipped when ``dense_skipped`` *or* ``iou_dense_skipped`` is True:
+        NMS calls mask_iou_batch internally so the cost is the same as IoU.
 
-    Returns:
-        Tuple of ``(dense_nms_s, compact_nms_s, nms_ok, n_diff)``.
+        Returns:
+            Tuple of ``(dense_nms_s, compact_nms_s, nms_ok, n_diff)``.
     """
     predictions = np.c_[xyxy, confidence, class_ids.astype(float)]
 
@@ -589,12 +613,10 @@ def stage_resize(
 ) -> tuple[float, float, bool | None]:
     """Time resize to half resolution; check pixel-level correctness.
 
-    Dense path uses numpy fancy-indexing via ``_resize_dense_to_shape``.
-    Compact path times ``CompactMask.resize()``, which uses direct RLE
-    arithmetic for sparse masks (below ``_L3_DENSITY_THRESHOLD``) and
-    falls back to ``cv2.INTER_NEAREST`` decode/resize/re-encode for dense
-    masks.  The two nearest-neighbour strategies can differ by 1 px at
-    bbox boundaries, so correctness is checked with 1-pixel tolerance.
+    Dense path uses numpy fancy-indexing via ``_resize_dense_to_shape``. Compact path
+    times ``CompactMask.resize()``, which decodes each crop, gathers the sampled pixels,
+    and re-encodes. Both paths implement the same nearest-neighbour resize, so
+    correctness requires exact equality.
     """
     new_h, new_w = image_height // 2, image_width // 2
     new_shape = (new_h, new_w)
@@ -608,10 +630,7 @@ def stage_resize(
 
     resized_dense = _resize_dense_to_shape(masks_dense, new_h, new_w)
     resized_compact = compact_mask.resize(new_shape).to_dense()
-    resize_ok = bool(
-        np.abs(resized_dense.astype(np.int8) - resized_compact.astype(np.int8)).max()
-        <= 1
-    )
+    resize_ok = bool(np.array_equal(resized_dense, resized_compact))
     dense_resize_s = time_reps(
         lambda: _resize_dense_to_shape(masks_dense, new_h, new_w)
     )
@@ -882,8 +901,8 @@ _OPS = (
 def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
     """Compute derived summary columns from scenario results.
 
-    Returns a DataFrame with all ScenarioResult fields plus derived columns
-    (ratios, speedups, ok) as raw floats.  Consumers apply their own formatting.
+    Returns a DataFrame with all ScenarioResult fields plus derived columns (ratios,
+    speedups, ok) as raw floats.  Consumers apply their own formatting.
     """
     df = pd.DataFrame([dataclasses.asdict(r) for r in results])
     df["ratio_theory"] = df["dense_bytes"] / df["compact_bytes_theoretical"].clip(
@@ -926,8 +945,8 @@ def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
 def _fmt_ratio(ratio: float) -> str:
     """Format a speedup/compression ratio with colour coding.
 
-    ≥10 → green (large win), 1-10 → yellow (modest win), <1 → red (regression).
-    Integer for ≥10, two decimals otherwise.
+    ≥10 → green (large win), 1-10 → yellow (modest win), <1 → red (regression). Integer
+    for ≥10, two decimals otherwise.
     """
     fmt = f"{ratio:.0f}x" if ratio >= 10 else f"{ratio:.2f}x"
     if ratio >= 10:
@@ -956,7 +975,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
     table.add_column("Scenario", style="bold", min_width=22)
     table.add_column("Objects", justify="right", min_width=7)
     table.add_column("Resolution", min_width=12, no_wrap=True)
-    table.add_column("Fill", justify="right", min_width=5, no_wrap=True)
+    table.add_column("Mask\narea", justify="right", min_width=5, no_wrap=True)
     table.add_column("Vertices", justify="right", min_width=8, no_wrap=True)
     table.add_column("Dense\ntheory", justify="right", min_width=10)
     table.add_column("Compact\ntheory", justify="right", style="green", min_width=9)
@@ -1037,7 +1056,8 @@ def print_summary(results: list[ScenarioResult]) -> None:
                 "Decode ms/mask — to_dense() / N (compact→dense overhead per mask)",
                 "Area x — .area speedup (RLE sum, no materialisation)",
                 "Filter x — boolean-index speedup",
-                "Annot x — MaskAnnotator speedup (crop-paint vs full-frame alloc)",
+                "Annot x — MaskAnnotator speedup "
+                "(ROI-only blend vs full-frame overlay)",
                 f"IoU x — pairwise self-IoU speedup "
                 f"(dense skipped >{IOU_DENSE_SKIP_GB:.0f} GB)",
                 "NMS x — mask_non_max_suppression speedup",
@@ -1060,8 +1080,8 @@ def print_summary(results: list[ScenarioResult]) -> None:
 def _append_result(result: ScenarioResult, path: Path) -> None:
     """Append one scenario result as a JSON line to *path*.
 
-    ``math.nan`` (used for skipped dense timings) is serialised as ``null``
-    so the file is valid JSON-Lines and can be read back with any JSON parser.
+    ``math.nan`` (used for skipped dense timings) is serialised as ``null`` so the file
+    is valid JSON-Lines and can be read back with any JSON parser.
     """
     row = {
         k: (None if isinstance(v, float) and math.isnan(v) else v)
@@ -1108,7 +1128,190 @@ def save_results_csv(results: list[ScenarioResult], path: Path) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-def main() -> None:
+# ══════════════════════════════════════════════════════════════════════════════
+# YOLO dataset loading
+# ══════════════════════════════════════════════════════════════════════════════
+
+#: Scenario name -> vision-synth primitive shapes; circles give the densest polygons.
+YOLO_SCENARIOS = {
+    "rectangles": ("rectangle",),
+    "triangles": ("triangle",),
+    "circles": ("circle",),
+}
+YOLO_NUM_IMAGES = 16
+YOLO_OBJECTS_PER_IMAGE = 8
+YOLO_IMG_SIZE = 1024  # square images, pixels
+YOLO_SAMPLES = 3  # fresh processes per (scenario, mode)
+YOLO_TIMEOUT_S = 120
+
+
+def _maxrss_mib() -> float:
+    """Return this process's peak resident set size in MiB."""
+    if resource is None:
+        raise RuntimeError("peak RSS needs the POSIX 'resource' module")
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # macOS reports ru_maxrss in bytes; Linux and other POSIX systems use KiB.
+    divisor = 2**20 if sys.platform == "darwin" else 1024
+    return peak / divisor
+
+
+def _write_yolo_dataset(root: Path, scenario: str) -> tuple[Path, Path, Path]:
+    """Generate a seeded YOLO segmentation dataset; return image dir, label dir, yaml.
+
+    Uses ``vision-synth`` (imported lazily so the matrix section does not need it) to
+    draw ``YOLO_OBJECTS_PER_IMAGE`` small polygons of the scenario's shape per image,
+    all in the ``train`` split.
+    """
+    from synth_datasets import SplitRatios, generate_dataset
+    from synth_datasets.primitives import PrimitiveShape
+
+    shapes = tuple(PrimitiveShape(name) for name in YOLO_SCENARIOS[scenario])
+    generate_dataset(
+        root,
+        num_images=YOLO_NUM_IMAGES,
+        fmt="yolo",
+        split_ratios=SplitRatios(train=1.0, val=0.0, test=0.0),
+        seed=0,
+        task="segmentation",
+        img_size=YOLO_IMG_SIZE,
+        shapes=shapes,
+        min_objects=YOLO_OBJECTS_PER_IMAGE,
+        max_objects=YOLO_OBJECTS_PER_IMAGE,
+        min_size_ratio=0.03,
+        max_size_ratio=0.08,
+    )
+    return root / "images" / "train", root / "labels" / "train", root / "data.yaml"
+
+
+def _loaded_mask_bytes(dataset: sv.DetectionDataset) -> int:
+    """Sum the retained mask buffer bytes of a loaded dataset (dense or compact)."""
+    total = 0
+    for detections in dataset.annotations.values():
+        mask = detections.mask
+        if isinstance(mask, CompactMask):
+            total += mask._offsets.nbytes + mask._crop_shapes.nbytes
+            total += sum(rle.nbytes for rle in mask._rles)
+        else:
+            if not isinstance(mask, np.ndarray):
+                raise TypeError("Dense loading did not return a NumPy mask")
+            total += mask.nbytes
+    return total
+
+
+def yolo_worker(mode: str, scenario: str) -> None:
+    """Load one synthetic YOLO dataset in this process and print a JSON result line.
+
+    ``mode`` is ``dense`` or ``compact`` for a measured load, or ``verify`` for an
+    untimed pixel, box and class-ID equality check between the two loaders.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        images, labels, data_yaml = _write_yolo_dataset(Path(tmp), scenario)
+        rss_before_mib = _maxrss_mib()
+        start = time.perf_counter()
+        dataset = sv.DetectionDataset.from_yolo(
+            str(images), str(labels), str(data_yaml), compact_masks=mode == "compact"
+        )
+        elapsed = time.perf_counter() - start
+        peak_rss_mib = _maxrss_mib()
+        if mode == "verify":
+            compact = sv.DetectionDataset.from_yolo(
+                str(images), str(labels), str(data_yaml), compact_masks=True
+            )
+            for path, expected in dataset.annotations.items():
+                actual = compact.annotations[path]
+                if not isinstance(actual.mask, CompactMask):
+                    raise TypeError("Compact loading did not return CompactMask")
+                np.testing.assert_array_equal(actual.mask.to_dense(), expected.mask)
+                np.testing.assert_array_equal(actual.xyxy, expected.xyxy)
+                np.testing.assert_array_equal(actual.class_id, expected.class_id)
+            print(json.dumps({"scenario": scenario, "pixel_equality": True}))
+            return
+        print(
+            json.dumps(
+                {
+                    "mode": mode,
+                    "scenario": scenario,
+                    "resolution": [YOLO_IMG_SIZE, YOLO_IMG_SIZE],
+                    "mask_buffer_bytes": _loaded_mask_bytes(dataset),
+                    "load_seconds": elapsed,
+                    "peak_rss_mib": peak_rss_mib,
+                    "rss_before_mib": rss_before_mib,
+                }
+            )
+        )
+
+
+def _run_yolo_worker(mode: str, scenario: str) -> dict:
+    """Run :func:`yolo_worker` in a fresh process and parse its JSON result line."""
+    # Only this interpreter/file and fixed mode/scenario choices run.
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            __file__,
+            "--yolo-worker",
+            mode,
+            "--yolo-scenario",
+            scenario,
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=YOLO_TIMEOUT_S,
+    )
+    return json.loads(result.stdout)
+
+
+def run_yolo_loading() -> None:
+    """Compare dense and compact ``from_yolo`` loading and print a summary table."""
+    if resource is None:
+        console.print(
+            "[yellow]YOLO loading section skipped: it needs the POSIX 'resource' "
+            "module to read peak RSS; run it on Linux or macOS.[/yellow]"
+        )
+        return
+
+    table = Table(
+        title=f"YOLO loading — median of {YOLO_SAMPLES} fresh processes",
+        box=box.SIMPLE_HEAD,
+    )
+    for column in ("scenario", "mode", "mask buffer KiB", "load s", "peak RSS MiB"):
+        table.add_column(
+            column, justify="left" if column in ("scenario", "mode") else "right"
+        )
+    table.add_column("pixel equality")
+
+    for scenario in YOLO_SCENARIOS:
+        for mode in ("dense", "compact"):
+            samples = [_run_yolo_worker(mode, scenario) for _ in range(YOLO_SAMPLES)]
+            verified = ""
+            if mode == "compact":
+                # Untimed, separate process so decoding never enters measured RSS.
+                check = _run_yolo_worker("verify", scenario)
+                verified = "✓" if check["pixel_equality"] else "✗"
+            buffer_kib = (
+                statistics.median(s["mask_buffer_bytes"] for s in samples) / 1024
+            )
+            load_s = statistics.median(s["load_seconds"] for s in samples)
+            peak_mib = statistics.median(s["peak_rss_mib"] for s in samples)
+            table.add_row(
+                scenario,
+                mode,
+                f"{buffer_kib:,.1f}",
+                f"{load_s:.3f}",
+                f"{peak_mib:.1f}",
+                verified,
+            )
+    console.print(table)
+    console.print(
+        f"[dim]vision-synth inputs: {YOLO_NUM_IMAGES} images x "
+        f"{YOLO_OBJECTS_PER_IMAGE} small polygons. Peak RSS includes "
+        "interpreter, import and input-generation overhead; mask buffer bytes "
+        "exclude Python objects and allocator overhead.[/dim]"
+    )
+
+
+def run_matrix() -> None:
+    """Run the synthetic dense-vs-compact scenario matrix and print the summary."""
     # ── parameter matrix ──────────────────────────────────────────────────────
     # (tier_label, (image_width, image_height), num_objects)
     TIERS: list[tuple[str, tuple[int, int], int]] = [
@@ -1169,6 +1372,35 @@ def main() -> None:
     csv_path = results_path.with_suffix(".csv")
     save_results_csv(results, csv_path)
     console.print(f"[dim]results saved → {results_path.name}  ·  {csv_path.name}[/dim]")
+
+
+def main() -> None:
+    """Parse arguments and run the selected benchmark sections."""
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--section",
+        choices=["all", "matrix", "yolo"],
+        default="all",
+        help="benchmark section to run (default: all)",
+    )
+    # Internal: the YOLO section re-runs this file in fresh processes.
+    parser.add_argument(
+        "--yolo-worker", choices=["dense", "compact", "verify"], help=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--yolo-scenario",
+        choices=YOLO_SCENARIOS,
+        default="triangles",
+        help=argparse.SUPPRESS,
+    )
+    args = parser.parse_args()
+    if args.yolo_worker:
+        yolo_worker(args.yolo_worker, args.yolo_scenario)
+        return
+    if args.section in ("all", "matrix"):
+        run_matrix()
+    if args.section in ("all", "yolo"):
+        run_yolo_loading()
 
 
 if __name__ == "__main__":

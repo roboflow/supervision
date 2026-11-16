@@ -1,22 +1,20 @@
 from __future__ import annotations
 
-import os
-import shutil
-import subprocess
-import tempfile
 import threading
 import time
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from queue import Empty, Full, Queue
-from typing import Any
+from types import TracebackType
+from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
+from supervision import _cv2 as cv2
+from supervision._cv2._video import _mux_audio
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -24,9 +22,8 @@ logger = _get_logger(__name__)
 
 @dataclass
 class VideoInfo:
-    """
-    A class to store video information, including width, height, fps and
-        total number of frames.
+    """A class to store video information, including width, height, fps and total number
+    of frames.
 
     Attributes:
         width: width of the video in pixels
@@ -34,7 +31,8 @@ class VideoInfo:
         fps: frames per second of the video as a float. Common values include
             23.976, 24.0, 25.0, 29.97, 30.0, 59.94, and 60.0.
         total_frames: total number of frames in the video,
-            default is None
+            default is None. An estimate from container metadata that can be zero,
+            negative, or lower than the number of frames the video holds.
 
     Examples:
         ```python
@@ -57,6 +55,23 @@ class VideoInfo:
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
+        """Read video metadata from a file path.
+
+        Args:
+            video_path: Path to the video file.
+
+        Returns:
+            A :class:`~supervision.utils.video.VideoInfo` instance with width,
+                height, fps, and total_frames.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_VIDEO_FILE>")
+            # VideoInfo(width=3840, height=2160, fps=25.0, total_frames=538)
+            ```
+        """
         video = cv2.VideoCapture(video_path)
         if not video.isOpened():
             raise Exception(f"Could not open video at {video_path}")
@@ -74,8 +89,7 @@ class VideoInfo:
 
 
 class VideoSink:
-    """
-    Context manager that saves video frames to a file using OpenCV.
+    """Context manager that saves video frames to a file using OpenCV.
 
     Attributes:
         target_path: The path to the output file where the video will be saved.
@@ -96,134 +110,124 @@ class VideoSink:
         ```
     """  # noqa: E501 // docs
 
-    def __init__(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
+    def __init__(
+        self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"
+    ) -> None:
         self.target_path = target_path
         self.video_info = video_info
         self.__codec = codec
-        self.__writer = None
+        self.__fourcc: int = 0
+        self.__writer: cv2.VideoWriter | None = None
 
     def __enter__(self) -> VideoSink:
+        """Open the underlying video writer for context-managed frame output."""
+        fourcc_fn = cast(
+            Callable[[str, str, str, str], int], getattr(cv2, "VideoWriter_fourcc")
+        )
         try:
-            self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
+            self.__fourcc = int(fourcc_fn(*self.__codec))
         except TypeError as e:
             logger.warning("%s. Defaulting to mp4v...", str(e))
-            self.__fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+            self.__fourcc = int(fourcc_fn(*"mp4v"))
         self.__writer = cv2.VideoWriter(
             self.target_path,
             self.__fourcc,
             self.video_info.fps,
             self.video_info.resolution_wh,
         )
+        # OpenCV can construct a writer object that is not usable for the target path.
+        if not self.__writer.isOpened():
+            self.__writer.release()
+            self.__writer = None
+            raise RuntimeError(f"Could not open video writer for {self.target_path}")
         return self
 
     def write_frame(self, frame: npt.NDArray[np.uint8]) -> None:
-        """
-        Writes a single video frame to the target video file.
+        """Writes a single video frame to the target video file.
 
         Args:
             frame: The video frame to be written to the file. The frame
                 must be in BGR color format.
         """
-        if self.__writer is not None:
-            self.__writer.write(frame)
+        # Preserve the context-manager invariant instead of silently dropping frames.
+        if self.__writer is None:
+            raise RuntimeError("write_frame requires an open VideoSink context.")
+        self.__writer.write(frame)
 
     def __exit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: Any,
+        exc_traceback: TracebackType | None,
     ) -> None:
+        """Release the writer without replacing an error from the managed block.
+
+        A secondary release failure is logged; a cleanup-only failure propagates. The
+        sink is marked closed in either case.
+        """
         if self.__writer is not None:
-            self.__writer.release()
-
-
-def _mux_audio(source_path: str, video_path: str) -> None:
-    """Mux audio from `source_path` into `video_path` in-place using ffmpeg.
-
-    Args:
-        source_path: Path to the original video file containing the audio stream.
-        video_path: Path to the video-only file to be updated with audio.
-    """
-    ffmpeg_path = shutil.which("ffmpeg")
-    if ffmpeg_path is None:
-        logger.warning(
-            "ffmpeg not found on PATH. Audio will not be preserved. "
-            "Install ffmpeg to enable audio preservation."
-        )
-        return
-
-    tmp_path = None
-    try:
-        tmp_fd, tmp_path = tempfile.mkstemp(
-            suffix=os.path.splitext(video_path)[1],
-            dir=os.path.dirname(os.path.abspath(video_path)),
-        )
-        os.close(tmp_fd)
-        result = subprocess.run(  # noqa: S603
-            [
-                ffmpeg_path,
-                "-y",
-                "-loglevel",
-                "error",
-                "-nostats",
-                "-i",
-                video_path,
-                "-i",
-                source_path,
-                "-c:v",
-                "copy",
-                "-c:a",
-                "copy",
-                "-map",
-                "0:v:0",
-                "-map",
-                "1:a:0?",
-                "-shortest",
-                tmp_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            timeout=300,
-        )
-        if result.returncode != 0:
-            stderr_msg = result.stderr.decode(errors="replace").strip()
-            logger.warning(
-                "ffmpeg failed to mux audio (return code %d)%s. "
-                "The output video will not have audio.",
-                result.returncode,
-                f": {stderr_msg}" if stderr_msg else "",
-            )
-            return
-        os.replace(tmp_path, video_path)
-    except Exception as exc:
-        logger.warning(
-            "Audio muxing failed: %s. Output video will not have audio.", exc
-        )
-    finally:
-        if tmp_path is not None and os.path.exists(tmp_path):
-            os.remove(tmp_path)
+            try:
+                self.__writer.release()
+            except Exception:
+                # Context exit must preserve the exception already being propagated;
+                # without a pending error, callers still need to see release failures.
+                if exc_value is None:
+                    raise
+                logger.exception(
+                    "Failed to release video writer while handling an error."
+                )
+            finally:
+                self.__writer = None
 
 
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
-) -> tuple[cv2.VideoCapture, int, int]:
-    video = cv2.VideoCapture(source_path)
-    if not video.isOpened():
-        raise Exception(f"Could not open video at {source_path}")
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if end is not None and end > total_frames:
-        raise Exception("Requested frames are outbound")
-    start = max(start, 0)
-    end = min(end, total_frames) if end is not None else total_frames
+) -> tuple[cv2.VideoCapture, int, int | None]:
+    """Open a video, position it at `start`, and return it with the frame range.
 
-    if iterative_seek:
-        while start > 0:
-            success = video.grab()
-            if not success:
-                break
-            start -= 1
-    elif start > 0:
-        video.set(cv2.CAP_PROP_POS_FRAMES, start)
+    An `end` of `None` is kept, so the caller reads until the stream runs out. Setup
+    failures release the capture before propagating the original error.
+    """
+    video = cv2.VideoCapture(source_path)
+    try:
+        if not video.isOpened():
+            raise Exception(f"Could not open video at {source_path}")
+        # OpenCV estimates the frame count from container metadata. A WebM without a
+        # duration, as browsers record it, reports a huge negative count, and a
+        # variable frame rate video can report fewer frames than it holds, so the
+        # count only rejects an `end` when it is positive and never bounds the read.
+        # It is read only when needed: the PyAV fallback decodes the whole video a
+        # second time when the container metadata lacks a count.
+        start = max(start, 0)
+        needs_frame_count = end is not None or (start > 0 and not iterative_seek)
+        total_frames = (
+            int(video.get(cv2.CAP_PROP_FRAME_COUNT)) if needs_frame_count else 0
+        )
+        if end is not None and 0 < total_frames < end:
+            raise Exception("Requested frames are outbound")
+        if end is not None and start >= end:
+            return video, start, end
+        # `set()` cannot be trusted past a positive frame count: the PyAV fallback
+        # returns False without moving when `start` exceeds the count, and OpenCV
+        # returns True without moving on a duration-less WebM. Grabbing frames lands
+        # on `start` or runs out with the stream, so the first read is labelled right.
+        seek_by_grabbing = iterative_seek or not 0 < start <= total_frames
+
+        if seek_by_grabbing:
+            # Count grabs separately: `start` is returned as the position of the first
+            # frame read, and the caller measures `end` from it.
+            for _ in range(start):
+                success = video.grab()
+                if not success:
+                    break
+        else:
+            video.set(cv2.CAP_PROP_POS_FRAMES, start)
+    except BaseException:
+        try:
+            video.release()
+        except Exception:
+            logger.exception("Failed to release video capture after a setup error.")
+        raise
 
     return video, start, end
 
@@ -234,9 +238,9 @@ def get_video_frames_generator(
     start: int = 0,
     end: int | None = None,
     iterative_seek: bool = False,
+    prefetch: int = 0,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
-    """
-    Get a generator that yields the frames of the video.
+    """Get a generator that yields the frames of the video.
 
     Args:
         source_path: The path of the video file.
@@ -246,13 +250,68 @@ def get_video_frames_generator(
             video should generate frames
         end: Indicates the ending position at which video
             should stop generating frames. If None, video will be read to the end.
+            A zero or negative frame count reported by the container means the
+            count is unknown: `end` is not checked and reading stops at the
+            stream end.
         iterative_seek: If True, the generator will seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
             workaround for videos that don't open at all when you set the `start` value.
+        prefetch: If > 0, decode frames in a background thread and buffer up to
+            this many frames in a bounded queue. Useful when the consumer (e.g.
+            CPU inference) is the bottleneck and can overlap with decode I/O.
+            This works best when the consumer releases the GIL during frame
+            processing (common for numpy/PyTorch/ONNX C-extension calls). Pure
+            Python per-frame consumers that hold the GIL (for example, heavy
+            Python loops, PIL usage, or pandas `apply`) usually see little
+            speedup.
+            Default 0 keeps the original synchronous behaviour unchanged. Note:
+            each buffered frame occupies width x height x 3 bytes of uncompressed
+            memory; use
+            :meth:`~supervision.utils.video.VideoInfo.from_video_path`
+            to size appropriately.
 
     Returns:
-        A generator that yields the
-            frames of the video.
+        A generator that yields the frames of the video.
+
+    Raises:
+        Exception: If `end` exceeds a positive frame count reported by the
+            container (raised on first iteration), or capture release fails without
+            an earlier decoding error. Both are wrapped in `RuntimeError` when
+            `prefetch` > 0.
+        ValueError: If `stride` is less than 1 or `prefetch` is negative,
+            raised on first iteration.
+        RuntimeError: If `prefetch` is greater than 0 and the background reader
+            thread encounters a decode/open error, raised as
+            `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
+            drained after buffered frames, so when `prefetch` > 0 the consumer may
+            yield up to `prefetch` additional good frames before the exception is
+            raised. If capture release also fails after a decoding error, the
+            cleanup failure is logged and the original decoding error is preserved.
+
+    Note:
+        For live camera streams, use `cv2.VideoCapture` with an integer device
+        index directly.
+        :func:`~supervision.utils.video.get_video_frames_generator` is designed
+        for file-based
+        sources; `cv2.VideoCapture` must be released by the caller when done.
+        This requires OpenCV to be installed — the PyAV-based fallback used
+        when OpenCV is unavailable only supports file paths, not webcam device
+        indexes; passing an integer source to it always leaves the capture
+        closed (`isOpened()` returns `False`):
+
+        ```python
+        from supervision import _cv2 as cv2
+
+        cap = cv2.VideoCapture(0)  # 0 = default webcam
+        try:
+            while cap.isOpened():
+                success, frame = cap.read()
+                if not success:
+                    break
+                ...  # process frame
+        finally:
+            cap.release()
+        ```
 
     Examples:
         ```python
@@ -260,24 +319,128 @@ def get_video_frames_generator(
 
         for frame in sv.get_video_frames_generator(source_path="<SOURCE_VIDEO_PATH>"):
             ...
+
+        # Prefetch frames in a background thread to overlap I/O with CPU inference:
+        for frame in sv.get_video_frames_generator(
+            source_path="<SOURCE_VIDEO_PATH>", prefetch=8
+        ):
+            ...
         ```
     """
+    if stride < 1:
+        raise ValueError(f"stride must be >= 1, got {stride!r}")
+    if prefetch < 0:
+        raise ValueError(f"prefetch must be >= 0, got {prefetch!r}")
+    if prefetch > 0:
+        yield from _prefetched_frames_generator(
+            source_path=source_path,
+            stride=stride,
+            start=start,
+            end=end,
+            iterative_seek=iterative_seek,
+            prefetch=prefetch,
+        )
+        return
+
     video, start, end = _validate_and_setup_video(
         source_path, start, end, iterative_seek
     )
     frame_position = start
-    while True:
-        success, frame = video.read()
-        if not success or frame_position >= end:
-            break
-        if frame is not None:
-            yield frame
-        for _ in range(stride - 1):
-            success = video.grab()
+    decoding_failed = False
+    try:
+        while end is None or frame_position < end:
+            success, frame = video.read()
             if not success:
                 break
-        frame_position += stride
-    video.release()
+            if frame is not None:
+                yield cast(npt.NDArray[np.uint8], frame)
+            skip_count = stride - 1
+            if end is not None:
+                skip_count = min(skip_count, end - frame_position - 1)
+            for _ in range(skip_count):
+                success = video.grab()
+                if not success:
+                    break
+            frame_position += stride
+    except Exception:
+        decoding_failed = True
+        raise
+    finally:
+        try:
+            video.release()
+        except Exception:
+            # A secondary release error must not replace the pending decode error;
+            # cleanup-only failures still propagate, including during generator close.
+            if not decoding_failed:
+                raise
+            logger.exception("Failed to release video capture after a decoding error.")
+
+
+def _prefetched_frames_generator(
+    source_path: str,
+    stride: int,
+    start: int,
+    end: int | None,
+    iterative_seek: bool,
+    prefetch: int,
+) -> Generator[npt.NDArray[np.uint8], None, None]:
+    """Read frames into a bounded queue on a daemon thread.
+
+    Sentinel protocol: None = normal EOF, Exception instance = reader error.
+    """
+    frame_queue: Queue[npt.NDArray[np.uint8] | BaseException | None] = Queue(
+        maxsize=prefetch
+    )
+    stop_event = threading.Event()
+
+    def reader() -> None:
+        sentinel: BaseException | None = None
+        try:
+            for frame in get_video_frames_generator(
+                source_path=source_path,
+                stride=stride,
+                start=start,
+                end=end,
+                iterative_seek=iterative_seek,
+                prefetch=0,
+            ):
+                if stop_event.is_set():
+                    return
+                while True:
+                    try:
+                        frame_queue.put(frame, timeout=0.1)
+                        break
+                    except Full:
+                        if stop_event.is_set():
+                            return
+        except Exception as exc:
+            sentinel = exc
+        finally:
+            while not stop_event.is_set():
+                try:
+                    frame_queue.put(sentinel, timeout=0.1)
+                    return
+                except Full:
+                    pass
+
+    thread = threading.Thread(target=reader, daemon=True)
+    thread.start()
+    try:
+        while True:
+            try:
+                item = frame_queue.get(timeout=0.5)
+            except Empty:
+                if not thread.is_alive():
+                    break
+                continue
+            if isinstance(item, BaseException):
+                raise RuntimeError(f"Reader thread raised: {item!r}") from item
+            if item is None:
+                break
+            yield item
+    finally:
+        stop_event.set()
+        thread.join(timeout=2.0)
 
 
 def process_video(
@@ -292,8 +455,7 @@ def process_video(
     progress_message: str = "Processing video",
     preserve_audio: bool = False,
 ) -> None:
-    """
-    Process video frames asynchronously using a threaded pipeline.
+    """Process video frames asynchronously using a threaded pipeline.
 
     This function orchestrates a three-stage pipeline to optimize video processing
     throughput:
@@ -307,7 +469,14 @@ def process_video(
        The processing happens in the main thread, simplifying use of stateful objects
        without synchronization.
     3. Writer thread: Dequeues processed frames from `frame_write_queue` and writes
-       them sequentially to the output video file.
+       them sequentially to the output video file. Shutdown waits for any active
+       write to finish before releasing the output sink.
+
+    On a processing or writing failure, shutdown stops the reader instead of
+    decoding the rest of the source. An active decode is allowed to finish before
+    the capture is released; queued writes finish unless the writer itself fails.
+    If a callback fails, a secondary reader failure is logged before the original
+    callback exception is re-raised.
 
     Args:
         source_path: Path to the input video file.
@@ -316,7 +485,8 @@ def process_video(
             each frame, accepting the frame as a numpy array and its zero-based index,
             returning the processed frame.
         max_frames: Optional maximum number of frames to process.
-            If None, the entire video is processed (default).
+            If None, the entire video is processed (default). A value larger
+            than the number of frames in the video processes the whole video.
         prefetch: Maximum number of frames buffered by the reader thread.
             Controls memory use; default is 32.
         writer_buffer: Maximum number of frames buffered before writing.
@@ -325,14 +495,23 @@ def process_video(
             Default is False.
         progress_message: Description shown in the progress bar.
         preserve_audio: If True, copy the audio stream from `source_path` into
-            `target_path` after frame processing. Requires `ffmpeg` on PATH
-            (e.g. `apt install ffmpeg`, `brew install ffmpeg`). If ffmpeg is
-            not found or the mux step fails, a warning is logged and the output
-            video is saved without audio — no exception is raised. Audio is
-            truncated to match the processed video duration. Default is False.
+            `target_path` after frame processing. Remuxing is done with PyAV;
+            no external `ffmpeg` executable is required. If the mux step
+            fails, a warning is logged and the output video is saved without
+            audio — no exception is raised. Audio is truncated to match the
+            processed video duration. Default is False.
 
     Returns:
         None
+
+    Raises:
+        RuntimeError: If the reader thread fails to open or decode the source
+            video, raised as `RuntimeError(f"Reader thread raised: {exc!r}")`
+            from the original exception. If writing a processed frame to
+            `target_path` fails, raised as
+            `RuntimeError(f"Writer thread raised: {exc!r}")` from the original
+            exception. Exceptions raised by `callback` are re-raised unchanged.
+        TypeError: If `callback` returns `None` instead of the processed frame.
 
     Example:
         ```python
@@ -340,9 +519,12 @@ def process_video(
         from rfdetr import RFDETRMedium
 
         model = RFDETRMedium()
+        box_annotator = sv.BoxAnnotator()
 
         def callback(frame, frame_index):
-            return model.predict(frame)
+            # Frames are BGR; RF-DETR expects RGB. Return the annotated frame.
+            detections = model.predict(frame[:, :, ::-1])
+            return box_annotator.annotate(frame.copy(), detections)
 
         sv.process_video(
             source_path="source.mp4",
@@ -353,11 +535,17 @@ def process_video(
         ```
     """
     video_info = VideoInfo.from_video_path(video_path=source_path)
-    total_frames = (
-        min(video_info.total_frames or 0, max_frames)
-        if max_frames is not None
-        else video_info.total_frames or 0
-    )
+    video_total_frames = video_info.total_frames or 0
+    total_frames = video_total_frames
+    if max_frames is not None:
+        total_frames = min(video_total_frames, max_frames)
+
+    # `max_frames` is a cap, not an exact count: a value larger than the video
+    # must process the whole video. `get_video_frames_generator` raises when
+    # `end` exceeds the frame count, so clamp it whenever the count is known.
+    frames_end: int | None = max_frames
+    if max_frames is not None and video_total_frames > 0:
+        frames_end = total_frames
 
     frame_read_queue: Queue[tuple[int, npt.NDArray[np.uint8]] | None] = Queue(
         maxsize=prefetch
@@ -366,21 +554,72 @@ def process_video(
         maxsize=writer_buffer
     )
 
+    reader_exception: Exception | None = None
+    writer_exception: Exception | None = None
+    stop_reader = threading.Event()
+
     def reader_thread() -> None:
-        frame_generator = get_video_frames_generator(
-            source_path=source_path,
-            end=max_frames,
-        )
-        for frame_index, frame in enumerate(frame_generator):
-            frame_read_queue.put((frame_index, frame))
-        frame_read_queue.put(None)
+        """Feed frames into the bounded queue until EOF, failure or cancellation."""
+        nonlocal reader_exception
+        frame_generator = None
+        try:
+            frame_generator = get_video_frames_generator(
+                source_path=source_path,
+                end=frames_end,
+            )
+            frame_index = 0
+            while not stop_reader.is_set():
+                try:
+                    frame = next(frame_generator)
+                except StopIteration:
+                    break
+                while not stop_reader.is_set():
+                    try:
+                        frame_read_queue.put((frame_index, frame), timeout=0.1)
+                        break
+                    except Full:
+                        pass
+                frame_index += 1
+        except Exception as exc:
+            # The main loop blocks on `frame_read_queue.get()` with no timeout,
+            # so a reader failure must still enqueue the sentinel or the call
+            # never returns. Surface the error once the pipeline has shut down.
+            reader_exception = exc
+        finally:
+            if frame_generator is not None:
+                try:
+                    frame_generator.close()
+                except Exception as exc:
+                    if reader_exception is None:
+                        reader_exception = exc
+            # A cancelled consumer no longer drains the queue. Both frame and EOF
+            # puts must therefore be interruptible, even when the queue is full.
+            while not stop_reader.is_set():
+                try:
+                    frame_read_queue.put(None, timeout=0.1)
+                    break
+                except Full:
+                    pass
 
     def writer_thread(video_sink: VideoSink) -> None:
+        """Write processed frames until the sentinel, keeping the first write error.
+
+        The main loop puts frames into the bounded write queue without a timeout, so
+        after a failed write this thread keeps taking frames off the queue and discards
+        them; otherwise a full queue blocks the main loop forever. The error is raised
+        once the pipeline has shut down.
+        """
+        nonlocal writer_exception
         while True:
             frame = frame_write_queue.get()
             if frame is None:
                 break
-            video_sink.write_frame(frame=frame)
+            if writer_exception is not None:
+                continue
+            try:
+                video_sink.write_frame(frame=frame)
+            except Exception as exc:
+                writer_exception = exc
 
     reader_worker = threading.Thread(target=reader_thread, daemon=True)
     with VideoSink(target_path=target_path, video_info=video_info) as video_sink:
@@ -399,69 +638,66 @@ def process_video(
             desc=progress_message,
         )
 
-        exception_in_worker: Exception | None = None
-        read_finished = False
-
+        exception_in_worker: BaseException | None = None
         try:
             while True:
                 read_item = frame_read_queue.get()
                 if read_item is None:
-                    read_finished = True
                     break
 
                 frame_index, frame = read_item
                 try:
                     processed_frame = callback(frame, frame_index)
+                    # `None` is the writer's end-of-stream sentinel; queueing it
+                    # would stop the writer while frames keep arriving.
+                    if processed_frame is None:
+                        raise TypeError(
+                            f"`callback` returned None for frame {frame_index}; "
+                            "it must return the processed frame."
+                        )
                     frame_write_queue.put(processed_frame)
                     progress_bar.update(1)
-                except Exception as exc:
+                except BaseException as exc:
                     exception_in_worker = exc
                     break
+                if writer_exception is not None:
+                    break
         finally:
-            try:
-                frame_write_queue.put(None, timeout=1)
-            except Full:
-                # Queue is full; this is a best-effort attempt to enqueue the sentinel.
-                # If we cannot enqueue it, the writer thread will still complete based
-                # on previously queued frames or other shutdown conditions.
-                pass
-            if not read_finished:
-                while True:
-                    # Use timeout to prevent indefinite blocking if reader thread fails
-                    try:
-                        read_item = frame_read_queue.get(timeout=1)
-                        if read_item is None:
-                            break
-                    # If we timeout waiting for a frame, only assume failure if reader
-                    # thread is no longer alive. Otherwise, keep waiting as the reader
-                    # may simply be slow (for example, due to a slow source).
-                    except Empty:
-                        if not reader_worker.is_alive():
-                            break
-                        # Reader is still alive; continue waiting for frames.
-                        continue
-            reader_worker.join(timeout=10)
-            writer_worker.join(timeout=10)
+            stop_reader.set()
+            frame_write_queue.put(None)
+            reader_worker.join()
+            writer_worker.join()
             progress_bar.close()
             if exception_in_worker is not None:
+                # Callback errors stay primary, but secondary reader failures
+                # must remain visible after both worker threads have stopped.
+                if reader_exception is not None:
+                    logger.error(
+                        "Reader thread failed while handling a processing error.",
+                        exc_info=(
+                            type(reader_exception),
+                            reader_exception,
+                            reader_exception.__traceback__,
+                        ),
+                    )
                 raise exception_in_worker
+            if reader_exception is not None:
+                raise RuntimeError(
+                    f"Reader thread raised: {reader_exception!r}"
+                ) from reader_exception
+            if writer_exception is not None:
+                raise RuntimeError(
+                    f"Writer thread raised: {writer_exception!r}"
+                ) from writer_exception
 
     if preserve_audio:
-        if writer_worker.is_alive():
-            logger.warning(
-                "Writer thread did not finish in time; skipping audio mux "
-                "to avoid reading an incomplete output file."
-            )
-        else:
-            _mux_audio(source_path=source_path, video_path=target_path)
+        _mux_audio(source_path=source_path, video_path=target_path)
 
 
 class FPSMonitor:
-    """
-    A class for monitoring frames per second (FPS) to benchmark latency.
-    """
+    """A class for monitoring frames per second (FPS) to benchmark latency."""
 
-    def __init__(self, sample_size: int = 30):
+    def __init__(self, sample_size: int = 30) -> None:
         """
         Args:
             sample_size: The maximum number of observations for latency
@@ -485,25 +721,22 @@ class FPSMonitor:
 
     @property
     def fps(self) -> float:
-        """
-        Computes and returns the average FPS based on the stored time stamps.
+        """Computes and returns the average FPS based on the stored time stamps.
 
         Returns:
-            The average FPS. Returns 0.0 if no time stamps are stored.
+            The average FPS across the recorded intervals. Returns 0.0 if fewer
+            than two time stamps are stored.
         """
-        if not self.all_timestamps:
+        if len(self.all_timestamps) < 2:
             return 0.0
         taken_time = self.all_timestamps[-1] - self.all_timestamps[0]
-        return (len(self.all_timestamps)) / taken_time if taken_time != 0 else 0.0
+        frame_intervals = len(self.all_timestamps) - 1
+        return frame_intervals / taken_time if taken_time != 0 else 0.0
 
     def tick(self) -> None:
-        """
-        Adds a new time stamp to the deque for FPS calculation.
-        """
+        """Adds a new time stamp to the deque for FPS calculation."""
         self.all_timestamps.append(time.monotonic())
 
     def reset(self) -> None:
-        """
-        Clears all the time stamps from the deque.
-        """
+        """Clears all the time stamps from the deque."""
         self.all_timestamps.clear()

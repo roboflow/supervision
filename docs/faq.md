@@ -25,9 +25,11 @@ pip install "supervision[metrics]"
 
 Sample asset utilities are part of the base package under `supervision.assets`.
 
+Supervision does not install OpenCV. Its image, drawing, and file-video APIs use the included fallback when `cv2` is unavailable, and automatically use a compatible `cv2` already present in your environment. See the [OpenCV migration guide](how_to/opencv_migration.md) when upgrading an existing environment or choosing an OpenCV wheel yourself.
+
 ## Which object detection models work with Supervision?
 
-Supervision is model agnostic. `sv.Detections` includes converters for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate `sv.KeyPoints` converters, including MediaPipe.
+Supervision is model agnostic. [RF-DETR](https://github.com/roboflow/rf-detr) works natively — its `predict` method returns an `sv.Detections` object directly, no conversion needed. `sv.Detections` also includes converters for Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, Ultralytics YOLO, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini (2.0 to 3.7), Kosmos-2, DeepSeek VL 2, and Moondream. Keypoint outputs have separate `sv.KeyPoints` converters, including MediaPipe pose, face, and hand landmarks.
 
 ## What can I do with Supervision?
 
@@ -35,11 +37,11 @@ You can annotate images and video, filter detections, track objects, count objec
 
 ## How do I track objects across video frames?
 
-Assign persistent tracker IDs before visualization. The built-in `sv.ByteTrack` wrapper accepts `Detections` through `update_with_detections()`. After tracking, combine the output with annotators such as `sv.TraceAnnotator`, `sv.BoxAnnotator`, and `sv.LabelAnnotator`.
+Assign persistent tracker IDs before visualization. Use `ByteTrackTracker` from the external `trackers` package (`pip install trackers`), which accepts `Detections` through `update()`; the built-in `sv.ByteTrack` wrapper, which used `update_with_detections()`, was removed as of `supervision-0.31.0`. After tracking, combine the output with annotators such as `sv.TraceAnnotator`, `sv.BoxAnnotator`, and `sv.LabelAnnotator`.
 
 ## What dataset formats does Supervision support?
 
-For detection datasets, Supervision supports YOLO, COCO JSON, and Pascal VOC. Use `DetectionDataset.from_yolo()`, `DetectionDataset.from_coco()`, or `DetectionDataset.from_pascal_voc()` to load datasets, and the matching `as_*` methods to export them.
+For detection datasets, Supervision supports YOLO, COCO JSON, Pascal VOC, CreateML, and LabelMe. Use `DetectionDataset.from_yolo()`, `DetectionDataset.from_coco()`, `DetectionDataset.from_pascal_voc()`, `DetectionDataset.from_createml()`, or `DetectionDataset.from_labelme()` to load datasets, and the matching `as_*` methods to export them.
 
 ## How do I count objects in a zone?
 
@@ -47,11 +49,32 @@ Use `sv.PolygonZone` for arbitrary polygon regions and `sv.LineZone` for line-cr
 
 ## How do I benchmark a model?
 
-Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP and `sv.ConfusionMatrix` for confusion matrices. Accumulate predictions and ground-truth `Detections`, then call `compute()` to calculate metrics.
+Install `supervision[metrics]`, then use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP and `sv.ConfusionMatrix` for confusion matrices. Accumulate predictions and ground-truth `Detections`, then call `compute()` to calculate metrics.
 
 ## Is Supervision free to use?
 
 Yes. Supervision is free and open source under the MIT license.
+
+## How do I process frames from a webcam with supervision?
+
+Supervision does not support live camera capture. Manage the capture device yourself with `cv2.VideoCapture`, which works regardless of which OpenCV wheel (`opencv-python` or `opencv-python-headless`) is installed, and pass individual frames to supervision annotators:
+
+```python
+import cv2  # requires: pip install opencv-python (or opencv-python-headless)
+import supervision as sv
+
+cap = cv2.VideoCapture(0)
+annotator = sv.BoxAnnotator()
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    # run your detector, then annotate:
+    # annotated = annotator.annotate(frame, detections)
+
+cap.release()
+```
 
 ## Where is the source code?
 

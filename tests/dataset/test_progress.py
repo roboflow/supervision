@@ -1,18 +1,16 @@
 """Tests for show_progress parameter on dataset load/save operations."""
 
-from __future__ import annotations
-
 import json
 import os
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-import cv2
 import numpy as np
 import pytest
 from tqdm.auto import tqdm as _real_tqdm
 
 from supervision import DetectionDataset
+from supervision import _cv2 as cv2
 
 
 def _create_dummy_yolo_dataset(root: str, num_images: int = 3) -> tuple[str, str, str]:
@@ -175,15 +173,14 @@ def pascal_voc_dataset(pascal_voc_dir: tuple[str, str]) -> DetectionDataset:
 _YOLO_TQDM = "supervision.dataset.formats.yolo.tqdm"
 _COCO_TQDM = "supervision.dataset.formats.coco.tqdm"
 _PASCAL_TQDM = "supervision.dataset.formats.pascal_voc.tqdm"
-_CORE_TQDM = "supervision.dataset.core.tqdm"
 _UTILS_TQDM = "supervision.dataset.utils.tqdm"
 
 
 class TestYoloProgress:
     @patch(_YOLO_TQDM, wraps=_real_tqdm)
     def test_from_yolo_no_progress_by_default(
-        self, mock_tqdm: object, yolo_dir: tuple[str, str, str]
-    ):
+        self, mock_tqdm: MagicMock, yolo_dir: tuple[str, str, str]
+    ) -> None:
         """YOLO load does not show progress bar by default."""
         images_dir, labels_dir, data_yaml = yolo_dir
         ds = DetectionDataset.from_yolo(
@@ -196,8 +193,8 @@ class TestYoloProgress:
 
     @patch(_YOLO_TQDM, wraps=_real_tqdm)
     def test_from_yolo_with_progress(
-        self, mock_tqdm: object, yolo_dir: tuple[str, str, str]
-    ):
+        self, mock_tqdm: MagicMock, yolo_dir: tuple[str, str, str]
+    ) -> None:
         """YOLO load shows progress bar when show_progress=True."""
         images_dir, labels_dir, data_yaml = yolo_dir
         ds = DetectionDataset.from_yolo(
@@ -211,8 +208,8 @@ class TestYoloProgress:
 
     @patch(_YOLO_TQDM, wraps=_real_tqdm)
     def test_as_yolo_with_progress(
-        self, mock_tqdm: object, yolo_dataset: DetectionDataset, tmp_path: Path
-    ):
+        self, mock_tqdm: MagicMock, yolo_dataset: DetectionDataset, tmp_path: Path
+    ) -> None:
         """YOLO save shows progress bar when show_progress=True."""
         out = tmp_path / "output"
         yolo_dataset.as_yolo(
@@ -225,8 +222,8 @@ class TestYoloProgress:
 
     @patch(_YOLO_TQDM, wraps=_real_tqdm)
     def test_as_yolo_no_progress_by_default(
-        self, mock_tqdm: object, yolo_dataset: DetectionDataset, tmp_path: Path
-    ):
+        self, mock_tqdm: MagicMock, yolo_dataset: DetectionDataset, tmp_path: Path
+    ) -> None:
         """Saving YOLO annotations does not show progress bar by default."""
         yolo_dataset.as_yolo(
             annotations_directory_path=str(tmp_path / "output" / "labels")
@@ -237,8 +234,8 @@ class TestYoloProgress:
 class TestCocoProgress:
     @patch(_COCO_TQDM, wraps=_real_tqdm)
     def test_from_coco_no_progress_by_default(
-        self, mock_tqdm: object, coco_dir: tuple[str, str]
-    ):
+        self, mock_tqdm: MagicMock, coco_dir: tuple[str, str]
+    ) -> None:
         """COCO load does not show progress bar by default."""
         images_dir, annotations_path = coco_dir
         ds = DetectionDataset.from_coco(
@@ -250,8 +247,8 @@ class TestCocoProgress:
 
     @patch(_COCO_TQDM, wraps=_real_tqdm)
     def test_from_coco_with_progress(
-        self, mock_tqdm: object, coco_dir: tuple[str, str]
-    ):
+        self, mock_tqdm: MagicMock, coco_dir: tuple[str, str]
+    ) -> None:
         """COCO load shows progress bar when show_progress=True."""
         images_dir, annotations_path = coco_dir
         ds = DetectionDataset.from_coco(
@@ -264,8 +261,8 @@ class TestCocoProgress:
 
     @patch(_COCO_TQDM, wraps=_real_tqdm)
     def test_as_coco_with_progress(
-        self, mock_tqdm: object, coco_dataset: DetectionDataset, tmp_path: Path
-    ):
+        self, mock_tqdm: MagicMock, coco_dataset: DetectionDataset, tmp_path: Path
+    ) -> None:
         """COCO save shows progress bar when show_progress=True."""
         out = tmp_path / "output"
         coco_dataset.as_coco(
@@ -277,8 +274,8 @@ class TestCocoProgress:
 
     @patch(_COCO_TQDM, wraps=_real_tqdm)
     def test_as_coco_no_progress_by_default(
-        self, mock_tqdm: object, coco_dataset: DetectionDataset, tmp_path: Path
-    ):
+        self, mock_tqdm: MagicMock, coco_dataset: DetectionDataset, tmp_path: Path
+    ) -> None:
         """Saving COCO annotations does not show progress bar by default."""
         coco_dataset.as_coco(
             annotations_path=str(tmp_path / "output" / "annotations.json")
@@ -289,8 +286,8 @@ class TestCocoProgress:
 class TestPascalVocProgress:
     @patch(_PASCAL_TQDM, wraps=_real_tqdm)
     def test_from_pascal_voc_no_progress_by_default(
-        self, mock_tqdm: object, pascal_voc_dir: tuple[str, str]
-    ):
+        self, mock_tqdm: MagicMock, pascal_voc_dir: tuple[str, str]
+    ) -> None:
         """Pascal VOC load does not show progress bar by default."""
         images_dir, annotations_dir = pascal_voc_dir
         ds = DetectionDataset.from_pascal_voc(
@@ -302,8 +299,8 @@ class TestPascalVocProgress:
 
     @patch(_PASCAL_TQDM, wraps=_real_tqdm)
     def test_from_pascal_voc_with_progress(
-        self, mock_tqdm: object, pascal_voc_dir: tuple[str, str]
-    ):
+        self, mock_tqdm: MagicMock, pascal_voc_dir: tuple[str, str]
+    ) -> None:
         """Pascal VOC load shows progress bar when show_progress=True."""
         images_dir, annotations_dir = pascal_voc_dir
         ds = DetectionDataset.from_pascal_voc(
@@ -316,11 +313,11 @@ class TestPascalVocProgress:
 
     def test_as_pascal_voc_with_progress(
         self, pascal_voc_dataset: DetectionDataset, tmp_path: Path
-    ):
+    ) -> None:
         """Pascal VOC save shows progress bar when show_progress=True."""
         out = tmp_path / "output"
         with (
-            patch(_CORE_TQDM, wraps=_real_tqdm) as mock_tqdm,
+            patch(_PASCAL_TQDM, wraps=_real_tqdm) as mock_tqdm,
             patch(_UTILS_TQDM, wraps=_real_tqdm),
         ):
             pascal_voc_dataset.as_pascal_voc(
@@ -330,10 +327,10 @@ class TestPascalVocProgress:
             )
             assert mock_tqdm.call_args[1]["disable"] is False
 
-    @patch(_CORE_TQDM, wraps=_real_tqdm)
+    @patch(_PASCAL_TQDM, wraps=_real_tqdm)
     def test_as_pascal_voc_no_progress_by_default(
-        self, mock_tqdm: object, pascal_voc_dataset: DetectionDataset, tmp_path: Path
-    ):
+        self, mock_tqdm: MagicMock, pascal_voc_dataset: DetectionDataset, tmp_path: Path
+    ) -> None:
         """Saving Pascal VOC annotations does not show progress bar by default."""
         pascal_voc_dataset.as_pascal_voc(
             annotations_directory_path=str(tmp_path / "output" / "annotations")
@@ -344,8 +341,8 @@ class TestPascalVocProgress:
 class TestSaveImagesProgress:
     @patch(_UTILS_TQDM, wraps=_real_tqdm)
     def test_save_images_with_progress(
-        self, mock_tqdm: object, yolo_dataset: DetectionDataset, tmp_path: Path
-    ):
+        self, mock_tqdm: MagicMock, yolo_dataset: DetectionDataset, tmp_path: Path
+    ) -> None:
         """save_dataset_images shows progress bar when show_progress=True."""
         from supervision.dataset.utils import save_dataset_images
 
@@ -360,8 +357,8 @@ class TestSaveImagesProgress:
 
     @patch(_UTILS_TQDM, wraps=_real_tqdm)
     def test_save_dataset_images_no_progress_by_default(
-        self, mock_tqdm: object, yolo_dataset: DetectionDataset, tmp_path: Path
-    ):
+        self, mock_tqdm: MagicMock, yolo_dataset: DetectionDataset, tmp_path: Path
+    ) -> None:
         """save_dataset_images does not show progress bar by default."""
         from supervision.dataset.utils import save_dataset_images
 
@@ -375,14 +372,16 @@ class TestSaveImagesProgress:
 class TestBackwardCompatibility:
     """Ensure show_progress=False (default) doesn't change behavior."""
 
-    def test_from_yolo_default_works(self, yolo_dataset: DetectionDataset):
+    def test_from_yolo_default_works(self, yolo_dataset: DetectionDataset) -> None:
         """YOLO load with default args returns correct dataset size."""
         assert len(yolo_dataset) == 3
 
-    def test_from_coco_default_works(self, coco_dataset: DetectionDataset):
+    def test_from_coco_default_works(self, coco_dataset: DetectionDataset) -> None:
         """COCO load with default args returns correct dataset size."""
         assert len(coco_dataset) == 3
 
-    def test_from_pascal_voc_default_works(self, pascal_voc_dataset: DetectionDataset):
+    def test_from_pascal_voc_default_works(
+        self, pascal_voc_dataset: DetectionDataset
+    ) -> None:
         """Pascal VOC load with default args returns correct dataset size."""
         assert len(pascal_voc_dataset) == 3

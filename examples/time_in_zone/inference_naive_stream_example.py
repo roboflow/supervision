@@ -1,8 +1,9 @@
-import cv2
+import time
+
 import numpy as np
 from inference import get_model
+from trackers import ByteTrackTracker
 from utils.general import find_in_list, get_stream_frames_generator, load_zones_config
-from utils.timers import ClockBasedTimer
 
 import supervision as sv
 
@@ -22,8 +23,7 @@ def main(
     classes: list[int] = [],
     roboflow_api_key: str = "",
 ) -> None:
-    """
-    Calculating detections dwell time in zones, using RTSP stream.
+    """Calculating detections dwell time in zones, using RTSP stream.
 
     Args:
         zone_configuration_path: Path to the zone configuration JSON file
@@ -35,7 +35,9 @@ def main(
         roboflow_api_key: Roboflow API key for accessing private models
     """
     model = get_model(model_id=model_id, api_key=roboflow_api_key)
-    tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
+    tracker = ByteTrackTracker(
+        minimum_iou_threshold=0.5, track_activation_threshold=confidence_threshold
+    )
     frames_generator = get_stream_frames_generator(rtsp_url=rtsp_url)
     fps_monitor = sv.FPSMonitor()
 
@@ -44,11 +46,13 @@ def main(
         sv.PolygonZone(
             polygon=polygon,
             triggering_anchors=(sv.Position.CENTER,),
+            # Ignore boxes flickering across the edge for under 3 frames.
+            minimum_crossing_threshold=3,
         )
         for polygon in polygons
     ]
-    timers = [ClockBasedTimer() for _ in zones]
 
+    window = sv.ImageWindow("Processed Video")
     for frame in frames_generator:
         fps_monitor.tick()
         fps = fps_monitor.fps
@@ -58,7 +62,8 @@ def main(
         )[0]
         detections = sv.Detections.from_inference(results)
         detections = detections[find_in_list(detections.class_id, classes)]
-        detections = tracker.update_with_detections(detections)
+        detections = tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         annotated_frame = frame.copy()
         annotated_frame = sv.draw_text(
@@ -74,8 +79,14 @@ def main(
                 scene=annotated_frame, polygon=zone.polygon, color=COLORS.by_idx(idx)
             )
 
-            detections_in_zone = detections[zone.trigger(detections)]
-            time_in_zone = timers[idx].tick(detections_in_zone)
+            zone.trigger(detections, timestamp=time.monotonic())
+            time_in_zone = zone.time_in_zone(detections)
+            # Dwell is NaN until confirmed inside or first seen inside,
+            # so only objects confirmed inside, or first seen inside, are
+            # drawn and labelled.
+            is_in_zone = ~np.isnan(time_in_zone)
+            detections_in_zone = detections[is_in_zone]
+            time_in_zone = time_in_zone[is_in_zone]
             custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
 
             annotated_frame = COLOR_ANNOTATOR.annotate(
@@ -84,8 +95,8 @@ def main(
                 custom_color_lookup=custom_color_lookup,
             )
             labels = [
-                f"#{tracker_id} {int(time // 60):02d}:{int(time % 60):02d}"
-                for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)
+                f"#{tracker_id} {int(t // 60):02d}:{int(t % 60):02d}"
+                for tracker_id, t in zip(detections_in_zone.tracker_id, time_in_zone)
             ]
             annotated_frame = LABEL_ANNOTATOR.annotate(
                 scene=annotated_frame,
@@ -94,10 +105,11 @@ def main(
                 custom_color_lookup=custom_color_lookup,
             )
 
-        cv2.imshow("Processed Video", annotated_frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        window.show(annotated_frame)
+        key = window.wait_key(1)
+        if not window.is_open or key == "q":
             break
-    cv2.destroyAllWindows()
+    window.close()
 
 
 if __name__ == "__main__":

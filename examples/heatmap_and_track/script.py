@@ -1,6 +1,5 @@
-from typing import Optional
-
 import cv2
+from trackers import ByteTrackTracker
 from ultralytics import YOLO
 
 import supervision as sv
@@ -14,7 +13,7 @@ def download_video() -> str:
 
 def main(
     source_weights_path: str,
-    source_video_path: Optional[str] = None,
+    source_video_path: str | None = None,
     target_video_path: str = "output.mp4",
     confidence_threshold: float = 0.35,
     iou_threshold: float = 0.5,
@@ -24,8 +23,7 @@ def main(
     track_seconds: int = 5,
     minimum_matching_threshold: float = 0.99,
 ) -> None:
-    """
-    Heatmap and Tracking with Supervision.
+    """Heatmap and Tracking with Supervision.
 
     Args:
         source_weights_path: Path to the source weights file
@@ -62,10 +60,10 @@ def main(
     cap.release()
 
     ### tracker config
-    byte_tracker = sv.ByteTrack(
+    byte_tracker = ByteTrackTracker(
         track_activation_threshold=track_activation_threshold,
         lost_track_buffer=track_seconds * fps,
-        minimum_matching_threshold=minimum_matching_threshold,
+        minimum_iou_threshold=1 - minimum_matching_threshold,
         frame_rate=fps,
     )
 
@@ -92,9 +90,8 @@ def main(
 
             detections = sv.Detections.from_ultralytics(result)  # get detections
 
-            detections = byte_tracker.update_with_detections(
-                detections
-            )  # update tracker
+            detections = byte_tracker.update(detections)  # update tracker
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             ### draw heatmap
             annotated_frame = heat_map_annotator.annotate(

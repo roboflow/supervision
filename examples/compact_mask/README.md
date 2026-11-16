@@ -2,7 +2,7 @@
 
 This example benchmarks `CompactMask`, a new mask representation introduced in `supervision` that replaces dense `(N, H, W)` boolean arrays with a crop-scoped Run-Length Encoding (RLE). The benchmark demonstrates full API compatibility, massive memory savings, and order-of-magnitude annotation speedups — with no change to your existing `Detections` code.
 
----
+______________________________________________________________________
 
 ## The Problem
 
@@ -16,7 +16,7 @@ For a 4K image with 1 000 detected objects:
 
 At this scale, typical pipelines crash with `MemoryError` before a single frame is annotated. Aerial imagery, satellite tiles, and high-density crowd scenes all hit this wall.
 
----
+______________________________________________________________________
 
 ## The Solution — Crop-RLE Storage
 
@@ -43,45 +43,45 @@ Assumptions used throughout the PR design analysis:
 
 #### Space comparison
 
-| Format              | Per object     | N=100  | N=1 000    | vs Dense  |
-| ------------------- | -------------- | ------ | ---------- | --------- |
-| **Dense** (current) | 8.29 MB        | 829 MB | **8.3 GB** | 1x        |
-| Local Crop + Offset | 6.4 KB         | 640 KB | 6.4 MB     | 1 300x    |
-| **Crop-RLE** ✓      | ~2 KB          | 200 KB | **2 MB**   | 4 000x    |
-| Polygon ⚠ lossy     | ~3.2 KB        | 320 KB | 3.2 MB     | 2 600x    |
-| memmap              | 8.29 MB (disk) | 829 MB | 8.3 GB     | 1x (disk) |
+| Format              | Per object     | N=100      | N=1 000  | vs Dense   |
+| ------------------- | -------------- | ---------- | -------- | ---------- |
+| **Dense** (current) | 8.29 MB        | 829 MB     | 8.3 GB   | 1x         |
+| Local Crop + Offset | 6.4 KB         | 640 KB     | 6.4 MB   | 1 300x     |
+| **Crop-RLE** ✓      | **~2 KB**      | **200 KB** | **2 MB** | **4 000x** |
+| Polygon ⚠ lossy     | ~3.2 KB        | 320 KB     | 3.2 MB   | 2 600x     |
+| memmap              | 8.29 MB (disk) | 829 MB     | 8.3 GB   | 1x (disk)  |
 
 Crop-RLE beats Local Crop because it only encodes actual pixel runs, skipping the ~35% background pixels within each bounding box.
 
 #### Encode time: dense array → format
 
-| Format              | Complexity                        | N=10    | N=100   | N=1 000   |
-| ------------------- | --------------------------------- | ------- | ------- | --------- |
-| Local Crop + Offset | O(A) — strided slice from xyxy    | ~0.1 ms | ~1 ms   | ~10 ms    |
-| **Crop RLE**        | O(A) — scan crop rows for runs    | ~0.2 ms | ~2 ms   | ~20 ms    |
-| Polygon             | O(P) — `cv2.findContours` on crop | ~2 ms   | ~20 ms  | ~200 ms   |
-| memmap              | O(I) — write 8.29 MB to disk      | ~80 ms  | ~800 ms | ~8 000 ms |
+| Format              | Complexity                        | N=10        | N=100     | N=1 000    |
+| ------------------- | --------------------------------- | ----------- | --------- | ---------- |
+| Local Crop + Offset | O(A) — strided slice from xyxy    | **~0.1 ms** | **~1 ms** | **~10 ms** |
+| **Crop RLE**        | O(A) — scan crop rows for runs    | ~0.2 ms     | ~2 ms     | ~20 ms     |
+| Polygon             | O(P) — `cv2.findContours` on crop | ~2 ms       | ~20 ms    | ~200 ms    |
+| memmap              | O(I) — write 8.29 MB to disk      | ~80 ms      | ~800 ms   | ~8 000 ms  |
 
 #### Decode time: format → full (H, W) mask
 
 Required by `MaskAnnotator`, `mask_iou_batch`, `merge()`, etc. Dominant cost at 4K is **allocating and zeroing a 8.29 MB array**, which is identical across all in-memory formats once full materialisation is needed.
 
-| Format                | N=10   | N=100   | N=1 000   |
-| --------------------- | ------ | ------- | --------- |
-| Local Crop / Crop RLE | ~3 ms  | ~30 ms  | ~300 ms   |
-| Polygon               | ~5 ms  | ~50 ms  | ~500 ms   |
-| memmap                | ~80 ms | ~800 ms | ~8 000 ms |
+| Format                | N=10      | N=100      | N=1 000     |
+| --------------------- | --------- | ---------- | ----------- |
+| Local Crop / Crop RLE | **~3 ms** | **~30 ms** | **~300 ms** |
+| Polygon               | ~5 ms     | ~50 ms     | ~500 ms     |
+| memmap                | ~80 ms    | ~800 ms    | ~8 000 ms   |
 
 #### Decode time: crop-only path (optimised)
 
 When callers need only the bounding-box region — `MaskAnnotator` crop-paint path, `.area`, `contains_holes`, `filter_segments_by_distance`:
 
-| Format              | Complexity                       | N=10     | N=100   | N=1 000   |
-| ------------------- | -------------------------------- | -------- | ------- | --------- |
-| Local Crop + Offset | O(1) — already stored            | ~0 ms    | ~0 ms   | ~0 ms     |
-| **Crop RLE** ✓      | O(A) — expand ~240 runs          | ~0.02 ms | ~0.2 ms | ~2 ms     |
-| Polygon             | O(A) — `fillPoly` on crop canvas | ~2 ms    | ~20 ms  | ~200 ms   |
-| memmap              | N/A — always full-size           | ~80 ms   | ~800 ms | ~8 000 ms |
+| Format              | Complexity                       | N=10      | N=100     | N=1 000   |
+| ------------------- | -------------------------------- | --------- | --------- | --------- |
+| Local Crop + Offset | O(1) — already stored            | **~0 ms** | **~0 ms** | **~0 ms** |
+| **Crop RLE** ✓      | O(A) — expand ~240 runs          | ~0.02 ms  | ~0.2 ms   | ~2 ms     |
+| Polygon             | O(A) — `fillPoly` on crop canvas | ~2 ms     | ~20 ms    | ~200 ms   |
+| memmap              | N/A — always full-size           | ~80 ms    | ~800 ms   | ~8 000 ms |
 
 Crop RLE's `.crop()` method powers the `MaskAnnotator` optimisation — it never allocates the full image canvas, which is the entire source of the annotation speedup.
 
@@ -91,11 +91,11 @@ Crop RLE's `.crop()` method powers the `MaskAnnotator` optimisation — it never
 | ------------------- | ------------------------------------- | ---------- |
 | Dense (current)     | All pairs, 640² pixel AND             | ~10 000 ms |
 | Local Crop + Offset | Bbox pre-filter → pixel IoU           | **~5 ms**  |
-| Crop RLE            | Bbox pre-filter → expand intersection | **~15 ms** |
+| Crop RLE            | Bbox pre-filter → expand intersection | ~15 ms     |
 
 At N=1 000 with 1 % overlap, bbox pre-filter reduces 499 500 candidate pairs to ~5 000 overlapping pairs — a ~2 000x reduction in pixel-level work.
 
----
+______________________________________________________________________
 
 ## Why Crop-RLE Was Chosen over Local Crop
 
@@ -107,7 +107,7 @@ Both formats compress extremely well; the deciding factors for Crop-RLE are:
 
 The main trade-off: crop-only decode is O(A) rather than O(1). For the common solid-fill segmentation mask this is negligible (\<0.1 ms per mask).
 
----
+______________________________________________________________________
 
 ## Operation-by-Operation Speedup Analysis
 
@@ -115,7 +115,7 @@ This section walks through every `Detections` operation that touches masks and s
 
 At 50% fill on an FHD image each mask's bounding box covers a large portion of the frame, producing many RLE runs per row.
 
----
+______________________________________________________________________
 
 ### Memory
 
@@ -138,15 +138,15 @@ Per-mask RLE size at 50% fill with 600-vertex polygons: ~4.7 KB (933 KB / 200). 
 
 Scaled to N=200: 200 x 4.7 KB = ~933 KB of RLE data, plus `_crop_shapes` (1.6 KB) and `_offsets` (1.6 KB). Python list + array object overhead roughly doubles the footprint for small N.
 
-| Component       | Dense      | Compact     | Ratio     |
-| --------------- | ---------- | ----------- | --------- |
-| Mask data       | 414 MB     | ~933 KB     | ~445x     |
-| Python overhead | negligible | ~933 KB     | --        |
-| **Total**       | **414 MB** | **~1.9 MB** | **~392x** |
+| Component       | Dense          | Compact     | Ratio     |
+| --------------- | -------------- | ----------- | --------- |
+| Mask data       | 414 MB         | **~933 KB** | ~445x     |
+| Python overhead | **negligible** | ~933 KB     | --        |
+| **Total**       | **414 MB**     | **~1.9 MB** | **~392x** |
 
 At 5% fill with 8-vertex polygons, the ratio reaches 10 000x–20 000x because crops are tiny and RLEs are extremely short. The benchmark's 4K-200-5%-v8 scenario measures 21 786x (theory) / ~6 000x (malloc). The SAT-200-5%-v8 scenario reaches 62 968x theoretical.
 
----
+______________________________________________________________________
 
 ### `.area`
 
@@ -179,7 +179,7 @@ At FHD-200-50%-v600, dense `.area` takes 84.66 ms; compact takes 0.48 ms — a *
 | No (H, W) allocation per mask      | latency     |
 | **Combined**                       | **~1 000x** |
 
----
+______________________________________________________________________
 
 ### `filter` / `__getitem__` (boolean index)
 
@@ -212,7 +212,7 @@ At FHD-200-50%-v600, dense `filter` takes 14.56 ms; compact takes 0.03 ms — a 
 | Allocation  | new `(K, H, W)` array   | new `CompactMask` shell (~trivial)  |
 | **Speedup** |                         | **hundreds to tens of thousands x** |
 
----
+______________________________________________________________________
 
 ### `annotate` (`MaskAnnotator`)
 
@@ -246,7 +246,7 @@ colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = color.as_bgr()
 | x N masks                                          | compounds           |
 | **Combined**                                       | **~26 – 400x**      |
 
----
+______________________________________________________________________
 
 ### IoU (`mask_iou_batch` / `compact_mask_iou_batch`)
 
@@ -315,7 +315,7 @@ At FHD-200-50%-v600, dense IoU takes 23 915 ms; compact takes 51.58 ms — a **4
 
 At 20% fill the gaps close — more pairs overlap, larger crops — speedup drops toward the lower end of the range.
 
----
+______________________________________________________________________
 
 ### NMS (`mask_non_max_suppression`)
 
@@ -339,7 +339,7 @@ All three IoU optimisations apply to the compact path:
 
 At FHD-200-50%-v600, dense NMS takes 5 231 ms; compact takes 48.15 ms — a **481x speedup**. Dense IoU/NMS is skipped for scenarios above 1 GB (4K-200 and SAT-200 tiers); compact NMS still runs on those.
 
----
+______________________________________________________________________
 
 ### `merge` (`Detections.merge`)
 
@@ -387,7 +387,7 @@ if len(self.xyxy) > 0:
 
 This O(1) check avoids the O(N x H x W) dense materialisation that previously dominated compact merge time.
 
----
+______________________________________________________________________
 
 ### `offset` / `with_offset` (`InferenceSlicer` tile stitching)
 
@@ -425,7 +425,7 @@ At FHD-200-50%-v600, dense offset takes 42.30 ms; compact takes 0.02 ms — a **
 
 In the `InferenceSlicer` pipeline the canvas is always expanded by the tile offset, so no crop ever overflows — the fast path is always taken. Clipping only activates for objects that genuinely straddle the image boundary.
 
----
+______________________________________________________________________
 
 ### `centroids` (`calculate_masks_centroids`)
 
@@ -460,7 +460,7 @@ At FHD-200-50%-v600, dense centroids takes 1 133.68 ms; compact takes 60.39 ms �
 | No global `np.indices((H, W))` allocation | saves large float64 |
 | **Combined (N=200)**                      | **~19 – 1 000x**    |
 
----
+______________________________________________________________________
 
 ### Summary
 
@@ -468,19 +468,19 @@ Measured speedups at the **FHD-200-50%-v600** operating point (dense fill, compl
 
 | Operation        | Dense cost  | Compact cost | Speedup |
 | ---------------- | ----------- | ------------ | ------- |
-| Memory           | 414 MB      | ~1.9 MB      | ~392x   |
-| `.area`          | 84.66 ms    | 0.48 ms      | 71x     |
-| `filter`         | 14.56 ms    | 0.03 ms      | 500x    |
-| `annotate`       | 848.95 ms   | 32.67 ms     | 22x     |
-| `mask_iou_batch` | 23 915 ms   | 51.58 ms     | 446x    |
-| NMS              | 5 231 ms    | 48.15 ms     | 481x    |
-| `merge`          | 29.71 ms    | 0.03 ms      | 929x    |
-| `with_offset`    | 42.30 ms    | 0.02 ms      | 2 016x  |
-| `centroids`      | 1 133.68 ms | 60.39 ms     | 13x     |
+| Memory           | 414 MB      | **~1.9 MB**  | ~392x   |
+| `.area`          | 84.66 ms    | **0.48 ms**  | 71x     |
+| `filter`         | 14.56 ms    | **0.03 ms**  | 500x    |
+| `annotate`       | 848.95 ms   | **32.67 ms** | 22x     |
+| `mask_iou_batch` | 23 915 ms   | **51.58 ms** | 446x    |
+| NMS              | 5 231 ms    | **48.15 ms** | 481x    |
+| `merge`          | 29.71 ms    | **0.03 ms**  | 929x    |
+| `with_offset`    | 42.30 ms    | **0.02 ms**  | 2 016x  |
+| `centroids`      | 1 133.68 ms | **60.39 ms** | 13x     |
 
 All speedups are larger at sparser fill fractions and larger resolutions. At SAT-200-20%-v128, `.area` reaches 1 204x and `merge` reaches 89 046x. At the sparsest scenarios (5% fill, 8-vertex polygons), memory ratios exceed 60 000x.
 
----
+______________________________________________________________________
 
 ## Drop-In Compatibility
 
@@ -517,7 +517,7 @@ Supported indexing patterns:
 | `mask[slice]`      | New `CompactMask`            |
 | `np.asarray(mask)` | Dense `(N, H, W)` bool array |
 
----
+______________________________________________________________________
 
 ## Benchmark
 
@@ -526,6 +526,69 @@ Run on any machine — no GPU or real model required:
 ```bash
 uv run python examples/compact_mask/benchmark.py
 ```
+
+For a focused benchmark of the Roboflow inference-result parser API, run:
+
+```bash
+uv run python examples/compact_mask/bench_inference_api.py
+```
+
+This script downloads all supervision image assets plus the middle frame from every supervision video asset by default, runs one real segmentation inference per source image, requests native RLE masks from Inference, freezes that result, and then compares parser performance:
+
+```python
+sv.Detections.from_inference(result)
+sv.Detections.from_inference(result, compact_masks=True)
+```
+
+Timing repetitions, warmups, confidence, IoU, response mask format, and the default model live as constants in `bench_inference_api.py`.
+
+Inference runs and segmentation-derived box fields are outside the timed benchmark loop. By default the script uses `rfdetr-seg-large` with `response_mask_format="rle"`; set `BENCH_INFERENCE_MODEL_ID` to override the model. Set `ROBOFLOW_API_KEY` when your model requires authentication. Sources where the model returns no native RLE segmentation masks are skipped because there is no RLE parser work to benchmark. `rfdetr-large` is a valid local Inference model id, but it is object detection only; use an `rfdetr-seg-*` model for instance segmentation.
+
+Run one specific supervision image or video asset with `--asset`:
+
+```bash
+uv run python examples/compact_mask/bench_inference_api.py --asset people-walking
+uv run python examples/compact_mask/bench_inference_api.py --asset soccer
+uv run python examples/compact_mask/bench_inference_api.py --asset vehicles
+uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video
+```
+
+The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and parser speedup (`dense parser time / compact parser time`).
+
+**Speedup column:** The `speedup` value reflects allocation savings — how much time is saved by skipping the dense `(N, H, W)` bool-stack allocation — not a faster RLE decode. Compact RLE arithmetic is typically slower than the dense NumPy path. The net result:
+
+- **Compact is faster** only when the dense `(N, H, W)` bool-stack allocation dominates — large images with many sparse masks where avoiding that allocation outweighs the RLE arithmetic cost.
+- **Compact is slower** for small images or dense/overlapping masks, where Python RLE arithmetic dominates and the allocation cost is negligible.
+- **The primary guaranteed benefit is memory**: compact masks use roughly 99% less memory than dense stacks for typical segmentation output, regardless of which parse direction is faster.
+
+The default run includes a `synthetic-dense-64` row (64×64 image, 4 fully-filled masks) to demonstrate the adversarial regime where compact is slower than dense. For each real source with segmentation masks, the script also writes a validation overlay to `examples/compact_mask/outputs/*_segmentations.jpg`.
+
+### Sample results — inference API
+
+Measured on macOS Apple M4 Max, 50 reps after 3 warmups, using `rfdetr-seg-large` via Roboflow Inference.
+
+| src                        | res       | seg | dense ms | CM ms     | speedup | peak MB (dense/compact) | mask MB (dense/compact) | ok  |
+| -------------------------- | --------- | --- | -------- | --------- | ------- | ----------------------- | ----------------------- | --- |
+| synthetic-dense-64         | 64×64     | 4   | **0.03** | 0.11      | 0.31×   | 0.04 / 0.05             | 0.02 / 0.00             | ✓   |
+| people-walking.jpg         | 1920×1080 | 53  | 85.56    | **12.55** | 6.82×   | 219.86 / 0.11           | 109.90 / 0.02           | ✓   |
+| soccer.jpg                 | 398×224   | 21  | 1.36     | **1.07**  | 1.27×   | 3.77 / 0.05             | 1.87 / 0.00             | ✓   |
+| vehicles.mp4#269           | 3840×2160 | 7   | 46.03    | **2.60**  | 18×     | 116.13 / 0.07           | 58.06 / 0.00            | ✓   |
+| milk-bottling-plant.mp4#94 | 1920×1080 | 9   | 15.61    | **11.57** | 1.35×   | 37.34 / 0.53            | 18.66 / 0.03            | ✓   |
+| vehicles-2.mp4#637         | 1920×1080 | 47  | 76.87    | **13.59** | 5.66×   | 194.97 / 0.13           | 97.46 / 0.03            | ✓   |
+| grocery-store.mp4#501      | 3840×2160 | 4   | 27.20    | **4.36**  | 6.24×   | 66.36 / 0.22            | 33.18 / 0.01            | ✓   |
+| subway.mp4#649             | 2160×3840 | 42  | 325.71   | **32.21** | 10×     | 696.78 / 0.80           | 348.36 / 0.09           | ✓   |
+| market-square.mp4#237      | 2160×3840 | 96  | 732.98   | **27.24** | 27×     | 1592.61 / 0.22          | 796.26 / 0.05           | ✓   |
+| people-walking.mp4#170     | 1920×1080 | 60  | 100.99   | **12.69** | 7.96×   | 248.89 / 0.12           | 124.42 / 0.02           | ✓   |
+| beach-1.mp4#223            | 3840×2160 | 33  | 223.50   | **13.39** | 17×     | 547.47 / 0.12           | 273.72 / 0.02           | ✓   |
+| basketball-1.mp4#238       | 1920×1080 | 2   | 3.61     | **2.05**  | 1.76×   | 8.30 / 0.15             | 4.15 / 0.01             | ✓   |
+| skiing.mp4#176             | 1920×1080 | 11  | 16.47    | **3.07**  | 5.37×   | 45.63 / 0.08            | 22.81 / 0.01            | ✓   |
+
+- **seg** — number of instance segmentations returned by the model
+- **dense ms / CM ms** — median parse time for `from_inference()` vs `from_inference(compact_masks=True)`
+- **speedup** — dense / compact parse time; values below 1× (e.g., synthetic-dense-64) indicate the adversarial regime where RLE arithmetic cost exceeds allocation savings
+- **peak MB** — peak traced allocations during parsing (dense / compact)
+- **mask MB** — mask storage only (dense / compact); compact is typically 100–5 000× smaller
+- **ok** — `compact.to_dense()` pixel-exactly matches dense masks
 
 Six image tiers x three fill fractions (5 / 20 / 50 %) x three vertex counts (8 / 128 / 600):
 
@@ -563,7 +626,7 @@ Dense timing is skipped automatically when the dense IoU/NMS array would exceed 
 
 All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `to_dense()` roundtrip.
 
----
+______________________________________________________________________
 
 ## Use-Cases
 
@@ -573,7 +636,7 @@ All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `
 - **Long-running tracking** — accumulated `Detections` across many frames stay in kilobytes rather than gigabytes.
 - **`InferenceSlicer`** — `with_offset()` adjusts crop origins directly when stitching tile results; no dense materialisation needed.
 
----
+______________________________________________________________________
 
 ## Limitations
 
@@ -581,11 +644,43 @@ All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `
 - RLE format is **column-major (F-order), crop-scoped** — pixel-scan order matches COCO / pycocotools, but crop scope differs from full-image scope. Use `.to_dense()` to materialize a full-image dense mask, then encode that mask to COCO RLE before passing it to pycocotools.
 - `from_dense()` requires the input `(N, H, W)` array to fit in memory. For truly OOM-scale data, build `CompactMask` per-detection directly from model output crops rather than from a pre-allocated dense stack.
 
----
+______________________________________________________________________
+
+## Non-Maximum Merging Benchmark
+
+Run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096` on each revision to compare compact `Detections.with_nmm`. It holds twelve 64×64 mask crops fixed while varying the logical canvas. Solid, checkerboard and seeded random masks expose the effect of RLE fragmentation. No model, image download or GPU is required.
+
+The output table includes input RLE count, median uninstrumented wall time, peak traced allocation measured in separate calls, and output count/area. The memory number is Python/NumPy allocation tracked by `tracemalloc`, not process RSS. Input construction is excluded. `--crop-size`, `--duplicates` (default: three per group) and `--repeats` control crop size, group size and repetitions. After the compact NMM union change, `--canvas 100000` can demonstrate that increasing canvas dimensions alone no longer allocates full image unions. Avoid that size when benchmarking the old implementation, which materializes several complete images.
+
+The RLE union sorts `K` foreground column intervals. Mask fragmentation and the columns foreground runs cross determine `K`; enlarging the canvas with fixed encoded crops does not. A cheap O(masks) run-count check (`_should_union_densely`) flags mask sets fragmented enough that the sort would cost more than a single dense pass, and unions those via a bbox-local dense OR instead — bounded to a 16 Mi-pixel bbox so it never re-introduces the full-canvas materialization this union function exists to avoid. Above that bbox cap, the interval path runs regardless of fragmentation, since a dense fallback there would cost more memory, not less. NMM overlap evaluation still decodes overlapping crops, and large or loose crops remain expensive.
+
+Measured on Python 3.13.15 / NumPy 2.3.1, comparing the parent of `035079270` (dense unions) with the current fragmentation-aware implementation. Both revisions used the same benchmark script, with four disjoint groups in a 2×2 grid. Peak columns are maximum traced allocation over three complete NMM calls, excluding input construction; time columns are median wall time of the same calls, uninstrumented.
+
+| Crop / canvas       | Objects | Pattern      | Dense-only mem. peak (MiB) | Current mem. peak (MiB) | Dense-only time (ms) | Current time (ms) |
+| ------------------- | ------- | ------------ | -------------------------- | ----------------------- | -------------------- | ----------------- |
+| 32×32 / 512×512     | 200     | checkerboard | 25.83                      | **1.69** (0.07×)        | 12.69                | **9.87** (0.78×)  |
+| 32×32 / 512×512     | 200     | solid        | 25.07                      | **0.27** (0.01×)        | **11.06**            | 11.10 (1.00×)     |
+| 400×400 / 1024×1024 | 12      | checkerboard | 17.37                      | 17.37 (1.00×)           | 18.38                | **18.12** (0.99×) |
+| 400×400 / 1024×1024 | 12      | solid        | 6.01                       | **0.69** (0.11×)        | 5.64                 | **2.35** (0.42×)  |
+| 400×400 / 2048×2048 | 12      | checkerboard | 31.93                      | **17.37** (0.54×)       | 20.75                | **17.16** (0.83×) |
+| 400×400 / 2048×2048 | 12      | solid        | 24.01                      | **0.69** (0.03×)        | 8.62                 | **2.28** (0.26×)  |
+| 400×400 / 4096×4096 | 12      | checkerboard | 103.93                     | **17.37** (0.17×)       | 33.85                | **17.20** (0.51×) |
+| 400×400 / 4096×4096 | 12      | solid        | 96.01                      | **0.69** (0.01×)        | 21.67                | **2.32** (0.11×)  |
+
+Ratios in parentheses are interval/dense; under 1× means the interval path wins. The 32×32/512×512 row uses `--duplicates 50` (200 small objects total, instead of the default three per group) — many small fragmented crops on a small canvas. The 400×400 rows previously showed a genuine weak side: at 1024×1024, a single large checkerboard crop cost the old interval-only union 1.79× the dense implementation's memory and 4.5× its time, since sorting `K` ≈ 1.9M foreground intervals cost more than the dense array's single `O(area)` pass. The fragmentation-aware dispatch above closes that gap: every checkerboard row now flags as fragmented (run count ≈ crop area, since checkerboard flips every pixel) and unions via a bbox-local dense OR — matching or beating the dense-only baseline on both memory and time at every measured scale, while keeping peak memory flat (~17.37 MiB) as canvas grows from 1024×1024 to 4096×4096, unlike the dense-only baseline, which scales with canvas area. Solid rows are unaffected (their run count is one column per instance, far under the fragmentation threshold), so they still take the interval path and keep the same numbers as before. A single mask right at the dense fallback's 16 Mi-pixel bbox cap (a 4000×4000 checkerboard-fragmented crop, three duplicates) still favors dense decisively: 488 MiB / 136 ms with the fallback versus 2,197 MiB / 1,258 ms on the pure interval path, forced for comparison. The fallback's own encode step is not free on a maximally-fragmented result — several bytes of transient array per pixel, not one bit — but far cheaper than sorting the same fragmentation.
+
+This does not eliminate the tradeoff in general, only bounds where it can occur: the dense fallback is capped at a 16 Mi-pixel union bbox specifically so a handful of tiny, widely separated fragmented crops cannot force a large dense allocation. A single mask crop larger than 4096×4096 pixels exceeds that cap and takes the interval path regardless of fragmentation, paying the full `K log K` sort with no dense fallback — measured at 4100×4100 (just past the cap, three duplicates): 2,309 MiB / 1,371 ms, the same order of cost as the forced-interval comparison above. The theoretical worst case from before persists only past this exact boundary, for a single object that size — not exercised by the table rows.
+
+Reproduce the small-object row with `python examples/compact_mask/benchmark_nmm.py --crop-size 32 --canvas 512 --duplicates 50 --pattern checkerboard solid --repeats 3`, and the large-crop rows with `python examples/compact_mask/benchmark_nmm.py --crop-size 400 --canvas 1024 2048 4096 --pattern checkerboard solid --repeats 3`, on the current implementation; check out the parent of `035079270` for the dense-union baseline. Foreground area matched between revisions per row: 2,048 (32×32 checkerboard) / 4,096 (32×32 solid) / 320,000 (400×400 checkerboard) / 640,000 (400×400 solid). Absolute measurements depend on the Python/NumPy environment.
+
+______________________________________________________________________
 
 ## Files
 
-| File           | Description                                      |
-| -------------- | ------------------------------------------------ |
-| `benchmark.py` | Full benchmark across FHD / 4K / satellite tiers |
-| `README.md`    | This file                                        |
+| File                     | Description                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `benchmark.py`           | Full benchmark across FHD / 4K / satellite tiers; `--section yolo` adds YOLO loading time, mask buffer and peak RSS |
+| `bench_inference_api.py` | Focused dense vs compact `from_inference` benchmark                                                                 |
+| `benchmark_nmm.py`       | Compact NMM canvas size and mask fragmentation benchmark                                                            |
+| `yolo_loading.ipynb`     | CPU demo of compact YOLO loading, run from a checkout                                                               |
+| `README.md`              | This file                                                                                                           |

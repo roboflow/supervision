@@ -2,33 +2,54 @@
 
 Dense ``(N, H, W)`` boolean masks use O(N·H·W) memory, which becomes
 prohibitive for aerial imagery (e.g. 1000 objects x 4K image ~ 8.3 GB).
-:class:`CompactMask` stores each mask as a run-length encoding of its
-bounding-box crop, reducing typical usage to tens of MB.
+:class:`~supervision.detection.compact_mask.CompactMask` stores each mask as a
+run-length encoding of its bounding-box crop, reducing typical usage to tens of
+MB.
 
-The bounding boxes (``xyxy``) already present in ``Detections`` serve as the
-crop boundaries, so no extra metadata is required from the caller.
+The bounding boxes (``xyxy``) already present in ``Detections`` serve as the crop
+boundaries, so no extra metadata is required from the caller.
+
+CompactMask reduces memory footprint but does not improve computational speed. The
+ingestion path (base48 decode, column split, RLE trim) is Python-level and is typically
+slower than the dense NumPy path. The primary benefit is memory savings for large images
+with many sparse masks.
 """
 
 from __future__ import annotations
 
 import os
-from collections.abc import Iterator
-from typing import Any
+from collections.abc import Iterator, Mapping, Sequence
+from itertools import pairwise
+from typing import Any, cast, overload
 
 import numpy as np
 import numpy.typing as npt
 
+# _base48_decode and _delta_decode are private to the COCO RLE codec. They
+# live in converters.py and are shared by public conversion helpers here and
+# in that module.
 from supervision.detection.utils.converters import (
+    _base48_decode,
+    _delta_decode,
     _mask_to_rle_counts,
     _rle_counts_to_mask,
+    polygon_to_mask,
+    polygon_to_xyxy,
 )
+
+#: Foreground runs summed per ``np.add.reduceat`` call in ``CompactMask.area``.
+#: Keeps its int64 copy near 512 KiB (more only for a single mask with more runs)
+#: instead of the whole collection's RLE payload; on fragmented masks, chunks
+#: this size also beat one large copy.
+_AREA_CHUNK_RUNS = 1 << 16
 
 
 def _rle_area(rle: npt.NDArray[np.int32]) -> int:
     """Return the number of ``True`` pixels in a run-length encoded mask.
 
     Args:
-        rle: int32 array of run lengths as produced by :func:`_mask_to_rle_counts`.
+        rle: int32 array of run lengths as produced by
+            :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
 
     Returns:
         Total number of ``True`` pixels.
@@ -46,10 +67,379 @@ def _rle_area(rle: npt.NDArray[np.int32]) -> int:
     return int(np.sum(rle[1::2]))
 
 
+def _rle_to_column_intervals(
+    rle: npt.NDArray[np.int32],
+    crop_height: int,
+    offset: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int64]:
+    """Extract foreground `(x, y_start, y_stop)` intervals in image coordinates.
+
+    Split foreground runs only at column boundaries. Background runs, including entire
+    empty columns, are skipped without allocating pixels or per-column lists. Work and
+    storage scale with foreground runs plus the columns they cross.
+
+    Use :func:`~supervision.detection.compact_mask._rle_split_cols` for crop work
+    that needs per-column run lists; use this helper when vectorized ``(K, 3)``
+    foreground intervals are needed.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _rle_to_column_intervals
+        >>> rle = np.array([1, 2, 2, 1], dtype=np.int32)
+        >>> offset = np.array([10, 20], dtype=np.int32)
+        >>> _rle_to_column_intervals(rle, crop_height=3, offset=offset)
+        array([[10, 21, 23],
+               [11, 22, 23]])
+
+        ```
+    """
+    ends = np.cumsum(rle, dtype=np.int64)
+    starts, stops = ends[:-1:2], ends[1::2]
+    nonempty = stops > starts
+    starts, stops = starts[nonempty], stops[nonempty]
+    if len(starts) == 0:
+        return np.empty((0, 3), dtype=np.int64)
+
+    first_columns = starts // crop_height
+    counts = (stops - 1) // crop_height - first_columns + 1
+    run_indices = np.repeat(np.arange(len(starts)), counts)
+    within_run = np.arange(int(counts.sum())) - np.repeat(
+        np.cumsum(counts) - counts, counts
+    )
+    columns = first_columns[run_indices] + within_run
+    column_origins = columns * crop_height
+    row_starts = np.maximum(starts[run_indices] - column_origins, 0)
+    row_stops = np.minimum(stops[run_indices] - column_origins, crop_height)
+    return np.column_stack(
+        (
+            columns + int(offset[0]),
+            row_starts + int(offset[1]),
+            row_stops + int(offset[1]),
+        )
+    )
+
+
+def _rle_counts_int32(counts: npt.NDArray[np.int64]) -> npt.NDArray[np.int32]:
+    """Split oversized runs with zero opposite runs to preserve int32 RLE storage.
+
+    A sparse union crop can exceed 2**31 pixels even when its input crops are tiny.
+    Zero-length runs keep the foreground/background parity across each split. Only
+    the (typically zero or one) oversized runs are visited in Python; the runs
+    between them are copied in bulk through NumPy slicing.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _rle_counts_int32
+        >>> limit = np.iinfo(np.int32).max
+        >>> _rle_counts_int32(np.array([1, limit + 5], dtype=np.int64)).tolist()
+        [1, 2147483647, 0, 5]
+
+        ```
+    """
+    limit = np.iinfo(np.int32).max
+    oversized = np.flatnonzero(counts > limit)
+    if len(oversized) == 0:
+        return counts.astype(np.int32)
+
+    split_counts: list[int] = []
+    previous_end = 0
+    for index in oversized.tolist():
+        split_counts.extend(counts[previous_end:index].tolist())
+        count = int(counts[index])
+        while count > limit:
+            split_counts.extend((limit, 0))
+            count -= limit
+        split_counts.append(count)
+        previous_end = index + 1
+    split_counts.extend(counts[previous_end:].tolist())
+    return np.array(split_counts, dtype=np.int32)
+
+
+def _validate_uniform_image_shape(
+    masks_list: list[CompactMask], action: str
+) -> tuple[int, int]:
+    """Ensure every mask in a list shares one image shape before a collection op.
+
+    Shared by :meth:`~supervision.detection.compact_mask.CompactMask.merge`
+    and :func:`~supervision.detection.compact_mask._compact_mask_union` so both
+    raise the same error for an empty list or mismatched shapes.
+
+    Args:
+        masks_list: List of
+            :class:`~supervision.detection.compact_mask.CompactMask` objects to
+            validate.
+        action: Present-tense verb naming the caller's operation, used in the
+            raised error message (e.g. ``"merge"`` or ``"union"``).
+
+    Returns:
+        The ``image_shape`` shared by every mask in ``masks_list``.
+
+    Raises:
+        ValueError: If ``masks_list`` is empty or image shapes differ.
+    """
+    if not masks_list:
+        raise ValueError(f"Cannot {action} an empty list of CompactMask objects.")
+
+    image_shape = masks_list[0]._image_shape
+    for cm in masks_list[1:]:
+        if cm._image_shape != image_shape:
+            raise ValueError(
+                f"Cannot {action} CompactMask objects with different image "
+                f"shapes: {image_shape} vs {cm._image_shape}"
+            )
+    return image_shape
+
+
+#: Above this foreground-runs / crop-area ratio, runs average under two
+#: pixels each: the interval union's O(K log K) sort is costing more than a
+#: single O(area) dense pass would, so the dense path wins from here up.
+_DENSE_FALLBACK_RUN_RATIO = 0.5
+
+#: Cap on the union's bounding-box area (pixels) for the dense fallback. Keeps
+#: the fallback from decoding a full-image-sized canvas regardless of
+#: fragmentation; above this, the interval path runs instead, since its
+#: memory stays bounded by the foreground it stores, not the union extent.
+_DENSE_FALLBACK_MAX_PIXELS = 16 * 1024 * 1024
+
+
+def _union_bbox(masks_list: list[CompactMask]) -> tuple[int, int, int, int]:
+    """Return the loose ``(x_min, y_min, width, height)`` spanning every input crop.
+
+    Reads only ``_offsets`` and ``_crop_shapes`` — no RLE decode, no interval
+    extraction — so it is cheap enough to call before choosing a union
+    strategy. Unlike the tight foreground bbox the union itself produces,
+    this may include background padding from loose input boxes.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import CompactMask, _union_bbox
+        >>> masks = np.ones((1, 4, 4), dtype=bool)
+        >>> xyxy = np.array([[2, 3, 5, 6]], dtype=np.float32)
+        >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+        >>> _union_bbox([cm])
+        (2, 3, 4, 4)
+
+        ```
+    """
+    nonempty = [cm for cm in masks_list if len(cm._rles) > 0]
+    if not nonempty:
+        return 0, 0, 1, 1
+    x1 = np.concatenate([cm._offsets[:, 0] for cm in nonempty]).astype(
+        np.int64, copy=False
+    )
+    y1 = np.concatenate([cm._offsets[:, 1] for cm in nonempty]).astype(
+        np.int64, copy=False
+    )
+    widths = np.concatenate([cm._crop_shapes[:, 1] for cm in nonempty]).astype(
+        np.int64, copy=False
+    )
+    heights = np.concatenate([cm._crop_shapes[:, 0] for cm in nonempty]).astype(
+        np.int64, copy=False
+    )
+    x_min, y_min = int(x1.min()), int(y1.min())
+    width = int((x1 + widths).max()) - x_min
+    height = int((y1 + heights).max()) - y_min
+    return x_min, y_min, width, height
+
+
+def _should_union_densely(
+    masks_list: list[CompactMask],
+    bbox_width: int,
+    bbox_height: int,
+    image_shape: tuple[int, int],
+) -> bool:
+    """Flag mask sets fragmented enough that dense union beats interval union.
+
+    Reads only RLE array lengths and crop shapes — no decode — so the check
+    costs O(number of masks), independent of resolution or fragmentation.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import (
+        ...     CompactMask, _should_union_densely)
+        >>> solid = np.ones((1, 20, 20), dtype=bool)
+        >>> xyxy = np.array([[0, 0, 19, 19]], dtype=np.float32)
+        >>> cm = CompactMask.from_dense(solid, xyxy, image_shape=(22, 22))
+        >>> _should_union_densely([cm], 20, 20, (22, 22))
+        False
+        >>> checkerboard = np.indices((20, 20)).sum(axis=0) % 2 == 0
+        >>> cm = CompactMask.from_dense(checkerboard[None], xyxy, image_shape=(22, 22))
+        >>> _should_union_densely([cm], 20, 20, (22, 22))
+        True
+
+        ```
+    """
+    bbox_area = bbox_width * bbox_height
+    if (
+        bbox_area > _DENSE_FALLBACK_MAX_PIXELS
+        or (bbox_height, bbox_width) == image_shape
+    ):
+        return False
+    total_runs = sum(len(rle) for cm in masks_list for rle in cm._rles)
+    total_pixels = sum(
+        int(shape[0]) * int(shape[1]) for cm in masks_list for shape in cm._crop_shapes
+    )
+    return total_pixels > 0 and total_runs > _DENSE_FALLBACK_RUN_RATIO * total_pixels
+
+
+def _empty_union(image_shape: tuple[int, int]) -> CompactMask:
+    """Return the canonical all-background union: a 1x1 crop at the image origin.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.compact_mask import _empty_union
+        >>> _empty_union((10, 20)).shape
+        (1, 10, 20)
+
+        ```
+    """
+    return CompactMask(
+        [np.array([1], dtype=np.int32)],
+        np.ones((1, 2), dtype=np.int32),
+        np.zeros((1, 2), dtype=np.int32),
+        image_shape,
+    )
+
+
+def _dense_union(
+    masks_list: list[CompactMask],
+    x_min: int,
+    y_min: int,
+    bbox_width: int,
+    bbox_height: int,
+    image_shape: tuple[int, int],
+) -> CompactMask:
+    """Union fragmented masks via a bbox-local dense OR, retightened afterward.
+
+    Decodes each input crop and ORs it into a canvas sized to the loose union
+    bbox (bounded by :data:`_DENSE_FALLBACK_MAX_PIXELS`, never the full
+    image), then trims to the actual foreground extent so the result has the
+    same tight-crop convention as the interval path.
+
+    Example:
+        ```pycon
+        >>> mask = np.ones((1, 2, 2), dtype=bool)
+        >>> xyxy = np.array([[0, 0, 1, 1]], dtype=np.float32)
+        >>> compact = CompactMask.from_dense(mask, xyxy, image_shape=(4, 4))
+        >>> _dense_union([compact], 0, 0, 2, 2, (4, 4))._crop_shapes.tolist()
+        [[2, 2]]
+
+        ```
+    """
+    canvas = np.zeros((bbox_height, bbox_width), dtype=np.bool_)
+    for cm in masks_list:
+        for rle, shape, offset in zip(cm._rles, cm._crop_shapes, cm._offsets):
+            crop_h, crop_w = int(shape[0]), int(shape[1])
+            local = _rle_counts_to_mask(rle, crop_h, crop_w)
+            ox, oy = int(offset[0]) - x_min, int(offset[1]) - y_min
+            canvas[oy : oy + crop_h, ox : ox + crop_w] |= local
+
+    rows = np.flatnonzero(canvas.any(axis=1))
+    if len(rows) == 0:
+        return _empty_union(image_shape)
+    cols = np.flatnonzero(canvas.any(axis=0))
+    y0, y1 = int(rows[0]), int(rows[-1])
+    x0, x1 = int(cols[0]), int(cols[-1])
+    tight = canvas[y0 : y1 + 1, x0 : x1 + 1]
+    return CompactMask(
+        [_mask_to_rle_counts(tight)],
+        np.array([[tight.shape[0], tight.shape[1]]], dtype=np.int32),
+        np.array([[x_min + x0, y_min + y0]], dtype=np.int32),
+        image_shape,
+    )
+
+
+def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
+    """Reduce a list of :class:`~supervision.detection.compact_mask.CompactMask` objects
+    to one tight union mask.
+
+    Used by NMM for both its evolving candidate and its final output, and by
+    detection-group merging for the final per-group mask. Works directly on
+    ``masks_list`` instead of first allocating an intermediate merged
+    :class:`~supervision.detection.compact_mask.CompactMask`, since only the
+    union is ever needed. All stored
+    foreground is retained regardless of the detection boxes. An empty list,
+    or a list whose masks are all all-background, produces one all-background
+    mask with a 1x1 crop at the image origin.
+
+    Interval union scales with the number of foreground column intervals
+    (O(K log K) to sort them), rather than the image or union crop area, so it
+    wins for the sparse, mostly-contiguous masks real segmentation models
+    produce. When the input is fragmented enough that a dense pass would be
+    cheaper — a cheap O(masks) run-count check decides this without decoding
+    anything — the union instead ORs bbox-local dense crops (bounded by
+    :data:`_DENSE_FALLBACK_MAX_PIXELS`, never the full image), preserving the
+    memory guarantee this function exists for.
+
+    Args:
+        masks_list: Non-empty list of
+            :class:`~supervision.detection.compact_mask.CompactMask` objects.
+            All must share the same ``image_shape``.
+
+    Returns:
+        A new :class:`~supervision.detection.compact_mask.CompactMask`
+        containing a single tight union mask.
+
+    Raises:
+        ValueError: If ``masks_list`` is empty or image shapes differ.
+    """
+    image_shape = _validate_uniform_image_shape(masks_list, action="union")
+
+    bbox_x_min, bbox_y_min, bbox_width, bbox_height = _union_bbox(masks_list)
+    if _should_union_densely(masks_list, bbox_width, bbox_height, image_shape):
+        return _dense_union(
+            masks_list, bbox_x_min, bbox_y_min, bbox_width, bbox_height, image_shape
+        )
+
+    intervals = [
+        _rle_to_column_intervals(rle, int(shape[0]), offset)
+        for cm in masks_list
+        for rle, shape, offset in zip(cm._rles, cm._crop_shapes, cm._offsets)
+    ]
+    intervals = [part for part in intervals if len(part)]
+    if not intervals:
+        return _empty_union(image_shape)
+
+    foreground = np.concatenate(intervals)
+    x_min, y_min = foreground[:, :2].min(axis=0)
+    crop_width = int(foreground[:, 0].max() - x_min + 1)
+    crop_height = int(foreground[:, 2].max() - y_min)
+    column_origins = (foreground[:, 0] - x_min) * crop_height
+    starts = column_origins + foreground[:, 1] - y_min
+    stops = column_origins + foreground[:, 2] - y_min
+    order = np.argsort(starts)
+    starts = starts[order]
+    stops = np.maximum.accumulate(stops[order])
+    # Merge both overlapping and touching intervals, including across columns.
+    boundaries = np.concatenate(([True], starts[1:] > stops[:-1]))
+    starts = starts[boundaries]
+    stops = stops[np.concatenate((boundaries[1:], [True]))]
+
+    counts: npt.NDArray[np.int64] = np.empty(2 * len(starts) + 1, dtype=np.int64)
+    counts[::2] = np.concatenate((starts, [crop_height * crop_width])) - np.concatenate(
+        ([0], stops)
+    )
+    counts[1::2] = stops - starts
+    if counts[-1] == 0:
+        counts = counts[:-1]
+    return CompactMask(
+        [_rle_counts_int32(counts)],
+        np.array([[crop_height, crop_width]], dtype=np.int32),
+        np.array([[x_min, y_min]], dtype=np.int32),
+        image_shape,
+    )
+
+
 def _rle_split_cols(
     rle: npt.NDArray[np.int32],
     crop_h: int,
     crop_w: int,
+    x_start: int = 0,
+    x_stop: int | None = None,
 ) -> list[list[int]]:
     """Split a flat F-order RLE into per-column run lists.
 
@@ -59,17 +449,38 @@ def _rle_split_cols(
 
     Runs that cross column boundaries are split at the boundary.  Each
     returned list starts with a ``False``-run count (possibly 0), matching
-    the convention of :func:`_mask_to_rle_counts`.
+    the convention of
+    :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
+
+    When ``x_start`` and ``x_stop`` are provided, only columns in the closed
+    range ``[x_start, x_stop]`` are collected.  Pixels in skipped columns
+    are consumed without being stored, which avoids O(W) allocation when
+    only a small crop of a wide image is needed.
+
+    Use :func:`~supervision.detection.compact_mask._rle_to_column_intervals`
+    when vectorized ``(K, 3)`` foreground intervals are sufficient; use this
+    helper for resize or crop work on run lists.
+
+    Note:
+        ``x_start`` uses ``np.cumsum`` + ``np.searchsorted`` to jump directly
+        to the first relevant run in O(log R) time, avoiding the O(pixel_prefix)
+        walk that previously made right-edge crops on wide images expensive.
 
     Args:
         rle: int32 run-length array as produced by
             :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
         crop_h: Number of rows (pixels per column).
         crop_w: Number of columns.
+        x_start: First column to collect (0-indexed, inclusive).  Columns
+            before ``x_start`` are skipped.  Defaults to ``0``.
+        x_stop: Last column to collect (0-indexed, inclusive).  Processing
+            stops after column ``x_stop`` is complete.  Defaults to
+            ``crop_w - 1`` (collect all columns).
 
     Returns:
-        List of ``crop_w`` run lists, one per column.  Each list sums to
-        ``crop_h``.
+        List of ``x_stop - x_start + 1`` run lists.  Index ``i`` in the
+        returned list corresponds to column ``x_start + i``.  Each list
+        sums to ``crop_h``.
 
     Examples:
         ```pycon
@@ -82,112 +493,80 @@ def _rle_split_cols(
         [0, 2, 1, 1]
         >>> _rle_split_cols(rle, 2, 2)
         [[0, 2], [1, 1]]
+        >>> _rle_split_cols(rle, 2, 2, x_start=1)
+        [[1, 1]]
 
         ```
     """
-    per_col: list[list[int]] = [[] for _ in range(crop_w)]
-    col = 0
-    row = 0
+    if x_stop is None:
+        x_stop = crop_w - 1
 
-    for run_idx, run_len in enumerate(rle):
+    # Convert numpy int32 array to Python ints to avoid scalar boxing overhead
+    # in the inner loop (np.int32 boxing/unboxing slows pure-Python loops).
+    rle_list: list[int] = rle.tolist()
+
+    n_cols = x_stop - x_start + 1
+    per_col: list[list[int]] = [[] for _ in range(n_cols)]
+
+    # Fast-forward to the first run that overlaps column x_start using O(log R)
+    # searchsorted instead of an O(pixel_prefix) sequential walk.
+    start_pixel = x_start * crop_h
+    if start_pixel > 0 and len(rle_list) > 0:
+        cumsum_ends = np.cumsum(rle, dtype=np.int64)
+        first_run = int(np.searchsorted(cumsum_ends, start_pixel, side="right"))
+        if first_run >= len(rle_list):
+            for c in range(n_cols):
+                per_col[c] = [crop_h]
+            return per_col
+        prefix = int(cumsum_ends[first_run - 1]) if first_run > 0 else 0
+    else:
+        first_run = 0
+        prefix = 0
+
+    col = prefix // crop_h
+    row = prefix % crop_h
+
+    for run_idx in range(first_run, len(rle_list)):
+        run_len = rle_list[run_idx]
         is_true = run_idx % 2 == 1
-        remaining = int(run_len)
+        remaining = run_len
         while remaining > 0:
+            # Past the requested range — stop early.
+            if col > x_stop:
+                remaining = 0
+                break
             space_in_col = crop_h - row
             take = min(remaining, space_in_col)
-            if len(per_col[col]) == 0:
-                if is_true:
-                    per_col[col].append(0)  # leading False count = 0
-            # Check if last run has same parity (True/False) as current chunk.
-            # Last element's parity: index (len-1) odd → True, even → False.
-            elif is_true == ((len(per_col[col]) - 1) % 2 == 1):
-                per_col[col][-1] += take
-                remaining -= take
-                row += take
-                if row >= crop_h:
-                    row = 0
-                    col += 1
-                continue
-            per_col[col].append(take)
+            if col >= x_start:
+                local_col = col - x_start
+                if len(per_col[local_col]) == 0:
+                    if is_true:
+                        per_col[local_col].append(0)  # leading False count = 0
+                # Check if last run has same parity (True/False) as current chunk.
+                # Last element's parity: index (len-1) odd → True, even → False.
+                elif is_true == ((len(per_col[local_col]) - 1) % 2 == 1):
+                    per_col[local_col][-1] += take
+                    remaining -= take
+                    row += take
+                    if row >= crop_h:
+                        row = 0
+                        col += 1
+                    continue
+                per_col[local_col].append(take)
             remaining -= take
             row += take
             if row >= crop_h:
                 row = 0
                 col += 1
-        if col >= crop_w:
+        if col > x_stop:
             break
 
     # Fill any empty columns (all-False).
-    for c in range(crop_w):
+    for c in range(n_cols):
         if not per_col[c]:
             per_col[c] = [crop_h]
 
     return per_col
-
-
-def _rle_scale_col(
-    col_runs: list[int],
-    src_h: int,
-    row_map: npt.NDArray[np.int32],
-) -> list[int]:
-    """Scale one column's run list to a new height using a precomputed row map.
-
-    Each output row is mapped to a source row via ``row_map``, which
-    implements nearest-neighbour resampling in the vertical direction.
-
-    Args:
-        col_runs: Per-column run list starting with a ``False``-run count.
-        src_h: Height of the source column (sum of ``col_runs``).
-        row_map: int32 array of length ``new_crop_h``; ``row_map[r']`` is the
-            source row index for output row ``r'``.  Use
-            ``(np.arange(new_crop_h) * src_h // new_crop_h)`` for
-            ``cv2.INTER_NEAREST``-compatible mapping.
-
-    Returns:
-        Scaled run list of total length ``len(row_map)``, always starting
-        with a ``False``-run count.
-
-    Examples:
-        ```pycon
-        >>> import numpy as np
-        >>> from supervision.detection.compact_mask import _rle_scale_col
-        >>> col_runs = [0, 2, 2]   # F=0, T=2, F=2  → [T, T, F, F]
-        >>> row_map = np.array([0, 1, 2, 3, 0, 1, 2, 3], dtype=np.int32)
-        >>> _rle_scale_col(col_runs, 4, row_map)
-        [0, 2, 2, 2, 2]
-
-        ```
-    """
-    new_crop_h = len(row_map)
-    if new_crop_h == 0:
-        return [0]
-
-    # Reconstruct per-source-row boolean values from run list.
-    src_values: npt.NDArray[np.bool_] = np.empty(src_h, dtype=np.bool_)
-    pos = 0
-    for ri, rl in enumerate(col_runs):
-        src_values[pos : pos + rl] = ri % 2 == 1  # odd index → True
-        pos += rl
-    if pos < src_h:
-        src_values[pos:] = False  # pad truncated RLE
-
-    # Map output rows to source values.
-    out_values = src_values[row_map]
-
-    # RLE-encode the output column; vectorised via np.diff on bool view.
-    out_uint8 = out_values.view(np.uint8)
-    boundaries = np.flatnonzero(np.diff(out_uint8))
-    run_starts: npt.NDArray[np.int64] = np.empty(len(boundaries) + 1, dtype=np.int64)
-    run_ends: npt.NDArray[np.int64] = np.empty(len(boundaries) + 1, dtype=np.int64)
-    run_starts[0] = 0
-    run_starts[1:] = boundaries + 1
-    run_ends[:-1] = boundaries + 1
-    run_ends[-1] = new_crop_h
-    result_runs: list[int] = (run_ends - run_starts).tolist()
-    # RLE starts with a False count; prepend 0 if output begins with True.
-    if bool(out_values[0]):
-        result_runs.insert(0, 0)
-    return result_runs
 
 
 def _rle_join_cols(
@@ -203,9 +582,7 @@ def _rle_join_cols(
       run of the next column (leading count may be zero).
     * ``True``/``True``: when the accumulated output ends on a True run and the
       next column's leading False count is zero (column starts with True), the
-      two True runs are merged to avoid inserting a zero-length False run that
-      would inflate ``len(rle)`` and skew the density metric in
-      :func:`_resize_crop`.
+      two True runs are merged to avoid inserting a zero-length False run.
 
     Args:
         scaled_cols: List of per-column run lists, each starting with a
@@ -246,151 +623,180 @@ def _rle_join_cols(
     return np.array(output_runs if output_runs else [new_total], dtype=np.int32)
 
 
-def _rle_resize(
-    rle: npt.NDArray[np.int32],
-    crop_h: int,
-    crop_w: int,
-    new_crop_h: int,
-    new_crop_w: int,
-) -> npt.NDArray[np.int32]:
-    """Resize an F-order RLE-encoded crop via nearest-neighbour resampling.
-
-    Manipulates run lengths directly without decoding to a full 2D boolean
-    array.  Delegates to :func:`_rle_split_cols`, :func:`_rle_scale_col`,
-    and :func:`_rle_join_cols`.
-
-    The nearest-neighbour mapping ``src = floor(dst * src_size / dst_size)``
-    is bit-exact with ``cv2.INTER_NEAREST``.
+def _rle_trim_col_runs(col_runs: Sequence[int], y1: int, y2: int) -> list[int]:
+    """Restrict one full-height column RLE to inclusive rows ``[y1, y2]``.
 
     Args:
-        rle: int32 array of F-order run lengths as produced by
-            :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
-            Starts with a ``False``-run count (may be 0).
-        crop_h: Height of the original crop.
-        crop_w: Width of the original crop.
-        new_crop_h: Height of the resized crop.
-        new_crop_w: Width of the resized crop.
+        col_runs: Run lengths for one full-height column, starting with a
+            ``False`` run.
+        y1: Inclusive top row of the crop.
+        y2: Inclusive bottom row of the crop.
 
     Returns:
-        int32 array of F-order run lengths for the resized crop, starting
-        with the ``False``-run count.
+        Run lengths for the cropped column, also starting with a ``False`` run.
 
     Examples:
-        Upscale a 3x3 mask with a diagonal True stripe to 6x6:
-
         ```pycon
-        >>> import numpy as np
-        >>> from supervision.detection.compact_mask import _rle_resize
-        >>> from supervision.detection.utils.converters import (
-        ...     _mask_to_rle_counts, _rle_counts_to_mask,
-        ... )
-        >>> mask = np.array([
-        ...     [True,  False, False],
-        ...     [False, True,  False],
-        ...     [False, False, True ],
-        ... ], dtype=bool)
-        >>> rle = _mask_to_rle_counts(mask)
-        >>> resized_rle = _rle_resize(rle, 3, 3, 6, 6)
-        >>> result = _rle_counts_to_mask(resized_rle, 6, 6)
-        >>> result.astype(int)
-        array([[1, 1, 0, 0, 0, 0],
-               [1, 1, 0, 0, 0, 0],
-               [0, 0, 1, 1, 0, 0],
-               [0, 0, 1, 1, 0, 0],
-               [0, 0, 0, 0, 1, 1],
-               [0, 0, 0, 0, 1, 1]])
+        >>> from supervision.detection.compact_mask import _rle_trim_col_runs
+        >>> # Full column F=2, T=2, F=2 (height 6); crop to rows 1..4 inclusive
+        >>> # yields rows [F, T, T, F] → F=1, T=2, F=1.
+        >>> _rle_trim_col_runs([2, 2, 2], y1=1, y2=4)
+        [1, 2, 1]
 
         ```
     """
-    new_total = new_crop_h * new_crop_w
+    target_height = y2 - y1 + 1
+    # Sum invariant: returned list sums to target_height.  Correctness depends
+    # on the caller (from_coco_rle) having already validated that counts sum
+    # equals img_h * img_w; no re-validation here.
+    collected: list[tuple[bool, int]] = []
+    row = 0
+    for run_idx, run_len in enumerate(col_runs):
+        is_true = run_idx % 2 == 1
+        start = row
+        end = row + int(run_len)
+        row = end
 
-    if crop_h * crop_w == 0 or new_total == 0:
-        return np.array([0], dtype=np.int32)
-    if len(rle) == 1 or int(np.sum(rle[1::2])) == 0:
-        return np.array([new_total], dtype=np.int32)
-    if len(rle) == 2 and rle[0] == 0:
-        return np.array([0, new_total], dtype=np.int32)
+        crop_start = max(start, y1)
+        crop_end = min(end, y2 + 1)
+        if crop_end > crop_start:
+            collected.append((is_true, crop_end - crop_start))
+        if row > y2:
+            break
 
-    per_col = _rle_split_cols(rle, crop_h, crop_w)
+    if not collected:
+        return [target_height]
 
-    # cv2.INTER_NEAREST column mapping: src = floor(dst * src_w / dst_w)
-    col_map = (np.arange(new_crop_w) * crop_w // new_crop_w).astype(np.int32)
-
-    # cv2.INTER_NEAREST row mapping: src = floor(dst * src_h / dst_h)
-    row_map = (np.arange(new_crop_h) * crop_h // new_crop_h).astype(np.int32)
-
-    # Scale each unique source column once; reuse via cache for repeated cols.
-    col_cache: dict[int, list[int]] = {}
-    scaled_cols = []
-    for src_c in col_map:
-        if src_c not in col_cache:
-            col_cache[src_c] = _rle_scale_col(per_col[src_c], crop_h, row_map)
-        scaled_cols.append(col_cache[src_c])
-
-    return _rle_join_cols(scaled_cols, new_total)
+    result: list[int] = []
+    if collected[0][0]:
+        result.append(0)
+    for is_true, length in collected:
+        last_is_true = bool(result) and (len(result) - 1) % 2 == 1
+        if result and last_is_true == is_true:
+            result[-1] += length
+        else:
+            result.append(length)
+    return result
 
 
-# Fraction of (run_count / pixel_count) below which _rle_resize is used
-# instead of the decode → cv2 → re-encode path.  Sparse masks have few long
-# runs; dense/complex masks approach 1 run per 2 pixels.
-_L3_DENSITY_THRESHOLD: float = 0.25
+def _coco_rle_counts_to_array(counts: Any) -> npt.NDArray[np.int32]:
+    """Decode COCO RLE counts into absolute F-order run lengths.
+
+    Args:
+        counts: COCO compressed counts (``str`` or ``bytes``), or uncompressed
+            integer run lengths.
+
+    Returns:
+        One-dimensional ``int32`` run-length array.
+
+    Raises:
+        ValueError: If counts cannot be decoded into non-negative run lengths.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.compact_mask import _coco_rle_counts_to_array
+        >>> _coco_rle_counts_to_array([0, 2, 2, 2, 10])
+        array([ 0,  2,  2,  2, 10], dtype=int32)
+
+        ```
+    """
+    try:
+        if isinstance(counts, bytes):
+            counts = counts.decode("utf-8")
+        if isinstance(counts, str):
+            decoded_counts = _delta_decode(_base48_decode(counts))
+            counts_arr = np.array(decoded_counts, dtype=np.int32)
+        else:
+            # Convert to int64 first, then range-check against int32 bounds before
+            # narrowing. A direct int32 cast wraps silently on some numpy versions
+            # and raises on others; this makes overflow detection deterministic.
+            counts_arr64 = np.asarray(counts, dtype=np.int64)
+            int32_info = np.iinfo(np.int32)
+            if counts_arr64.size and (
+                counts_arr64.max() > int32_info.max
+                or counts_arr64.min() < int32_info.min
+            ):
+                raise ValueError("COCO RLE counts exceed int32 range.")
+            counts_arr = counts_arr64.astype(np.int32)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("Invalid COCO RLE counts.") from exc
+
+    if counts_arr.ndim != 1:
+        raise ValueError("COCO RLE counts must be one-dimensional.")
+    if counts_arr.size == 0:
+        raise ValueError("COCO RLE counts cannot be empty.")
+    if np.any(counts_arr < 0):
+        raise ValueError("COCO RLE counts must be non-negative.")
+    return counts_arr
+
+
 # Thread overhead outweighs gains below this mask count.
 _PARALLEL_THRESHOLD: int = 8
+# Hard ceiling on each image dimension accepted by from_coco_rle, guarding
+# against crafted payloads that allocate O(H x W) column lists.
+_MAX_IMAGE_DIMENSION: int = 32768
+# Images at or below this pixel count use a fully-vectorised numpy dense-decode
+# path inside from_coco_rle instead of the pure-Python column-split loop.
+# Crossover measured at ~8-16 K px (128x128); threshold set at 128x128 = 16 384.
+_SMALL_IMAGE_DENSE_THRESHOLD: int = 128 * 128
+
+
+def _nearest_source_index(src_size: int, dst_size: int) -> npt.NDArray[np.int32]:
+    """Return the source index each output index samples in a nearest resize.
+
+    Resizes an index ramp with the active ``supervision._cv2`` backend, so the map
+    equals ``INTER_NEAREST`` exactly, including its floating-point rounding.
+
+    Args:
+        src_size: Length of the source axis.
+        dst_size: Length of the resized axis.
+
+    Returns:
+        Non-decreasing int32 array of length ``dst_size``.
+    """
+    from supervision import _cv2 as cv2
+
+    ramp = np.arange(src_size, dtype=np.int32).reshape(1, -1)
+    resized = cv2.resize(ramp, (dst_size, 1), interpolation=cv2.INTER_NEAREST)
+    return cast(npt.NDArray[np.int32], resized[0])
 
 
 def _resize_crop(
     rle: npt.NDArray[np.int32],
-    orig_h: int,
-    orig_w: int,
-    new_h: int,
-    new_w: int,
+    crop_h: int,
+    crop_w: int,
+    row_idx: npt.NDArray[np.int32],
+    col_idx: npt.NDArray[np.int32],
 ) -> npt.NDArray[np.int32]:
-    """Resize one RLE crop to ``(new_h, new_w)``, choosing the fastest path.
+    """Resample one RLE crop by gathering source rows and columns.
 
-    Dispatch order:
-
-    1. **All-False fast path** — returns a single False run; no decode.
-    2. **L3 direct RLE path** — used when run density is below
-       :data:`_L3_DENSITY_THRESHOLD`; manipulates run lengths without
-       allocating a 2D array.
-    3. **cv2 fallback** — decodes to ``uint8``, calls
-       ``cv2.resize(INTER_NEAREST)``, re-encodes; used for dense masks.
+    Decodes the crop, indexes it with ``row_idx`` and ``col_idx`` (crop-local source
+    indices, one per output row and column), and re-encodes. All-``False`` crops skip
+    the decode.
 
     Args:
         rle: int32 run-length array for the source crop.
-        orig_h: Height of the source crop.
-        orig_w: Width of the source crop.
-        new_h: Target height.
-        new_w: Target width.
+        crop_h: Height of the source crop.
+        crop_w: Width of the source crop.
+        row_idx: Source row for each output row.
+        col_idx: Source column for each output column.
 
     Returns:
-        int32 RLE array for the resized crop.
+        int32 RLE array for the resampled crop.
     """
-    import cv2
-
-    # All-False: skip decode entirely.
     if _rle_area(rle) == 0:
-        return np.array([new_h * new_w], dtype=np.int32)
+        return np.array([len(row_idx) * len(col_idx)], dtype=np.int32)
 
-    # L3: direct RLE arithmetic for sparse masks.
-    if len(rle) / max(1, orig_h * orig_w) < _L3_DENSITY_THRESHOLD:
-        return _rle_resize(rle, orig_h, orig_w, new_h, new_w)
-
-    # cv2 fallback for dense masks.
-    crop = _rle_counts_to_mask(rle, orig_h, orig_w)
-    resized = cv2.resize(
-        crop.view(np.uint8),
-        (new_w, new_h),
-        interpolation=cv2.INTER_NEAREST,
-    ).astype(bool)
-    return _mask_to_rle_counts(resized)
+    crop = _rle_counts_to_mask(rle, crop_h, crop_w)
+    return _mask_to_rle_counts(crop[row_idx[:, np.newaxis], col_idx])
 
 
 class CompactMask:
     """Memory-efficient crop-RLE mask storage for instance segmentation.
 
-    Instead of storing N full ``(H, W)`` boolean arrays, :class:`CompactMask`
-    encodes each mask as a run-length sequence of its bounding-box crop.  This
+    Instead of storing N full ``(H, W)`` boolean arrays,
+    :class:`~supervision.detection.compact_mask.CompactMask` encodes each mask as
+    a run-length sequence of its bounding-box crop. This
     reduces memory from O(N·H·W) to roughly O(N·bbox_area), which is orders of
     magnitude smaller for sparse masks on high-resolution images.
 
@@ -398,38 +804,49 @@ class CompactMask:
     masks used elsewhere in ``supervision``:
 
     * ``mask[int]`` → dense ``(H, W)`` bool array (annotators, converters).
-    * ``mask[slice | list | ndarray]`` → new :class:`CompactMask` (filtering).
+    * ``mask[slice | list | ndarray]`` → new
+      :class:`~supervision.detection.compact_mask.CompactMask` (filtering).
     * ``np.asarray(mask)`` → dense ``(N, H, W)`` bool array (numpy interop).
     * ``mask.shape``, ``mask.dtype``, ``mask.area`` — match the dense API.
 
-    :class:`CompactMask` is **not** a drop-in ``np.ndarray`` replacement.
+    :class:`~supervision.detection.compact_mask.CompactMask` is **not** a
+    drop-in ``np.ndarray`` replacement.
     When you need to call arbitrary ndarray methods (``astype``, ``reshape``,
-    ``ravel``, ``any``, ``all``, …) call :meth:`to_dense` first:
-    ``cm.to_dense().astype(np.uint8)``.  :meth:`to_dense` is the single
+    ``ravel``, ``any``, ``all``, …) call
+    :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` first:
+    ``cm.to_dense().astype(np.uint8)``.
+    :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` is the single
     explicit materialisation boundary.
 
     .. note:: **RLE encoding — COCO / pycocotools pixel-scan order**
 
-        :class:`CompactMask` uses **column-major (Fortran-order, F-order)**
+        :class:`~supervision.detection.compact_mask.CompactMask` uses **column-major
+        (Fortran-order, F-order)**
         run-lengths scoped to each mask's bounding-box crop, matching the
         pixel-scan order used by the COCO API (pycocotools).  The crop scope
         still differs from the full-image scope used by pycocotools, so a
-        :class:`CompactMask` RLE cannot be passed directly to
+        :class:`~supervision.detection.compact_mask.CompactMask` RLE cannot be passed
+        directly to
         ``maskUtils.iou()`` or ``maskUtils.decode()`` without re-scoping to
-        the full canvas.  Use :meth:`to_dense` to obtain a standard boolean
+        the full canvas. Use
+        :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` to obtain a
+        standard boolean
         array for pycocotools interop.
 
         This scan order is part of CompactMask's internal RLE representation.
         Switching from row-major (C-order) to column-major (F-order) is a
         backward-incompatible format change for any persisted or serialized
-        :class:`CompactMask` state, including pickled objects and any
+        :class:`~supervision.detection.compact_mask.CompactMask` state, including
+        pickled objects and any
         external storage of ``._rles``.  Older stored RLE arrays will decode
         incorrectly under the new convention.
 
         Migration note: load or decode legacy masks with the older version,
         materialize them to dense boolean arrays, and then re-encode them
-        with the current version (for example via :meth:`to_dense` followed
-        by :meth:`from_dense`) before persisting them again.
+        with the current version (for example via
+        :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` followed by
+        :meth:`~supervision.detection.compact_mask.CompactMask.from_dense`) before
+        persisting them again.
 
     Args:
         rles: List of N int32 run-length arrays.
@@ -476,10 +893,11 @@ class CompactMask:
     def from_dense(
         cls,
         masks: npt.NDArray[np.bool_],
-        xyxy: npt.NDArray[Any],
+        xyxy: npt.NDArray[np.number],
         image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Create a :class:`CompactMask` from a dense ``(N, H, W)`` bool array.
+        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from a
+        dense ``(N, H, W)`` bool array.
 
         Bounding boxes are clipped to image bounds and interpreted in the
         supervision ``xyxy`` convention (inclusive max coordinates). A
@@ -493,7 +911,7 @@ class CompactMask:
             image_shape: ``(H, W)`` of the full image.
 
         Returns:
-            A new :class:`CompactMask` instance.
+            A new :class:`~supervision.detection.compact_mask.CompactMask` instance.
 
         Examples:
             ```pycon
@@ -525,21 +943,29 @@ class CompactMask:
 
         for mask_idx in range(num_masks):
             x1, y1, x2, y2 = xyxy[mask_idx]
-            x1c = int(max(0, min(int(x1), img_w - 1)))
-            y1c = int(max(0, min(int(y1), img_h - 1)))
-            x2c = int(max(0, min(int(x2), img_w - 1)))
-            y2c = int(max(0, min(int(y2), img_h - 1)))
+            x1i, y1i, x2i, y2i = int(x1), int(y1), int(x2), int(y2)
+            x1c = int(max(0, min(x1i, img_w - 1)))
+            y1c = int(max(0, min(y1i, img_h - 1)))
             crop: npt.NDArray[np.bool_]
 
             # supervision xyxy uses inclusive max coords, so slicing must add +1.
-            if x2c < x1c or y2c < y1c:
+            if (
+                x2i < x1i
+                or y2i < y1i
+                or x2i < 0
+                or y2i < 0
+                or x1i >= img_w
+                or y1i >= img_h
+            ):
                 crop = np.zeros((1, 1), dtype=bool)
-                x2c, y2c = x1c, y1c
+                crop_h = 1
+                crop_w = 1
             else:
+                x2c = int(max(0, min(x2i, img_w - 1)))
+                y2c = int(max(0, min(y2i, img_h - 1)))
                 crop = masks[mask_idx, y1c : y2c + 1, x1c : x2c + 1]
-
-            crop_h = y2c - y1c + 1
-            crop_w = x2c - x1c + 1
+                crop_h = y2c - y1c + 1
+                crop_w = x2c - x1c + 1
             rles.append(_mask_to_rle_counts(crop))
             crop_shapes_list.append((crop_h, crop_w))
             offsets_list.append((x1c, y1c))
@@ -547,6 +973,172 @@ class CompactMask:
         crop_shapes = np.array(crop_shapes_list, dtype=np.int32)
         offsets = np.array(offsets_list, dtype=np.int32)
         return cls(rles, crop_shapes, offsets, image_shape)
+
+    @classmethod
+    def from_coco_rle(
+        cls,
+        rles: Sequence[Mapping[str, Any]],
+        xyxy: npt.NDArray[np.floating],
+        image_shape: tuple[int, int],
+    ) -> CompactMask:
+        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from full-
+        frame COCO RLE masks.
+
+        Transcodes full-image COCO RLE payloads into the crop-scoped RLE format
+        used by :class:`~supervision.detection.compact_mask.CompactMask`. The
+        conversion uses run-length arithmetic
+        scoped by ``xyxy`` boxes and does not materialise a dense ``(N, H, W)``
+        mask stack.
+
+        Args:
+            rles: Sequence of COCO RLE dictionaries. Each dictionary must contain
+                ``"size"`` as ``[height, width]`` and ``"counts"`` as compressed
+                counts (``str`` or ``bytes``) or uncompressed integer run lengths.
+            xyxy: Bounding boxes of shape ``(N, 4)`` in ``[x1, y1, x2, y2]``
+                format. Max coordinates follow supervision's inclusive convention.
+            image_shape: ``(H, W)`` of the full image. This must match every RLE
+                ``"size"`` value.
+
+        Returns:
+            A new :class:`~supervision.detection.compact_mask.CompactMask` instance.
+
+        Raises:
+            ValueError: If the RLE payloads are malformed, are not aligned with
+                ``xyxy``, or their sizes/counts do not match ``image_shape``.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> # 4x4 image with a 2x2 True block at the top-left corner.
+            >>> # Uncompressed F-order COCO counts: F=0, T=2, F=2, T=2, F=10
+            >>> # (column-major: col0=[T,T,F,F], col1=[T,T,F,F], cols2-3 all F).
+            >>> rles = [{"size": [4, 4], "counts": [0, 2, 2, 2, 10]}]
+            >>> xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
+            >>> cm = CompactMask.from_coco_rle(rles, xyxy, image_shape=(4, 4))
+            >>> cm.shape
+            (1, 4, 4)
+            >>> cm.area.tolist()
+            [4]
+
+            ```
+        """
+        img_h, img_w = (int(image_shape[0]), int(image_shape[1]))
+        if img_h <= 0 or img_w <= 0:
+            raise ValueError("image_shape must contain positive height and width.")
+        if img_h > _MAX_IMAGE_DIMENSION or img_w > _MAX_IMAGE_DIMENSION:
+            raise ValueError(
+                f"image_shape {(img_h, img_w)} exceeds the maximum allowed dimension "
+                f"of {_MAX_IMAGE_DIMENSION} pixels per side."
+            )
+
+        xyxy_arr = np.asarray(xyxy)
+        if xyxy_arr.shape != (len(rles), 4):
+            raise ValueError(
+                "xyxy must have shape (N, 4), where N matches the number of RLEs."
+            )
+
+        if len(rles) == 0:
+            return cls(
+                [],
+                np.empty((0, 2), dtype=np.int32),
+                np.empty((0, 2), dtype=np.int32),
+                (img_h, img_w),
+            )
+
+        crop_rles: list[npt.NDArray[np.int32]] = []
+        crop_shapes_list: list[tuple[int, int]] = []
+        offsets_list: list[tuple[int, int]] = []
+
+        for mask_idx, rle in enumerate(rles):
+            if not isinstance(rle, Mapping):
+                raise ValueError("Each RLE payload must be a mapping.")
+            if "size" not in rle or "counts" not in rle:
+                raise ValueError("Each RLE payload must contain 'size' and 'counts'.")
+
+            try:
+                # COCO standard: size=[height, width] (h,w order per pycocotools spec)
+                rle_h, rle_w = rle["size"]
+                rle_h = int(rle_h)
+                rle_w = int(rle_w)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("RLE size must be [height, width].") from exc
+
+            if (rle_h, rle_w) != (img_h, img_w):
+                raise ValueError(
+                    f"RLE size {(rle_h, rle_w)} must match image_shape "
+                    f"{(img_h, img_w)}."
+                )
+
+            counts = _coco_rle_counts_to_array(rle["counts"])
+            if int(np.sum(counts, dtype=np.int64)) != img_h * img_w:
+                raise ValueError(
+                    "The sum of COCO RLE counts must match the image area."
+                )
+
+            x1, y1, x2, y2 = xyxy_arr[mask_idx]
+            x1i, y1i, x2i, y2i = int(x1), int(y1), int(x2), int(y2)
+            x1c = max(0, min(x1i, img_w - 1))
+            y1c = max(0, min(y1i, img_h - 1))
+
+            if (
+                x2i < x1i
+                or y2i < y1i
+                or x2i < 0
+                or y2i < 0
+                or x1i >= img_w
+                or y1i >= img_h
+            ):
+                crop_rles.append(np.array([1], dtype=np.int32))
+                crop_shapes_list.append((1, 1))
+                offsets_list.append((x1c, y1c))
+                continue
+
+            x2c = max(0, min(x2i, img_w - 1))
+            y2c = max(0, min(y2i, img_h - 1))
+            crop_h = y2c - y1c + 1
+            crop_w = x2c - x1c + 1
+
+            if img_h * img_w <= _SMALL_IMAGE_DENSE_THRESHOLD:
+                # Small image: vectorised numpy decode avoids the O(img_w)-column
+                # Python loop. Decode RLE to flat F-order bool, extract crop, and
+                # re-encode directly.
+                ends = np.cumsum(counts, dtype=np.int64)
+                starts = ends - counts.astype(np.int64)
+                # Mark True runs (odd-indexed) via difference-array decode (O(R)).
+                true_starts = starts[1::2]
+                true_ends = ends[1::2]
+                if true_starts.size > 0:
+                    indicator = np.zeros(img_h * img_w + 1, dtype=np.int32)
+                    np.add.at(indicator, true_starts, 1)
+                    np.add.at(indicator, true_ends, -1)
+                    # cumsum in int32 avoids int8 overflow; cast to uint8 (0/1).
+                    flat = np.cumsum(indicator[:-1], dtype=np.int32).astype(np.uint8)
+                else:
+                    flat = np.zeros(img_h * img_w, dtype=np.uint8)
+                # Extract crop: reshape to (img_w, img_h) F-order view, slice.
+                flat_crop = flat.reshape(img_w, img_h)[
+                    x1c : x2c + 1, y1c : y2c + 1
+                ].ravel()
+                # RLE-encode the flat crop: find value-change positions.
+                change_pos = np.where(np.diff(flat_crop.view(np.int8)))[0] + 1
+                boundaries = np.concatenate([[0], change_pos, [len(flat_crop)]])
+                run_lens = np.diff(boundaries)
+                if flat_crop[0]:
+                    run_lens = np.concatenate([[0], run_lens])
+                crop_rle_arr = run_lens.astype(np.int32)
+            else:
+                cols = _rle_split_cols(counts, img_h, img_w, x_start=x1c, x_stop=x2c)
+                selected_columns = [_rle_trim_col_runs(col, y1c, y2c) for col in cols]
+                crop_rle_arr = _rle_join_cols(selected_columns, crop_h * crop_w)
+
+            crop_rles.append(crop_rle_arr)
+            crop_shapes_list.append((crop_h, crop_w))
+            offsets_list.append((x1c, y1c))
+
+        crop_shapes = np.array(crop_shapes_list, dtype=np.int32)
+        offsets = np.array(offsets_list, dtype=np.int32)
+        return cls(crop_rles, crop_shapes, offsets, (img_h, img_w))
 
     # ------------------------------------------------------------------
     # Materialisation
@@ -665,6 +1257,27 @@ class CompactMask:
         return (len(self), img_h, img_w)
 
     @property
+    def image_shape(self) -> tuple[int, int]:
+        """Return ``(H, W)`` of the full image this mask is scoped to.
+
+        Returns:
+            Tuple ``(H, W)``.
+
+        Examples:
+            ```pycon
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> import numpy as np
+            >>> cm = CompactMask(
+            ...     [], np.empty((0, 2), dtype=np.int32),
+            ...     np.empty((0, 2), dtype=np.int32), (480, 640))
+            >>> cm.image_shape
+            (480, 640)
+
+            ```
+        """
+        return self._image_shape
+
+    @property
     def offsets(self) -> npt.NDArray[np.int32]:
         """Return per-mask crop origins as ``(x1, y1)`` integer offsets.
 
@@ -720,7 +1333,7 @@ class CompactMask:
         return np.column_stack((x1, y1, x2, y2)).astype(np.int32, copy=False)
 
     @property
-    def dtype(self) -> np.dtype[Any]:
+    def dtype(self) -> np.dtype[np.bool_]:
         """Return ``np.dtype(bool)`` — always.
 
         Returns:
@@ -744,6 +1357,14 @@ class CompactMask:
     def area(self) -> npt.NDArray[np.int64]:
         """Compute the area (``True`` pixel count) of each mask.
 
+        Note:
+            Counts are read from the RLE runs without decoding any crop. The
+            foreground runs of consecutive masks are concatenated and summed per
+            mask with one NumPy reduction per chunk of about 65,536 runs, instead
+            of one :func:`~supervision.detection.compact_mask._rle_area` call per
+            mask. Accumulation uses int64, avoiding the overflow that could occur
+            for areas above the int32 limit with NumPy 1.x on Windows.
+
         Returns:
             int64 array of shape ``(N,)`` with per-mask pixel counts.
 
@@ -761,16 +1382,55 @@ class CompactMask:
 
             ```
         """
-        return np.array([_rle_area(rle) for rle in self._rles], dtype=np.int64)
+        # RLEs alternate background and foreground runs, starting with background,
+        # so each mask's area is the sum of its odd-indexed runs; concatenating
+        # only those views skips the background runs. Casting to int64 during the
+        # copy keeps sums exact (split runs let one crop exceed the int32 range,
+        # and NumPy 1.x on Windows sums int32 in int32) and spares reduceat a
+        # much slower buffered cast.
+        foreground_runs = [rle[1::2] for rle in self._rles]
+        run_counts = np.fromiter(
+            map(len, foreground_runs), dtype=np.int64, count=len(foreground_runs)
+        )
+        areas = np.zeros(len(run_counts), dtype=np.int64)
+        # Consecutive masks are reduced in chunks of about _AREA_CHUNK_RUNS runs,
+        # so the copy does not grow with the collection. Any split gives the same
+        # areas; a mask with more runs than one chunk is reduced on its own.
+        chunk_ids = np.cumsum(run_counts) // _AREA_CHUNK_RUNS
+        bounds = [0, *(np.flatnonzero(np.diff(chunk_ids)) + 1).tolist(), len(areas)]
+        for start, stop in pairwise(bounds):
+            counts = run_counts[start:stop]
+            # reduceat sums each start up to the next one and cannot express an
+            # empty segment, so all-False masks are left out and keep zero area.
+            has_foreground = counts > 0
+            if has_foreground.any():
+                areas[start:stop][has_foreground] = np.add.reduceat(
+                    np.concatenate(foreground_runs[start:stop], dtype=np.int64),
+                    (np.cumsum(counts) - counts)[has_foreground],
+                )
+        return areas
 
-    def sum(self, axis: int | tuple[int, ...] | None = None) -> npt.NDArray[Any] | int:
+    def sum(
+        self,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: npt.DTypeLike | None = None,
+        out: Any = None,
+        **kwargs: Any,
+    ) -> npt.NDArray[Any] | np.generic:
         """NumPy-compatible sum with a fast path for per-mask area.
 
-        When ``axis=(1, 2)``, returns the per-mask True-pixel count via
-        :attr:`area` without materialising the full dense array.
+        When ``axis=(1, 2)`` and no other argument is set, returns the per-mask
+        True-pixel count via
+        :attr:`~supervision.detection.compact_mask.CompactMask.area` without
+        materialising the full dense array. Any other call materialises the dense
+        array, so ``np.sum(compact_mask, ...)`` matches ``np.sum`` on the dense mask.
 
         Args:
             axis: Axis or axes to sum over.
+            dtype: Data type of the result, as in ``numpy.sum``.
+            out: Array to write the result into, as in ``numpy.sum``.
+            **kwargs: Other ``numpy.sum`` keywords: ``keepdims``, ``initial``
+                and ``where``.
 
         Returns:
             Sum result matching NumPy semantics.
@@ -788,26 +1448,64 @@ class CompactMask:
 
             ```
         """
-        if axis == (1, 2):
+        # Only integer axes can use the shortcut; NumPy validates all other forms.
+        if (
+            isinstance(axis, tuple)
+            and all(
+                isinstance(value, (int, np.integer)) and not isinstance(value, bool)
+                for value in axis
+            )
+            and axis == (1, 2)
+            and dtype is None
+            and out is None
+            and not kwargs
+        ):
             return self.area
-        return self.to_dense().sum(axis=axis)
+        return cast(
+            npt.NDArray[Any] | np.generic,
+            self.to_dense().sum(axis=axis, dtype=dtype, out=out, **kwargs),
+        )
+
+    @overload
+    def __getitem__(self, index: int | np.integer) -> npt.NDArray[np.bool_]: ...
+
+    @overload
+    def __getitem__(
+        self,
+        index: slice
+        | list[int]
+        | list[bool]
+        | npt.NDArray[np.int_]
+        | npt.NDArray[np.bool_],
+    ) -> CompactMask: ...
 
     def __getitem__(
         self,
-        index: int | slice | list[Any] | npt.NDArray[Any],
+        index: (
+            int
+            | np.integer
+            | slice
+            | list[int]
+            | list[bool]
+            | npt.NDArray[np.int_]
+            | npt.NDArray[np.bool_]
+        ),
     ) -> npt.NDArray[np.bool_] | CompactMask:
         """Index into the mask collection.
 
         * ``int`` → dense ``(H, W)`` bool array (for annotators, iterators).
-        * ``slice | list | ndarray`` → new :class:`CompactMask` (for filtering).
+        * ``slice | list | ndarray`` → new
+          :class:`~supervision.detection.compact_mask.CompactMask` (for filtering).
 
         Args:
             index: An integer returns a dense ``(H, W)`` mask.  Any other
-                supported index type returns a new :class:`CompactMask`.
+                supported index type returns a new
+                :class:`~supervision.detection.compact_mask.CompactMask`.
 
         Returns:
             Dense ``(H, W)`` ``np.ndarray`` for integer index, or a new
-            :class:`CompactMask` for all other index types.
+            :class:`~supervision.detection.compact_mask.CompactMask` for all
+            other index types.
 
         Examples:
             ```pycon
@@ -836,12 +1534,12 @@ class CompactMask:
             result[y1 : y1 + crop_h, x1 : x1 + crop_w] = crop
             return result
 
-        # Slice: use direct Python list slice and numpy view — O(k), no arange.
         if isinstance(index, slice):
+            selected_rles = [rle.copy() for rle in self._rles[index]]
             return CompactMask(
-                self._rles[index],
-                self._crop_shapes[index],
-                self._offsets[index],
+                selected_rles,
+                self._crop_shapes[index].copy(),
+                self._offsets[index].copy(),
                 self._image_shape,
             )
 
@@ -855,21 +1553,28 @@ class CompactMask:
         else:
             idx_arr = np.asarray(list(index), dtype=np.intp)
 
-        new_rles = [self._rles[int(mask_idx)] for mask_idx in idx_arr]
-        new_crop_shapes: npt.NDArray[np.int32] = self._crop_shapes[idx_arr]
-        new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr]
+        new_rles = [self._rles[int(mask_idx)].copy() for mask_idx in idx_arr]
+        new_crop_shapes: npt.NDArray[np.int32] = self._crop_shapes[idx_arr].copy()
+        new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr].copy()
         return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
 
-    def __array__(self, dtype: np.dtype[Any] | None = None) -> npt.NDArray[Any]:
+    def __array__(
+        self, dtype: np.dtype[np.generic] | None = None, copy: bool | None = None
+    ) -> npt.NDArray[np.generic]:
         """NumPy interop: materialise as a dense ``(N, H, W)`` array.
 
         Called by ``np.asarray(compact_mask)`` and similar NumPy functions.
 
         Args:
             dtype: Optional dtype to cast the result to.
+            copy: ``None`` and ``True`` materialise a fresh dense array.
+                ``False`` raises because RLE storage cannot be shared as a dense array.
 
         Returns:
             Dense boolean array of shape ``(N, H, W)``.
+
+        Raises:
+            ValueError: If ``copy`` is ``False``.
 
         Examples:
             ```pycon
@@ -883,16 +1588,21 @@ class CompactMask:
 
             ```
         """
+        if copy is False:
+            raise ValueError("Cannot convert CompactMask to an array with copy=False.")
         result = self.to_dense()
         if dtype is not None:
             return result.astype(dtype)
         return result
 
     def __eq__(self, other: object) -> bool:
-        """Element-wise equality with another :class:`CompactMask` or ndarray.
+        """Element-wise equality with another
+        :class:`~supervision.detection.compact_mask.CompactMask` or ndarray.
 
         Args:
-            other: Another :class:`CompactMask` or ``np.ndarray``.
+            other: Another
+                :class:`~supervision.detection.compact_mask.CompactMask` or
+                ``np.ndarray``.
 
         Returns:
             ``True`` if all masks are pixel-identical.
@@ -922,16 +1632,19 @@ class CompactMask:
 
     @staticmethod
     def merge(masks_list: list[CompactMask]) -> CompactMask:
-        """Concatenate multiple :class:`CompactMask` objects into one.
+        """Concatenate multiple :class:`~supervision.detection.compact_mask.CompactMask`
+        objects into one.
 
         All inputs must have the same ``image_shape``.
 
         Args:
-            masks_list: Non-empty list of :class:`CompactMask` objects.
+            masks_list: Non-empty list of
+                :class:`~supervision.detection.compact_mask.CompactMask`
+                objects.
 
         Returns:
-            A new :class:`CompactMask` containing every mask from the inputs,
-            in order.
+            A new :class:`~supervision.detection.compact_mask.CompactMask`
+            containing every mask from the inputs, in order.
 
         Raises:
             ValueError: If ``masks_list`` is empty or image shapes differ.
@@ -952,16 +1665,7 @@ class CompactMask:
 
             ```
         """
-        if not masks_list:
-            raise ValueError("Cannot merge an empty list of CompactMask objects.")
-
-        image_shape = masks_list[0]._image_shape
-        for cm in masks_list[1:]:
-            if cm._image_shape != image_shape:
-                raise ValueError(
-                    f"Cannot merge CompactMask objects with different image shapes: "
-                    f"{image_shape} vs {cm._image_shape}"
-                )
+        image_shape = _validate_uniform_image_shape(masks_list, action="merge")
 
         # list.extend is a C-level call and avoids the per-element Python
         # bytecode overhead of a flat list comprehension.  This matters under
@@ -997,8 +1701,8 @@ class CompactMask:
         tiles are merged).
 
         Returns:
-            A new :class:`CompactMask` with minimal-area crops and updated
-            offsets.
+            A new :class:`~supervision.detection.compact_mask.CompactMask` with
+            minimal-area crops and updated offsets.
 
         Examples:
             ```pycon
@@ -1070,7 +1774,8 @@ class CompactMask:
         dy: int,
         new_image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Return a new :class:`CompactMask` with adjusted offsets and image shape.
+        """Return a new :class:`~supervision.detection.compact_mask.CompactMask` with
+        adjusted offsets and image shape.
 
         Used by :class:`~supervision.detection.tools.inference_slicer.InferenceSlicer`
         to relocate tile-local masks into full-image coordinates without
@@ -1082,7 +1787,8 @@ class CompactMask:
             new_image_shape: ``(H, W)`` of the full (destination) image.
 
         Returns:
-            New :class:`CompactMask` with updated offsets and image shape.
+            New :class:`~supervision.detection.compact_mask.CompactMask` with
+            updated offsets and image shape.
             Crops are clipped to stay inside ``new_image_shape``; masks fully
             outside are represented as ``1x1`` all-False crops.
 
@@ -1192,24 +1898,27 @@ class CompactMask:
     def resize(self, new_image_shape: tuple[int, int]) -> CompactMask:
         """Return a new CompactMask scaled to a different image resolution.
 
-        Each crop mask is resized with nearest-neighbour interpolation.
-        Sparse masks use direct RLE arithmetic (:func:`_rle_resize`); dense
-        masks fall back to ``cv2.resize(INTER_NEAREST)``.  Offsets and crop
-        dimensions are scaled proportionally to the new image size.
+        The result equals resizing each dense mask with
+        ``cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)``, pixel for
+        pixel. Each new crop spans the output pixels that sample the old crop, so
+        crops stay tight under any scale factor, including non-uniform ones. A crop
+        that no output pixel samples (a small mask on a large downscale) becomes a
+        ``1x1`` all-``False`` crop.
 
         Performance notes:
 
-        * Coordinate arithmetic is fully vectorised (no Python loop over N).
-        * All-``False`` crops skip decode/resize entirely.
-        * For N >= 8, resize runs in a thread pool — NumPy and OpenCV
-          release the GIL so crops execute in parallel on multi-core CPUs.
+        * Crop boxes are computed for all masks at once with ``searchsorted``.
+        * Each crop is resampled by indexing its decoded pixels; the full image
+          mask is never materialised.
+        * All-``False`` crops skip decode entirely.
+        * For N >= 8, resize runs in a thread pool.
 
         Args:
             new_image_shape: ``(H, W)`` of the target image.
 
         Returns:
-            New :class:`CompactMask` with updated ``image_shape``, scaled
-            offsets, scaled crop shapes, and re-encoded RLE crops.
+            New :class:`~supervision.detection.compact_mask.CompactMask` with
+            updated ``image_shape``, offsets, crop shapes, and re-encoded RLE crops.
 
         Raises:
             ValueError: If any dimension in *new_image_shape* is ``<= 0``.
@@ -1227,6 +1936,8 @@ class CompactMask:
             (1, 50, 50)
             >>> small.offsets[0].tolist()
             [15, 10]
+            >>> small.crop(0).shape
+            (10, 15)
 
             ```
         """
@@ -1257,50 +1968,103 @@ class CompactMask:
             )
 
         img_h, img_w = self._image_shape
-        sx = new_w / img_w
-        sy = new_h / img_h
+        row_src = _nearest_source_index(img_h, new_h)
+        col_src = _nearest_source_index(img_w, new_w)
 
-        # L1 — vectorised coordinate arithmetic; no Python loop over N masks.
-        x1s = self._offsets[:, 0].astype(np.float64)
-        y1s = self._offsets[:, 1].astype(np.float64)
-        x2s = x1s + self._crop_shapes[:, 1] - 1  # inclusive right edge
-        y2s = y1s + self._crop_shapes[:, 0] - 1  # inclusive bottom edge
-
-        new_x1s = np.clip(np.round(x1s * sx), 0, new_w - 1).astype(np.int32)
-        new_y1s = np.clip(np.round(y1s * sy), 0, new_h - 1).astype(np.int32)
-        new_x2s = np.clip(np.round(x2s * sx), 0, new_w - 1).astype(np.int32)
-        new_y2s = np.clip(np.round(y2s * sy), 0, new_h - 1).astype(np.int32)
-        new_crop_ws: npt.NDArray[np.int32] = np.maximum(
-            1, new_x2s - new_x1s + 1
-        ).astype(np.int32)
-        new_crop_hs: npt.NDArray[np.int32] = np.maximum(
-            1, new_y2s - new_y1s + 1
-        ).astype(np.int32)
-
-        # L2b — parallel per-crop resize; NumPy and OpenCV release the GIL.
-        orig_crop_hs = self._crop_shapes[:, 0]
-        orig_crop_ws = self._crop_shapes[:, 1]
-
-        args = [
-            (
-                self._rles[i],
-                int(orig_crop_hs[i]),
-                int(orig_crop_ws[i]),
-                int(new_crop_hs[i]),
-                int(new_crop_ws[i]),
-            )
-            for i in range(len(self))
-        ]
+        # The source index is non-decreasing in the output index, so the outputs
+        # sampling the source range [x1, x2) are the contiguous range
+        # [first j with src[j] >= x1, first j with src[j] >= x2).
+        x1s = self._offsets[:, 0]
+        y1s = self._offsets[:, 1]
+        x2s = x1s + self._crop_shapes[:, 1]
+        y2s = y1s + self._crop_shapes[:, 0]
+        new_x1s = np.searchsorted(col_src, x1s, side="left")
+        new_y1s = np.searchsorted(row_src, y1s, side="left")
+        new_x2s = np.searchsorted(col_src, x2s, side="left")
+        new_y2s = np.searchsorted(row_src, y2s, side="left")
+        new_crop_ws = new_x2s - new_x1s
+        new_crop_hs = new_y2s - new_y1s
 
         n = len(self)
+        vanished = (new_crop_ws == 0) | (new_crop_hs == 0)
+
+        def resize_one(i: int) -> npt.NDArray[np.int32]:
+            """Resample crop ``i``, or return a 1x1 all-False RLE if it vanished."""
+            if vanished[i]:
+                return np.array([1], dtype=np.int32)
+            # Crop-local source indices of the output rows and columns.
+            row_idx = row_src[new_y1s[i] : new_y2s[i]] - y1s[i]
+            col_idx = col_src[new_x1s[i] : new_x2s[i]] - x1s[i]
+            return _resize_crop(
+                self._rles[i],
+                int(self._crop_shapes[i, 0]),
+                int(self._crop_shapes[i, 1]),
+                row_idx,
+                col_idx,
+            )
+
         if n >= _PARALLEL_THRESHOLD:
             with ThreadPoolExecutor(max_workers=min(n, os.cpu_count() or 4)) as pool:
                 new_rles: list[npt.NDArray[np.int32]] = list(
-                    pool.map(lambda a: _resize_crop(*a), args)
+                    pool.map(resize_one, range(n))
                 )
         else:
-            new_rles = [_resize_crop(*a) for a in args]
+            new_rles = [resize_one(i) for i in range(n)]
+
+        # A vanished crop keeps a valid 1x1 shape at an in-bounds offset.
+        new_crop_ws = np.where(vanished, 1, new_crop_ws)
+        new_crop_hs = np.where(vanished, 1, new_crop_hs)
+        new_x1s = np.minimum(new_x1s, new_w - 1)
+        new_y1s = np.minimum(new_y1s, new_h - 1)
 
         new_crop_shapes = np.column_stack((new_crop_hs, new_crop_ws)).astype(np.int32)
         new_offsets = np.column_stack((new_x1s, new_y1s)).astype(np.int32)
         return CompactMask(new_rles, new_crop_shapes, new_offsets, new_image_shape)
+
+
+def _polygon_to_compact_mask(
+    vertices: npt.NDArray[np.number], resolution_wh: tuple[int, int]
+) -> CompactMask:
+    """Rasterize one polygon and encode only its rounded vertex bounds.
+
+    The vertices are rounded to whole pixels and the polygon is rasterized on the
+    full frame with :func:`~supervision.detection.utils.converters.polygon_to_mask`,
+    which keeps the clipping and boundary pixels of the dense loaders on every
+    drawing backend. Every filled pixel lies within the rounded vertex bounds, so
+    encoding only that crop is lossless. No reference to the frame survives the call.
+
+    Args:
+        vertices: Polygon vertices of shape ``(N, 2)`` in pixel coordinates, possibly
+            sub-pixel floats.
+        resolution_wh: Image width and height in pixels.
+
+    Returns:
+        A :class:`~supervision.detection.compact_mask.CompactMask` holding one mask of
+        shape ``(1, height, width)``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _polygon_to_compact_mask
+        >>> vertices = np.array([[2.4, 1.6], [6.6, 1.6], [6.6, 5.4], [2.4, 5.4]])
+        >>> mask = _polygon_to_compact_mask(vertices, resolution_wh=(10, 8))
+        >>> mask.shape
+        (1, 8, 10)
+        >>> mask.bbox_xyxy.tolist()
+        [[2, 2, 7, 5]]
+
+        ```
+    """
+    width, height = resolution_wh
+    polygon = np.round(vertices).astype(np.int32)
+    # The raster holds only 0 and 1, so a bool view is exact and skips a second
+    # frame-sized copy.
+    mask = polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh).view(np.bool_)
+    # Round before deriving the crop: truncating the floating-point bounds would
+    # drop foreground pixels at the right or bottom polygon edge.
+    bounds = polygon_to_xyxy(polygon)
+    return CompactMask.from_dense(
+        masks=mask[np.newaxis, ...],
+        xyxy=bounds[np.newaxis, :],
+        image_shape=(height, width),
+    )

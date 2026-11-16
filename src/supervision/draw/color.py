@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, cast
 
-import matplotlib.pyplot as plt
-
 from supervision.utils.internal import classproperty
 
 DEFAULT_COLOR_PALETTE = [
@@ -64,8 +62,7 @@ def _validate_color_hex(color_hex: str) -> None:
 
 @dataclass
 class Color:
-    """
-    Represents a color in RGBA format.
+    """Represents a color in RGBA format.
 
     This class provides methods to work with colors, including creating colors from hex
     codes, converting colors to hex strings, RGB tuples, BGR tuples, RGBA tuples,
@@ -102,10 +99,22 @@ class Color:
     b: int
     a: int = 255
 
+    def __post_init__(self) -> None:
+        """Validate that direct Color construction uses byte-sized channels."""
+        if not (
+            0 <= self.r <= 255
+            and 0 <= self.g <= 255
+            and 0 <= self.b <= 255
+            and 0 <= self.a <= 255
+        ):
+            raise ValueError(
+                "Color values must be in range 0-255, "
+                f"got ({self.r}, {self.g}, {self.b}, {self.a})"
+            )
+
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
-        """
-        Create a Color instance from a hex string.
+        """Create a Color instance from a hex string.
 
         Args:
             color_hex: The hex string representing the color. This string can
@@ -147,8 +156,7 @@ class Color:
 
     @classmethod
     def from_rgb_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
-        """
-        Create a Color instance from an RGB tuple.
+        """Create a Color instance from an RGB tuple.
 
         Args:
             color_tuple: A tuple representing the color in RGB format, where each
@@ -175,8 +183,7 @@ class Color:
 
     @classmethod
     def from_bgr_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
-        """
-        Create a Color instance from a BGR tuple.
+        """Create a Color instance from a BGR tuple.
 
         Args:
             color_tuple: A tuple representing the color in BGR format, where each
@@ -203,8 +210,7 @@ class Color:
 
     @classmethod
     def from_rgba_tuple(cls, color_tuple: tuple[int, int, int, int]) -> Color:
-        """
-        Create a Color instance from an RGBA tuple.
+        """Create a Color instance from an RGBA tuple.
 
         Args:
             color_tuple: A tuple representing the color in RGBA format, where each
@@ -233,8 +239,7 @@ class Color:
 
     @classmethod
     def from_bgra_tuple(cls, color_tuple: tuple[int, int, int, int]) -> Color:
-        """
-        Create a Color instance from a BGRA tuple.
+        """Create a Color instance from a BGRA tuple.
 
         Args:
             color_tuple: A tuple representing the color in BGRA format, where each
@@ -262,8 +267,7 @@ class Color:
         return cls(r=r, g=g, b=b, a=a)
 
     def as_hex(self) -> str:
-        """
-        Converts the Color instance to a hex string.
+        """Converts the Color instance to a hex string.
 
         Returns:
             The hexadecimal color string. Returns `#RRGGBBAA` if alpha is not 255,
@@ -285,8 +289,7 @@ class Color:
         return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
 
     def as_rgb(self) -> tuple[int, int, int]:
-        """
-        Returns the color as an RGB tuple.
+        """Returns the color as an RGB tuple.
 
         Returns:
             RGB tuple.
@@ -302,8 +305,7 @@ class Color:
         return self.r, self.g, self.b
 
     def as_bgr(self) -> tuple[int, int, int]:
-        """
-        Returns the color as a BGR tuple.
+        """Returns the color as a BGR tuple.
 
         Returns:
             BGR tuple.
@@ -319,8 +321,7 @@ class Color:
         return self.b, self.g, self.r
 
     def as_rgba(self) -> tuple[int, int, int, int]:
-        """
-        Returns the color as an RGBA tuple.
+        """Returns the color as an RGBA tuple.
 
         Returns:
             RGBA tuple.
@@ -336,8 +337,7 @@ class Color:
         return self.r, self.g, self.b, self.a
 
     def as_bgra(self) -> tuple[int, int, int, int]:
-        """
-        Returns the color as a BGRA tuple.
+        """Returns the color as a BGRA tuple.
 
         Returns:
             BGRA tuple.
@@ -408,8 +408,7 @@ class ColorPalette:
 
     @classproperty
     def DEFAULT(cls) -> ColorPalette:
-        """
-        Returns a default color palette.
+        """Returns a default color palette.
 
         Returns:
             A ColorPalette instance with default colors.
@@ -429,8 +428,7 @@ class ColorPalette:
 
     @classproperty
     def ROBOFLOW(cls) -> ColorPalette:
-        """
-        Returns a Roboflow color palette.
+        """Returns a Roboflow color palette.
 
         Returns:
             A ColorPalette instance with Roboflow colors.
@@ -454,8 +452,7 @@ class ColorPalette:
 
     @classmethod
     def from_hex(cls, color_hex_list: list[str]) -> ColorPalette:
-        """
-        Create a ColorPalette instance from a list of hex strings.
+        """Create a ColorPalette instance from a list of hex strings.
 
         Args:
             color_hex_list: List of color hex strings.
@@ -477,8 +474,7 @@ class ColorPalette:
 
     @classmethod
     def from_matplotlib(cls, palette_name: str, color_count: int) -> ColorPalette:
-        """
-        Create a ColorPalette instance from a Matplotlib color palette.
+        """Create a ColorPalette instance from a Matplotlib color palette.
 
         Args:
             palette_name: Name of the Matplotlib palette.
@@ -491,27 +487,45 @@ class ColorPalette:
             ```pycon
             >>> import supervision as sv
             >>> sv.ColorPalette.from_matplotlib('viridis', 5)  # doctest: +ELLIPSIS
-            ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=58, g=82, b=139), ...])
+            ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 
             ```
 
         ![visualized_color_palette](https://media.roboflow.com/
         supervision-annotator-examples/visualized_color_palette.png)
         """
-        mpl_palette = plt.get_cmap(palette_name, color_count)
+        if color_count < 1:
+            raise ValueError("color_count must be greater than or equal to 1")
+
+        # Keep pyplot lazy so importing color utilities does not import matplotlib.
+        import matplotlib.pyplot as plt
+
+        mpl_palette = plt.get_cmap(palette_name)
+        if hasattr(mpl_palette, "resampled"):
+            mpl_palette = mpl_palette.resampled(color_count)
 
         if hasattr(mpl_palette, "colors"):
             colors = mpl_palette.colors
         else:
-            colors = [mpl_palette(i / (color_count - 1)) for i in range(color_count)]
+            # A single color samples the palette start and avoids division by zero.
+            positions = (
+                [0.0]
+                if color_count == 1
+                else [i / (color_count - 1) for i in range(color_count)]
+            )
+            colors = [mpl_palette(position) for position in positions]
 
+        # Round like `matplotlib.colors.to_hex`; truncating turns channels stored as
+        # `n / 255` floats, such as 0.0902 for 23, into `n - 1`.
         return cls(
-            [Color(int(r * 255), int(g * 255), int(b * 255)) for r, g, b, _ in colors]
+            [
+                Color(round(r * 255), round(g * 255), round(b * 255))
+                for r, g, b, _ in colors
+            ]
         )
 
     def by_idx(self, idx: int) -> Color:
-        """
-        Return the color at a given index in the palette.
+        """Return the color at a given index in the palette.
 
         Args:
             idx: Index of the color in the palette.
@@ -529,14 +543,14 @@ class ColorPalette:
 
             ```
         """
-        if idx < 0:
-            raise ValueError("idx argument should not be negative")
+        if not self.colors:
+            raise ValueError("ColorPalette must contain at least one color")
+        # Modulo preserves Python-like wrapping for negative and oversized indexes.
         idx = idx % len(self.colors)
         return self.colors[idx]
 
     def __len__(self) -> int:
-        """
-        Returns the number of colors in the palette.
+        """Returns the number of colors in the palette.
 
         Returns:
             The number of colors.
@@ -545,12 +559,11 @@ class ColorPalette:
 
 
 def unify_to_bgr(color: tuple[int, int, int] | Color) -> tuple[int, int, int]:
-    """
-    Converts a color input in multiple formats to a standardized BGR format.
+    """Converts a color input in multiple formats to a standardized BGR format.
 
     Args:
         color: The color input to be converted,
-            which can be either a tuple of RGB values or an instance of a Color class.
+            which can be either a tuple of BGR values or an instance of a Color class.
 
     Returns:
         The color in BGR format as a tuple of three integers.

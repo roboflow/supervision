@@ -16,7 +16,7 @@
 
 [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision) [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision) [![license](https://img.shields.io/pypi/l/supervision)](LICENSE.md) [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision) [![codecov](https://codecov.io/gh/roboflow/supervision/graph/badge.svg?token=HMNJ5FVZ36)](https://codecov.io/gh/roboflow/supervision)
 
-[![snyk](https://snyk.io/advisor/python/supervision/badge.svg)](https://snyk.io/advisor/python/supervision) [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb) [![gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators) [![discord](https://img.shields.io/discord/1159501506232451173?logo=discord&label=discord&labelColor=fff&color=5865f2&link=https%3A%2F%2Fdiscord.gg%2FGbfgXGJ8Bk)](https://discord.gg/GbfgXGJ8Bk)
+[![Snyk Security](https://img.shields.io/badge/Snyk-Security-4C4A73?logo=snyk)](https://security.snyk.io/package/pip/supervision) [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb) [![gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators) [![discord](https://img.shields.io/discord/1159501506232451173?logo=discord&label=discord&labelColor=fff&color=5865f2&link=https%3A%2F%2Fdiscord.gg%2FGbfgXGJ8Bk)](https://discord.gg/GbfgXGJ8Bk)
 
 <div align="center">
     <a href="https://trendshift.io/repositories/124"  target="_blank"><img src="https://trendshift.io/api/badge/repositories/124" alt="roboflow%2Fsupervision | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -30,9 +30,9 @@
 - [👋 Hello](#-hello)
 - [💻 Install](#-install)
 - [🔥 Quickstart](#-quickstart)
-    - [Models](#models)
-    - [Annotators](#annotators)
-    - [Datasets](#datasets)
+  - [Models](#models)
+  - [Annotators](#annotators)
+  - [Datasets](#datasets)
 - [🎬 Tutorials](#-tutorials)
 - [💜 Built with Supervision](#-built-with-supervision)
 - [📚 Documentation](#-documentation)
@@ -46,13 +46,13 @@
 
 ## 💻 Install
 
-Pip install the supervision package in a [**Python>=3.9**](https://www.python.org/) environment.
+Pip install the supervision package in a [**Python>=3.10**](https://www.python.org/) environment.
 
 ```bash
 pip install supervision
 ```
 
-Read more about conda, mamba, and installing from source in our [guide](https://roboflow.github.io/supervision/).
+Read more about conda, mamba, and installing from source in our [guide](https://supervision.roboflow.com/).
 
 ## 🔥 Quickstart
 
@@ -80,21 +80,21 @@ len(detections)
 
 - inference
 
-    Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
+  Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
-    ```python
-    import supervision as sv
-    from PIL import Image
-    from inference import get_model
+  ```python
+  import supervision as sv
+  from PIL import Image
+  from inference import get_model
 
-    image = Image.open("path/to/image.jpg")
-    model = get_model(model_id="rfdetr-small", api_key="ROBOFLOW_API_KEY")
-    result = model.infer(image)[0]
-    detections = sv.Detections.from_inference(result)
+  image = Image.open("path/to/image.jpg")
+  model = get_model(model_id="rfdetr-small", api_key="ROBOFLOW_API_KEY")
+  result = model.infer(image)[0]
+  detections = sv.Detections.from_inference(result)
 
-    len(detections)
-    # 5
-    ```
+  len(detections)
+  # 5
+  ```
 
 </details>
 
@@ -145,88 +145,88 @@ for path, image, annotation in ds:
 
 - load
 
-    ```python
-    dataset = sv.DetectionDataset.from_yolo(
-        images_directory_path=...,
-        annotations_directory_path=...,
-        data_yaml_path=...,
-    )
+  ```python
+  dataset = sv.DetectionDataset.from_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...,
+  )
 
-    dataset = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=...,
-        annotations_directory_path=...,
-    )
+  dataset = sv.DetectionDataset.from_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...,
+  )
 
-    dataset = sv.DetectionDataset.from_coco(
-        images_directory_path=...,
-        annotations_path=...,
-    )
-    ```
+  dataset = sv.DetectionDataset.from_coco(
+      images_directory_path=...,
+      annotations_path=...,
+  )
+  ```
 
 - split
 
-    ```python
-    train_dataset, test_dataset = dataset.split(split_ratio=0.7)
-    test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
+  ```python
+  train_dataset, test_dataset = dataset.split(split_ratio=0.7)
+  test_dataset, valid_dataset = test_dataset.split(split_ratio=0.5)
 
-    len(train_dataset), len(test_dataset), len(valid_dataset)
-    # (700, 150, 150)
-    ```
+  len(train_dataset), len(test_dataset), len(valid_dataset)
+  # (700, 150, 150)
+  ```
 
 - merge
 
-    ```python
-    ds_1 = sv.DetectionDataset(...)
-    len(ds_1)
-    # 100
-    ds_1.classes
-    # ['dog', 'person']
+  ```python
+  ds_1 = sv.DetectionDataset(...)
+  len(ds_1)
+  # 100
+  ds_1.classes
+  # ['dog', 'person']
 
-    ds_2 = sv.DetectionDataset(...)
-    len(ds_2)
-    # 200
-    ds_2.classes
-    # ['cat']
+  ds_2 = sv.DetectionDataset(...)
+  len(ds_2)
+  # 200
+  ds_2.classes
+  # ['cat']
 
-    ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
-    len(ds_merged)
-    # 300
-    ds_merged.classes
-    # ['cat', 'dog', 'person']
-    ```
+  ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+  len(ds_merged)
+  # 300
+  ds_merged.classes
+  # ['cat', 'dog', 'person']
+  ```
 
 - save
 
-    ```python
-    dataset.as_yolo(
-        images_directory_path=...,
-        annotations_directory_path=...,
-        data_yaml_path=...,
-    )
+  ```python
+  dataset.as_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...,
+  )
 
-    dataset.as_pascal_voc(
-        images_directory_path=...,
-        annotations_directory_path=...,
-    )
+  dataset.as_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...,
+  )
 
-    dataset.as_coco(
-        images_directory_path=...,
-        annotations_path=...,
-    )
-    ```
+  dataset.as_coco(
+      images_directory_path=...,
+      annotations_path=...,
+  )
+  ```
 
 - convert
 
-    ```python
-    sv.DetectionDataset.from_yolo(
-        images_directory_path=...,
-        annotations_directory_path=...,
-        data_yaml_path=...,
-    ).as_pascal_voc(
-        images_directory_path=...,
-        annotations_directory_path=...,
-    )
-    ```
+  ```python
+  sv.DetectionDataset.from_yolo(
+      images_directory_path=...,
+      annotations_directory_path=...,
+      data_yaml_path=...,
+  ).as_pascal_voc(
+      images_directory_path=...,
+      annotations_directory_path=...,
+  )
+  ```
 
 </details>
 
@@ -262,7 +262,7 @@ https://github.com/roboflow/supervision/assets/26109316/3ac6982f-4943-4108-9b7f-
 
 ## 📚 Documentation
 
-Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably.
+Visit our [documentation](https://supervision.roboflow.com/) page to learn how supervision can help you build computer vision applications faster and more reliably.
 
 ## 🏆 Contribution
 
