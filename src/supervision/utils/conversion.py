@@ -238,7 +238,15 @@ def ensure_pil_image_for_class_method(
             )
             scene_pil = cv2_to_pillow(canvas)
             annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
-            np.copyto(canvas, pillow_to_cv2(annotated_pil))
+            annotated: npt.NDArray[np.uint8]
+            if canvas.ndim == 3 and canvas.shape[2] == 4:
+                # `pillow_to_cv2` drops alpha like `cv2.imread`; a BGRA scene was
+                # annotated as RGBA, so it is read back with its alpha channel.
+                rgba = np.asarray(annotated_pil.convert("RGBA"))
+                annotated = rgba[:, :, [2, 1, 0, 3]]
+            else:
+                annotated = pillow_to_cv2(annotated_pil)
+            np.copyto(canvas, annotated)
             return scene
 
         if isinstance(scene, Image.Image):
