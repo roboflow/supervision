@@ -142,14 +142,91 @@ class TestFromUltralyticsSemanticSegmentation:
 
         assert len(det) == 0
         assert det.mask is None
+        assert det.xyxy.shape == (0, 4)
+        assert det.confidence is not None
+        assert det.confidence.shape == (0,)
         assert len(det.data[CLASS_NAME_DATA_FIELD]) == 0
+
+    def test_unnamed_id_other_than_255_is_skipped(self) -> None:
+        """Any ID missing from `names` is skipped, not only the `255` ignore label."""
+        class_map = np.array([[0, 7], [2, 2]], dtype=np.uint8)
+        results = _semantic_results(class_map, names={0: "road", 2: "person"})
+
+        det = Detections.from_ultralytics(results)
+
+        np.testing.assert_array_equal(det.class_id, [0, 2])
+        np.testing.assert_array_equal(det.mask, [class_map == 0, class_map == 2])
+
+    def test_single_class_map_ignores_ids_other_than_one(self) -> None:
+        """A single-class model keeps only the `1` pixels, not other positive IDs."""
+        class_map = np.array([[0, 1, 2], [2, 1, 0]], dtype=np.uint8)
+        results = _semantic_results(class_map, names={0: "crack"})
+
+        det = Detections.from_ultralytics(results)
+
+        np.testing.assert_array_equal(det.class_id, [0])
+        np.testing.assert_array_equal(det.mask, [class_map == 1])
+
+    @pytest.mark.parametrize("backend", ["numpy", "tensor"])
+    @pytest.mark.parametrize("map_dtype", [np.uint8, np.int16])
+    def test_returns_boolean_masks_and_integer_class_ids(
+        self, backend: str, map_dtype: type
+    ) -> None:
+        """Masks are boolean and class IDs integers for any backend and map dtype."""
+        class_map: np.ndarray = np.array([[0, 0, 1], [1, 1, 0]], dtype=map_dtype)
+        results = _semantic_results(
+            class_map, names={0: "road", 1: "car"}, backend=backend
+        )
+
+        det = Detections.from_ultralytics(results)
+
+        assert det.mask is not None
+        assert det.mask.dtype == np.bool_
+        assert det.mask.shape == (2, 2, 3)
+        assert det.class_id is not None
+        assert np.issubdtype(det.class_id.dtype, np.integer)
+
+    @pytest.mark.parametrize(
+        ("class_map", "class_count", "expected_class_id"),
+        [
+            pytest.param(
+                np.array([[0, 255]], dtype=np.uint8),
+                256,
+                [0, 255],
+                id="uint8-256-classes",
+            ),
+            pytest.param(
+                np.array([[0, 255, 299]], dtype=np.int16),
+                300,
+                [0, 255, 299],
+                id="int16-300-classes",
+            ),
+        ],
+    )
+    def test_keeps_255_as_a_class_on_models_with_256_or_more_classes(
+        self,
+        class_map: np.ndarray,
+        class_count: int,
+        expected_class_id: list[int],
+    ) -> None:
+        """`255` is a real class on a model with 256 or more classes, as in summary."""
+        names = {i: f"class-{i}" for i in range(class_count)}
+        results = _semantic_results(class_map, names=names)
+
+        det = Detections.from_ultralytics(results)
+
+        np.testing.assert_array_equal(det.class_id, expected_class_id)
+        np.testing.assert_array_equal(
+            det.mask, [class_map == class_id for class_id in expected_class_id]
+        )
 
 
 def _semantic_results(
-    class_map: np.ndarray, names: dict[int, str]
+    class_map: np.ndarray, names: dict[int, str], backend: str = "tensor"
 ) -> _FakeUltralyticsResults:
     """Build Ultralytics results holding only a semantic class map."""
-    semantic_mask = SimpleNamespace(data=_FakeTensor(class_map))
+    data = class_map if backend == "numpy" else _FakeTensor(class_map)
+    semantic_mask = SimpleNamespace(data=data)
     return _FakeUltralyticsResults(boxes=None, names=names, semantic_mask=semantic_mask)
 
 
