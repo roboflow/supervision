@@ -5,7 +5,7 @@ import sys
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from weakref import ReferenceType, ref
 
 import numpy as np
@@ -251,12 +251,26 @@ class TestYoloCompactMasks:
 
     @_with_raster_backend
     @_skip_unless_cpython
-    def test_encodes_each_polygon_before_rasterizing_the_next(self) -> None:
-        """CPython-only: each full frame is freed before the next polygon is drawn."""
+    @patch(
+        "supervision.dataset.formats.yolo._polygons_to_masks",
+        autospec=True,
+        side_effect=AssertionError("dense batch allocation"),
+    )
+    @patch("supervision.detection.compact_mask.polygon_to_mask", autospec=True)
+    def test_encodes_each_polygon_before_rasterizing_the_next(
+        self,
+        mock_rasterize: MagicMock,
+        mock_dense_batch: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """CPython-only: each full frame is freed before the next polygon is drawn.
+
+        ``from_dense`` is replaced through ``monkeypatch`` rather than a mock because a
+        mock records its call arguments, which would keep every dense frame alive.
+        """
         lines = ["0 0.1 0.2 0.2 0.2 0.2 0.3"] * 8
         original_encode = CompactMask.from_dense
         encoded: list[tuple[int, ...]] = []
-        rasterized: list[tuple[int, int]] = []
         frames: list[ReferenceType[npt.NDArray[np.bool_]]] = []
 
         def rasterize(
@@ -264,7 +278,6 @@ class TestYoloCompactMasks:
         ) -> npt.NDArray[np.uint8]:
             """Require the previous full frame to be released before drawing."""
             assert not frames or frames[-1]() is None
-            rasterized.append(resolution_wh)
             return polygon_to_mask(polygon, resolution_wh)
 
         def encode_one(
@@ -279,20 +292,16 @@ class TestYoloCompactMasks:
             frames.append(ref(masks.base))
             return original_encode(masks=masks, xyxy=xyxy, image_shape=image_shape)
 
-        with (
-            patch(
-                "supervision.dataset.formats.yolo._polygons_to_masks",
-                side_effect=AssertionError("dense batch allocation"),
-            ),
-            patch("supervision.detection.compact_mask.polygon_to_mask", new=rasterize),
-            patch.object(CompactMask, "from_dense", new=encode_one),
-        ):
-            actual = yolo_annotations_to_detections(
-                lines, (100, 80), with_masks=True, compact_masks=True
-            )
+        mock_rasterize.side_effect = rasterize
+        monkeypatch.setattr(CompactMask, "from_dense", encode_one)
 
+        actual = yolo_annotations_to_detections(
+            lines, (100, 80), with_masks=True, compact_masks=True
+        )
+
+        mock_dense_batch.assert_not_called()
         assert isinstance(actual.mask, CompactMask)
-        assert len(rasterized) == 8
+        assert mock_rasterize.call_count == 8
         assert encoded == [(1, 80, 100)] * 8
         assert all(frame() is None for frame in frames)
         assert np.all(actual.mask.bbox_xyxy == [10, 16, 20, 24])
