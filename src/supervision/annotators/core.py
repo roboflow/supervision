@@ -42,7 +42,12 @@ from supervision.detection.utils.converters import (
 from supervision.detection.utils.masks import _masks_to_roi
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
+from supervision.draw.utils import (
+    _composite_over_bgra,
+    draw_polygon,
+    draw_rounded_rectangle,
+    draw_text,
+)
 from supervision.geometry.core import Point, Position, Rect
 from supervision.utils.conversion import (
     ensure_cv2_image_for_class_method,
@@ -483,6 +488,11 @@ def _color_for_canvas(
     return color_bgr
 
 
+def _is_bgra(scene: npt.NDArray[np.uint8]) -> bool:
+    """Return whether `scene` is a four-channel BGRA array, shaped ``(H, W, 4)``."""
+    return scene.ndim == 3 and scene.shape[2] == 4
+
+
 def _pillow_fill(color: Color, mode: str) -> float | tuple[int, ...]:
     """Return `color` as the fill Pillow's `ImageDraw` accepts for a scene of `mode`.
 
@@ -695,13 +705,20 @@ class MaskAnnotator(BaseAnnotator):
         x1, y1, x2, y2 = roi
         scene_roi = scene[y1:y2, x1:x2]
         colored_mask = np.array(scene_roi, copy=True, dtype=np.uint8)
-        _paint_masks_by_area(
+        painted = _paint_masks_by_area(
             colored_mask,
             detections,
             self.color,
             effective_lookup,
+            collect_union=_is_bgra(scene_roi),
             canvas_origin=(x1, y1),
         )
+        if painted is not None:
+            # BGRA: composite only the painted pixels, weighting the scene's color
+            # by its alpha so a transparent scene does not darken the mask.
+            alpha = (self.opacity * painted[..., np.newaxis]).astype(np.float32)
+            scene_roi[:] = _composite_over_bgra(scene_roi, colored_mask[..., :3], alpha)
+            return scene
         tmp = cv2.addWeighted(
             colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
         )
@@ -1006,10 +1023,14 @@ class HaloAnnotator(BaseAnnotator):
             return scene
         alpha = self.opacity * gray / gray_max
         alpha_mask = alpha if scene.ndim == 2 else alpha[:, :, np.newaxis]
-        if scene.ndim == 3 and scene.shape[2] == 4:
-            # The blur fades the halo's alpha channel like its colors; keep it opaque
-            # so the halo composites over a BGRA scene without making it transparent.
-            colored_mask[..., 3] = 255
+        if _is_bgra(scene):
+            # The blurred alpha channel is not used: the halo's coverage is `alpha`,
+            # composited over the scene so its hidden colors do not darken it.
+            halo_alpha = alpha_mask.astype(np.float32)
+            np.copyto(
+                scene, _composite_over_bgra(scene, colored_mask[..., :3], halo_alpha)
+            )
+            return scene
         # Blend in float space so halo opacity cannot wrap around uint8 boundaries.
         blended_scene = np.clip(
             scene.astype(np.float32) * (1 - alpha_mask)
@@ -3452,9 +3473,15 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             scene, _color_for_canvas(self.color.as_bgr(), scene), dtype=np.uint8
         )
 
-        cv2.addWeighted(
-            scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
-        )
+        if _is_bgra(scene):
+            # Composited over the scene's alpha, so a transparent scene does not
+            # darken the overlay color.
+            alpha = np.full((*scene.shape[:2], 1), self.opacity, dtype=np.float32)
+            colored_mask = _composite_over_bgra(scene, colored_mask[..., :3], alpha)
+        else:
+            cv2.addWeighted(
+                scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
+            )
 
         if detections.mask is None or self.force_box:
             image_height, image_width = scene.shape[:2]
@@ -3596,6 +3623,15 @@ class ComparisonAnnotator:
         )
         color_layer[mask_1] = _color_for_canvas(self.color_1.as_bgr(), scene)
         color_layer[mask_2] = _color_for_canvas(self.color_2.as_bgr(), scene)
+
+        if _is_bgra(scene):
+            # Composited over the scene's alpha, so a transparent scene does not
+            # darken the comparison colors.
+            drawn = (mask_overlap | mask_1 | mask_2)[..., np.newaxis]
+            alpha = (self.opacity * drawn).astype(np.float32)
+            scene[:] = _composite_over_bgra(scene, color_layer[..., :3], alpha)
+            self._draw_labels(scene)
+            return scene
 
         scene[mask_overlap] = (1 - self.opacity) * scene[
             mask_overlap

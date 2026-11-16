@@ -1006,7 +1006,11 @@ class TestBgraMaskAnnotators:
         | ComparisonAnnotator,
         compact: bool,
     ) -> None:
-        """An opaque BGRA scene gets the BGR result and keeps an opaque alpha."""
+        """An opaque BGRA scene gets the BGR result and keeps an opaque alpha.
+
+        BGRA compositing rounds where some BGR blends truncate, so colors may differ
+        by one level.
+        """
         bgr = np.arange(30 * 40 * 3, dtype=np.uint8).reshape(30, 40, 3)
         scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
         detections = self._detections(compact=compact)
@@ -1016,9 +1020,67 @@ class TestBgraMaskAnnotators:
 
         assert result is scene
         assert result.shape == (30, 40, 4)
-        np.testing.assert_array_equal(result[..., :3], expected)
+        np.testing.assert_allclose(
+            result[..., :3].astype(np.int16), expected.astype(np.int16), atol=1
+        )
         assert not np.array_equal(result[..., :3], bgr)
         np.testing.assert_array_equal(result[..., 3], 255)
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(MaskAnnotator(opacity=0.4), id="mask"),
+            pytest.param(HaloAnnotator(kernel_size=5), id="halo"),
+            pytest.param(
+                BackgroundOverlayAnnotator(opacity=0.4), id="background-overlay"
+            ),
+            pytest.param(ComparisonAnnotator(opacity=0.4), id="comparison"),
+        ],
+    )
+    def test_hidden_colors_of_transparent_bgra_scene_do_not_show(
+        self,
+        annotator: MaskAnnotator
+        | HaloAnnotator
+        | BackgroundOverlayAnnotator
+        | ComparisonAnnotator,
+    ) -> None:
+        """On a fully transparent scene, its hidden colors do not tint annotations."""
+        detections = self._detections()
+        black = np.zeros((30, 40, 4), dtype=np.uint8)
+        white = black.copy()
+        white[..., :3] = 255
+
+        on_black = self._annotate(annotator, black, detections)
+        on_white = self._annotate(annotator, white, detections)
+
+        drawn = on_black[..., 3] > 0
+        assert drawn.any()
+        np.testing.assert_array_equal(on_black[drawn], on_white[drawn])
+
+    @pytest.mark.parametrize(
+        "scene_alpha",
+        [pytest.param(0, id="transparent"), pytest.param(128, id="translucent")],
+    )
+    def test_mask_composites_fractional_opacity_over_bgra_scene(
+        self, scene_alpha: int
+    ) -> None:
+        """A translucent mask composites over the scene's alpha ("over" operator)."""
+        scene = np.full((30, 40, 4), (0, 0, 0, scene_alpha), dtype=np.uint8)
+        color = Color(r=10, g=20, b=200)
+        opacity = 0.4
+        scene_weight = (1 - opacity) * scene_alpha / 255
+        output_alpha = opacity + scene_weight
+        expected = [
+            *(opacity * value / output_alpha for value in (color.b, color.g, color.r)),
+            255 * output_alpha,
+        ]
+
+        result = MaskAnnotator(color=color, opacity=opacity).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        np.testing.assert_allclose(result[12, 18], expected, atol=1)
+        assert result[2, 2].tolist() == [0, 0, 0, scene_alpha]
 
     def test_mask_composites_over_transparent_bgra_scene(self) -> None:
         """A fully opaque mask makes its pixels opaque and leaves the rest as is."""
