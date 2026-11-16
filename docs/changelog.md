@@ -11,6 +11,8 @@ date_modified: 2026-10-31
 
 - Passing a `list[sv.Color]` as `color` or `text_color` to `sv.VertexLabelAnnotator` is deprecated in `0.32.0` and will be removed in `0.35.0`. Use a `sv.ColorPalette` or a single `sv.Color` instead. ([#2343](https://github.com/roboflow/supervision/pull/2343))
 
+- `resolve_color`, `resolve_color_idx` and `get_color_by_index` in `supervision.annotators.utils` are deprecated in `0.32.0` and will be removed in `0.35.0`. They now emit a `FutureWarning` and forward to private helpers; annotators no longer depend on them, and `from supervision.annotators.core import resolve_color` still imports. ([#2343](https://github.com/roboflow/supervision/pull/2343))
+
 - `sv.Detections.remap_classes` skips repeated full-list scans when the target class names are unique, preserving the existing duplicate-name error. ([#2986](https://github.com/roboflow/supervision/pull/2986))
 
 - `sv.DetectionDataset.from_yolo(..., compact_masks=True)` now keeps segmentation masks as `sv.CompactMask`, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and `force_masks=True` can also produce compact box masks. ([#2834](https://github.com/roboflow/supervision/pull/2834))

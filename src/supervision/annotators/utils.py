@@ -173,51 +173,18 @@ def _resolve_detection_color_idx(
     )
 
 
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color_idx,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+)
 def resolve_color_idx(
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
-    """Resolve the palette index used to color a single detection.
-
-    Args:
-        detections: The detections being annotated.
-        detection_idx: Index of the detection whose palette index to resolve.
-        color_lookup: Strategy for mapping colors. Also accepts a custom
-            `np.ndarray` of integer indices, one per detection.
-
-    Returns:
-        An integer index suitable for
-        :meth:`~supervision.draw.color.ColorPalette.by_idx`.
-
-    Raises:
-        ValueError: If `detection_idx` is out of bounds, a custom lookup array
-            does not match the number of detections, or the field required by
-            `color_lookup` is missing from `detections`.
-
-    Examples:
-        ```pycon
-        >>> import numpy as np
-        >>> import supervision as sv
-        >>> from supervision.annotators.utils import resolve_color_idx
-        >>> detections = sv.Detections(
-        ...     xyxy=np.array([[0, 0, 10, 10], [5, 5, 20, 20]], dtype=np.float32),
-        ...     class_id=np.array([3, 7]),
-        ... )
-        >>> resolve_color_idx(
-        ...     detections=detections,
-        ...     detection_idx=1,
-        ...     color_lookup=sv.ColorLookup.CLASS,
-        ... )
-        7
-
-        ```
-    """
-    return _resolve_detection_color_idx(
-        detections=detections,
-        detection_idx=detection_idx,
-        color_lookup=color_lookup,
-    )
+    """Deprecated: resolve the palette index used to color a single detection."""
+    return cast(int, void(detections, detection_idx, color_lookup))
 
 
 def resolve_text_background_xyxy(
@@ -292,32 +259,14 @@ def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     )
 
 
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_get_color_by_index,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+)
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
-    """Pick the color drawn for a palette index.
-
-    A single :class:`~supervision.draw.color.Color` is returned unchanged for every
-    index; a :class:`~supervision.draw.color.ColorPalette` is looked up with
-    :meth:`~supervision.draw.color.ColorPalette.by_idx`, which wraps around the
-    palette length.
-
-    Args:
-        color: A single color or a palette to pick from.
-        idx: Palette index to resolve.
-
-    Returns:
-        The resolved :class:`~supervision.draw.color.Color`.
-
-    Examples:
-        ```pycon
-        >>> import supervision as sv
-        >>> from supervision.annotators.utils import get_color_by_index
-        >>> palette = sv.ColorPalette.from_hex(["#ff0000", "#00ff00"])
-        >>> get_color_by_index(color=palette, idx=3).as_hex()
-        '#00ff00'
-
-        ```
-    """
-    return _get_color_by_index(color=color, idx=idx)
+    """Deprecated: pick the color drawn for a palette index."""
+    return cast(Color, void(color, idx))
 
 
 def _resolve_detection_color(
@@ -353,58 +302,19 @@ def _resolve_detection_color(
     return _get_color_by_index(color=color, idx=idx)
 
 
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+)
 def resolve_color(
     color: Color | ColorPalette,
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> Color:
-    """Resolve the color used to draw a single detection.
-
-    Tracks still pending a tracker ID are drawn in a neutral grey when colors are
-    looked up by track.
-
-    Args:
-        color: A single color or a palette to pick from.
-        detections: The detections being annotated.
-        detection_idx: Index of the detection whose color to resolve.
-        color_lookup: Strategy for mapping colors. Also accepts a custom
-            `np.ndarray` of integer indices, one per detection.
-
-    Returns:
-        The resolved :class:`~supervision.draw.color.Color`.
-
-    Raises:
-        ValueError: If `detection_idx` is out of bounds, a custom lookup array
-            does not match the number of detections, or the field required by
-            `color_lookup` is missing from `detections`.
-
-    Examples:
-        ```pycon
-        >>> import numpy as np
-        >>> import supervision as sv
-        >>> from supervision.annotators.utils import resolve_color
-        >>> detections = sv.Detections(
-        ...     xyxy=np.array([[0, 0, 10, 10], [5, 5, 20, 20]], dtype=np.float32),
-        ...     class_id=np.array([0, 1]),
-        ... )
-        >>> palette = sv.ColorPalette.from_hex(["#ff0000", "#00ff00"])
-        >>> resolve_color(
-        ...     color=palette,
-        ...     detections=detections,
-        ...     detection_idx=1,
-        ...     color_lookup=sv.ColorLookup.CLASS,
-        ... ).as_hex()
-        '#00ff00'
-
-        ```
-    """
-    return _resolve_detection_color(
-        color=color,
-        detections=detections,
-        detection_idx=detection_idx,
-        color_lookup=color_lookup,
-    )
+    """Deprecated: resolve the color used to draw a single detection."""
+    return cast(Color, void(color, detections, detection_idx, color_lookup))
 
 
 def _resolve_annotator_color(
