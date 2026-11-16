@@ -1008,8 +1008,8 @@ class TestBgraMaskAnnotators:
     ) -> None:
         """An opaque BGRA scene gets the BGR result and keeps an opaque alpha.
 
-        BGRA compositing rounds where some BGR blends truncate, so colors may differ
-        by one level.
+        BGRA compositing rounds where some BGR blends truncate, so colors may differ by
+        one level.
         """
         bgr = np.arange(30 * 40 * 3, dtype=np.uint8).reshape(30, 40, 3)
         scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
