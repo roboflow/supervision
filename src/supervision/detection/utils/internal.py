@@ -109,6 +109,17 @@ def extract_ultralytics_semantic_masks(
     model writes `1` for its class over a `0` background, and IDs missing from
     `names`, such as the `255` that `classes` filtering writes, are ignored.
 
+    The class map is split here instead of through
+    :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`
+    because that path copies the map to `int64`, collects one mask per class in a
+    list before stacking them, and returns floating-point `xyxy`, which costs more
+    time and memory on large maps and differs from the integer `xyxy` that
+    :func:`~supervision.detection.utils.converters.mask_to_xyxy` gives the other
+    mask-only branch of
+    :meth:`~supervision.detection.core.Detections.from_ultralytics`. It also keeps
+    IDs missing from the class map under their number, where this helper skips
+    them as `Results.summary` does.
+
     Args:
         ultralytics_results: Ultralytics results object with `.semantic_mask` and
             `.names`.

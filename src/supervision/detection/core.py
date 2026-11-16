@@ -400,6 +400,12 @@ class Detections:
             class_id, semantic_masks = extract_ultralytics_semantic_masks(
                 ultralytics_results
             )
+            if len(class_id) == 0:
+                # A map with no named class returns the same empty form as the
+                # other branches, not a (0, H, W) mask.
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
             class_names = np.array(
                 [ultralytics_results.names[i] for i in class_id], dtype=str
             )

@@ -141,8 +141,7 @@ class TestFromUltralyticsSemanticSegmentation:
         det = Detections.from_ultralytics(results)
 
         assert len(det) == 0
-        assert det.mask is not None
-        assert det.mask.shape == (0, 2, 2)
+        assert det.mask is None
         assert len(det.data[CLASS_NAME_DATA_FIELD]) == 0
 
 
