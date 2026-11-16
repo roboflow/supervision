@@ -168,11 +168,14 @@ class TestFromUltralyticsSemanticSegmentation:
         np.testing.assert_array_equal(det.mask, [class_map == 1])
 
     @pytest.mark.parametrize("backend", ["numpy", "tensor"])
-    @pytest.mark.parametrize("map_dtype", [np.uint8, np.int16])
-    def test_returns_boolean_masks_and_integer_class_ids(
+    @pytest.mark.parametrize(
+        "map_dtype",
+        [pytest.param(np.uint8, id="uint8"), pytest.param(np.int16, id="int16")],
+    )
+    def test_returns_boolean_masks_and_integer_ids_and_boxes(
         self, backend: str, map_dtype: type
     ) -> None:
-        """Masks are boolean and class IDs integers for any backend and map dtype."""
+        """Masks are boolean, class IDs and boxes integer for any backend and dtype."""
         class_map: np.ndarray = np.array([[0, 0, 1], [1, 1, 0]], dtype=map_dtype)
         results = _semantic_results(
             class_map, names={0: "road", 1: "car"}, backend=backend
@@ -185,6 +188,7 @@ class TestFromUltralyticsSemanticSegmentation:
         assert det.mask.shape == (2, 2, 3)
         assert det.class_id is not None
         assert np.issubdtype(det.class_id.dtype, np.integer)
+        assert np.issubdtype(det.xyxy.dtype, np.integer)
 
     @pytest.mark.parametrize(
         ("class_map", "class_count", "expected_class_id"),
