@@ -709,8 +709,8 @@ def test_overlay_image_composites_bgra_overlay_over_bgra_scene(
 ) -> None:
     """A BGRA overlay composites over a BGRA scene with the "over" operator.
 
-    The scene's hidden color counts only as far as the scene is opaque, so an
-    overlay on a transparent scene keeps its own color.
+    The scene's hidden color counts only as far as the scene is opaque, so an overlay on
+    a transparent scene keeps its own color.
     """
     # given
     image = np.full((1, 1, 4), (22, 22, 22, scene_alpha), dtype=np.uint8)
