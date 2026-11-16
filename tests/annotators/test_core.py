@@ -3243,18 +3243,3 @@ class TestTraceAnnotatorPendingTracks:
         )
 
         assert tuple(scene[50, 60]) == Color.BLUE.as_bgr()
-
-
-class TestResolveColorReexport:
-    def test_import_from_core_is_warning_free_alias(self) -> None:
-        """Importing `resolve_color` from core yields the utils helper, no warning."""
-        # Arrange
-        import supervision.annotators.utils as annotators_utils
-
-        # Act
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            from supervision.annotators.core import resolve_color
-
-        # Assert
-        assert resolve_color is annotators_utils.resolve_color

@@ -30,9 +30,6 @@ from supervision.annotators.utils import (
     snap_boxes,
     wrap_text,
 )
-from supervision.annotators.utils import (
-    resolve_color as resolve_color,  # backward compat: explicit re-export from core
-)
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
