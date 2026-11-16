@@ -1808,7 +1808,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         Args:
             scene: The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale scenes, shaped `(H, W)` or
+                `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`,
+                `I`, `F` or `I;16`), are supported.
             detections: Object detections to annotate.
             labels: Custom labels for each detection.
             custom_color_lookup: Custom color lookup array.
@@ -2021,12 +2023,16 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                 khatt = self._rtl_engine(draw, line)
                 if khatt is not None:
                     # Right-aligned in the box, with its ink top where Pillow's
-                    # lines start
+                    # lines start. Oversized boxes extend beyond the frame, so
+                    # align shaped RTL text to the visible right edge instead.
                     _left, top, right, _bottom = self._text_bbox(draw, line)
+                    right_edge = box_xyxy[2]
+                    if self.smart_position and box_xyxy[2] - box_xyxy[0] > scene.width:
+                        right_edge = min(right_edge, scene.width)
                     khatt.draw_text(
                         scene,
                         (
-                            box_xyxy[2] - self.text_padding - right,
+                            right_edge - self.text_padding - right,
                             y_position + text_top - top,
                         ),
                         line,

@@ -21,10 +21,15 @@ def ensure_cv2_image_for_class_method(
     implementations, converts scene to an image type used internally by the annotators,
     and converts back when annotation is complete.
 
-    Assumes the annotators modify the scene in-place.
+    Assumes the annotators modify the scene in-place. A Pillow scene is updated in
+    place and only the pixels the annotator drew change. On a palette scene (modes
+    `P` and `PA`), RGB palettes add drawn colors in opaque slots unused by untouched
+    pixels; RGBA palettes and colors without a free slot use the nearest opaque entry.
 
     Raises:
         TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+        ValueError: If `scene` is a palette image whose palette is full and has no
+            opaque entry to draw with.
     """
 
     @functools.wraps(annotate_func)

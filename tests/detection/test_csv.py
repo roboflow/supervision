@@ -3,6 +3,7 @@ import errno
 import io
 import json
 import os
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -1113,3 +1114,98 @@ class TestCSVSinkArrayData:
             rows = list(csv.DictReader(file))
 
         assert [row["values"] for row in rows] == [str(values)] * 2
+
+
+class TestCSVSinkReservedColumns:
+    """Cover collisions with built-in detection columns."""
+
+    @pytest.mark.parametrize("count", [0, 1])
+    @pytest.mark.parametrize(
+        ("field_name", "from_custom_data"),
+        [
+            pytest.param("confidence", True, id="custom-data"),
+            pytest.param("x_min", False, id="detection-data"),
+        ],
+    )
+    def test_rejects_collision_without_writing_a_header(
+        self,
+        tmp_path: Path,
+        count: int,
+        field_name: str,
+        from_custom_data: bool,
+    ) -> None:
+        """An invalid batch cannot establish a CSV schema."""
+        path = tmp_path / "detections.csv"
+        custom_data = {field_name: 0.25} if from_custom_data else None
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]])[:count],
+            confidence=np.full(count, 0.75),
+            data={} if from_custom_data else {field_name: np.full(count, 42)},
+        )
+
+        with CSVSink(str(path)) as sink:
+            with pytest.raises(
+                ValueError, match=rf"reserved CSV column names {field_name}"
+            ):
+                sink.append(detections, custom_data=custom_data)
+
+        assert path.read_bytes() == b""
+
+    @pytest.mark.parametrize(
+        "parse", [CSVSink.parse_detection_data, CSVSink.parse_field_names]
+    )
+    def test_parsers_report_all_conflicts(self, parse: Callable[..., object]) -> None:
+        """The public row and header helpers share the reserved-name policy."""
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]]),
+            data={"x_min": np.array([42])},
+        )
+
+        with pytest.raises(
+            ValueError, match="reserved CSV column names confidence, x_min"
+        ):
+            parse(detections, custom_data={"confidence": 0.25, "x_min": 99})
+
+    def test_rejected_batch_preserves_existing_rows_and_extra_fields(
+        self, tmp_path: Path
+    ) -> None:
+        """A rejected batch leaves the sink usable and valid extra fields intact."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[2.0, 3.0, 7.0, 8.0]]),
+            confidence=np.array([0.75]),
+            data={"frame": np.array([0])},
+        )
+
+        with CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame": 1})
+            with pytest.raises(
+                ValueError, match="reserved CSV column names confidence"
+            ):
+                sink.append(detections, custom_data={"frame": 2, "confidence": 0.25})
+            sink.append(detections, custom_data={"frame": 3})
+
+        with path.open(newline="", encoding="utf-8") as file:
+            rows = list(csv.reader(file))
+        assert rows == [
+            [*csv_sink_module.BASE_HEADER, "frame"],
+            ["2.0", "3.0", "7.0", "8.0", "", "0.75", "", "1"],
+            ["2.0", "3.0", "7.0", "8.0", "", "0.75", "", "3"],
+        ]
+
+    def test_rejected_empty_batch_preserves_deferred_header(
+        self, tmp_path: Path
+    ) -> None:
+        """Rejecting an empty batch retains the previously deferred header."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections.empty()
+
+        with CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame": 1})
+            with pytest.raises(
+                ValueError, match="reserved CSV column names tracker_id"
+            ):
+                sink.append(detections, custom_data={"tracker_id": 3})
+
+        with path.open(newline="", encoding="utf-8") as file:
+            assert list(csv.reader(file)) == [[*csv_sink_module.BASE_HEADER, "frame"]]

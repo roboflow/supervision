@@ -1,13 +1,20 @@
+import warnings
+from threading import Lock
 from typing import Any
 
 import numpy as np
 import pytest
 
-from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import (
+    AREA_DATA_FIELD,
+    ISCROWD_DATA_FIELD,
+    ORIENTED_BOX_COORDINATES,
+)
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
 from supervision.metrics.utils.object_size import get_detection_areas
+from supervision.utils.internal import SupervisionWarnings
 from tests.metrics.coco_reference import evaluate_detections
 
 
@@ -40,6 +47,93 @@ class TestMeanAverageRecallScalarMetadata:
         np.testing.assert_allclose(result.large_objects.recall_scores, [0, 1, 1])
         np.testing.assert_array_equal(targets.data["source"], np.array(value))
         np.testing.assert_array_equal(targets.xyxy, boxes)
+
+
+class TestMeanAverageRecallTargetSelection:
+    """Verify target size filtering with image metadata."""
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_size_bucket_recall_with_unused_lock_metadata(self, compact: bool) -> None:
+        """Recall by size still works with a lock in target metadata."""
+        boxes = np.array([[0, 0, 2, 2], [3, 3, 5, 5], [6, 6, 8, 8]], dtype=np.float32)
+        masks = np.zeros((3, 8, 8), dtype=bool)
+        masks[0, :2, :2] = True
+        masks[1, 3:5, 3:5] = True
+        masks[2, 6:8, 6:8] = True
+        target_masks = (
+            CompactMask.from_dense(masks, xyxy=boxes, image_shape=(8, 8))
+            if compact
+            else masks.copy()
+        )
+        areas = np.array([32**2, 96**2, 4])
+        frame_context = Lock()
+        predictions = Detections(
+            xyxy=boxes[:2].copy(),
+            mask=target_masks[:2],
+            confidence=np.array([0.9, 0.8]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=boxes.copy(),
+            mask=target_masks,
+            class_id=np.array([0, 0, 0]),
+            data={AREA_DATA_FIELD: areas.copy()},
+            metadata={"frame_context": frame_context},
+        )
+
+        metric = MeanAverageRecall(metric_target=MetricTarget.MASKS)
+        result = metric.update(predictions, targets).compute()
+
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+        np.testing.assert_allclose(
+            [
+                result.mAR_at_100,
+                result.small_objects.mAR_at_100,
+                result.medium_objects.mAR_at_100,
+                result.large_objects.mAR_at_100,
+            ],
+            [2 / 3, 1 / 2, 1, 1],
+        )
+        assert targets.metadata["frame_context"] is frame_context
+        assert targets.mask is target_masks
+        np.testing.assert_array_equal(targets.xyxy, boxes)
+        np.testing.assert_array_equal(np.asarray(targets.mask), masks)
+        np.testing.assert_array_equal(targets.data[AREA_DATA_FIELD], areas)
+
+    @pytest.mark.parametrize(
+        "metric_target",
+        [
+            pytest.param(MetricTarget.BOXES, id="boxes"),
+            pytest.param(MetricTarget.MASKS, id="masks"),
+        ],
+    )
+    def test_size_bucket_recall_accepts_previously_validated_legacy_mask(
+        self, metric_target: MetricTarget
+    ) -> None:
+        """A previously accepted non-bool mask retains its values without warnings."""
+        boxes = np.array([[0, 0, 2, 1]], dtype=np.float32)
+        predictions = Detections(
+            xyxy=boxes.copy(),
+            mask=np.array([[[True, True]]]),
+            confidence=np.array([0.9]),
+            class_id=np.array([0]),
+        )
+        with pytest.warns(SupervisionWarnings, match="mask of type uint8"):
+            targets = Detections(
+                xyxy=boxes,
+                mask=np.array([[[2, 0]]], dtype=np.uint8),
+                class_id=np.array([0]),
+            )
+        metric = MeanAverageRecall(metric_target=metric_target)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            result = metric.update(predictions, targets).compute()
+
+        assert result.small_objects is not None
+        assert result.small_objects.mAR_at_100 == pytest.approx(1.0)
 
 
 class TestMeanAverageRecallConfidenceMatching:

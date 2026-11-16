@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+import types
 import warnings
 
 import numpy as np
 import pytest
 
+import supervision as sv
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.tools.transformers import (
     append_class_names_to_data,
@@ -612,3 +615,33 @@ class TestProcessTransformersV5SegmentationResult:
         out = process_transformers_v5_segmentation_result(tensor_result, None)
 
         np.testing.assert_array_equal(out["class_id"], [0, 1])
+
+
+class TestFromTransformersRecommendations:
+    """Verify recommendations do not depend on imported model modules."""
+
+    def test_invalid_result_suggests_rfdetr_conditionally(self) -> None:
+        """An unsupported result suggests the official package to RF-DETR users."""
+        with pytest.raises(ValueError, match=r"If you are using RF-DETR.*rfdetr"):
+            sv.Detections.from_transformers({})
+
+    def test_other_model_result_does_not_warn_when_rf_detr_is_loaded(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A loaded RF-DETR module does not warn for a generic detection result."""
+        monkeypatch.setitem(
+            sys.modules,
+            "transformers.models.rf_detr",
+            types.ModuleType("transformers.models.rf_detr"),
+        )
+        result = {
+            "boxes": _FakeDetachTensor(np.array([[1, 2, 3, 4]], dtype=np.float32)),
+            "scores": _FakeDetachTensor(np.array([0.9], dtype=np.float32)),
+            "labels": _FakeDetachTensor(np.array([7], dtype=np.int64)),
+        }
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            detections = sv.Detections.from_transformers(result)
+
+        np.testing.assert_array_equal(detections.xyxy, [[1, 2, 3, 4]])

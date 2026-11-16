@@ -96,6 +96,10 @@ def evaluate_detections(
                 else:
                     assert detections.confidence is not None
                     record["score"] = float(detections.confidence[index])
+                    # Passed on so that `loadRes`, not this helper, decides how
+                    # a result's area metadata is used.
+                    if "area" in detections.data:
+                        record["area"] = float(detections.data["area"][index])
                 records.append(record)
     dataset = {
         "images": images,

@@ -8,7 +8,11 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import CLASS_NAME_DATA_FIELD, HANDEDNESS_SCORE_DATA_FIELD
+from supervision.config import (
+    CLASS_NAME_DATA_FIELD,
+    HANDEDNESS_SCORE_DATA_FIELD,
+    KEYPOINT_ALIGNED_DATA_FIELDS,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import (
     _DetectionDataType,
@@ -1122,6 +1126,12 @@ class KeyPoints:
             class_id_selected = self.class_id.copy()
 
         data_selected = get_data_item(self.data, slice(None))
+        # Every row selects the same number of keypoints, so the selected
+        # columns form an (n, k) grid that indexes keypoint-aligned fields.
+        columns = np.nonzero(mask)[1].reshape(n, k)
+        rows = np.arange(n)[:, np.newaxis]
+        for key in KEYPOINT_ALIGNED_DATA_FIELDS & data_selected.keys():
+            data_selected[key] = np.asarray(self.data[key])[rows, columns]
 
         return KeyPoints(
             xy=xy_selected,
@@ -1172,6 +1182,11 @@ class KeyPoints:
             A new :class:`~supervision.key_points.core.KeyPoints` instance
             containing the selected rows or anchors.
 
+        Raises:
+            IndexError: If a nonempty one-dimensional boolean mask does not
+                match the selected axis. Anchor selection on
+                :meth:`~supervision.key_points.core.KeyPoints.empty` stays empty.
+
         Example:
             ```pycon
             >>> import numpy as np
@@ -1199,15 +1214,39 @@ class KeyPoints:
 
         if isinstance(i, int):
             i = [i]
+        elif (
+            isinstance(i, np.ndarray)
+            and i.ndim == 0
+            and np.issubdtype(i.dtype, np.integer)
+        ):
+            i = i.reshape(1)
 
-        if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
+        if (
+            isinstance(i, list)
+            and i
+            and all(isinstance(x, (bool, np.bool_)) for x in i)
+        ):
             i = np.array(i)
-        if isinstance(j, list) and j and all(isinstance(x, bool) for x in j):
+        if (
+            isinstance(j, list)
+            and j
+            and all(isinstance(x, (bool, np.bool_)) for x in j)
+        ):
             j = np.array(j)
 
         if isinstance(i, np.ndarray) and i.dtype == bool:
+            if i.ndim == 1 and i.size not in (0, self.xy.shape[0]):
+                raise IndexError(
+                    f"boolean index has length {i.size}, but object count is "
+                    f"{self.xy.shape[0]}"
+                )
             i = np.flatnonzero(i)
         if isinstance(j, np.ndarray) and j.dtype == bool:
+            if j.ndim == 1 and j.size not in (0, self.xy.shape[1]):
+                raise IndexError(
+                    f"boolean index has length {j.size}, but keypoint count is "
+                    f"{self.xy.shape[1]}"
+                )
             j = np.flatnonzero(j)
 
         raw_i = i
@@ -1272,6 +1311,15 @@ class KeyPoints:
                 if visible_selected is not None:
                     visible_selected = visible_selected[:, np.newaxis]
 
+        # Keypoint-aligned fields follow the keypoint axis like `visible`; the
+        # fix-ups above only restore size-1 axes a scalar index dropped, so
+        # reshaping to the leading axes of `xy` restores them here as well.
+        for key in KEYPOINT_ALIGNED_DATA_FIELDS & data_selected.keys():
+            value = np.asarray(self.data[key])
+            data_selected[key] = value[i, j].reshape(
+                xy_selected.shape[:2] + value.shape[2:]
+            )
+
         return KeyPoints(
             xy=xy_selected,
             keypoint_confidence=keypoint_confidence_selected,
@@ -1289,6 +1337,10 @@ class KeyPoints:
 
         Supports detection-level (skeleton) filtering, keypoint-level (anchor)
         filtering, combined tuple indexing, and data field access by string key.
+        For a result from :meth:`~supervision.key_points.core.KeyPoints.empty`,
+        anchor selection such as `key_points[:, [0, 1]]` returns an empty result
+        when the skeleton selector is valid. Out-of-range skeleton indexes, such
+        as `key_points[0]`, still raise `IndexError`.
 
         Args:
             index: The index, indices, or key to access a subset of the KeyPoints

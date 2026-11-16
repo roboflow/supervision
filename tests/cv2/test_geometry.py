@@ -79,6 +79,19 @@ def _max_distance_to_closed_polyline(points: np.ndarray, vertices: np.ndarray) -
             False,
             id="degenerate",
         ),
+        pytest.param(
+            np.array(
+                [[-79.4, 13.4], [-11.1, 54.3], [22.5, 255.0], [149.9, 149.7]],
+                dtype=np.float32,
+            ),
+            False,
+            id="float32-summation-order",
+        ),
+        pytest.param(
+            np.array([[0, 0], [16777217, 0], [16777217, 3], [0, 3]], dtype=np.int32),
+            False,
+            id="int32-read-as-float32",
+        ),
     ],
 )
 def test_contour_area_matches_opencv(contour: np.ndarray, oriented: bool) -> None:
