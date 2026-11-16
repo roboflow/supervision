@@ -40,10 +40,27 @@ class TestCheckContent:
 class TestAugmentLinksInFile:
     """Rewriting of relative markdown links to absolute GitHub URLs."""
 
+    @pytest.mark.parametrize(
+        ("repo_kwargs", "expected_repo"),
+        [
+            pytest.param({}, "roboflow/supervision", id="defaults-to-upstream"),
+            pytest.param(
+                {"repo": "someone/supervision"}, "someone/supervision", id="given-fork"
+            ),
+        ],
+    )
     def test_rewrites_a_link_to_an_existing_file(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        repo_kwargs: dict[str, str],
+        expected_repo: str,
     ) -> None:
-        """A link resolving to a real path becomes a blob URL on the given branch."""
+        """A link to a real file becomes a blob URL on the branch, in the given repo.
+
+        A fork PR passes its fork because its branch does not exist upstream; without
+        `repo` the links keep pointing at upstream.
+        """
         repo_root = tmp_path / "repo"
         docs_dir = repo_root / "docs"
         docs_dir.mkdir(parents=True)
@@ -53,11 +70,11 @@ class TestAugmentLinksInFile:
         page.write_text("see [license](../LICENSE.md)", encoding="utf-8")
         monkeypatch.setattr(augment_links, "get_repo_root", lambda: str(repo_root))
 
-        augment_links.augment_links_in_file(str(page), branch="develop")
+        augment_links.augment_links_in_file(str(page), branch="develop", **repo_kwargs)
 
         assert (
             page.read_text(encoding="utf-8")
-            == "see [license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md)"
+            == f"see [license](https://github.com/{expected_repo}/blob/develop/LICENSE.md)"
         )
 
     def test_leaves_absolute_urls_untouched(self, tmp_path: Path) -> None:
