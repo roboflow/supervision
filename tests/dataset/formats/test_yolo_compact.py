@@ -256,6 +256,7 @@ class TestYoloCompactMasks:
         lines = ["0 0.1 0.2 0.2 0.2 0.2 0.3"] * 8
         original_encode = CompactMask.from_dense
         encoded: list[tuple[int, ...]] = []
+        rasterized: list[tuple[int, int]] = []
         frames: list[ReferenceType[npt.NDArray[np.bool_]]] = []
 
         def rasterize(
@@ -263,6 +264,7 @@ class TestYoloCompactMasks:
         ) -> npt.NDArray[np.uint8]:
             """Require the previous full frame to be released before drawing."""
             assert not frames or frames[-1]() is None
+            rasterized.append(resolution_wh)
             return polygon_to_mask(polygon, resolution_wh)
 
         def encode_one(
@@ -282,7 +284,7 @@ class TestYoloCompactMasks:
                 "supervision.dataset.formats.yolo._polygons_to_masks",
                 side_effect=AssertionError("dense batch allocation"),
             ),
-            patch("supervision.dataset.formats.yolo.polygon_to_mask", new=rasterize),
+            patch("supervision.detection.compact_mask.polygon_to_mask", new=rasterize),
             patch.object(CompactMask, "from_dense", new=encode_one),
         ):
             actual = yolo_annotations_to_detections(
@@ -290,6 +292,7 @@ class TestYoloCompactMasks:
             )
 
         assert isinstance(actual.mask, CompactMask)
+        assert len(rasterized) == 8
         assert encoded == [(1, 80, 100)] * 8
         assert all(frame() is None for frame in frames)
         assert np.all(actual.mask.bbox_xyxy == [10, 16, 20, 24])
