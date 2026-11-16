@@ -115,6 +115,9 @@ def _resolve_detection_color_idx(
 
     Returns:
         An integer index suitable for ``ColorPalette.by_idx()``.
+
+    Raises:
+        ValueError: If tracking colors are requested without detection tracker IDs.
     """
     if detection_idx >= len(detections):
         raise ValueError(
@@ -129,6 +132,13 @@ def _resolve_detection_color_idx(
                 f"does not match length of detections {len(detections)}"
             )
         return int(color_lookup[detection_idx])
+
+    if color_lookup == ColorLookup.TRACK and detections.tracker_id is None:
+        raise ValueError(
+            "Could not resolve color by track because "
+            "Detections do not have tracker_id. Did you run a tracker's "
+            "update(...) method (e.g. ByteTrackTracker) before annotating?"
+        )
 
     return _resolve_color_idx(
         instance_idx=detection_idx,
