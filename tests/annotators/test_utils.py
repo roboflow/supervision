@@ -9,17 +9,13 @@ import pytest
 from supervision.annotators.utils import (
     ColorLookup,
     Trace,
-    _get_color_by_index,
     _resolve_annotator_color,
     _resolve_color_idx,
     _resolve_detection_color,
     _resolve_detection_color_idx,
-    get_color_by_index,
     get_labels_text,
     hex_to_rgba,
     is_valid_hex,
-    resolve_color,
-    resolve_color_idx,
     resolve_text_background_xyxy,
     rgba_to_hex,
     snap_boxes,
@@ -778,57 +774,3 @@ class TestSnapBoxes:
         snapped = snap_boxes(np.array([xyxy], dtype=np.float32), (320, 240))
 
         assert np.array_equal(snapped, np.array([expected], dtype=np.float32))
-
-
-class TestDeprecatedColorHelpers:
-    """Public color helpers warn and forward to their private replacements."""
-
-    def test_resolve_color_idx_warns_and_forwards(self) -> None:
-        """`resolve_color_idx` warns and returns the private helper's result."""
-        # Arrange
-        detections = _create_detections(
-            xyxy=[[0, 0, 10, 10], [5, 5, 20, 20]], class_id=[3, 7]
-        )
-
-        # Act
-        with pytest.warns(FutureWarning, match=r"resolve_color_idx.*0\.35\.0"):
-            result = resolve_color_idx(
-                detections=detections,
-                detection_idx=1,
-                color_lookup=ColorLookup.CLASS,
-            )
-
-        # Assert
-        assert result == 7
-
-    def test_resolve_color_warns_and_forwards(self) -> None:
-        """`resolve_color` warns and returns the private helper's result."""
-        # Arrange
-        detections = _create_detections(
-            xyxy=[[0, 0, 10, 10], [5, 5, 20, 20]], class_id=[0, 1]
-        )
-        palette = ColorPalette.from_hex(["#ff0000", "#00ff00"])
-
-        # Act
-        with pytest.warns(FutureWarning, match=r"resolve_color.*0\.35\.0"):
-            result = resolve_color(
-                color=palette,
-                detections=detections,
-                detection_idx=1,
-                color_lookup=ColorLookup.CLASS,
-            )
-
-        # Assert
-        assert result == Color.from_hex("#00ff00")
-
-    def test_get_color_by_index_warns_and_forwards(self) -> None:
-        """`get_color_by_index` emits a deprecation warning and wraps the palette."""
-        # Arrange
-        palette = ColorPalette.from_hex(["#ff0000", "#00ff00"])
-
-        # Act
-        with pytest.warns(FutureWarning, match=r"get_color_by_index.*0\.35\.0"):
-            result = get_color_by_index(color=palette, idx=3)
-
-        # Assert
-        assert result == _get_color_by_index(color=palette, idx=3)
