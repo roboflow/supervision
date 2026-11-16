@@ -16,6 +16,7 @@ from PIL import Image
 from supervision import _cv2 as cv2
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
+from supervision.draw.utils import _composite_over_bgra
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
 )
@@ -470,9 +471,9 @@ def _overlay_image(
         overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``, or
             grayscale like ``image``; channel 4, when present, is treated as
             alpha. A BGR overlay is drawn as gray luminance on a grayscale
-            ``image``. On a BGRA ``image`` the overlay is drawn opaque where its
-            alpha is, so the scene's alpha grows by the overlay's, as when
-            compositing one image over another.
+            ``image``. On a BGRA ``image`` the overlay is composited over the
+            scene's alpha, so hidden colors of transparent pixels do not darken
+            it.
         anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
             be negative (partial off-screen placement is clipped).
 
@@ -507,10 +508,17 @@ def _overlay_image(
         overlay_crop = overlay_crop[:, :, :3]
     overlay_crop = _match_overlay_to_scene_channels(overlay=overlay_crop, roi=roi)
     if roi.ndim == 3 and roi.shape[2] == 4:
-        # The BGR overlay gets an opaque alpha channel, so blending all four
-        # channels below composites the overlay's alpha over the scene's.
-        opaque = np.full((*overlay_crop.shape[:2], 1), 255, dtype=np.uint8)
-        overlay_crop = np.concatenate([overlay_crop, opaque], axis=2)
+        # A BGRA scene gets the overlay composited over its alpha, as `draw_image`
+        # does, so the hidden colors of transparent pixels do not darken it.
+        coverage = (
+            np.ones((*overlay_crop.shape[:2], 1), dtype=np.float32)
+            if alpha is None
+            else (alpha.astype(np.float32) / 255.0)[:, :, np.newaxis]
+        )
+        image[y_min:y_max, x_min:x_max] = _composite_over_bgra(
+            roi, overlay_crop, coverage
+        )
+        return image
 
     if alpha is not None:
         alpha_f32 = alpha.astype(np.float32) / 255.0
@@ -518,12 +526,7 @@ def _overlay_image(
             alpha_f32 = alpha_f32[:, :, None]
         overlay_color = overlay_crop.astype(np.float32)
         blended = roi.astype(np.float32) * (1 - alpha_f32) + overlay_color * alpha_f32
-        blended = np.clip(blended, 0, 255)
-        if roi.ndim == 3 and roi.shape[2] == 4:
-            # Rounded rather than truncated: float error would turn an opaque
-            # scene's 255 into 254 under partially transparent overlay pixels.
-            blended[..., 3] = np.rint(blended[..., 3])
-        image[y_min:y_max, x_min:x_max] = blended.astype(np.uint8)
+        image[y_min:y_max, x_min:x_max] = np.clip(blended, 0, 255).astype(np.uint8)
     else:
         image[y_min:y_max, x_min:x_max] = overlay_crop
 
