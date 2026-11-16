@@ -142,162 +142,98 @@ _CLASS_IDS = np.array([5, 3, 7])
 _TRACKER_IDS = np.array([2, 6, 4])
 
 
+_DEFAULT_FIELDS: dict[str, object] = {
+    "count": 3,
+    "class_id": _CLASS_IDS,
+    "tracker_id": _TRACKER_IDS,
+}
+
+
 @pytest.mark.parametrize(
-    (
-        "instance_idx",
-        "color_lookup",
-        "count",
-        "class_id",
-        "tracker_id",
-        "keypoint_idx",
-        "expected_result",
-        "exception",
-    ),
+    ("instance_idx", "color_lookup", "fields", "expected_result"),
     [
-        pytest.param(
-            0,
-            ColorLookup.INDEX,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            None,
-            0,
-            DoesNotRaise(),
-            id="index-first",
-        ),
-        pytest.param(
-            1,
-            ColorLookup.INDEX,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            None,
-            1,
-            DoesNotRaise(),
-            id="index-second",
-        ),
-        pytest.param(
-            0,
-            ColorLookup.CLASS,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            None,
-            5,
-            DoesNotRaise(),
-            id="class-first",
-        ),
-        pytest.param(
-            1,
-            ColorLookup.CLASS,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            None,
-            3,
-            DoesNotRaise(),
-            id="class-second",
-        ),
-        pytest.param(
-            0,
-            ColorLookup.TRACK,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            None,
-            2,
-            DoesNotRaise(),
-            id="track-first",
-        ),
-        pytest.param(
-            1,
-            ColorLookup.TRACK,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            None,
-            6,
-            DoesNotRaise(),
-            id="track-second",
-        ),
-        pytest.param(
-            0,
-            ColorLookup.KEYPOINT,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            4,
-            4,
-            DoesNotRaise(),
-            id="keypoint",
-        ),
-        pytest.param(
-            3,
-            ColorLookup.INDEX,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            None,
-            None,
-            pytest.raises(ValueError, match="out of bounds"),
-            id="out-of-bounds",
-        ),
-        pytest.param(
-            0,
-            ColorLookup.CLASS,
-            3,
-            None,
-            _TRACKER_IDS,
-            None,
-            None,
-            pytest.raises(ValueError, match="class_id"),
-            id="class-no-class-id",
-        ),
-        pytest.param(
-            0,
-            ColorLookup.TRACK,
-            3,
-            _CLASS_IDS,
-            None,
-            None,
-            None,
-            pytest.raises(ValueError, match="tracker_id"),
-            id="track-no-tracker-id",
-        ),
-        pytest.param(
-            0,
-            ColorLookup.KEYPOINT,
-            3,
-            _CLASS_IDS,
-            _TRACKER_IDS,
-            None,
-            None,
-            pytest.raises(ValueError, match="KEYPOINT"),
-            id="keypoint-no-keypoint-idx",
-        ),
+        pytest.param(0, ColorLookup.INDEX, {}, 0, id="index-first"),
+        pytest.param(1, ColorLookup.INDEX, {}, 1, id="index-second"),
+        pytest.param(0, ColorLookup.CLASS, {}, 5, id="class-first"),
+        pytest.param(1, ColorLookup.CLASS, {}, 3, id="class-second"),
+        pytest.param(0, ColorLookup.TRACK, {}, 2, id="track-first"),
+        pytest.param(1, ColorLookup.TRACK, {}, 6, id="track-second"),
+        pytest.param(0, ColorLookup.KEYPOINT, {"keypoint_idx": 4}, 4, id="keypoint"),
     ],
 )
 def test_resolve_color_idx_from_fields(
     instance_idx: int,
     color_lookup: ColorLookup,
-    count: int,
-    class_id: np.ndarray | None,
-    tracker_id: np.ndarray | None,
-    keypoint_idx: int | None,
-    expected_result: int | None,
-    exception: AbstractContextManager[object],
+    fields: dict[str, object],
+    expected_result: int,
 ) -> None:
-    """Field-level resolver maps each lookup to its palette index or raises."""
-    with exception:
-        result = _resolve_color_idx(
+    """Field-level resolver maps each lookup to its palette index.
+
+    Rows override only the fields that differ from `_DEFAULT_FIELDS`.
+    """
+    result = _resolve_color_idx(
+        instance_idx=instance_idx,
+        color_lookup=color_lookup,
+        **{**_DEFAULT_FIELDS, **fields},  # type: ignore[arg-type]
+    )
+
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("instance_idx", "color_lookup", "fields", "error_type", "message"),
+    [
+        pytest.param(
+            3,
+            ColorLookup.INDEX,
+            {},
+            ValueError,
+            "Instance index 3 is out of bounds for length 3",
+            id="out-of-bounds",
+        ),
+        pytest.param(
+            0,
+            ColorLookup.CLASS,
+            {"class_id": None},
+            ValueError,
+            "Could not resolve color by class because class_id is not available",
+            id="class-no-class-id",
+        ),
+        pytest.param(
+            0,
+            ColorLookup.TRACK,
+            {"tracker_id": None},
+            ValueError,
+            "Could not resolve color by track because tracker_id is not available",
+            id="track-no-tracker-id",
+        ),
+        pytest.param(
+            0,
+            ColorLookup.KEYPOINT,
+            {},
+            ValueError,
+            "ColorLookup.KEYPOINT is only valid for keypoint annotators",
+            id="keypoint-no-keypoint-idx",
+        ),
+    ],
+)
+def test_resolve_color_idx_from_fields_raises(
+    instance_idx: int,
+    color_lookup: ColorLookup,
+    fields: dict[str, object],
+    error_type: type[Exception],
+    message: str,
+) -> None:
+    """Field-level resolver rejects unusable input with a specific message.
+
+    Rows override only the fields that differ from `_DEFAULT_FIELDS`.
+    """
+    with pytest.raises(error_type, match=message):
+        _resolve_color_idx(
             instance_idx=instance_idx,
             color_lookup=color_lookup,
-            count=count,
-            class_id=class_id,
-            tracker_id=tracker_id,
-            keypoint_idx=keypoint_idx,
+            **{**_DEFAULT_FIELDS, **fields},  # type: ignore[arg-type]
         )
-        assert result == expected_result
 
 
 def test_resolve_color_accepts_negative_class_id() -> None:
