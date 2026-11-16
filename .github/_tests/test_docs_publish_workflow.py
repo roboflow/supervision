@@ -30,7 +30,7 @@ PUBLISH_JOB = "docs-build-deploy"
         ),
         pytest.param(
             "\N{ROCKET} Deploy Release Docs",
-            "steps.release_metadata.outputs.release_tag",
+            'mike deploy --push "$MIKE_DOCS_VERSION"',
             "${{ steps.release_metadata.outputs.release_tag }}",
             id="release-tag",
         ),
