@@ -4480,6 +4480,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Added <code>sv.Detections.from_semantic_segmentation</code>, which <code>from_inference</code> uses for semantic results. Call it directly for a map alone (a base64 PNG or an integer array), to override <code>class_map</code> or <code>confidence_mask</code>, or to keep the background with <code>background_id=None</code>.</p>
 </li>
 <li>
+<p><code>sv.Detections.from_ultralytics</code> now loads Ultralytics semantic segmentation results (<code>task="semantic"</code>), which returned empty <code>Detections</code>. Each class present in <code>Results.semantic_mask</code> becomes one detection with a mask of all its pixels and its class name, without confidence. As in Ultralytics' <code>Results.summary</code>, IDs missing from <code>names</code>, such as the <code>255</code> written by <code>classes</code> filtering, are skipped, and a single-class model's <code>0</code> background is left out. On a model with 256 or more classes <code>255</code> is a real class, so pixels that <code>classes</code> filtering drops are read as that class, as <code>Results.summary</code> does. (<a href="https://github.com/roboflow/supervision/pull/2915">#2915</a>)</p>
+</li>
+<li>
 <p>The <code>examples/time_in_zone</code> file example <code>ultralytics_file_example.py</code> accepts <code>--output_video_path</code> to save the annotated video with <code>sv.VideoSink</code>. It tries the <code>H264</code> codec, then <code>XVID</code>, writes at the frame rate of the source video, and raises <code>RuntimeError</code> when no codec opens. A path that is the same file as the source video raises <code>ValueError</code> before the model loads, so the source is never overwritten. (<a href="https://github.com/roboflow/supervision/pull/1964">#1964</a>)</p>
 </li>
 <li>
@@ -6901,7 +6904,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 16, 2026 13:26:27 UTC">November 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 16, 2026 16:13:28 UTC">November 16, 2026</span>
   </span>
 
     
@@ -6929,9 +6932,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
-          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6939,14 +6942,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
+          
+          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
+        </a>
+      
         <a href="https://github.com/tongwentao" class="md-author" title="@tongwentao">
           
           <img src="https://avatars.githubusercontent.com/u/51501406?v=4&size=72" alt="tongwentao">
-        </a>
-      
-        <a href="https://github.com/AdvaitS" class="md-author" title="@AdvaitS">
-          
-          <img src="https://avatars.githubusercontent.com/u/36281471?v=4&size=72" alt="AdvaitS">
         </a>
       
       
