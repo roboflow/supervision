@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.HeatMapAnnotator` now annotates four-channel BGRA scenes instead of raising `addWeighted inputs must have equal shapes`. Heat colors are drawn with an opaque alpha, as `sv.draw_image` composites onto BGRA scenes, so an opaque scene stays opaque and the BGR channels match the BGR-scene result. ([#2994](https://github.com/roboflow/supervision/pull/2994))
+
 - `sv.Detections.remap_classes` skips repeated full-list scans when the target class names are unique, preserving the existing duplicate-name error. ([#2986](https://github.com/roboflow/supervision/pull/2986))
 
 - `sv.DetectionDataset.from_yolo(..., compact_masks=True)` now keeps segmentation masks as `sv.CompactMask`, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and `force_masks=True` can also produce compact box masks. ([#2834](https://github.com/roboflow/supervision/pull/2834))
