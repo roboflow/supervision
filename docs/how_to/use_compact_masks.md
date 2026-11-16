@@ -228,7 +228,7 @@ ds = sv.DetectionDataset.from_yolo(
 )
 ```
 
-Compression depends on mask complexity: it usually reduces retained memory, but highly fragmented masks can use more memory than dense storage. See [Process Datasets](process_datasets.md) for the full loading options and caveats. A reproducible benchmark is available with `python examples/compact_mask/benchmark_yolo.py` from a repository checkout.
+Compression depends on mask complexity: it usually reduces retained memory, but highly fragmented masks can use more memory than dense storage. See [Process Datasets](process_datasets.md) for the full loading options and caveats. A reproducible benchmark is available with `python examples/compact_mask/benchmark.py --section yolo` from a repository checkout.
 
 ---
 
