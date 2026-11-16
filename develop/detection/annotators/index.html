@@ -20164,7 +20164,7 @@ True
 </span><span id="__span-0-677"><a id="__codelineno-0-677" name="__codelineno-0-677"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">color_lookup</span> <span class="k">if</span> <span class="n">custom_color_lookup</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">custom_color_lookup</span>
 </span><span id="__span-0-678"><a id="__codelineno-0-678" name="__codelineno-0-678"></a>        <span class="p">)</span>
 </span><span id="__span-0-679"><a id="__codelineno-0-679" name="__codelineno-0-679"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-680"><a id="__codelineno-0-680" name="__codelineno-0-680"></a>            <span class="n">resolve_color</span><span class="p">(</span>
+</span><span id="__span-0-680"><a id="__codelineno-0-680" name="__codelineno-0-680"></a>            <span class="n">_resolve_detection_color</span><span class="p">(</span>
 </span><span id="__span-0-681"><a id="__codelineno-0-681" name="__codelineno-0-681"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
 </span><span id="__span-0-682"><a id="__codelineno-0-682" name="__codelineno-0-682"></a>                <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
 </span><span id="__span-0-683"><a id="__codelineno-0-683" name="__codelineno-0-683"></a>                <span class="n">detection_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -20600,7 +20600,7 @@ supervision-annotator-examples/mask-annotator-example-purple.png" /></p>
 </span><span id="__span-0-677"><a id="__codelineno-0-677" name="__codelineno-0-677"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color_lookup</span> <span class="k">if</span> <span class="n">custom_color_lookup</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">custom_color_lookup</span>
 </span><span id="__span-0-678"><a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="p">)</span>
 </span><span id="__span-0-679"><a id="__codelineno-0-679" name="__codelineno-0-679"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-680"><a id="__codelineno-0-680" name="__codelineno-0-680"></a>        <span class="n">resolve_color</span><span class="p">(</span>
+</span><span id="__span-0-680"><a id="__codelineno-0-680" name="__codelineno-0-680"></a>        <span class="n">_resolve_detection_color</span><span class="p">(</span>
 </span><span id="__span-0-681"><a id="__codelineno-0-681" name="__codelineno-0-681"></a>            <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
 </span><span id="__span-0-682"><a id="__codelineno-0-682" name="__codelineno-0-682"></a>            <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
 </span><span id="__span-0-683"><a id="__codelineno-0-683" name="__codelineno-0-683"></a>            <span class="n">detection_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -21937,13 +21937,13 @@ supervision-annotator-examples/polygon-annotator-example-purple.png" /></p>
 </span><span id="__span-0-1584"><a id="__codelineno-0-1584" name="__codelineno-0-1584"></a>        <span class="p">)</span>
 </span><span id="__span-0-1585"><a id="__codelineno-0-1585" name="__codelineno-0-1585"></a>
 </span><span id="__span-0-1586"><a id="__codelineno-0-1586" name="__codelineno-0-1586"></a>        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">label_property</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">label_properties</span><span class="p">):</span>
-</span><span id="__span-0-1587"><a id="__codelineno-0-1587" name="__codelineno-0-1587"></a>            <span class="n">background_color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
+</span><span id="__span-0-1587"><a id="__codelineno-0-1587" name="__codelineno-0-1587"></a>            <span class="n">background_color</span> <span class="o">=</span> <span class="n">_resolve_detection_color</span><span class="p">(</span>
 </span><span id="__span-0-1588"><a id="__codelineno-0-1588" name="__codelineno-0-1588"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
 </span><span id="__span-0-1589"><a id="__codelineno-0-1589" name="__codelineno-0-1589"></a>                <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
 </span><span id="__span-0-1590"><a id="__codelineno-0-1590" name="__codelineno-0-1590"></a>                <span class="n">detection_idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
 </span><span id="__span-0-1591"><a id="__codelineno-0-1591" name="__codelineno-0-1591"></a>                <span class="n">color_lookup</span><span class="o">=</span><span class="n">color_lookup</span><span class="p">,</span>
 </span><span id="__span-0-1592"><a id="__codelineno-0-1592" name="__codelineno-0-1592"></a>            <span class="p">)</span>
-</span><span id="__span-0-1593"><a id="__codelineno-0-1593" name="__codelineno-0-1593"></a>            <span class="n">text_color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
+</span><span id="__span-0-1593"><a id="__codelineno-0-1593" name="__codelineno-0-1593"></a>            <span class="n">text_color</span> <span class="o">=</span> <span class="n">_resolve_detection_color</span><span class="p">(</span>
 </span><span id="__span-0-1594"><a id="__codelineno-0-1594" name="__codelineno-0-1594"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="p">,</span>
 </span><span id="__span-0-1595"><a id="__codelineno-0-1595" name="__codelineno-0-1595"></a>                <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
 </span><span id="__span-0-1596"><a id="__codelineno-0-1596" name="__codelineno-0-1596"></a>                <span class="n">detection_idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
@@ -23697,13 +23697,13 @@ for Unicode characters by using a custom font.</p>
 </span><span id="__span-0-1989"><a id="__codelineno-0-1989" name="__codelineno-0-1989"></a>        <span class="p">)</span>
 </span><span id="__span-0-1990"><a id="__codelineno-0-1990" name="__codelineno-0-1990"></a>
 </span><span id="__span-0-1991"><a id="__codelineno-0-1991" name="__codelineno-0-1991"></a>        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">label_property</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">label_properties</span><span class="p">):</span>
-</span><span id="__span-0-1992"><a id="__codelineno-0-1992" name="__codelineno-0-1992"></a>            <span class="n">background_color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
+</span><span id="__span-0-1992"><a id="__codelineno-0-1992" name="__codelineno-0-1992"></a>            <span class="n">background_color</span> <span class="o">=</span> <span class="n">_resolve_detection_color</span><span class="p">(</span>
 </span><span id="__span-0-1993"><a id="__codelineno-0-1993" name="__codelineno-0-1993"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span>
 </span><span id="__span-0-1994"><a id="__codelineno-0-1994" name="__codelineno-0-1994"></a>                <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
 </span><span id="__span-0-1995"><a id="__codelineno-0-1995" name="__codelineno-0-1995"></a>                <span class="n">detection_idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
 </span><span id="__span-0-1996"><a id="__codelineno-0-1996" name="__codelineno-0-1996"></a>                <span class="n">color_lookup</span><span class="o">=</span><span class="n">color_lookup</span><span class="p">,</span>
 </span><span id="__span-0-1997"><a id="__codelineno-0-1997" name="__codelineno-0-1997"></a>            <span class="p">)</span>
-</span><span id="__span-0-1998"><a id="__codelineno-0-1998" name="__codelineno-0-1998"></a>            <span class="n">text_color</span> <span class="o">=</span> <span class="n">resolve_color</span><span class="p">(</span>
+</span><span id="__span-0-1998"><a id="__codelineno-0-1998" name="__codelineno-0-1998"></a>            <span class="n">text_color</span> <span class="o">=</span> <span class="n">_resolve_detection_color</span><span class="p">(</span>
 </span><span id="__span-0-1999"><a id="__codelineno-0-1999" name="__codelineno-0-1999"></a>                <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">text_color</span><span class="p">,</span>
 </span><span id="__span-0-2000"><a id="__codelineno-0-2000" name="__codelineno-0-2000"></a>                <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
 </span><span id="__span-0-2001"><a id="__codelineno-0-2001" name="__codelineno-0-2001"></a>                <span class="n">detection_idx</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
@@ -30482,12 +30482,14 @@ supervision-annotator-examples/comparison-annotator-example.png" /></p>
         <p>Enumeration class to define strategies for mapping colors to annotations.</p>
 
 
-<details class="this-enum-supports-three-different-lookup-strategies" open>
-  <summary>This enum supports three different lookup strategies</summary>
+<details class="this-enum-supports-four-different-lookup-strategies" open>
+  <summary>This enum supports four different lookup strategies</summary>
   <ul>
 <li><code>INDEX</code>: Colors are determined by the index of the detection within the scene.</li>
 <li><code>CLASS</code>: Colors are determined by the class label of the detected object.</li>
 <li><code>TRACK</code>: Colors are determined by the tracking identifier of the object.</li>
+<li><code>KEYPOINT</code>: Colors are determined by the keypoint index within each skeleton.
+    Only valid for keypoint annotators.</li>
 </ul>
 </details>
 
@@ -30514,22 +30516,28 @@ supervision-annotator-examples/comparison-annotator-example.png" /></p>
 <span class="normal"><a href="#__codelineno-0-32">32</a></span>
 <span class="normal"><a href="#__codelineno-0-33">33</a></span>
 <span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="k">class</span><span class="w"> </span><span class="nc">ColorLookup</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="k">class</span><span class="w"> </span><span class="nc">ColorLookup</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration class to define strategies for mapping colors to annotations.</span>
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    This enum supports three different lookup strategies:</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    This enum supports four different lookup strategies:</span>
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">        - `INDEX`: Colors are determined by the index of the detection within the scene.</span>
 </span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">        - `CLASS`: Colors are determined by the class label of the detected object.</span>
 </span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">        - `TRACK`: Colors are determined by the tracking identifier of the object.</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="n">INDEX</span> <span class="o">=</span> <span class="s2">&quot;index&quot;</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="n">CLASS</span> <span class="o">=</span> <span class="s2">&quot;class&quot;</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="n">TRACK</span> <span class="o">=</span> <span class="s2">&quot;track&quot;</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="p">))</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        - `KEYPOINT`: Colors are determined by the keypoint index within each skeleton.</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">            Only valid for keypoint annotators.</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="n">INDEX</span> <span class="o">=</span> <span class="s2">&quot;index&quot;</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="n">CLASS</span> <span class="o">=</span> <span class="s2">&quot;class&quot;</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="n">TRACK</span> <span class="o">=</span> <span class="s2">&quot;track&quot;</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="n">KEYPOINT</span> <span class="o">=</span> <span class="s2">&quot;keypoint&quot;</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">list</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="p">))</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
