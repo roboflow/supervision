@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Fixed semantic segmentation imports from 1-, 2-, and 4-bit grayscale PNGs. Class IDs now match the stored PNG samples, so binary masks load and low-bit class IDs retain their names.
+- Fixed semantic segmentation imports from 1-, 2-, and 4-bit grayscale PNGs. Class IDs now match the stored PNG samples, so binary masks load and low-bit class IDs retain their names. ([#2999](https://github.com/roboflow/supervision/pull/2999))
 
 - `sv.VertexAnnotator`, `sv.EdgeAnnotator` and `sv.VertexLabelAnnotator` now accept a `sv.ColorPalette` and a `color_lookup` argument. `sv.ColorLookup.INDEX` and `sv.ColorLookup.CLASS` work as for detection annotators, and the new `sv.ColorLookup.KEYPOINT` colors each keypoint by its index within the skeleton. `sv.ColorLookup.TRACK` is not supported for keypoints and is rejected when the annotator is created. ([#2343](https://github.com/roboflow/supervision/pull/2343))
 
