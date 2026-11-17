@@ -1182,6 +1182,31 @@ class TestMeanAveragePrecisionCompactMasks:
         assert result.mAP_scores[3] == pytest.approx(1.0)
         assert result.mAP_scores[4] == 0.0
 
+    def test_overlapping_crops_with_disjoint_pixels_do_not_match(self) -> None:
+        """Identical crop boxes can still have zero foreground overlap."""
+        target_mask = (np.indices((8, 8)).sum(axis=0) % 2 == 0)[np.newaxis]
+        prediction_mask = ~target_mask
+        boxes = np.array([[0, 0, 7, 7]])
+        targets = Detections(
+            xyxy=boxes,
+            mask=CompactMask.from_dense(target_mask, boxes, (8, 8)),
+            class_id=np.array([0]),
+        )
+        predictions = Detections(
+            xyxy=boxes,
+            mask=CompactMask.from_dense(prediction_mask, boxes, (8, 8)),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+
+        result = (
+            MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        assert result.map50_95 == 0.0
+
 
 def _boxes_with_corners(
     xyxy: list[list[float]],
