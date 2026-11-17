@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_vlm(sv.VLM.DEEPSEEK_VL_2, ...)` now raises `ValueError` for a non-positive `resolution_wh`, like the other VLM parsers, instead of returning mirrored or all-zero boxes. ([#3003](https://github.com/roboflow/supervision/pull/3003))
+- `sv.Detections.from_vlm(sv.VLM.DEEPSEEK_VL_2, ...)` now raises `ValueError` for a non-positive `resolution_wh` instead of returning mirrored or all-zero boxes. ([#3003](https://github.com/roboflow/supervision/pull/3003))
 
 - `sv.VertexAnnotator`, `sv.EdgeAnnotator` and `sv.VertexLabelAnnotator` now accept a `sv.ColorPalette` and a `color_lookup` argument. `sv.ColorLookup.INDEX` and `sv.ColorLookup.CLASS` work as for detection annotators, and the new `sv.ColorLookup.KEYPOINT` colors each keypoint by its index within the skeleton. `sv.ColorLookup.TRACK` is not supported for keypoints and is rejected when the annotator is created. ([#2343](https://github.com/roboflow/supervision/pull/2343))
 

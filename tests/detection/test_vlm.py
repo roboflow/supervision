@@ -1685,7 +1685,14 @@ def test_from_deepseek_vl_2_empty_parse_returns_empty_detections(
     assert detections.xyxy.shape == (0, 4)
 
 
-@pytest.mark.parametrize("resolution_wh", [(0, 0), (-640, 480), (640, -480)])
+@pytest.mark.parametrize(
+    "resolution_wh",
+    [
+        pytest.param((0, 0), id="zero"),
+        pytest.param((-640, 480), id="negative-width"),
+        pytest.param((640, -480), id="negative-height"),
+    ],
+)
 def test_from_deepseek_vl_2_rejects_non_positive_resolution(
     resolution_wh: tuple[int, int],
 ) -> None:
