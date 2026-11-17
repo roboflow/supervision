@@ -650,6 +650,62 @@ class TestPolygonZoneCurrentCountPerClass:
 
         assert zone.current_count_per_class == {1: 1}
 
+    @pytest.mark.parametrize(
+        ("triggering_anchors", "require_all_anchors", "transform", "expected"),
+        [
+            pytest.param(
+                FOUR_CORNERS,
+                True,
+                _ShiftTransform(30, -20),
+                {0: 1, 1: 2},
+                id="all-four-corners",
+            ),
+            pytest.param(
+                FOUR_CORNERS,
+                False,
+                _ShiftTransform(30, -20),
+                {0: 3, 1: 2},
+                id="any-of-four-corners",
+            ),
+            pytest.param(
+                (sv.Position.BOTTOM_CENTER,),
+                True,
+                _ShiftTransform(30, -20),
+                {0: 2, 1: 2},
+                id="bottom-center",
+            ),
+            pytest.param(
+                (sv.Position.BOTTOM_CENTER,),
+                True,
+                None,
+                {0: 1, 1: 1},
+                id="bottom-center-without-transform",
+            ),
+        ],
+    )
+    def test_counts_by_class_for_anchor_modes_and_coord_transform(
+        self,
+        triggering_anchors: tuple[sv.Position, ...],
+        require_all_anchors: bool,
+        transform: _ShiftTransform | None,
+        expected: dict[int | None, int],
+    ) -> None:
+        """Per-class counts follow the same inside test as the total count.
+
+        Alternating class ids over the nine shifted boxes make every anchor mode and
+        camera-shift case land a different mix of classes in the zone, so a count taken
+        from the wrong mask would change the per-class split.
+        """
+        zone = sv.PolygonZone(POLYGON, triggering_anchors, require_all_anchors)
+        detections = _create_detections(
+            xyxy=SHIFTED_DETECTIONS.xyxy, class_id=[0, 1, 0, 1, 0, 1, 0, 1, 0]
+        )
+
+        zone.trigger(detections, coord_transform=transform)
+
+        assert zone.current_count_per_class == expected
+        assert sum(zone.current_count_per_class.values()) == zone.current_count
+
 
 class TestPolygonZoneEntryExit:
     @pytest.mark.parametrize(

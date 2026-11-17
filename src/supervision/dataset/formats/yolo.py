@@ -931,6 +931,26 @@ def save_yolo_annotations(
 
 
 def save_data_yaml(data_yaml_path: str, classes: list[str]) -> None:
+    """Save class names and class count to a YOLO dataset YAML metadata file.
+
+    Creates parent directories automatically if they do not exist, and writes
+    a dictionary containing ``nc`` (number of classes) and ``names`` (list of class
+    names).
+
+    Args:
+        data_yaml_path: Target filesystem path for the output YAML file.
+        classes: List of class names ordered by class ID.
+
+    Example:
+        ```python
+        import supervision as sv
+
+        sv.dataset.formats.yolo.save_data_yaml(
+            data_yaml_path="dataset/data.yaml",
+            classes=["dog", "cat"],
+        )
+        ```
+    """
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)
