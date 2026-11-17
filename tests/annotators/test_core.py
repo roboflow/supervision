@@ -213,6 +213,24 @@ class TestBoxAnnotator:
     essential for users to visualize detection results.
     """
 
+    def test_track_lookup_explains_missing_tracker(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Missing track IDs explain how to populate detections before annotation."""
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        annotator = BoxAnnotator(color_lookup=ColorLookup.TRACK)
+
+        with pytest.raises(
+            ValueError, match="Could not resolve color by track"
+        ) as exc_info:
+            annotator.annotate(scene=test_image, detections=detections)
+
+        assert str(exc_info.value) == (
+            "Could not resolve color by track because "
+            "Detections do not have tracker_id. Did you run a tracker's "
+            "update(...) method (e.g. ByteTrackTracker) before annotating?"
+        )
+
     def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
         """Verify that annotation with no detections does not change the image.
 
