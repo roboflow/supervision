@@ -782,8 +782,9 @@ def _parse_gemini_boxes(
             `class_id` is an array of shape `(n,)` with class indices,
             `class_name` is an array of shape `(n,)` with class labels,
             `confidence` is an optional array of shape `(n,)` with confidence
-            scores, and `keep_mask` is a boolean array of shape `(len(items),)`
-            marking the items kept by the `classes` filter.
+            scores, `None` when a kept item has no `confidence` (items removed by
+            `classes` do not count), and `keep_mask` is a boolean array of shape
+            `(len(items),)` marking the items kept by the `classes` filter.
     """
     w, h = _validate_resolution(resolution_wh)
 
@@ -798,7 +799,6 @@ def _parse_gemini_boxes(
 
     boxes_list: list[npt.NDArray[Any]] = []
     labels_list: list[str] = []
-    confidence_list: list[float] | None = []
 
     for item in items:
         labels_list.append(item["label"])
@@ -810,12 +810,6 @@ def _parse_gemini_boxes(
             normalization_factor=1000,
         )
         boxes_list.append(_sort_box_corners(absolute_box)[0])
-
-        if "confidence" in item:
-            if confidence_list is not None:
-                confidence_list.append(item["confidence"])
-        else:
-            confidence_list = None
 
     xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list)
@@ -829,18 +823,19 @@ def _parse_gemini_boxes(
         # `dtype=int` matters only when every item is filtered out: an empty list
         # would otherwise make NumPy pick `float64` for an array of class indices.
         class_id = np.array([classes.index(name) for name in class_name], dtype=int)
-        if confidence_list is not None:
-            confidence_list = [
-                score for score, keep in zip(confidence_list, keep_mask) if keep
-            ]
     else:
         keep_mask = np.ones(len(items), dtype=bool)
         unique_labels = sorted(set(class_name))
         label_to_id = {label: index for index, label in enumerate(unique_labels)}
         class_id = np.array([label_to_id[name] for name in class_name])
 
+    # Confidence is all-or-nothing like the masks, and over the same population: an
+    # item dropped by `classes` must not null the scores of the items that were kept.
+    kept_items = [item for item, keep in zip(items, keep_mask) if keep]
     confidence = (
-        np.array(confidence_list, dtype=float) if confidence_list is not None else None
+        np.array([item["confidence"] for item in kept_items], dtype=float)
+        if all("confidence" in item for item in kept_items)
+        else None
     )
     return xyxy, class_id, class_name, confidence, keep_mask
 
