@@ -2679,3 +2679,80 @@ class TestQwenMalformedBoxes:
         assert class_ids is not None
         assert class_ids.shape == (0,)
         assert names.shape == (0,)
+
+
+GEMINI_MALFORMED_BOXES = [
+    None,
+    pytest.param([], id="empty"),
+    pytest.param([1, 2], id="short"),
+    pytest.param([1, 2, 3, 4, 5], id="long"),
+    pytest.param([0, 0, float("nan"), 10], id="nan"),
+    pytest.param([0, 0, float("inf"), 10], id="infinite"),
+    "bad",
+]
+
+
+class TestGeminiMalformedBoxes:
+    """Malformed Gemini `box_2d` values do not discard other detections."""
+
+    @pytest.mark.parametrize("box", GEMINI_MALFORMED_BOXES)
+    @pytest.mark.parametrize(
+        "vlm", [VLM.GOOGLE_GEMINI_2_0, VLM.GOOGLE_GEMINI_2_5, VLM.GOOGLE_GEMINI_3_5]
+    )
+    def test_keeps_valid_sibling(self, vlm: VLM, box: Any) -> None:
+        """A malformed box is skipped without dropping a valid sibling box."""
+        result = json.dumps(
+            [
+                {"box_2d": [100, 200, 300, 400], "label": "cat"},
+                {"box_2d": box, "label": "dog"},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(1000, 1000)
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[200, 100, 400, 300]])
+        np.testing.assert_array_equal(detections.data[CLASS_NAME_DATA_FIELD], ["cat"])
+
+    @pytest.mark.parametrize("box", GEMINI_MALFORMED_BOXES)
+    @pytest.mark.parametrize("vlm", [VLM.GOOGLE_GEMINI_3_6, VLM.GOOGLE_GEMINI_3_7])
+    def test_structured_keeps_valid_sibling_and_its_mask(
+        self, vlm: VLM, box: Any
+    ) -> None:
+        """A malformed box in `boxes` is skipped and the sibling keeps its mask."""
+        result = json.dumps(
+            {
+                "boxes": [
+                    {
+                        "box_2d": [0, 0, 500, 500],
+                        "mask": [[0, 0], [500, 0], [500, 500], [0, 500]],
+                        "label": "cat",
+                    },
+                    {"box_2d": box, "mask": [[0, 0], [1, 0], [1, 1]], "label": "dog"},
+                ]
+            }
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(100, 100)
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[0, 0, 50, 50]])
+        np.testing.assert_array_equal(detections.data[CLASS_NAME_DATA_FIELD], ["cat"])
+        assert isinstance(detections.mask, np.ndarray)
+        assert detections.mask.shape == (1, 100, 100)
+
+    @pytest.mark.parametrize(
+        "vlm", [VLM.GOOGLE_GEMINI_2_0, VLM.GOOGLE_GEMINI_2_5, VLM.GOOGLE_GEMINI_3_5]
+    )
+    def test_returns_empty_when_no_box_is_valid(self, vlm: VLM) -> None:
+        """A response with only malformed boxes returns empty detections."""
+        result = json.dumps([{"box_2d": None, "label": "dog"}])
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(1000, 1000)
+        )
+
+        assert len(detections) == 0
+        assert detections.xyxy.shape == (0, 4)
