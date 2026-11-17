@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 from collections.abc import Mapping, Sequence
+from fractions import Fraction
 from typing import Any
 
 import numpy as np
@@ -848,3 +849,31 @@ def create_predictions_with_class_iou_tests(
     return _create_detections(
         xyxy=pred_boxes, class_id=pred_classes, confidence=pred_confs
     )
+
+
+def write_browser_recorded_webm(path: str, frame_count: int = 60) -> None:
+    """Write a ~30 fps VP8 WebM laid out like a browser `MediaRecorder` file.
+
+    The header holds no frame rate and the timestamps are 1 ms ticks with uneven spacing
+    (38, 28, 33 ms), so OpenCV reports the 1 kHz timebase as the rate.
+    """
+    import av
+
+    with av.open(path, mode="w", format="webm") as container:
+        stream = container.add_stream("libvpx")
+        stream.width = 64
+        stream.height = 48
+        stream.pix_fmt = "yuv420p"
+        stream.codec_context.framerate = Fraction(0, 1)
+        stream.time_base = Fraction(1, 1000)
+        for index in range(frame_count):
+            frame = av.VideoFrame.from_ndarray(
+                np.full((48, 64, 3), index * 4 % 256, dtype=np.uint8), format="bgr24"
+            )
+            jitter_ms = 5 if index % 3 == 1 else 0
+            frame.pts = index * 33 + jitter_ms
+            frame.time_base = Fraction(1, 1000)
+            for packet in stream.encode(frame):
+                container.mux(packet)
+        for packet in stream.encode():
+            container.mux(packet)

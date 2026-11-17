@@ -167,6 +167,26 @@ class _VideoCapture:
         self._frame_count_cache = count
         return count
 
+    def _fps(self) -> float:
+        """Return the stream's average frame rate, else frames per second of duration.
+
+        A browser-recorded WebM has no average rate, and its base rate is the
+        container's 1 kHz timebase rather than a frame rate, so the frame count over the
+        container duration is tried before the base rate.
+        """
+        rate = getattr(self._stream, "average_rate", None)
+        if rate:
+            return float(rate)
+        import av
+
+        duration = self._container.duration
+        if duration and duration > 0:
+            count = self._frame_count()
+            if count > 0:
+                return float(count * av.time_base / duration)
+        rate = getattr(self._stream, "base_rate", None)
+        return float(rate) if rate is not None else 0.0
+
     def _rotation(self) -> int:
         """Return the stream's display rotation, decoding one frame on a second handle.
 
@@ -201,10 +221,7 @@ class _VideoCapture:
                 width, height = height, width
             return float(width if property_id == _CAP_PROP_FRAME_WIDTH else height)
         if property_id == _CAP_PROP_FPS:
-            rate = getattr(self._stream, "average_rate", None) or getattr(
-                self._stream, "base_rate", None
-            )
-            return float(rate) if rate is not None else 0.0
+            return self._fps()
         if property_id == _CAP_PROP_FRAME_COUNT:
             return float(self._frame_count())
         if property_id == _CAP_PROP_POS_FRAMES:

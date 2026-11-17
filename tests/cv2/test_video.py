@@ -19,6 +19,7 @@ from supervision._cv2._video import (
     _VideoCapture,
     _VideoWriter,
 )
+from tests.helpers import write_browser_recorded_webm
 
 
 def _write_video(path: Path, values: list[int], fps: int = 5) -> None:
@@ -242,6 +243,20 @@ def test_fallback_capture_reports_metadata_and_supports_exact_seek(
     assert frame.shape == (16, 16, 3)
     assert float(frame.mean()) == pytest.approx(120.0, abs=20.0)
     assert not capture.isOpened()
+
+
+def test_fallback_capture_reports_browser_webm_rate_from_duration(
+    tmp_path: Path,
+) -> None:
+    """Fallback capture reports ~30 fps for a browser WebM, not its 1 kHz timebase."""
+    source_path = str(tmp_path / "browser.webm")
+    write_browser_recorded_webm(source_path, frame_count=60)
+
+    capture = _VideoCapture(source_path)
+    fps = capture.get(_cv2.CAP_PROP_FPS)
+    capture.release()
+
+    assert fps == pytest.approx(30.3, rel=0.03)
 
 
 @pytest.mark.parametrize(

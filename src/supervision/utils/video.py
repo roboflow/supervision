@@ -19,6 +19,33 @@ from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
 
+_MAX_PLAUSIBLE_FPS = 240.0
+_FPS_SAMPLE_INTERVALS = 30
+
+
+def _measure_fps(video: cv2.VideoCapture) -> float | None:
+    """Return the frame rate implied by the first frames' timestamps, or `None`.
+
+    Grabs up to `_FPS_SAMPLE_INTERVALS + 2` frames and divides the intervals by the time
+    they span. Returns `None` when fewer than two frames decode or the backend reports
+    no increasing timestamps.
+    """
+    timestamps_ms: list[float] = []
+    for _ in range(_FPS_SAMPLE_INTERVALS + 2):
+        if not video.grab():
+            break
+        timestamps_ms.append(float(video.get(cv2.CAP_PROP_POS_MSEC)))
+    # Browser recorders start the clock before the first frame arrives, so its
+    # interval is longer than the rest; skip it when later frames are available.
+    if len(timestamps_ms) > 2:
+        timestamps_ms = timestamps_ms[1:]
+    if len(timestamps_ms) < 2:
+        return None
+    span_ms = timestamps_ms[-1] - timestamps_ms[0]
+    if span_ms <= 0:
+        return None
+    return (len(timestamps_ms) - 1) * 1000.0 / span_ms
+
 
 @dataclass
 class VideoInfo:
@@ -80,6 +107,18 @@ class VideoInfo:
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = float(video.get(cv2.CAP_PROP_FPS))
         total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        # A browser-recorded WebM has no frame rate in its header, and OpenCV then
+        # reports the container's 1 kHz timebase as the rate and derives the frame
+        # count from it. Only an implausible rate is checked against the frame
+        # timestamps, so ordinary videos are not decoded here. The reported
+        # duration stays right, so the count is scaled by the same factor as the
+        # rate.
+        if fps > _MAX_PLAUSIBLE_FPS:
+            measured_fps = _measure_fps(video)
+            if measured_fps is not None and measured_fps * 2 < fps:
+                if total_frames > 0:
+                    total_frames = round(total_frames * measured_fps / fps)
+                fps = measured_fps
         video.release()
         return VideoInfo(width, height, fps, total_frames)
 
