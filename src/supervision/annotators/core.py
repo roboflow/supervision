@@ -20,12 +20,12 @@ from supervision.annotators.utils import (
     Trace,
     _iter_resolved_colors,
     _resolve_annotator_color,
+    _resolve_detection_color,
     _validate_labels,
     calculate_dynamic_kernel_size,
     calculate_dynamic_pixel_size,
     get_labels_text,
     hex_to_rgba,
-    resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
     wrap_text,
@@ -551,7 +551,7 @@ def _paint_masks_by_area(
     canvas_h, canvas_w = canvas.shape[:2]
     for detection_idx in np.flip(np.argsort(detections.area)):
         pixel_value = _color_for_canvas(
-            resolve_color(
+            _resolve_detection_color(
                 color=color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -677,7 +677,7 @@ class MaskAnnotator(BaseAnnotator):
             self.color_lookup if custom_color_lookup is None else custom_color_lookup
         )
         if len(detections) > 0:
-            resolve_color(
+            _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=0,
@@ -1584,13 +1584,13 @@ class LabelAnnotator(_BaseLabelAnnotator):
         )
 
         for idx, label_property in enumerate(label_properties):
-            background_color = resolve_color(
+            background_color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
-            text_color = resolve_color(
+            text_color = _resolve_detection_color(
                 color=self.text_color,
                 detections=detections,
                 detection_idx=idx,
@@ -1989,13 +1989,13 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         for idx, label_property in enumerate(label_properties):
-            background_color = resolve_color(
+            background_color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
-            text_color = resolve_color(
+            text_color = _resolve_detection_color(
                 color=self.text_color,
                 detections=detections,
                 detection_idx=idx,

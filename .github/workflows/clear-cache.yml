@@ -7,10 +7,12 @@ on:
 
 # Restrict permissions by default
 permissions:
-  actions: write # Required for cache management
+  contents: read
 
 jobs:
   clear-cache:
+    permissions:
+      actions: write
     name: Clear cache
     runs-on: ubuntu-latest
     timeout-minutes: 10
