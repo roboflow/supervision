@@ -953,7 +953,7 @@ def test_save_pose_data_yaml_creates_parents_and_content(tmp_path: Path) -> None
     save_pose_data_yaml(
         data_yaml_path=str(yaml_path),
         classes=classes,
-        keypoint_count=17,
+        keypoint_count=3,
         value_dim=3,
         flip_idx=[0, 2, 1],
     )
@@ -963,6 +963,6 @@ def test_save_pose_data_yaml_creates_parents_and_content(tmp_path: Path) -> None
     assert data == {
         "nc": 1,
         "names": ["athlete"],
-        "kpt_shape": [17, 3],
+        "kpt_shape": [3, 3],
         "flip_idx": [0, 2, 1],
     }
