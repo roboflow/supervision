@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now reads the fenced JSON block wherever it starts in the response. Previously a `[` in text before the fence, such as a restated box format or a thinking model's reasoning, made the parser return no detections. ([#3011](https://github.com/roboflow/supervision/pull/3011))
+
 - `sv.VertexAnnotator`, `sv.EdgeAnnotator` and `sv.VertexLabelAnnotator` now accept a `sv.ColorPalette` and a `color_lookup` argument. `sv.ColorLookup.INDEX` and `sv.ColorLookup.CLASS` work as for detection annotators, and the new `sv.ColorLookup.KEYPOINT` colors each keypoint by its index within the skeleton. `sv.ColorLookup.TRACK` is not supported for keypoints and is rejected when the annotator is created. ([#2343](https://github.com/roboflow/supervision/pull/2343))
 
 - Passing a `list[sv.Color]` as `color` or `text_color` to `sv.VertexLabelAnnotator` is deprecated in `0.32.0` and will be removed in `0.35.0`. Use a `sv.ColorPalette` or a single `sv.Color` instead. ([#2343](https://github.com/roboflow/supervision/pull/2343))
