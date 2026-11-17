@@ -99,6 +99,49 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
     return cast(npt.NDArray[np.bool_], np.asarray(mask_maps, dtype=bool))
 
 
+def extract_ultralytics_semantic_masks(
+    ultralytics_results: Any,
+) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.bool_]]:
+    """Split an Ultralytics semantic class map into one mask per class present.
+
+    `semantic_mask` holds one class ID per pixel at the original image size. Its
+    labels are read as Ultralytics' `Results.summary` reads them: a single-class
+    model writes `1` for its class over a `0` background, and IDs missing from
+    `names`, such as the `255` that `classes` filtering writes, are ignored. On a
+    model with 256 or more classes `255` is a real class ID, so pixels that
+    `classes` filtering drops are read as that class, as in `Results.summary`.
+
+    The class map is split here instead of through
+    :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`
+    because that path copies the map to `int64`, collects one mask per class in a
+    list before stacking them, and returns floating-point `xyxy`, which costs more
+    time and memory on large maps and differs from the integer `xyxy` that
+    :func:`~supervision.detection.utils.converters.mask_to_xyxy` gives the other
+    mask-only branch of
+    :meth:`~supervision.detection.core.Detections.from_ultralytics`. It also keeps
+    IDs missing from the class map under their number, where this helper skips
+    them as `Results.summary` does.
+
+    Args:
+        ultralytics_results: Ultralytics results object with `.semantic_mask` and
+            `.names`.
+
+    Returns:
+        Class IDs in ascending order and their boolean masks of shape `(N, H, W)`.
+    """
+    class_map = _to_numpy(ultralytics_results.semantic_mask.data)
+    names = ultralytics_results.names
+    map_values = np.unique(class_map)
+    if len(names) == 1:
+        map_values = map_values[map_values == 1]
+        class_ids = np.zeros(len(map_values), dtype=int)
+    else:
+        map_values = map_values[np.isin(map_values, list(names))]
+        class_ids = map_values.astype(int)
+    masks = class_map[np.newaxis] == map_values[:, np.newaxis, np.newaxis]
+    return class_ids, masks
+
+
 def _resolve_rle_mask(
     rle_data: dict[str, Any],
     image_height: int,
