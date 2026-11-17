@@ -4578,10 +4578,10 @@ compare(bgr_image, bgr_image_no_sahi, start_mode="horizontal", start_slider_pos=
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="using-svinferenceslicer-for-small-object-detection">Using <code>sv.InferenceSlicer</code> for small object detection<a class="anchor-link" href="#using-svinferenceslicer-for-small-object-detection">¶</a></h2><p>The <code>InferenceSlicer</code> is a utility for performing slicing-based inference on large images, particularly useful for detecting small objects. It divides a large image into smaller slices, runs inference on each slice, and then merges the results to form the final detections for the entire image. This method, known as Slicing Adaptive Hyper Inference (SAHI), improves detection accuracy by focusing on smaller regions where small objects might be missed in a full-scale inference.</p>
+<h2 id="using-svinferenceslicer-for-small-object-detection">Using <code>sv.InferenceSlicer</code> for small object detection<a class="anchor-link" href="#using-svinferenceslicer-for-small-object-detection">¶</a></h2><p>The <code>InferenceSlicer</code> is a utility for performing slicing-based inference on large images, particularly useful for detecting small objects. It divides a large image into smaller slices, runs inference on each slice, and then merges the results to form the final detections for the entire image. This method, known as Slicing Aided Hyper Inference (SAHI), improves detection accuracy by focusing on smaller regions where small objects might be missed in a full-scale inference.</p>
 <h3 id="key-features">Key Features:<a class="anchor-link" href="#key-features">¶</a></h3><ul>
 <li><strong>Slicing Strategy</strong>: Divides an image into smaller slices with configurable sizes and overlaps.</li>
-<li><strong>Overlap Managemen</strong>t: Supports different overlap strategies (ratio-based or pixel-based) to ensure smooth transitions between slices.</li>
+<li><strong>Overlap Management</strong>: Supports different overlap strategies (ratio-based or pixel-based) to ensure smooth transitions between slices.</li>
 <li><strong>Detection Merging</strong>: Merges detections from all slices using <a href="https://blog.roboflow.com/how-to-code-non-maximum-suppression-nms-in-plain-numpy">Non-Maximum Suppression (NMS)</a> or <a href="https://blog.roboflow.com/non-max-merging">Non-Maximum Merging (NMM)</a> to handle overlapping detections.</li>
 <li><strong>Parallel Processing</strong>: Utilizes multi-threading to perform inference on slices concurrently, enhancing speed.</li>
 <li><strong>Custom Inference Callback</strong>: Allows you to define their own inference function for flexibility in integrating various detection models.</li>
@@ -4697,7 +4697,7 @@ compare(bgr_image, bgr_image_no_sahi, start_mode="horizontal", start_slider_pos=
 <span class="k">def</span><span class="w"> </span><span class="nf">print_offsets</span><span class="p">(</span><span class="n">offsets</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">offsets</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
         <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Tile </span><span class="si">{</span><span class="n">index</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Tile </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  w=</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2">, h=</span><span class="si">{</span><span class="n">h</span><span class="si">}</span><span class="s2">, x1=</span><span class="si">{</span><span class="n">x1</span><span class="si">}</span><span class="s2">, y1=</span><span class="si">{</span><span class="n">y1</span><span class="si">}</span><span class="s2">, x2=</span><span class="si">{</span><span class="n">x2</span><span class="si">}</span><span class="s2">, y2=</span><span class="si">{</span><span class="n">y2</span><span class="si">}</span><span class="s2">, area=</span><span class="si">{</span><span class="n">w</span><span class="o">*</span><span class="n">h</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-7">def tile_image(image_shape: tuple[int, int], slice_wh: tuple[int, int], overlap_wh: tuple[float, float])-&gt; np.ndarray:
@@ -4759,7 +4759,7 @@ def draw_tiles(scene: np.ndarray, offsets):
 def print_offsets(offsets):
     for index, (x1, y1, x2, y2) in enumerate(offsets, 1):
         w, h = x2 - x1, y2 - y1
-        print(f"Tile {index + 1}")
+        print(f"Tile {index}")
         print(f"  w={w}, h={h}, x1={x1}, y1={y1}, x2={x2}, y2={y2}, area={w*h}")</div>
 </div>
 </div>
@@ -4773,8 +4773,8 @@ def print_offsets(offsets):
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="calculate-tile-size">Calculate Tile Size<a class="anchor-link" href="#calculate-tile-size">¶</a></h3><p><strong>Important: As of <code>supervision==0.23.0</code> you need to provide the tile size manually. You can the function below to calculate it.</strong></p>
-<p>The <code>calculate_tile_size</code> function determines the desired dimentions of the tiles when dividing an image into a grid by considering the following parameters:</p>
+<h3 id="calculate-tile-size">Calculate Tile Size<a class="anchor-link" href="#calculate-tile-size">¶</a></h3><p><strong>Important: As of <code>supervision==0.23.0</code> you need to provide the tile size manually. You can use the function below to calculate it.</strong></p>
+<p>The <code>calculate_tile_size</code> function determines the desired dimensions of the tiles when dividing an image into a grid by considering the following parameters:</p>
 <ul>
 <li><strong>Image dimensions</strong>: The width and height of the image, specified as (width, height), e.g., (1024, 768).</li>
 <li><strong>Grid layout</strong>: The number of tiles, specified as (rows, columns), e.g., (2, 2).</li>
@@ -4790,7 +4790,7 @@ def print_offsets(offsets):
 <span class="o">&gt;&gt;&gt;</span> <span class="n">tiles</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
 <span class="o">&gt;&gt;&gt;</span> <span class="n">overlap_ratio_wh</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">)</span>
 <span class="o">&gt;&gt;&gt;</span> <span class="n">calculate_tile_size</span><span class="p">(</span><span class="n">image_shape</span><span class="p">,</span> <span class="n">tiles</span><span class="p">,</span> <span class="n">overlap_ratio_wh</span><span class="p">)</span>
-<span class="p">((</span><span class="mi">295</span><span class="p">,</span> <span class="mi">221</span><span class="p">),</span> <span class="p">(</span><span class="mi">39</span><span class="p">,</span> <span class="mi">29</span><span class="p">))</span>
+<span class="p">((</span><span class="mi">295</span><span class="p">,</span> <span class="mi">221</span><span class="p">),</span> <span class="p">(</span><span class="mi">45</span><span class="p">,</span> <span class="mi">34</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -4842,7 +4842,7 @@ def print_offsets(offsets):
 <span class="sd">    &gt;&gt;&gt; tiles = (4, 4)</span>
 <span class="sd">    &gt;&gt;&gt; overlap_ratio_wh = (0.15, 0.15)</span>
 <span class="sd">    &gt;&gt;&gt; calculate_tile_size(image_shape, tiles, overlap_ratio_wh)</span>
-<span class="sd">    ((295, 221), (39, 29))</span>
+<span class="sd">    ((295, 221), (45, 34))</span>
 <span class="sd">    """</span>
 
     <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">image_shape</span>
@@ -4886,7 +4886,7 @@ def print_offsets(offsets):
     &gt;&gt;&gt; tiles = (4, 4)
     &gt;&gt;&gt; overlap_ratio_wh = (0.15, 0.15)
     &gt;&gt;&gt; calculate_tile_size(image_shape, tiles, overlap_ratio_wh)
-    ((295, 221), (39, 29))
+    ((295, 221), (45, 34))
     """
 
     w, h = image_shape
@@ -4980,13 +4980,13 @@ sv.plot_image(tiled_image)</div>
 Tiles: (2, 2)
 Tile size: 960w x 636h
 Generated 4 tiles. These are the calculated dimensions
-Tile 2
+Tile 1
   w=960, h=636, x1=0, y1=0, x2=960, y2=636, area=610560
-Tile 3
+Tile 2
   w=960, h=636, x1=960, y1=0, x2=1920, y2=636, area=610560
-Tile 4
+Tile 3
   w=960, h=636, x1=0, y1=636, x2=960, y2=1272, area=610560
-Tile 5
+Tile 4
   w=960, h=636, x1=960, y1=636, x2=1920, y2=1272, area=610560
 </pre>
 </div>
@@ -5644,7 +5644,7 @@ compare(tiled_image, bgr_tiled_image, start_mode="horizontal", start_slider_pos=
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 11, 2026 20:22:25 UTC">November 11, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 17, 2026 18:58:39 UTC">November 17, 2026</span>
   </span>
 
     
@@ -5672,9 +5672,9 @@ compare(tiled_image, bgr_tiled_image, start_mode="horizontal", start_slider_pos=
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/lidongze1002" class="md-author" title="@lidongze1002">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/234317428?v=4&size=72" alt="lidongze1002">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -5682,21 +5682,21 @@ compare(tiled_image, bgr_tiled_image, start_mode="horizontal", start_slider_pos=
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/censullo" class="md-author" title="@censullo">
           
           <img src="https://avatars.githubusercontent.com/u/68856666?v=4&size=72" alt="censullo">
-        </a>
-      
-        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/notebooks/small-object-detection-with-sahi.ipynb" class="md-author md-author--more">
-            +5
+            +6
           </a>
         
       
