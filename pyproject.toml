@@ -112,8 +112,8 @@ mediapipe-reference = [
 ]
 # The OpenCV range the `supervision._cv2` fallbacks are compared against in CI. Widen the
 # cap in a PR that also adapts the fallbacks to the new release.
-opencv-python = [ "opencv-python>=5.0,<5.1" ]
-opencv-python-headless = [ "opencv-python-headless>=5.0,<5.1" ]
+opencv-python = [ "opencv-python>=5,<5.1" ]
+opencv-python-headless = [ "opencv-python-headless>=5,<5.1" ]
 torch = [ "torch>=2" ]
 
 [tool.setuptools]
