@@ -9,6 +9,12 @@ date_modified: 2026-10-31
 
 - `sv.CropAnnotator` and `sv.IconAnnotator` now annotate four-channel BGRA scenes instead of raising a NumPy broadcast error. Crops and icons are composited over the scene's alpha, as `sv.draw_image` does, so the hidden colors of transparent pixels do not darken them and an opaque scene stays opaque. ([#2995](https://github.com/roboflow/supervision/pull/2995))
 
+- `sv.VertexAnnotator`, `sv.EdgeAnnotator` and `sv.VertexLabelAnnotator` now accept a `sv.ColorPalette` and a `color_lookup` argument. `sv.ColorLookup.INDEX` and `sv.ColorLookup.CLASS` work as for detection annotators, and the new `sv.ColorLookup.KEYPOINT` colors each keypoint by its index within the skeleton. `sv.ColorLookup.TRACK` is not supported for keypoints and is rejected when the annotator is created. ([#2343](https://github.com/roboflow/supervision/pull/2343))
+
+- Passing a `list[sv.Color]` as `color` or `text_color` to `sv.VertexLabelAnnotator` is deprecated in `0.32.0` and will be removed in `0.35.0`. Use a `sv.ColorPalette` or a single `sv.Color` instead. ([#2343](https://github.com/roboflow/supervision/pull/2343))
+
+- `resolve_color`, `resolve_color_idx` and `get_color_by_index` in `supervision.annotators.utils` are deprecated in `0.32.0` and will be removed in `0.35.0`. They now emit a `FutureWarning` and forward to private helpers; annotators no longer depend on them. `resolve_color` is no longer importable from `supervision.annotators.core`; import it from `supervision.annotators.utils`. ([#2343](https://github.com/roboflow/supervision/pull/2343))
+
 - `sv.Detections.remap_classes` skips repeated full-list scans when the target class names are unique, preserving the existing duplicate-name error. ([#2986](https://github.com/roboflow/supervision/pull/2986))
 
 - `sv.DetectionDataset.from_yolo(..., compact_masks=True)` now keeps segmentation masks as `sv.CompactMask`, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and `force_masks=True` can also produce compact box masks. ([#2834](https://github.com/roboflow/supervision/pull/2834))
@@ -24,6 +30,8 @@ date_modified: 2026-10-31
 - `sv.Detections.from_inference` now loads Roboflow Inference semantic segmentation results, such as RF-DETR semantic models, as one detection per class id, instead of failing with an opaque `TypeError`. The background id `0` is dropped, classes are named from `class_map`, and a `confidence_mask` gives each class's mean confidence. `compact_masks=True` builds a `sv.CompactMask` one class at a time.
 
 - Added `sv.Detections.from_semantic_segmentation`, which `from_inference` uses for semantic results. Call it directly for a map alone (a base64 PNG or an integer array), to override `class_map` or `confidence_mask`, or to keep the background with `background_id=None`.
+
+- `sv.Detections.from_ultralytics` now loads Ultralytics semantic segmentation results (`task="semantic"`), which returned empty `Detections`. Each class present in `Results.semantic_mask` becomes one detection with a mask of all its pixels and its class name, without confidence. As in Ultralytics' `Results.summary`, IDs missing from `names`, such as the `255` written by `classes` filtering, are skipped, and a single-class model's `0` background is left out. On a model with 256 or more classes `255` is a real class, so pixels that `classes` filtering drops are read as that class, as `Results.summary` does. ([#2915](https://github.com/roboflow/supervision/pull/2915))
 
 - The `examples/time_in_zone` file example `ultralytics_file_example.py` accepts `--output_video_path` to save the annotated video with `sv.VideoSink`. It tries the `H264` codec, then `XVID`, writes at the frame rate of the source video, and raises `RuntimeError` when no codec opens. A path that is the same file as the source video raises `ValueError` before the model loads, so the source is never overwritten. ([#1964](https://github.com/roboflow/supervision/pull/1964))
 
