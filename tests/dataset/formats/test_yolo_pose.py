@@ -940,3 +940,29 @@ class TestFlipIdx:
         assert yaml.safe_load(data_yaml_path.read_text())["flip_idx"] == [1, 0]
         assert reloaded.keypoint_count == 2
         assert reloaded.flip_idx == [1, 0]
+
+
+def test_save_pose_data_yaml_creates_parents_and_content(tmp_path: Path) -> None:
+    """Verify save_pose_data_yaml creates directories and writes metadata."""
+    from supervision.dataset.formats.yolo_pose import save_pose_data_yaml
+    from supervision.utils.file import read_yaml_file
+
+    yaml_path = tmp_path / "deeply" / "nested" / "pose_data.yaml"
+    classes = ["athlete"]
+
+    save_pose_data_yaml(
+        data_yaml_path=str(yaml_path),
+        classes=classes,
+        keypoint_count=3,
+        value_dim=3,
+        flip_idx=[0, 2, 1],
+    )
+
+    assert yaml_path.is_file()
+    data = read_yaml_file(str(yaml_path))
+    assert data == {
+        "nc": 1,
+        "names": ["athlete"],
+        "kpt_shape": [3, 3],
+        "flip_idx": [0, 2, 1],
+    }
