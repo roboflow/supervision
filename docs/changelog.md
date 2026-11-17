@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` now skips an item whose `box_2d` is not four finite numbers and keeps the valid detections from the same response, instead of raising. ([#3005](https://github.com/roboflow/supervision/pull/3005))
+
 - `sv.VertexAnnotator`, `sv.EdgeAnnotator` and `sv.VertexLabelAnnotator` now accept a `sv.ColorPalette` and a `color_lookup` argument. `sv.ColorLookup.INDEX` and `sv.ColorLookup.CLASS` work as for detection annotators, and the new `sv.ColorLookup.KEYPOINT` colors each keypoint by its index within the skeleton. `sv.ColorLookup.TRACK` is not supported for keypoints and is rejected when the annotator is created. ([#2343](https://github.com/roboflow/supervision/pull/2343))
 
 - Passing a `list[sv.Color]` as `color` or `text_color` to `sv.VertexLabelAnnotator` is deprecated in `0.32.0` and will be removed in `0.35.0`. Use a `sv.ColorPalette` or a single `sv.Color` instead. ([#2343](https://github.com/roboflow/supervision/pull/2343))
