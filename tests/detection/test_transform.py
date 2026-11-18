@@ -104,6 +104,7 @@ class TestRemapClasses:
         result = animals.remap_classes(["car", "dog"])
 
         # Assert
+        assert isinstance(result.mask, np.ndarray)
         assert np.array_equal(result.mask, animals.mask[[0, 3]])
 
     def test_does_not_modify_the_input(self, animals: Detections) -> None:
