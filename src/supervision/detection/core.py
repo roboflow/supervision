@@ -60,6 +60,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
+    oriented_box_soft_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -3039,9 +3040,9 @@ class Detections:
     ) -> Detections:
         """Performs Gaussian Soft Non-Maximum Suppression on detection set.
 
-        Dispatch order: (1) if mask data present, IoU mask is used; (2) otherwise,
-        axis-aligned box IoU is used. Oriented-box detections are not given
-        dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
+        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
+        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Unlike :meth:`~supervision.detection.core.Detections.with_nms`, which
         discards overlapping detections outright,
@@ -3116,6 +3117,12 @@ class Detections:
             decayed_confidence = mask_soft_non_max_suppression(
                 predictions=predictions,
                 masks=self.mask,
+                sigma=sigma,
+            )
+        elif ORIENTED_BOX_COORDINATES in self.data:
+            decayed_confidence = oriented_box_soft_non_max_suppression(
+                predictions=predictions,
+                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
                 sigma=sigma,
             )
         else:

@@ -27,6 +27,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
+    oriented_box_soft_non_max_suppression,
 )
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _generate_random_boxes
@@ -446,6 +447,86 @@ def test_box_soft_non_max_suppression(
 ) -> None:
     with exception:
         result = box_soft_non_max_suppression(predictions=predictions, sigma=sigma)
+        assert expected_result is not None
+        np.testing.assert_almost_equal(result, expected_result, decimal=5)
+
+
+@pytest.mark.parametrize(
+    ("predictions", "oriented_boxes", "sigma", "expected_result", "exception"),
+    [
+        (
+            np.empty((0, 6)),
+            np.empty((0, 4, 2)),
+            0.5,
+            np.array([]),
+            DoesNotRaise(),
+        ),  # empty predictions and oriented boxes
+        (
+            np.array([[-10, -10, 10, 10, 0.9, 0], [0, 0, 20, 20, 0.8, 0]]),
+            np.array(
+                [
+                    [[0, -10], [10, 0], [0, 10], [-10, 0]],
+                    [[10, 0], [20, 10], [10, 20], [0, 10]],
+                ],
+                dtype=np.float32,
+            ),
+            0.5,
+            np.array([0.9, 0.8]),
+            DoesNotRaise(),
+        ),  # diamonds touching along an edge: envelopes overlap, bodies do not
+        (
+            np.array([[0, 0, 40, 20, 0.9, 0], [0, 0, 40, 20, 0.8, 0]]),
+            np.array(
+                [
+                    [[0, 0], [40, 0], [40, 20], [0, 20]],
+                    [[0, 0], [40, 0], [40, 20], [0, 20]],
+                ],
+                dtype=np.float32,
+            ),
+            0.5,
+            np.array([0.9, 0.10826823]),
+            DoesNotRaise(),
+        ),  # identical oriented boxes: IoU 1, same decay as the axis-aligned case
+        (
+            np.array([[0, 0, 40, 20, 0.8, 0], [0, 0, 40, 20, 0.9, 1]]),
+            np.array(
+                [
+                    [[0, 0], [40, 0], [40, 20], [0, 20]],
+                    [[0, 0], [40, 0], [40, 20], [0, 20]],
+                ],
+                dtype=np.float32,
+            ),
+            0.5,
+            np.array([0.8, 0.9]),
+            DoesNotRaise(),
+        ),  # identical oriented boxes of different classes are not decayed
+        (
+            np.array([[0, 0, 40, 20, 0.9]]),
+            np.array([[[0, 0], [40, 0], [40, 20], [0, 20]]], dtype=np.float32),
+            0.0,
+            None,
+            pytest.raises(ValueError, match="sigma"),
+        ),  # sigma must be greater than 0
+        (
+            np.array([[0, 0, 40, 20, 0.9], [0, 0, 40, 20, 0.8]]),
+            np.array([[[0, 0], [40, 0], [40, 20], [0, 20]]], dtype=np.float32),
+            0.5,
+            None,
+            pytest.raises(ValueError, match="same length"),
+        ),  # predictions and oriented boxes must line up
+    ],
+)
+def test_oriented_box_soft_non_max_suppression(
+    predictions: np.ndarray,
+    oriented_boxes: np.ndarray,
+    sigma: float,
+    expected_result: np.ndarray | None,
+    exception: AbstractContextManager[object],
+) -> None:
+    with exception:
+        result = oriented_box_soft_non_max_suppression(
+            predictions=predictions, oriented_boxes=oriented_boxes, sigma=sigma
+        )
         assert expected_result is not None
         np.testing.assert_almost_equal(result, expected_result, decimal=5)
 
