@@ -190,8 +190,8 @@ class _VideoCapture:
     def _timestamp_fps(self) -> float:
         """Return frames per second of the video stream's packet timestamps, or 0.
 
-        Only the video stream is demuxed, on a second handle, so a longer audio track
-        or a missing container duration does not change the result.
+        Only the video stream is demuxed, on a second handle, so a longer audio track or
+        a missing container duration does not change the result.
         """
         import av
 

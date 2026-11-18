@@ -913,9 +913,9 @@ def _write_silent_opus(container: Any, stream: Any, seconds: float) -> None:
 def _void_matroska_default_duration(path: str) -> None:
     """Blank the track's `DefaultDuration`, the frame rate a browser never writes.
 
-    PyAV before 19 writes a 24 fps `DefaultDuration` even when the frame rate is
-    zero. The element is overwritten in place by an EBML `Void` element of the same
-    length, so no parent size changes.
+    PyAV before 19 writes a 24 fps `DefaultDuration` even when the frame rate is zero.
+    The element is overwritten in place by an EBML `Void` element of the same length, so
+    no parent size changes.
     """
     data = bytearray(Path(path).read_bytes())
     # DefaultDuration ID followed by a one-byte size of a 1-8 byte unsigned int.
