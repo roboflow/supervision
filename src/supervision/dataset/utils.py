@@ -485,8 +485,6 @@ def build_class_index_mapping(
         ```
     """
     index_mapping: dict[int, int] = {}
-    if not source_classes:
-        return index_mapping
 
     target_indices: dict[str, int] = {}
     for target_index, class_name in enumerate(target_classes):
