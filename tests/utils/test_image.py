@@ -680,6 +680,69 @@ def test_overlay_image_blends_bgra_overlay_as_gray_on_grayscale_scene(
     np.testing.assert_array_equal(result.reshape(2, 2), expected)
 
 
+def test_overlay_image_pastes_bgr_overlay_opaque_on_bgra_scene() -> None:
+    """A BGR overlay is pasted into a BGRA scene with an opaque alpha."""
+    # given
+    image = np.zeros((3, 3, 4), dtype=np.uint8)
+    overlay = np.full((2, 2, 3), (10, 20, 30), dtype=np.uint8)
+    expected = np.zeros((3, 3, 4), dtype=np.uint8)
+    expected[1:, 1:] = (10, 20, 30, 255)
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(1, 1))
+
+    # then
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("scene_alpha", "overlay_alpha", "expected"),
+    [
+        pytest.param(255, 60, (26, 255), id="opaque-scene-blends-like-bgr"),
+        pytest.param(0, 60, (39, 60), id="transparent-scene-keeps-overlay-color"),
+        pytest.param(100, 0, (22, 100), id="transparent-overlay-keeps-scene"),
+        pytest.param(100, 255, (39, 255), id="opaque-overlay-is-opaque"),
+    ],
+)
+def test_overlay_image_composites_bgra_overlay_over_bgra_scene(
+    scene_alpha: int, overlay_alpha: int, expected: tuple[int, int]
+) -> None:
+    """A BGRA overlay composites over a BGRA scene with the "over" operator.
+
+    The scene's hidden color counts only as far as the scene is opaque, so an overlay on
+    a transparent scene keeps its own color.
+    """
+    # given
+    image = np.full((1, 1, 4), (22, 22, 22, scene_alpha), dtype=np.uint8)
+    overlay = np.array([[[39, 39, 39, overlay_alpha]]], dtype=np.uint8)
+    expected_color, expected_alpha = expected
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+    # then
+    assert result[0, 0].tolist() == [*(expected_color,) * 3, expected_alpha]
+
+
+def test_overlay_image_on_opaque_bgra_scene_matches_bgr_scene() -> None:
+    """On an opaque BGRA scene, colors equal the BGR-scene blend within rounding."""
+    # given
+    bgr = np.arange(4 * 4 * 3, dtype=np.uint8).reshape(4, 4, 3)
+    image = np.dstack([bgr, np.full((4, 4), 255, dtype=np.uint8)])
+    overlay = np.full((4, 4, 4), (200, 100, 50, 0), dtype=np.uint8)
+    overlay[..., 3] = np.arange(16, dtype=np.uint8).reshape(4, 4) * 17
+    expected = _overlay_image(image=bgr.copy(), overlay=overlay, anchor=(0, 0))
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+    # then
+    np.testing.assert_allclose(
+        result[..., :3].astype(np.int16), expected.astype(np.int16), atol=1
+    )
+    np.testing.assert_array_equal(result[..., 3], 255)
+
+
 @pytest.mark.parametrize(
     ("image", "xyxy", "expected_size"),
     [

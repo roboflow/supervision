@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.CropAnnotator` and `sv.IconAnnotator` now annotate four-channel BGRA scenes instead of raising a NumPy broadcast error. Crops and icons are composited over the scene's alpha, as `sv.draw_image` does, so the hidden colors of transparent pixels do not darken them and an opaque scene stays opaque. ([#2995](https://github.com/roboflow/supervision/pull/2995))
+
 -
 
 ### 0.32.0 <small>Nov 18, 2026</small>

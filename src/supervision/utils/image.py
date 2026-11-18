@@ -16,6 +16,7 @@ from PIL import Image
 from supervision import _cv2 as cv2
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
+from supervision.draw.utils import _composite_over_bgra
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
 )
@@ -464,12 +465,15 @@ def _overlay_image(
     """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
 
     Args:
-        image: Background array, BGR of shape ``(H, W, 3)`` or grayscale of
-            shape ``(H, W)`` or ``(H, W, 1)``. Modified in place and returned.
+        image: Background array, BGR of shape ``(H, W, 3)``, BGRA of shape
+            ``(H, W, 4)``, or grayscale of shape ``(H, W)`` or ``(H, W, 1)``.
+            Modified in place and returned.
         overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``, or
             grayscale like ``image``; channel 4, when present, is treated as
             alpha. A BGR overlay is drawn as gray luminance on a grayscale
-            ``image``.
+            ``image``. On a BGRA ``image`` the overlay is composited over the
+            scene's alpha, so hidden colors of transparent pixels do not darken
+            it.
         anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
             be negative (partial off-screen placement is clipped).
 
@@ -503,6 +507,18 @@ def _overlay_image(
         alpha = overlay_crop[:, :, 3]
         overlay_crop = overlay_crop[:, :, :3]
     overlay_crop = _match_overlay_to_scene_channels(overlay=overlay_crop, roi=roi)
+    if roi.ndim == 3 and roi.shape[2] == 4:
+        # A BGRA scene gets the overlay composited over its alpha, as `draw_image`
+        # does, so the hidden colors of transparent pixels do not darken it.
+        coverage = (
+            np.ones((*overlay_crop.shape[:2], 1), dtype=np.float32)
+            if alpha is None
+            else (alpha.astype(np.float32) / 255.0)[:, :, np.newaxis]
+        )
+        image[y_min:y_max, x_min:x_max] = _composite_over_bgra(
+            roi, overlay_crop, coverage
+        )
+        return image
 
     if alpha is not None:
         alpha_f32 = alpha.astype(np.float32) / 255.0
