@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Dataset merging builds class-name indices once instead of repeatedly scanning the target vocabulary, preserving first-occurrence mapping for repeated names.
+- Dataset merging builds class-name indices once instead of repeatedly scanning the target vocabulary, preserving first-occurrence mapping for repeated names. ([#3017](https://github.com/roboflow/supervision/pull/3017))
 
 - `sv.VertexAnnotator`, `sv.EdgeAnnotator` and `sv.VertexLabelAnnotator` now accept a `sv.ColorPalette` and a `color_lookup` argument. `sv.ColorLookup.INDEX` and `sv.ColorLookup.CLASS` work as for detection annotators, and the new `sv.ColorLookup.KEYPOINT` colors each keypoint by its index within the skeleton. `sv.ColorLookup.TRACK` is not supported for keypoints and is rejected when the annotator is created. ([#2343](https://github.com/roboflow/supervision/pull/2343))
 
