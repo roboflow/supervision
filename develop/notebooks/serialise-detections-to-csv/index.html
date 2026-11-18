@@ -4048,9 +4048,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">inference</span> <span class="n">requests</span> <span class="n">tqdm</span> <span class="n">supervision</span> <span class="n">trackers</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">rfdetr</span> <span class="n">requests</span> <span class="n">tqdm</span> <span class="n">supervision</span> <span class="n">trackers</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">!pip install -q inference requests tqdm supervision trackers</div>
+<div class="clipboard-copy-txt" id="cell-1">!pip install -q rfdetr requests tqdm supervision trackers</div>
 </div>
 </div>
 </div>
@@ -4084,8 +4084,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">supervision.assets</span><span class="w"> </span><span class="kn">import</span> <span class="n">download_assets</span><span class="p">,</span> <span class="n">VideoAssets</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">InferencePipeline</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">inference.core.interfaces.camera.entities</span><span class="w"> </span><span class="kn">import</span> <span class="n">VideoFrame</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rfdetr</span><span class="w"> </span><span class="kn">import</span> <span class="n">RFDETRSmall</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">import csv
 from typing import List
@@ -4096,8 +4095,7 @@ import pandas as pd
 
 import supervision as sv
 from supervision.assets import download_assets, VideoAssets
-from inference import InferencePipeline
-from inference.core.interfaces.camera.entities import VideoFrame
+from rfdetr import RFDETRSmall
 </div>
 </div>
 </div>
@@ -4115,9 +4113,7 @@ from inference.core.interfaces.camera.entities import VideoFrame
 <ul>
 <li><code>SOURCE_VIDEO_PATH</code> - the path to the input video</li>
 <li><code>CONFIDENCE_THRESHOLD</code> - do not include detections below this confidence level</li>
-<li><code>IOU_THRESHOLD</code> - discard detections that overlap with others by more than this <a href="https://blog.roboflow.com/how-to-code-non-maximum-suppression-nms-in-plain-numpy/">IOU</a> ratio</li>
 <li><code>FILE_NAME</code> - write the json output to this file</li>
-<li><code>INFERENCE_MODEL</code> - model id. This cookbook uses a <a href="https://inference.roboflow.com/quickstart/aliases/">model alias</a>, but it can also be a <a href="https://inference.roboflow.com/quickstart/explore_models/">fine-tuned model</a> or a model from the <a href="https://inference.roboflow.com/quickstart/load_from_universe/">Universe</a>.</li>
 </ul>
 </div>
 </div>
@@ -4143,15 +4139,11 @@ from inference.core.interfaces.camera.entities import VideoFrame
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">SOURCE_VIDEO_PATH</span> <span class="o">=</span> <span class="n">download_assets</span><span class="p">(</span><span class="n">VideoAssets</span><span class="o">.</span><span class="n">PEOPLE_WALKING</span><span class="p">)</span>
 <span class="n">CONFIDENCE_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.3</span>
-<span class="n">IOU_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.7</span>
 <span class="n">FILE_NAME</span> <span class="o">=</span> <span class="s2">"detections.csv"</span>
-<span class="n">INFERENCE_MODEL</span> <span class="o">=</span> <span class="s2">"rfdetr-small"</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-3">SOURCE_VIDEO_PATH = download_assets(VideoAssets.PEOPLE_WALKING)
 CONFIDENCE_THRESHOLD = 0.3
-IOU_THRESHOLD = 0.7
-FILE_NAME = "detections.csv"
-INFERENCE_MODEL = "rfdetr-small"</div>
+FILE_NAME = "detections.csv"</div>
 </div>
 </div>
 </div>
@@ -4337,8 +4329,7 @@ csv_sink.open()</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="process-video-and-save-detections-to-csv-file">Process video and save detections to csv file<a class="anchor-link" href="#process-video-and-save-detections-to-csv-file">¶</a></h2><p>The <a href="https://inference.roboflow.com/using_inference/inference_pipeline/"><code>InferencePipeline</code></a> interface is made for streaming and is likely the best route to go for real time use cases. It is an asynchronous interface that can consume many different video sources including local devices (like webcams), RTSP video streams, video files, etc. With this interface, you define the source of a video stream and sinks.</p>
-<p>All the operations we plan to perform for each frame of our video - detection, tracking, annotation, and write to csv are encapsulated in a function named <code>callback</code>.</p>
+<h2 id="process-video-and-save-detections-to-csv-file">Process video and save detections to csv file<a class="anchor-link" href="#process-video-and-save-detections-to-csv-file">¶</a></h2><p>We load a pre-trained <a href="https://github.com/roboflow/rf-detr">RF-DETR</a> Small model and iterate over the frames of our video with <code>get_video_frames_generator</code>. RF-DETR expects RGB frames while OpenCV frames are BGR, so we reverse the channel order, and <code>predict()</code> returns an <code>sv.Detections</code> object directly. The pre-trained COCO weights are downloaded automatically and no API key is needed. All the operations we plan to perform for each frame of our video - detection, tracking, annotation, and write to csv - run inside this loop.</p>
 </div>
 </div>
 </div>
@@ -4348,7 +4339,7 @@ csv_sink.open()</div>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [33]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-7">
@@ -4361,109 +4352,40 @@ csv_sink.open()</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">VideoFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Load a pre-trained RF-DETR Small model.</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">RFDETRSmall</span><span class="p">()</span>
 
-    <span class="c1"># Only keep person detections</span>
-    <span class="n">detections</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
-    <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"class_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s2">"person"</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">))])</span>
+<span class="n">generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">SOURCE_VIDEO_PATH</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">frame_number</span><span class="p">,</span> <span class="n">frame</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">generator</span><span class="p">):</span>
+    <span class="n">detections</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">frame</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">threshold</span><span class="o">=</span><span class="n">CONFIDENCE_THRESHOLD</span><span class="p">)</span>
+
+    <span class="c1"># Only keep person detections. RF-DETR uses COCO category ids, where person is 1.</span>
+    <span class="n">detections</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># Keep only the class name as extra data, dropping RF-DETR's per-detection source_shape.</span>
+    <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"source_shape"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
     <span class="n">detections</span> <span class="o">=</span> <span class="n">byte_track</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
     <span class="n">detections</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># -1 = pending track</span>
-    <span class="n">csv_sink</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="o">=</span><span class="p">{</span><span class="s1">'frame_number'</span><span class="p">:</span> <span class="n">frame</span><span class="o">.</span><span class="n">frame_id</span><span class="p">})</span>
+    <span class="n">csv_sink</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="o">=</span><span class="p">{</span><span class="s1">'frame_number'</span><span class="p">:</span> <span class="n">frame_number</span><span class="p">})</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-7">def callback(predictions: dict, frame: VideoFrame) -&gt; np.ndarray:
-    detections = sv.Detections.from_inference(predictions)
+<div class="clipboard-copy-txt" id="cell-7"># Load a pre-trained RF-DETR Small model.
+model = RFDETRSmall()
 
-    # Only keep person detections
-    detections = detections[detections.class_id == 0]
-    detections.data["class_name"] = np.array(["person" for _ in range(len(detections))])
+generator = sv.get_video_frames_generator(SOURCE_VIDEO_PATH)
+
+for frame_number, frame in enumerate(generator):
+    detections = model.predict(frame[:, :, ::-1], threshold=CONFIDENCE_THRESHOLD)
+
+    # Only keep person detections. RF-DETR uses COCO category ids, where person is 1.
+    detections = detections[detections.class_id == 1]
+    # Keep only the class name as extra data, dropping RF-DETR's per-detection source_shape.
+    detections.data.pop("source_shape", None)
 
     detections = byte_track.update(detections)
     detections = detections[detections.tracker_id != -1]  # -1 = pending track
-    csv_sink.append(detections, custom_data={'frame_number': frame.frame_id})</div>
+    csv_sink.append(detections, custom_data={'frame_number': frame_number})
 </div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [34]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-8">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">pipeline</span> <span class="o">=</span> <span class="n">InferencePipeline</span><span class="o">.</span><span class="n">init</span><span class="p">(</span>
-    <span class="n">model_id</span><span class="o">=</span><span class="n">INFERENCE_MODEL</span><span class="p">,</span>
-    <span class="n">video_reference</span><span class="o">=</span><span class="n">SOURCE_VIDEO_PATH</span><span class="p">,</span>
-    <span class="n">on_prediction</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span>
-    <span class="n">iou_threshold</span><span class="o">=</span><span class="n">IOU_THRESHOLD</span><span class="p">,</span>
-    <span class="n">confidence</span><span class="o">=</span><span class="n">CONFIDENCE_THRESHOLD</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-8">pipeline = InferencePipeline.init(
-    model_id=INFERENCE_MODEL,
-    video_reference=SOURCE_VIDEO_PATH,
-    on_prediction=callback,
-    iou_threshold=IOU_THRESHOLD,
-    confidence=CONFIDENCE_THRESHOLD,
-)</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>UserWarning: Specified provider 'CUDAExecutionProvider' is not in available provider names.Available providers: 'CPUExecutionProvider'
-UserWarning: Specified provider 'OpenVINOExecutionProvider' is not in available provider names.Available providers: 'CPUExecutionProvider'
-</pre>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [35]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">pipeline</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-<span class="n">pipeline</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-9">pipeline.start()
-pipeline.join()</div>
 </div>
 </div>
 </div>
@@ -4478,7 +4400,7 @@ pipeline.join()</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [36]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-10">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-8">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4490,7 +4412,7 @@ pipeline.join()</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">csv_sink</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-10">csv_sink.close()</div>
+<div class="clipboard-copy-txt" id="cell-8">csv_sink.close()</div>
 </div>
 </div>
 </div>
@@ -4517,7 +4439,7 @@ pipeline.join()</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [37]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-11">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4530,7 +4452,7 @@ pipeline.join()</div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">FILE_NAME</span><span class="p">)</span>
 <span class="n">df</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-11">df = pd.read_csv(FILE_NAME)
+<div class="clipboard-copy-txt" id="cell-9">df = pd.read_csv(FILE_NAME)
 df</div>
 </div>
 </div>
@@ -4575,63 +4497,63 @@ df</div>
 <tbody>
 <tr>
 <th>0</th>
-<td>1142.0</td>
-<td>950.0</td>
-<td>1245.0</td>
-<td>1080.0</td>
-<td>0</td>
-<td>0.767850</td>
-<td>185</td>
-<td>person</td>
+<td>1143.44250</td>
+<td>937.553900</td>
+<td>1243.92850</td>
+<td>1079.17810</td>
 <td>1</td>
+<td>0.863106</td>
+<td>0</td>
+<td>person</td>
+<td>2</td>
 </tr>
 <tr>
 <th>1</th>
-<td>750.0</td>
-<td>450.0</td>
-<td>823.0</td>
-<td>620.0</td>
-<td>0</td>
-<td>0.748268</td>
-<td>168</td>
-<td>person</td>
+<td>1396.15450</td>
+<td>703.591500</td>
+<td>1517.28040</td>
+<td>888.19885</td>
 <td>1</td>
+<td>0.784097</td>
+<td>1</td>
+<td>person</td>
+<td>2</td>
 </tr>
 <tr>
 <th>2</th>
-<td>1419.0</td>
-<td>702.0</td>
-<td>1526.0</td>
-<td>887.0</td>
-<td>0</td>
-<td>0.550286</td>
-<td>179</td>
-<td>person</td>
+<td>672.93823</td>
+<td>636.082640</td>
+<td>747.14080</td>
+<td>833.58960</td>
 <td>1</td>
+<td>0.776539</td>
+<td>2</td>
+<td>person</td>
+<td>2</td>
 </tr>
 <tr>
 <th>3</th>
-<td>1674.0</td>
-<td>12.0</td>
-<td>1727.0</td>
-<td>141.0</td>
-<td>0</td>
-<td>0.546864</td>
-<td>174</td>
-<td>person</td>
+<td>710.86990</td>
+<td>231.627200</td>
+<td>766.61550</td>
+<td>373.18634</td>
 <td>1</td>
+<td>0.637915</td>
+<td>3</td>
+<td>person</td>
+<td>2</td>
 </tr>
 <tr>
 <th>4</th>
-<td>1616.0</td>
-<td>18.0</td>
-<td>1655.0</td>
-<td>127.0</td>
-<td>0</td>
-<td>0.520566</td>
-<td>181</td>
-<td>person</td>
+<td>1142.90140</td>
+<td>496.788970</td>
+<td>1208.54860</td>
+<td>645.21240</td>
 <td>1</td>
+<td>0.680128</td>
+<td>4</td>
+<td>person</td>
+<td>2</td>
 </tr>
 <tr>
 <th>...</th>
@@ -4646,68 +4568,68 @@ df</div>
 <td>...</td>
 </tr>
 <tr>
-<th>8757</th>
-<td>394.0</td>
-<td>471.0</td>
-<td>460.0</td>
-<td>633.0</td>
-<td>0</td>
-<td>0.466400</td>
-<td>244</td>
+<th>4831</th>
+<td>1278.09130</td>
+<td>4.527914</td>
+<td>1328.23350</td>
+<td>127.99300</td>
+<td>1</td>
+<td>0.406354</td>
+<td>14</td>
 <td>person</td>
-<td>341</td>
+<td>340</td>
 </tr>
 <tr>
-<th>8758</th>
-<td>115.0</td>
-<td>256.0</td>
-<td>199.0</td>
-<td>399.0</td>
-<td>0</td>
-<td>0.431374</td>
-<td>223</td>
+<th>4832</th>
+<td>749.61410</td>
+<td>95.744220</td>
+<td>800.39813</td>
+<td>247.09016</td>
+<td>1</td>
+<td>0.515656</td>
+<td>15</td>
 <td>person</td>
-<td>341</td>
+<td>340</td>
 </tr>
 <tr>
-<th>8759</th>
-<td>77.0</td>
-<td>700.0</td>
-<td>169.0</td>
-<td>892.0</td>
-<td>0</td>
-<td>0.416318</td>
-<td>240</td>
+<th>4833</th>
+<td>1869.13330</td>
+<td>712.096500</td>
+<td>1919.88570</td>
+<td>835.39930</td>
+<td>1</td>
+<td>0.354387</td>
+<td>23</td>
 <td>person</td>
-<td>341</td>
+<td>340</td>
 </tr>
 <tr>
-<th>8760</th>
-<td>1010.0</td>
-<td>59.0</td>
-<td>1055.0</td>
-<td>174.0</td>
-<td>0</td>
-<td>0.403422</td>
-<td>246</td>
+<th>4834</th>
+<td>385.78110</td>
+<td>470.748470</td>
+<td>460.57724</td>
+<td>634.90570</td>
+<td>1</td>
+<td>0.458818</td>
+<td>25</td>
 <td>person</td>
-<td>341</td>
+<td>340</td>
 </tr>
 <tr>
-<th>8761</th>
-<td>1758.0</td>
-<td>0.0</td>
-<td>1809.0</td>
-<td>96.0</td>
-<td>0</td>
-<td>0.313793</td>
-<td>236</td>
+<th>4835</th>
+<td>1012.46027</td>
+<td>171.991260</td>
+<td>1057.97990</td>
+<td>296.62190</td>
+<td>1</td>
+<td>0.511577</td>
+<td>32</td>
 <td>person</td>
-<td>341</td>
+<td>340</td>
 </tr>
 </tbody>
 </table>
-<p>8762 rows × 9 columns</p>
+<p>4836 rows × 9 columns</p>
 </div>
 </div>
 </div>
@@ -4734,7 +4656,7 @@ df</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [38]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-12">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-10">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4790,7 +4712,7 @@ df</div>
     
     <span class="k">return</span> <span class="n">detections_list</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-12">def csv_to_detections(csv_file: str) -&gt; List[sv.Detections]:
+<div class="clipboard-copy-txt" id="cell-10">def csv_to_detections(csv_file: str) -&gt; List[sv.Detections]:
     rows_by_frame_number = defaultdict(list)
     with open(csv_file, 'r') as f:
         reader = csv.DictReader(f)
@@ -4849,7 +4771,7 @@ df</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [39]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-13">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-11">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4865,7 +4787,7 @@ df</div>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Detections: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">detections_list</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">detections_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-13">detections_list = csv_to_detections(FILE_NAME)
+<div class="clipboard-copy-txt" id="cell-11">detections_list = csv_to_detections(FILE_NAME)
 detections_list
 
 print(f"Detections: {len(detections_list)}")
@@ -4881,14 +4803,21 @@ print(detections_list[0])</div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Detections: 341
-Detections(xyxy=array([[1142.,  950., 1245., 1080.],
-       [ 750.,  450.,  823.,  620.],
-       [1419.,  702., 1526.,  887.],
-       [1674.,   12., 1727.,  141.],
-       [1616.,   18., 1655.,  127.],
-       [1388.,    2., 1437.,  184.]], dtype=float32), mask=None, confidence=array([0.7678498 , 0.7482683 , 0.5502863 , 0.5468636 , 0.5205659 ,
-       0.31684005], dtype=float32), class_id=array([0, 0, 0, 0, 0, 0]), tracker_id=array([185, 168, 179, 174, 181,  28]), data={'class_name': ['person', 'person', 'person', 'person', 'person', 'person'], 'frame_number': ['1', '1', '1', '1', '1', '1']})
+<pre>Detections: 339
+Detections(xyxy=array([[1143.4425  ,  937.5539  , 1243.9285  , 1079.1781  ],
+       [1396.1545  ,  703.5915  , 1517.2804  ,  888.19885 ],
+       [ 672.93823 ,  636.08264 ,  747.1408  ,  833.5896  ],
+       [ 710.8699  ,  231.6272  ,  766.6155  ,  373.18634 ],
+       [1142.9014  ,  496.78897 , 1208.5486  ,  645.2124  ],
+       [1454.0712  ,  324.54132 , 1520.9645  ,  485.49652 ],
+       [ 756.0028  ,  442.49316 ,  828.5412  ,  615.2565  ],
+       [ 569.5197  ,  275.6436  ,  631.48737 ,  419.05127 ],
+       [1467.3304  ,  480.87167 , 1544.1589  ,  651.0591  ],
+       [  35.265247,  800.402   ,  142.97803 ,  991.28705 ],
+       [ 257.38583 ,  443.66803 ,  328.23965 ,  611.1303  ]],
+      dtype=float32), mask=None, confidence=array([0.8631058 , 0.78409696, 0.7765393 , 0.6379146 , 0.6801278 ,
+       0.6703476 , 0.72015256, 0.62471277, 0.6863714 , 0.6060617 ,
+       0.5815136 ], dtype=float32), class_id=array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), tracker_id=array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10]), data={'class_name': ['person', 'person', 'person', 'person', 'person', 'person', 'person', 'person', 'person', 'person', 'person'], 'frame_number': ['2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2']}, metadata={})
 </pre>
 </div>
 </div>
@@ -4926,7 +4855,7 @@ Detections(xyxy=array([[1142.,  950., 1245., 1080.],
 <div class="jp-InputPrompt jp-InputArea-prompt">In [40]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-14">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-12">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4945,7 +4874,7 @@ Detections(xyxy=array([[1142.,  950., 1245., 1080.],
 <span class="n">generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">SOURCE_VIDEO_PATH</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">FRAME_NUMBER</span><span class="p">)</span>
 <span class="n">frame</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">generator</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-14">FRAME_NUMBER = 100
+<div class="clipboard-copy-txt" id="cell-12">FRAME_NUMBER = 100
 
 detections = detections_list[FRAME_NUMBER]
 frame_number = detections.data["frame_number"][0]
@@ -4978,7 +4907,7 @@ frame = next(generator)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-15">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-13">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4996,7 +4925,7 @@ frame = next(generator)</div>
 <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">label_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="o">=</span><span class="n">annotated_frame</span><span class="p">,</span> <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">)</span>
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">annotated_frame</span><span class="p">,</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-15">bounding_box_annotator = sv.BoxAnnotator()
+<div class="clipboard-copy-txt" id="cell-13">bounding_box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 
 annotated_frame = frame.copy()
@@ -5021,9 +4950,7 @@ sv.plot_image(annotated_frame, (12, 12))</div>
 <li>Save Detections to CSV: <a href="https://supervision.roboflow.com/develop/how_to/save_detections/#save-detections-as-csv">https://supervision.roboflow.com/develop/how_to/save_detections/#save-detections-as-csv</a></li>
 <li>Custom fields: <a href="https://supervision.roboflow.com/develop/how_to/save_detections/#custom-fields">https://supervision.roboflow.com/develop/how_to/save_detections/#custom-fields</a></li>
 <li>ByteTrack (external <code>trackers</code> package): <a href="https://trackers.roboflow.com/latest/">https://trackers.roboflow.com/latest/</a></li>
-<li>Inference: <a href="https://inference.roboflow.com/">https://inference.roboflow.com/</a></li>
-<li>Inference Pipeline: <a href="https://inference.roboflow.com/using_inference/inference_pipeline/">https://inference.roboflow.com/using_inference/inference_pipeline/</a></li>
-<li>Inference Aliases: <a href="https://inference.roboflow.com/quickstart/aliases/">https://inference.roboflow.com/quickstart/aliases/</a></li>
+<li>RF-DETR: <a href="https://github.com/roboflow/rf-detr">https://github.com/roboflow/rf-detr</a></li>
 </ul>
 </div>
 </div>
@@ -5058,7 +4985,7 @@ sv.plot_image(annotated_frame, (12, 12))</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 18, 2026 12:26:19 UTC">November 18, 2026</span>
   </span>
 
     
@@ -5110,7 +5037,7 @@ sv.plot_image(annotated_frame, (12, 12))</div>
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/notebooks/serialise-detections-to-csv.ipynb" class="md-author md-author--more">
-            +4
+            +5
           </a>
         
       
