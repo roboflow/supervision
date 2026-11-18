@@ -13,6 +13,7 @@ from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
@@ -21,6 +22,9 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (
     _load_coco_annotations,
     save_coco_annotations,
+)
+from supervision.dataset.formats.coco import (
+    load_coco_annotations as _load_coco_annotations_public,
 )
 from supervision.dataset.formats.createml import (
     load_createml_annotations,
@@ -57,12 +61,54 @@ from supervision.dataset.utils import (
 )
 from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
-from supervision.utils.internal import warn_deprecated
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM, warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
 _IMAGE_FILE_EXTENSIONS = frozenset(
     {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 )
+
+#: Warning text for the copy of the COCO loader that this module exposed as a side
+#: effect of using it. The loader itself stays public in its own module.
+_COCO_LOADER_MODULE_DEPRECATION = (
+    "`%(source_name)s` imported from `supervision.dataset.core` is deprecated in "
+    "`%(deprecated_in)s` and will be removed in `%(remove_in)s`. Import it from "
+    "`supervision.dataset.formats.coco` instead."
+)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_load_coco_annotations_public,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_COCO_LOADER_MODULE_DEPRECATION,
+)
+def load_coco_annotations(
+    images_directory_path: str,
+    annotations_path: str,
+    force_masks: bool = False,
+    use_iscrowd: bool = True,
+    show_progress: bool = False,
+    *,
+    mask_rasterizer: Literal["supervision", "pycocotools"] | None = None,
+) -> tuple[list[str], list[str], dict[str, Detections]]:
+    """Deprecated: import `load_coco_annotations` from its own module.
+
+    Releases before `0.32.0` exposed this loader from this module, so the name stays
+    importable here until `0.35.0`.
+    """
+    return cast(
+        tuple[list[str], list[str], dict[str, Detections]],
+        void(
+            images_directory_path,
+            annotations_path,
+            force_masks,
+            use_iscrowd,
+            show_progress,
+            mask_rasterizer=mask_rasterizer,
+        ),
+    )
 
 
 def _validate_and_name_class_ids(

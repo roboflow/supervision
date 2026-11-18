@@ -4,16 +4,18 @@ from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import Any, ClassVar, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 from PIL import Image, ImageDraw, ImageFont, features
 from scipy.interpolate import splev, splprep
 
 from supervision import _cv2 as cv2
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
+    _DETECTION_COLOR_HELPER_DEPRECATION,
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
@@ -54,36 +56,31 @@ from supervision.utils.image import (
     letterbox_image,
     scale_image,
 )
-from supervision.utils.internal import warn_deprecated
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
 
-if not TYPE_CHECKING:
 
-    def __getattr__(name: str) -> Any:
-        """Resolve ``resolve_color``, kept importable from this module until `0.35.0`.
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+)
+def resolve_color(
+    color: Color | ColorPalette,
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
+) -> Color:
+    """Deprecated: resolve the color used to draw a single detection.
 
-        Releases before `0.32.0` exposed
-        :func:`~supervision.annotators.utils.resolve_color` here as a side effect of
-        the annotators importing it. A module-level lookup keeps that import working
-        with a deprecation warning, without binding the name when this module loads.
-        It is hidden from type checkers, which would otherwise type every missing
-        name in this module as ``Any`` and mask typos in imports from it.
-
-        Raises:
-            AttributeError: If ``name`` is not a deprecated alias of this module.
-        """
-        if name == "resolve_color":
-            from supervision.annotators.utils import resolve_color
-
-            warn_deprecated(
-                "Importing 'resolve_color' from 'supervision.annotators.core' is "
-                "deprecated in `0.32.0`, removed in `0.35.0`. Pass a 'sv.ColorPalette' "
-                "as 'color' together with 'color_lookup' to the annotators instead."
-            )
-            return resolve_color
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    Releases before `0.32.0` exposed this helper from this module as a side effect of
+    the annotators importing it, so the name stays importable here until `0.35.0`.
+    """
+    return cast(Color, void(color, detections, detection_idx, color_lookup))
 
 
 # Hebrew, Arabic, Syriac, Thaana, NKo and their presentation forms
