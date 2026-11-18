@@ -651,7 +651,12 @@ class LineZoneAnnotator:
             if not is_shown:
                 continue
 
-            if line_angle_degrees == 0 or not self.text_orient_to_line:
+            # A centered label of a horizontal line keeps the plain path. A label
+            # anchored near the end takes the oriented path even when the line is
+            # level, so it does not jump to the center when the line levels out.
+            if not self.text_orient_to_line or (
+                line_angle_degrees == 0 and self.text_centered
+            ):
                 self._draw_basic_label(
                     frame=frame,
                     line_center=vector.center,
