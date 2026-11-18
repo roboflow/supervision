@@ -5,7 +5,7 @@ authors:
   - name: Caio Viotti
     role: Roboflow
     github: https://github.com/cfviotti
-date_modified: 2026-10-08
+date_modified: 2026-11-05
 ---
 
 # Visualize Depth Maps
@@ -168,6 +168,26 @@ An object whose region holds no depth gets `NaN`, so the labels above check `np.
 `measure_detections` names its column after what the map can give: `"depth_m"` for a `depth_m` map or a disparity map with a camera, and the map's own kind otherwise, `"disparity_px"` for a disparity map without a camera. A relative map has no metres, so it fills `detections.data["relative_inverse"]` instead: useful to sort objects from near to far within one image, not to compare images. A column of the same name already in `detections.data` is replaced.
 
 For one pixel, `depth_map.value_at(x, y)` returns the value in the map's own unit, not in metres unless the map is `depth_m`: pixels for a disparity map, so call `depth_map.to_depth().value_at(x, y)` for metres, and `None` where there is no depth.
+
+## Visualize Normal and Gradient Maps
+
+Normal maps hold an x, y and z component at every pixel. `sv.NormalMapAnnotator` normalizes each vector and maps its components to red, green and blue. Zero vectors and vectors with a nonfinite component are left unpainted:
+
+```python
+normal_map = np.load("<NORMAL_MAP_NPY_PATH>")  # float32 array shaped (H, W, 3)
+annotated_image = sv.NormalMapAnnotator(opacity=0.7).annotate(image.copy(), normal_map)
+```
+
+Gradient maps may hold a scalar magnitude shaped `(H, W)` or x and y derivative components shaped `(H, W, 2)`. The component form is visualized by its Euclidean magnitude. By default, the colormap spans the valid values' 2nd to 98th percentile; set a fixed range to compare frames on the same scale:
+
+```python
+gradient_map = np.load("<GRADIENT_MAP_NPY_PATH>")  # magnitude or two components
+annotated_image = sv.GradientMapAnnotator(
+    colormap="turbo", display_range=(0.0, 25.0), opacity=0.7
+).annotate(image.copy(), gradient_map)
+```
+
+Both annotators accept NumPy BGR scenes and Pillow images, draw in place, and stretch a map over the whole scene when their dimensions differ. Nonfinite values remain transparent. `sv.GradientMapAnnotator` also accepts a constant range, which paints the far-end colour for every valid pixel.
 
 ## Attribution
 

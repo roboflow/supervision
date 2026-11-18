@@ -202,6 +202,144 @@ class DepthAnnotator:
         return percentile if percentile is not None else _FALLBACK_RANGE
 
 
+class NormalMapAnnotator:
+    """Colour a three-channel normal map over an image.
+
+    Each vector is normalized before its x, y and z components are encoded as red,
+    green and blue. A component of -1 maps to 0, 0 to 128 and 1 to 255. Zero-length
+    and nonfinite vectors are left unpainted.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> normals = np.array([[[0.0, 0.0, 1.0]]], dtype=np.float32)
+        >>> image = np.zeros((1, 1, 3), dtype=np.uint8)
+        >>> sv.NormalMapAnnotator().annotate(image, normals)[0, 0, ::-1].tolist()
+        [128, 128, 255]
+
+        ```
+    """
+
+    def __init__(self, opacity: float = 1.0) -> None:
+        """Create a normal map annotator.
+
+        Args:
+            opacity: Opacity of the colours over the scene, from 0 to 1. Values
+                outside are clamped: `<= 0` draws nothing and `>= 1` fully replaces
+                pixels with valid normals.
+        """
+        self.opacity = opacity
+
+    @ensure_cv2_image_for_class_method
+    def annotate(self, scene: ImageType, normal_map: np.ndarray) -> ImageType:
+        """Colour normal vectors over the scene.
+
+        A map whose size differs from the scene is stretched over the whole scene,
+        each scene pixel showing the map pixel under its centre.
+
+        Args:
+            scene: The image to draw on, a 3-channel `uint8` `numpy.ndarray` (BGR) or
+                a `PIL.Image.Image`. It is drawn on in place.
+            normal_map: A real numeric array shaped `(height, width, 3)` holding
+                x, y and z normal components. Vectors are normalized per pixel.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray` or
+                `PIL.Image.Image`).
+
+        Raises:
+            TypeError: If `scene` is not an image or `normal_map` is not a NumPy array.
+            ValueError: If `scene` is not a 3-channel `uint8` image, or `normal_map`
+                is not a non-empty, three-channel real numeric array.
+        """
+        scene_array = _validate_map_scene(scene, "NormalMapAnnotator")
+        colors, valid = _normal_map_colors(normal_map)
+        return _annotate_map_colors(scene_array, colors, valid, self.opacity)
+
+
+class GradientMapAnnotator:
+    """Colour scalar gradient magnitudes over an image.
+
+    A gradient map may hold scalar magnitudes shaped `(height, width)` or x and y
+    derivative components shaped `(height, width, 2)`. The default `"auto"` range
+    spans the valid values' 2nd to 98th percentile; a fixed range keeps colours stable
+    across frames. Nonfinite pixels are left unpainted.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> gradient = np.array([[0.0, 10.0]], dtype=np.float32)
+        >>> image = np.zeros((1, 2, 3), dtype=np.uint8)
+        >>> sv.GradientMapAnnotator(display_range=(0.0, 10.0)).annotate(
+        ...     image, gradient
+        ... )[0, 1, ::-1].tolist()
+        [122, 4, 3]
+
+        ```
+    """
+
+    def __init__(
+        self,
+        colormap: DepthColormap | str = DepthColormap.TURBO,
+        display_range: str | tuple[float, float] = "auto",
+        opacity: float = 1.0,
+    ) -> None:
+        """Create a gradient map annotator.
+
+        Args:
+            colormap: Colour table: `"turbo"` (default), `"viridis"`, `"cividis"`,
+                `"inferno"`, `"magma"` or `"grayscale"`.
+            display_range: The values the colour table spans; values outside clamp to
+                its ends. `"auto"` (default) uses the map's 2nd to 98th percentile.
+                A `(low, high)` tuple fixes the range. Equal bounds paint the far-end
+                colour.
+            opacity: Opacity of the colours over the scene, from 0 to 1. Values
+                outside are clamped: `<= 0` draws nothing and `>= 1` fully replaces
+                pixels covered by the map.
+
+        Raises:
+            ValueError: If `colormap` or `display_range` is invalid.
+        """
+        self.colormap = DepthColormap.from_value(colormap)
+        self.display_range = _check_gradient_display_range(display_range)
+        self.opacity = opacity
+
+    @ensure_cv2_image_for_class_method
+    def annotate(self, scene: ImageType, gradient_map: np.ndarray) -> ImageType:
+        """Colour gradient magnitudes over the scene.
+
+        A map whose size differs from the scene is stretched over the whole scene,
+        each scene pixel showing the map pixel under its centre.
+
+        Args:
+            scene: The image to draw on, a 3-channel `uint8` `numpy.ndarray` (BGR) or
+                a `PIL.Image.Image`. It is drawn on in place.
+            gradient_map: A real numeric array shaped `(height, width)` with
+                nonnegative scalar magnitudes, or `(height, width, 2)` with x and y
+                derivative components. Component arrays are visualized by their
+                Euclidean magnitude.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray` or
+                `PIL.Image.Image`).
+
+        Raises:
+            TypeError: If `scene` is not an image or `gradient_map` is not a NumPy
+                array.
+            ValueError: If `scene` is not a 3-channel `uint8` image, if `gradient_map`
+                has an unsupported shape or dtype, if a scalar magnitude is negative,
+                or if its dimensions are empty.
+        """
+        scene_array = _validate_map_scene(scene, "GradientMapAnnotator")
+        magnitudes, valid = _gradient_map_values(gradient_map)
+        value_range = _gradient_map_range(magnitudes, valid, self.display_range)
+        coordinates = _gradient_color_coordinates(magnitudes, valid, value_range)
+        colors = _colorize(coordinates, self.colormap)
+        return _annotate_map_colors(scene_array, colors, valid, self.opacity)
+
+
 @dataclass(frozen=True)
 class DepthClipRange:
     """One colour range for a whole clip of depth maps.
@@ -487,6 +625,165 @@ def _values_at_ranks(
 def _nearest_rank(count: int, fraction: float) -> int:
     """Return the nearest rank `round(fraction * (count - 1))`, rounding half up."""
     return math.floor(fraction * (count - 1) + 0.5)
+
+
+def _validate_map_scene(scene: ImageType, annotator_name: str) -> npt.NDArray[np.uint8]:
+    """Require a three-channel uint8 scene for scalar or vector map overlays."""
+    assert isinstance(scene, np.ndarray)
+    if scene.ndim != 3 or scene.shape[2] != 3:
+        raise ValueError(
+            f"{annotator_name} draws on 3-channel images, got shape {scene.shape}."
+        )
+    if scene.dtype != np.uint8:
+        raise ValueError(
+            f"{annotator_name} draws on uint8 images, got dtype {scene.dtype}."
+        )
+    return scene
+
+
+def _annotate_map_colors(
+    scene: npt.NDArray[np.uint8],
+    colors: npt.NDArray[np.uint8],
+    valid: npt.NDArray[np.bool_],
+    opacity: float,
+) -> npt.NDArray[np.uint8]:
+    """Resize a colour map and its validity mask, then blend it into a scene."""
+    scene_height, scene_width = scene.shape[:2]
+    map_height, map_width = valid.shape
+    if (map_height, map_width) != (scene_height, scene_width):
+        rows = _index_map(map_height, scene_height)
+        columns = _index_map(map_width, scene_width)
+        colors = colors.take(rows, axis=0).take(columns, axis=1)
+        valid = valid.take(rows, axis=0).take(columns, axis=1)
+    _blend(scene, valid, colors, opacity)
+    return scene
+
+
+def _real_numeric_map(values: Any, name: str) -> np.ndarray:
+    """Require a NumPy array with a real integer or floating-point dtype."""
+    if not isinstance(values, np.ndarray):
+        raise TypeError(f"{name} must be a numpy.ndarray, got {type(values)}.")
+    if values.dtype.kind not in "iuf":
+        raise ValueError(f"{name} must have a real numeric dtype, got {values.dtype}.")
+    return values
+
+
+def _normal_map_colors(
+    normal_map: np.ndarray,
+) -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.bool_]]:
+    """Normalize xyz vectors and encode them as BGR, marking unusable vectors."""
+    values = _real_numeric_map(normal_map, "normal_map")
+    if values.ndim != 3 or values.shape[2] != 3:
+        raise ValueError(
+            "normal_map must have shape (height, width, 3) for x, y and z, "
+            f"got {values.shape}."
+        )
+    if values.shape[0] == 0 or values.shape[1] == 0:
+        raise ValueError("normal_map must have non-empty height and width.")
+
+    vectors = values.astype(np.float64, copy=False)
+    finite = np.isfinite(vectors).all(axis=2)
+    with np.errstate(over="ignore", invalid="ignore"):
+        scale = np.max(np.abs(vectors), axis=2)
+    valid = finite & (scale > 0)
+    scaled = np.zeros(vectors.shape, dtype=np.float64)
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        np.divide(
+            vectors, scale[..., np.newaxis], out=scaled, where=valid[..., np.newaxis]
+        )
+        length = np.sqrt(np.sum(scaled * scaled, axis=2))
+        np.divide(
+            scaled, length[..., np.newaxis], out=scaled, where=valid[..., np.newaxis]
+        )
+        rgb = np.clip(np.rint((scaled + 1.0) * 127.5), 0, 255).astype(np.uint8)
+    colors = np.ascontiguousarray(rgb[..., ::-1])
+    return colors, valid
+
+
+def _gradient_map_values(
+    gradient_map: np.ndarray,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.bool_]]:
+    """Read scalar magnitudes or x/y derivatives and return magnitudes with a mask."""
+    values = _real_numeric_map(gradient_map, "gradient_map")
+    if values.ndim not in (2, 3) or (values.ndim == 3 and values.shape[2] != 2):
+        raise ValueError(
+            "gradient_map must have shape (height, width) for magnitudes or "
+            f"(height, width, 2) for x and y components, got {values.shape}."
+        )
+    if values.shape[0] == 0 or values.shape[1] == 0:
+        raise ValueError("gradient_map must have non-empty height and width.")
+
+    values_f64 = values.astype(np.float64, copy=False)
+    if values.ndim == 2:
+        finite = np.isfinite(values_f64)
+        if np.any(finite & (values_f64 < 0)):
+            raise ValueError("Scalar gradient magnitudes must be nonnegative.")
+        return values_f64, finite
+
+    valid = np.isfinite(values_f64).all(axis=2)
+    with np.errstate(invalid="ignore", over="ignore"):
+        magnitudes = np.hypot(values_f64[..., 0], values_f64[..., 1])
+    valid &= np.isfinite(magnitudes)
+    return magnitudes, valid
+
+
+def _check_gradient_display_range(
+    display_range: str | tuple[float, float],
+) -> str | tuple[float, float]:
+    """Validate and normalize the gradient annotator's colour range option."""
+    if isinstance(display_range, str) and display_range.lower() == "auto":
+        return "auto"
+    try:
+        low, high = _display_range_pair(display_range)
+    except ValueError as error:
+        raise ValueError(
+            "display_range must be 'auto' or a (low, high) pair of finite numbers, "
+            f"got {display_range!r}."
+        ) from error
+    span = high - low
+    if not (
+        math.isfinite(low)
+        and math.isfinite(high)
+        and low <= high
+        and math.isfinite(span)
+    ):
+        raise ValueError(
+            "display_range must have finite bounds, low <= high and a finite span, "
+            f"got {display_range!r}."
+        )
+    return low, high
+
+
+def _gradient_map_range(
+    magnitudes: npt.NDArray[np.float64],
+    valid: npt.NDArray[np.bool_],
+    display_range: str | tuple[float, float],
+) -> tuple[float, float]:
+    """Resolve the explicit or percentile colour range for a gradient map."""
+    if isinstance(display_range, tuple):
+        return display_range
+    values = magnitudes[valid]
+    if values.size == 0:
+        return _FALLBACK_RANGE
+    low, high = np.percentile(
+        values, [_DEFAULT_LOW_PERCENTILE, _DEFAULT_HIGH_PERCENTILE]
+    )
+    return float(low), float(high)
+
+
+def _gradient_color_coordinates(
+    magnitudes: npt.NDArray[np.float64],
+    valid: npt.NDArray[np.bool_],
+    value_range: tuple[float, float],
+) -> npt.NDArray[np.float64]:
+    """Map gradient magnitudes to clamped colormap coordinates in `[0, 1]`."""
+    low, high = value_range
+    coordinates = np.zeros(magnitudes.shape, dtype=np.float64)
+    if low == high:
+        return coordinates
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        coordinates[valid] = np.clip((magnitudes[valid] - low) / (high - low), 0.0, 1.0)
+    return coordinates
 
 
 def _color_coordinates(
