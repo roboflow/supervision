@@ -425,6 +425,33 @@ def _export_data_field(
     return values
 
 
+def _require_finite_extent(
+    low: npt.NDArray[np.float64], high: npt.NDArray[np.float64], source: str
+) -> None:
+    """Raise unless every box extent ``high - low`` fits in ``float64``.
+
+    Finite corners do not guarantee a finite width or height: a box spanning
+    ``[-1e308, 1e308]`` overflows to ``inf``, which the writer would emit as a label
+    the loader refuses. Normalizing divides by the image size, which is at least
+    one, so a finite extent in pixels stays finite once normalized.
+
+    Args:
+        low: Minimum corners, shape ``(N, 2)``.
+        high: Maximum corners, shape ``(N, 2)``.
+        source: Where the box comes from, named in the error.
+
+    Raises:
+        ValueError: If a width or height overflows.
+    """
+    with np.errstate(over="ignore"):
+        extents = np.abs(high - low)
+    if not np.all(np.isfinite(extents)):
+        raise ValueError(
+            f"The box from {source} is too large to write: its width or height "
+            "overflows float64."
+        )
+
+
 def _validated_export_fields(
     key_points: KeyPoints, keypoint_count: int, class_count: int | None = None
 ) -> _YoloPoseExportFields:
@@ -448,8 +475,8 @@ def _validated_export_fields(
             bounds, planar coordinates are non-finite, the keypoint count
             differs from ``keypoint_count``, or ``data['xyxy']`` is not of
             shape ``(N, 4)`` or ``data['keypoint_visibility']`` not of shape
-            ``(N, K)``, either holding a non-finite value, or a negative
-            visibility value.
+            ``(N, K)``, either holding a non-finite value, a negative
+            visibility value, or a box whose width or height overflows.
     """
     class_id = key_points.class_id
     if class_id is None:
@@ -489,6 +516,11 @@ def _validated_export_fields(
         key=KEYPOINT_VISIBILITY_DATA_FIELD,
         expected_shape=(skeleton_count, keypoint_count),
     )
+    if boxes is not None:
+        _require_finite_extent(boxes[:, :2], boxes[:, 2:], "data['xyxy']")
+    else:
+        planar = np.asarray(key_points.xy[..., :2], dtype=np.float64)
+        _require_finite_extent(planar.min(axis=1), planar.max(axis=1), "the keypoints")
     # With `visible` set, a negative raw value is never written, but it is still
     # neither a flag nor a confidence, the only values the loader produces.
     if visibility is not None and np.any(visibility < 0):
@@ -633,8 +665,8 @@ def key_points_to_yolo_pose_annotations(
             planar coordinates are non-finite, the keypoint count differs
             from ``keypoint_count``, or ``data['xyxy']`` is not of
             shape ``(N, 4)`` or ``data['keypoint_visibility']`` not of shape
-            ``(N, K)``, either holding a non-finite value, or a negative
-            visibility value.
+            ``(N, K)``, either holding a non-finite value, a negative
+            visibility value, or a box whose width or height overflows.
     """
     if len(key_points) == 0:
         return []
@@ -660,8 +692,9 @@ def key_points_to_yolo_pose_annotations(
         # KeyPoints does not enforce x_min <= x_max; a reversed box would be
         # written with a negative extent that the loader rejects.
         x_min, y_min, x_max, y_max = _sort_box_corners(box[np.newaxis])[0]
-        x_center = (x_min + x_max) / 2 / w
-        y_center = (y_min + y_max) / 2 / h
+        # Halve before adding: the corner sum can overflow where the center does not.
+        x_center = (x_min / 2 + x_max / 2) / w
+        y_center = (y_min / 2 + y_max / 2) / h
         width = (x_max - x_min) / w
         height = (y_max - y_min) / h
 

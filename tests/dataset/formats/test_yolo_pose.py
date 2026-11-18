@@ -852,6 +852,53 @@ class TestKeyPointsToYoloPoseBoxHandling:
 
         assert result == ["0 0.5 0.5 0.5 0.6 0.25 0.3 0.5 0.7"]
 
+    def test_keeps_a_representable_center_finite_at_the_float_limit(self) -> None:
+        """The corner sum overflows here, but the box center does not."""
+        key_points = KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32),
+            class_id=np.array([0]),
+            data={XYXY_DATA_FIELD: np.array([[1e308, 0.0, 1.1e308, 2.0]])},
+        )
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(10, 20, 3),
+            keypoint_count=2,
+            value_dim=2,
+        )
+
+        assert float(result[0].split()[1]) == pytest.approx(5.25e306)
+
+    @pytest.mark.parametrize(
+        "key_points",
+        [
+            pytest.param(
+                KeyPoints(
+                    xy=np.zeros((1, 2, 2), dtype=np.float32),
+                    class_id=np.array([0]),
+                    data={XYXY_DATA_FIELD: np.array([[-1e308, 0.0, 1e308, 2.0]])},
+                ),
+                id="stored-box",
+            ),
+            pytest.param(
+                KeyPoints(
+                    xy=np.array([[[-1e308, 0.0], [1e308, 2.0]]], dtype=np.float64),
+                    class_id=np.array([0]),
+                ),
+                id="box-derived-from-keypoints",
+            ),
+        ],
+    )
+    def test_rejects_a_box_whose_extent_overflows(self, key_points: KeyPoints) -> None:
+        """A width beyond float64 would be written as `inf`, so it is refused."""
+        with pytest.raises(ValueError, match="overflows float64"):
+            key_points_to_yolo_pose_annotations(
+                key_points=key_points,
+                image_shape=(10, 20, 3),
+                keypoint_count=2,
+                value_dim=2,
+            )
+
     def test_derived_box_keeps_occluded_keypoints(self) -> None:
         """A keypoint flagged 1 is labelled, so the box still bounds it."""
         key_points = yolo_pose_annotations_to_key_points(

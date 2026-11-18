@@ -504,6 +504,10 @@ class TestKeyPointsDatasetExport:
                 {XYXY_DATA_FIELD: np.array([[np.nan, 0.0, 2.0, 2.0]])},
                 id="nan-box",
             ),
+            pytest.param(
+                {XYXY_DATA_FIELD: np.array([[-1e308, 0.0, 1e308, 2.0]])},
+                id="overflowing-box-extent",
+            ),
         ],
     )
     def test_rejects_malformed_metadata_before_writing(
@@ -523,6 +527,30 @@ class TestKeyPointsDatasetExport:
         output = tmp_path / "out"
 
         with pytest.raises(ValueError, match=r"b\.png"):
+            dataset.as_yolo(
+                images_directory_path=str(output / "images"),
+                annotations_directory_path=str(output / "labels"),
+            )
+
+        assert not output.exists()
+
+    def test_rejects_a_replaced_visible_array_before_writing(
+        self, tmp_path: Path
+    ) -> None:
+        """A `visible` array that no longer matches the skeletons fails up front."""
+        image_paths = []
+        for name in ("a.png", "b.png"):
+            Image.new("RGB", (20, 10)).save(tmp_path / name)
+            image_paths.append(str(tmp_path / name))
+        dataset = _dataset(image_paths)
+        replacement = KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32), class_id=np.array([0])
+        )
+        replacement.visible = np.empty((0, 2), dtype=bool)
+        dataset.annotations[image_paths[1]] = replacement
+        output = tmp_path / "out"
+
+        with pytest.raises(ValueError, match=r"b\.png.*visible"):
             dataset.as_yolo(
                 images_directory_path=str(output / "images"),
                 annotations_directory_path=str(output / "labels"),
