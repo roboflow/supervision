@@ -852,11 +852,15 @@ def create_predictions_with_class_iou_tests(
     )
 
 
-def write_browser_recorded_webm(path: str, frame_count: int = 60) -> None:
+def write_browser_recorded_webm(
+    path: str, frame_count: int = 60, audio_seconds: float = 0.0
+) -> None:
     """Write a ~30 fps VP8 WebM laid out like a browser `MediaRecorder` file.
 
     The header holds no frame rate and the timestamps are 1 ms ticks with uneven spacing
-    (38, 28, 33 ms), so OpenCV reports the 1 kHz timebase as the rate.
+    (38, 28, 33 ms), so OpenCV reports the 1 kHz timebase as the rate. A positive
+    `audio_seconds` adds a silent Opus track of that length, as a recording with a
+    microphone has.
     """
     import av
 
@@ -867,6 +871,12 @@ def write_browser_recorded_webm(path: str, frame_count: int = 60) -> None:
         stream.pix_fmt = "yuv420p"
         stream.codec_context.framerate = Fraction(0, 1)
         stream.time_base = Fraction(1, 1000)
+        # Every stream must exist before the first packet writes the header.
+        audio_stream = None
+        if audio_seconds > 0:
+            audio_stream = container.add_stream("libopus", rate=48000)
+            audio_stream.layout = "mono"
+            audio_stream.time_base = Fraction(1, 48000)
         for index in range(frame_count):
             frame = av.VideoFrame.from_ndarray(
                 np.full((48, 64, 3), index * 4 % 256, dtype=np.uint8), format="bgr24"
@@ -878,7 +888,26 @@ def write_browser_recorded_webm(path: str, frame_count: int = 60) -> None:
                 container.mux(packet)
         for packet in stream.encode():
             container.mux(packet)
+        if audio_stream is not None:
+            _write_silent_opus(container, audio_stream, audio_seconds)
     _void_matroska_default_duration(path)
+
+
+def _write_silent_opus(container: Any, stream: Any, seconds: float) -> None:
+    """Mux `seconds` of silence into a 48 kHz mono Opus `stream` of `container`."""
+    import av
+
+    samples_per_frame = 960
+    silence = np.zeros((1, samples_per_frame), dtype=np.int16)
+    for index in range(round(seconds * 48000 / samples_per_frame)):
+        frame = av.AudioFrame.from_ndarray(silence, format="s16", layout="mono")
+        frame.sample_rate = 48000
+        frame.time_base = Fraction(1, 48000)
+        frame.pts = index * samples_per_frame
+        for packet in stream.encode(frame):
+            container.mux(packet)
+    for packet in stream.encode():
+        container.mux(packet)
 
 
 def _void_matroska_default_duration(path: str) -> None:

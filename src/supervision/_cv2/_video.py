@@ -21,6 +21,7 @@ from supervision._cv2.constants import (
     _CAP_PROP_FRAME_HEIGHT,
     _CAP_PROP_FRAME_WIDTH,
     _CAP_PROP_POS_FRAMES,
+    _CAP_PROP_POS_MSEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -123,6 +124,8 @@ class _VideoCapture:
         self._source = source
         self._position = 0
         self._frame_count_cache: int | None = None
+        self._timestamp_fps_cache: float | None = None
+        self._position_msec = 0.0
         self._rotation_cache: int | None = None
         self._opened = False
         self._error: Exception | None = None
@@ -168,24 +171,45 @@ class _VideoCapture:
         return count
 
     def _fps(self) -> float:
-        """Return the stream's average frame rate, else frames per second of duration.
+        """Return the stream's average frame rate, else the rate of its timestamps.
 
         A browser-recorded WebM has no average rate, and its base rate is the
-        container's 1 kHz timebase rather than a frame rate, so the frame count over the
-        container duration is tried before the base rate.
+        container's 1 kHz timebase rather than a frame rate, so the video packets'
+        timestamps are measured before falling back to the base rate.
         """
         rate = getattr(self._stream, "average_rate", None)
         if rate:
             return float(rate)
-        import av
-
-        duration = self._container.duration
-        if duration and duration > 0:
-            count = self._frame_count()
-            if count > 0:
-                return float(count * av.time_base / duration)
+        if self._timestamp_fps_cache is None:
+            self._timestamp_fps_cache = self._timestamp_fps()
+        if self._timestamp_fps_cache > 0:
+            return self._timestamp_fps_cache
         rate = getattr(self._stream, "base_rate", None)
         return float(rate) if rate is not None else 0.0
+
+    def _timestamp_fps(self) -> float:
+        """Return frames per second of the video stream's packet timestamps, or 0.
+
+        Only the video stream is demuxed, on a second handle, so a longer audio track
+        or a missing container duration does not change the result.
+        """
+        import av
+
+        container = av.open(str(self._source), mode="r")
+        try:
+            stream = container.streams.video[0]
+            time_base = stream.time_base
+            timestamps = [
+                packet.pts
+                for packet in container.demux(stream)
+                if packet.pts is not None and packet.size > 0
+            ]
+        finally:
+            container.close()
+        if len(timestamps) < 2:
+            return 0.0
+        span = (max(timestamps) - min(timestamps)) * time_base
+        return float((len(timestamps) - 1) / span) if span > 0 else 0.0
 
     def _rotation(self) -> int:
         """Return the stream's display rotation, decoding one frame on a second handle.
@@ -226,6 +250,8 @@ class _VideoCapture:
             return float(self._frame_count())
         if property_id == _CAP_PROP_POS_FRAMES:
             return float(self._position)
+        if property_id == _CAP_PROP_POS_MSEC:
+            return self._position_msec
         return 0.0
 
     def _reset(self) -> None:
@@ -233,6 +259,7 @@ class _VideoCapture:
         self._container.seek(0, stream=self._stream, backward=True)
         self._frames = iter(self._container.decode(video=0))
         self._position = 0
+        self._position_msec = 0.0
 
     def set(self, property_id: int, value: float) -> bool:
         """Set the supported frame-position property using exact frame decoding."""
@@ -262,6 +289,8 @@ class _VideoCapture:
             return False, None
 
         self._position += 1
+        if frame.time is not None:
+            self._position_msec = frame.time * 1000.0
         image = frame.to_ndarray(format="bgr24")
         quarter_turns = _quarter_turns(int(frame.rotation))
         if quarter_turns:
