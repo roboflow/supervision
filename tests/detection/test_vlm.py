@@ -1685,6 +1685,26 @@ def test_from_deepseek_vl_2_empty_parse_returns_empty_detections(
     assert detections.xyxy.shape == (0, 4)
 
 
+@pytest.mark.parametrize(
+    "resolution_wh",
+    [
+        pytest.param((0, 0), id="zero"),
+        pytest.param((-640, 480), id="negative-width"),
+        pytest.param((640, -480), id="negative-height"),
+    ],
+)
+def test_from_deepseek_vl_2_rejects_non_positive_resolution(
+    resolution_wh: tuple[int, int],
+) -> None:
+    """A non-positive resolution must raise instead of producing mirrored boxes."""
+    result = "<|ref|>cat<|/ref|><|det|>[[100, 200, 300, 400]]<|/det|>"
+
+    with pytest.raises(ValueError, match="must be positive"):
+        Detections.from_vlm(
+            vlm=VLM.DEEPSEEK_VL_2, result=result, resolution_wh=resolution_wh
+        )
+
+
 def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned() -> None:
     """A non-data-URI mask must not skip the item's confidence and desync arrays."""
     result = (
