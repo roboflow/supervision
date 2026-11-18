@@ -5,6 +5,10 @@ date_modified: 2026-11-18
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `import supervision` works again with NumPy 1.21, the oldest version supervision declares. It raised `TypeError: 'type' object is not subscriptable`, because a key point type alias subscripted `np.integer`, which NumPy supports only from 1.22. (PR link to follow)
+
 ### 0.32.0 <small>Nov 18, 2026</small>
 
 - **Zones**: `sv.PolygonZone` counts entries and exits per class and measures dwell time, and the zone annotators accept a `coord_transform`.
