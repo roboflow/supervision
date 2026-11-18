@@ -23,7 +23,7 @@
 
 - [ ] Added/updated tests, and the full suite passes locally
 - [ ] Updated docs (docstrings / mkdocs entry) for new or changed public API
-- [ ] Added a changelog entry in `docs/changelog.md` under `Unreleased` (skip for lint/type/format-only or pure doc changes)
+- [ ] Added a changelog entry at the top of `docs/changelog.md` (skip for lint/type/format-only or pure doc changes)
 
 ## Additional Notes
 
