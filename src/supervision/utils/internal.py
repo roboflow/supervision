@@ -57,6 +57,16 @@ def warn_deprecated(message: str) -> None:
     warnings.warn(message, category=SupervisionWarnings, stacklevel=2)
 
 
+#: Warning stream for the ``stream`` argument of pydeprecate's ``deprecated``
+#: decorator. pydeprecate emits ``FutureWarning`` by default, which the
+#: ``SUPERVISION_DEPRECATION_WARNING`` filter above does not cover; routing decorated
+#: deprecations through :class:`~supervision.utils.internal.SupervisionWarnings` lets
+#: that setting silence them like :func:`~supervision.utils.internal.warn_deprecated`.
+_DEPRECATION_WARNING_STREAM = functools.partial(
+    warnings.warn, category=SupervisionWarnings
+)
+
+
 def deprecated_parameter(
     old_parameter: str,
     new_parameter: str,

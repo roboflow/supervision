@@ -1,20 +1,39 @@
+import importlib
+import re
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from typing import Any
+from unittest import mock
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 
 import supervision as sv
+from supervision import _cv2
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
-from supervision.detection.tools.polygon_zone import _boxes_union_mask
+from supervision.detection.tools.polygon_zone import (
+    _boxes_union_mask,
+    _polygons_union_mask,
+)
 from tests.helpers import (
     _ConstantTransform,
     _create_detections,
+    _NanBeyondX,
     _ShiftTransform,
     _WrongShapeTransform,
+)
+
+cv2: Any
+try:
+    cv2 = importlib.import_module("cv2")
+except (ImportError, OSError):
+    cv2 = None
+
+requires_cv2 = pytest.mark.skipif(
+    cv2 is None,
+    reason="OpenCV is required as the reference implementation for this test",
 )
 
 DETECTION_BOXES = np.array(
@@ -615,6 +634,38 @@ def _run_sequence(zone: sv.PolygonZone, sequence: list[str | None]) -> None:
         zone.trigger(_tracked_frame([] if position is None else [position], [0]))
 
 
+#: Camera mapping that fails for one frame, sending every anchor to NaN.
+UNMAPPABLE = _ConstantTransform(np.nan, np.nan)
+
+
+def _run_mapped_sequence(zone: sv.PolygonZone, sequence: list[str]) -> None:
+    """Trigger tracker 0 per entry: 'in', 'out', or 'unmapped' for NaN-mapped inside."""
+    for position in sequence:
+        transform = UNMAPPABLE if position == "unmapped" else None
+        box_position = "in" if position == "unmapped" else position
+        zone.trigger(_tracked_frame([box_position], [0]), coord_transform=transform)
+
+
+#: Boxes of the copies in `_copies_frame`; 'unmapped' is inside the zone, but its
+#: anchor lies beyond `COPY_TRANSFORM`'s mappable x range.
+COPY_BOXES = {
+    "in": INSIDE_BOX,
+    "out": OUTSIDE_BOX,
+    "unmapped": [180.0, 140.0, 195.0, 160.0],
+}
+
+#: Camera mapping that is the identity, except it fails beyond `x = 170`.
+COPY_TRANSFORM = _NanBeyondX(170.0)
+
+
+def _copies_frame(positions: tuple[str, ...]) -> sv.Detections:
+    """Build one frame holding a copy of tracker 0 at each given position."""
+    return sv.Detections(
+        xyxy=np.array([COPY_BOXES[position] for position in positions], dtype=float),
+        tracker_id=np.zeros(len(positions), dtype=int),
+    )
+
+
 class TestPolygonZoneCurrentCountPerClass:
     @pytest.mark.parametrize(
         ("positions", "class_ids", "expected"),
@@ -793,6 +844,36 @@ class TestPolygonZoneEntryExit:
 
         assert zone.in_count == 0
 
+    @pytest.mark.parametrize(
+        ("frames", "expected_in_out"),
+        [
+            pytest.param(
+                [("in", "out"), ("out", "in")], (0, 0), id="inside-copy-first"
+            ),
+            pytest.param(
+                [("out", "in"), ("in", "out")], (0, 0), id="outside-copy-first"
+            ),
+            pytest.param(
+                [("out",), ("in", "out"), ("out",)],
+                (0, 0),
+                id="disagreeing-copies-cross-nothing",
+            ),
+            pytest.param(
+                [("out",), ("unmapped", "in")], (1, 0), id="unmapped-copy-is-dropped"
+            ),
+        ],
+    )
+    def test_copies_of_one_id_resolve_regardless_of_row_order(
+        self, frames: list[tuple[str, ...]], expected_in_out: tuple[int, int]
+    ) -> None:
+        """Copies of one id that disagree leave its side unknown in any row order."""
+        zone = sv.PolygonZone(POLYGON)
+
+        for positions in frames:
+            zone.trigger(_copies_frame(positions), coord_transform=COPY_TRANSFORM)
+
+        assert (zone.in_count, zone.out_count) == expected_in_out
+
     def test_counts_crossings_in_the_reference_frame(self) -> None:
         """With camera motion, crossings are judged where the zone was drawn."""
         zone = sv.PolygonZone(POLYGON)
@@ -865,6 +946,50 @@ class TestPolygonZoneEntryExit:
             zone.trigger(frame)
 
         assert (zone.current_count, zone.in_count) == (1, 0)
+
+
+class TestPolygonZoneUnmappedAnchors:
+    @pytest.mark.parametrize(
+        ("sequence", "zone_kwargs", "expected_in_out", "expected_dwell"),
+        [
+            pytest.param(["in", "unmapped", "in"], {}, (0, 0), 2.0, id="stay-survives"),
+            pytest.param(
+                ["out", "in", "unmapped"], {}, (1, 0), 1.0, id="no-exit-recorded"
+            ),
+            pytest.param(
+                ["unmapped", "in"], {}, (0, 0), 0.0, id="first-frame-seeds-nothing"
+            ),
+            pytest.param(
+                ["out", "in", "unmapped", "in"],
+                {"minimum_crossing_threshold": 2},
+                (1, 0),
+                2.0,
+                id="crossing-run-not-reset",
+            ),
+            pytest.param(
+                ["in", "unmapped", "unmapped", "in"],
+                {"max_absent_frames": 2},
+                (0, 0),
+                3.0,
+                id="track-stays-present",
+            ),
+        ],
+    )
+    def test_failed_mapping_is_not_a_crossing(
+        self,
+        sequence: list[str],
+        zone_kwargs: dict[str, Any],
+        expected_in_out: tuple[int, int],
+        expected_dwell: float,
+    ) -> None:
+        """A frame whose camera mapping returns NaN neither crosses nor resets dwell."""
+        zone = sv.PolygonZone(POLYGON, **zone_kwargs)
+
+        _run_mapped_sequence(zone, sequence)
+        dwell = zone.time_in_zone(_tracked_frame(["in"], [0]))
+
+        assert (zone.in_count, zone.out_count) == expected_in_out
+        np.testing.assert_array_equal(dwell, [expected_dwell])
 
 
 #: Zone to the right of the vertical line `x = 100`, used to compare with LineZone.
@@ -973,7 +1098,7 @@ class TestPolygonZoneUnusableIds:
         "tracker_id",
         [
             pytest.param(np.array(["a"]), id="string"),
-            pytest.param(np.array([7], dtype=object), id="object"),
+            pytest.param(np.array([None], dtype=object), id="object-none"),
             pytest.param(np.array([True]), id="boolean"),
             pytest.param(np.array([3.5]), id="fractional"),
         ],
@@ -997,6 +1122,77 @@ class TestPolygonZoneUnusableIds:
 
         assert (zone.current_count, zone.in_count, zone.out_count) == (1, 0, 0)
         assert zone.current_count_per_class == {None: 1}
+
+    @pytest.mark.parametrize(
+        ("value", "expected_in_count"),
+        [
+            pytest.param(3, 1, id="integer"),
+            pytest.param(np.int64(3), 1, id="numpy-integer"),
+            pytest.param(np.float64(3.0), 1, id="integral-numpy-float"),
+            pytest.param(3.5, 0, id="fractional"),
+            pytest.param(-3, 0, id="negative"),
+            pytest.param(float("nan"), 0, id="nan"),
+            pytest.param(True, 0, id="boolean"),
+            pytest.param(np.bool_(True), 0, id="numpy-boolean"),
+            pytest.param(10**30, 0, id="beyond-int64"),
+            pytest.param("7", 0, id="numeric-string"),
+            pytest.param([7], 0, id="nested-list"),
+        ],
+    )
+    def test_object_tracker_ids_are_judged_by_value(
+        self, value: object, expected_in_count: int
+    ) -> None:
+        """An id held in an object array is followed only if its value names a track."""
+        tracker_id = np.empty(1, dtype=object)
+        tracker_id[0] = value
+        zone = sv.PolygonZone(POLYGON)
+        frames = [
+            sv.Detections(xyxy=np.array([box]), tracker_id=tracker_id)
+            for box in (OUTSIDE_BOX, INSIDE_BOX)
+        ]
+
+        for frame in frames:
+            zone.trigger(frame)
+
+        assert (zone.current_count, zone.in_count) == (1, expected_in_count)
+
+    @pytest.mark.parametrize(
+        "unusable_id",
+        [
+            pytest.param(None, id="placeholder"),
+            pytest.param(np.timedelta64(7, "ms"), id="milliseconds"),
+            pytest.param(np.timedelta64(7, "ns"), id="nanoseconds"),
+            pytest.param(
+                np.longdouble("7.0000000000000001"),
+                marks=pytest.mark.skipif(
+                    np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+                    reason="longdouble has no extra precision on this platform",
+                ),
+                id="extended-precision-fraction",
+            ),
+        ],
+    )
+    def test_unusable_object_id_preserves_the_valid_detection(
+        self, unusable_id: object
+    ) -> None:
+        """An unusable object ID does not acquire a valid track's crossing or dwell."""
+        zone = sv.PolygonZone(POLYGON)
+        frames = [
+            sv.Detections(
+                xyxy=np.array([box, INSIDE_BOX]),
+                class_id=np.array([3, unusable_id], dtype=object),
+                tracker_id=np.array([7, unusable_id], dtype=object),
+            )
+            for box in (OUTSIDE_BOX, INSIDE_BOX)
+        ]
+
+        for frame in frames:
+            zone.trigger(frame)
+        dwell = zone.time_in_zone(frames[-1])
+
+        assert zone.in_count_per_class == {3: 1}
+        assert zone.current_count_per_class == {3: 1, None: 1}
+        np.testing.assert_array_equal(dwell, [0.0, np.nan])
 
     def test_fractional_ids_do_not_alias_one_track(self) -> None:
         """Ids `3.2` and `3.7` are not two observations of track `3`."""
@@ -1263,12 +1459,13 @@ class TestPolygonZoneTimeInZone:
             ),
             pytest.param([np.nan], "must be finite", id="nan"),
             pytest.param([np.inf], "must be finite", id="inf"),
+            pytest.param([-1e308], "at most", id="dwell-would-overflow"),
         ],
     )
     def test_rejects_invalid_timestamps(
         self, timestamps: list[float | None], match: str
     ) -> None:
-        """A timestamp must be finite and never earlier than the previous one."""
+        """A timestamp must be finite, keep dwell finite and never go backwards."""
         zone = sv.PolygonZone(POLYGON)
         *earlier, last = timestamps
         for timestamp in earlier:
@@ -1300,6 +1497,18 @@ class TestPolygonZoneTimeInZone:
         np.testing.assert_array_equal(
             zone.time_in_zone(_tracked_frame(["in"], [0])), [0.0]
         )
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    def test_dwell_across_the_widest_timestamp_range_is_finite(self) -> None:
+        """A stay spanning the whole accepted timestamp range has a finite dwell."""
+        largest = np.finfo(np.float64).max
+        zone = sv.PolygonZone(POLYGON)
+        for timestamp in (-largest / 2, largest / 2):
+            zone.trigger(_tracked_frame(["in"], [0]), timestamp=timestamp)
+
+        dwell = zone.time_in_zone(_tracked_frame(["in"], [0]))
+
+        np.testing.assert_array_equal(dwell, [largest])
 
     def test_equal_timestamps_are_allowed(self) -> None:
         """Two frames at the same time are not a decreasing clock."""
@@ -1388,6 +1597,25 @@ class TestBoxesUnionMask:
         union = _boxes_union_mask(boxes, (10, 8))
 
         np.testing.assert_array_equal(union, expected)
+
+
+class TestPolygonsUnionMask:
+    @requires_cv2
+    def test_far_above_polygons_match_opencv(self) -> None:
+        """Quads rising over a canvas height above it cover the pixels OpenCV fills."""
+        rng = np.random.default_rng(2026)
+
+        for _ in range(100):
+            height, width = (int(value) for value in rng.integers(1, 60, size=2))
+            quad = 30 + rng.uniform(-100_000, 100_000, size=(4, 2))
+            quad[0, 1] = -rng.uniform(height + 1, 100_000)
+            polygon = np.trunc(quad).astype(np.int32)
+            expected = np.zeros((height, width), dtype=np.uint8)
+            cv2.fillPoly(expected, [polygon], color=(1,))
+
+            union = _polygons_union_mask(polygon[np.newaxis], (width, height))
+
+            np.testing.assert_array_equal(union, expected.astype(bool))
 
 
 class TestPolygonZoneOccupancyRatio:
@@ -1669,16 +1897,57 @@ class TestPolygonZoneOccupancyRatio:
 
         assert ratio == pytest.approx(0.75)
 
-    def test_rejects_flat_oriented_box_corners(self) -> None:
-        """Corners stored flat as `(N, 8)` raise a ValueError naming both shapes."""
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((1, 8), id="flat-corners"),
+            pytest.param((1, 3, 2), id="triangle"),
+            pytest.param((1, 5, 2), id="pentagon"),
+            pytest.param((1, 0, 2), id="no-corners"),
+        ],
+    )
+    def test_rejects_oriented_boxes_without_four_corners(
+        self, shape: tuple[int, ...]
+    ) -> None:
+        """Corners not of shape `(N, 4, 2)` raise a ValueError naming both shapes."""
         zone = sv.PolygonZone(OCCUPANCY_ZONE)
         detections = sv.Detections(
             xyxy=np.array([[0, 0, 50, 100]], dtype=np.float32),
-            data={ORIENTED_BOX_COORDINATES: np.zeros((1, 8), dtype=np.float32)},
+            data={ORIENTED_BOX_COORDINATES: np.ones(shape, dtype=np.float32)},
         )
+        expected = rf"shape \(1, 4, 2\); got shape {re.escape(str(shape))}"
 
-        with pytest.raises(ValueError, match=r"shape \(1, K, 2\); got shape \(1, 8\)"):
+        with pytest.raises(ValueError, match=expected):
             zone.occupancy_ratio(detections)
+
+    @pytest.mark.parametrize(
+        ("top", "expected_opencv_calls"),
+        [
+            pytest.param(-5, 1, id="near-top-uses-opencv"),
+            pytest.param(-100_000_000, 0, id="far-top-skips-opencv-row-scan"),
+        ],
+    )
+    def test_box_rising_far_above_zone_is_rasterized_within_it(
+        self, monkeypatch: pytest.MonkeyPatch, top: int, expected_opencv_calls: int
+    ) -> None:
+        """An oriented box reaching far above the zone keeps its covered share.
+
+        OpenCV visits every row from a polygon's top vertex, so a corner 100 million
+        rows up stalled it; such boxes go to the NumPy port, which visits zone rows.
+        """
+        zone = sv.PolygonZone(np.array([[0, 0], [9, 0], [9, 9], [0, 9]]))
+        corners = np.array([[[0, top], [5, top], [5, 5], [0, 5]]], dtype=float)
+        detections = sv.Detections(
+            xyxy=np.array([[0, top, 5, 5]], dtype=float),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        fill_poly = mock.Mock(wraps=_cv2.fillPoly)
+        monkeypatch.setattr(_cv2, "fillPoly", fill_poly)
+
+        ratio = zone.occupancy_ratio(detections)
+
+        assert ratio == pytest.approx(0.36)
+        assert fill_poly.call_count == expected_opencv_calls
 
     def test_rejects_mask_reassigned_with_wrong_shape(self) -> None:
         """A mask swapped in after construction is re-checked before reduction."""
