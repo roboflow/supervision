@@ -9,7 +9,7 @@ These features are phased out due to better alternatives or potential issues in 
 
 - Passing `overlap_metric` or `mask_dimension` positionally to [`sv.mask_non_max_merge`](https://supervision.roboflow.com/latest/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.mask_non_max_merge) is deprecated in `supervision-0.30.0` and will be removed in `supervision-0.33.0`. Pass both by keyword instead.
 - Passing a `list[sv.Color]` as `color` or `text_color` to `sv.VertexLabelAnnotator` is deprecated in `supervision-0.32.0` and will be removed in `supervision-0.35.0`. Pass a single `sv.Color`, or a `sv.ColorPalette` together with `color_lookup=sv.ColorLookup.KEYPOINT`.
-- `resolve_color`, `resolve_color_idx`, and `get_color_by_index` in `supervision.annotators.utils` are deprecated in `supervision-0.32.0` and will be removed in `supervision-0.35.0`. `resolve_color` is also no longer importable from `supervision.annotators.core`. Pass a `sv.ColorPalette` with `color_lookup` to the annotators instead.
+- `resolve_color`, `resolve_color_idx`, and `get_color_by_index` in `supervision.annotators.utils` are deprecated in `supervision-0.32.0` and will be removed in `supervision-0.35.0`. Importing `resolve_color` from `supervision.annotators.core` is deprecated in `supervision-0.32.0` too and will be removed in `supervision-0.35.0`. Pass a `sv.ColorPalette` with `color_lookup` to the annotators instead.
 - Omitting `mask_rasterizer` in `sv.DetectionDataset.from_coco` for files with polygon segmentation is deprecated in `supervision-0.32.0`. The default changes from `"supervision"` to `"pycocotools"` no earlier than `supervision-0.35.0`. Pass `mask_rasterizer` explicitly.
 
 # Removed

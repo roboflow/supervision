@@ -5,7 +5,11 @@ import numpy as np
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.config import (
+    CLASS_NAME_DATA_FIELD,
+    KEYPOINT_VISIBILITY_DATA_FIELD,
+    XYXY_DATA_FIELD,
+)
 from supervision.dataset.core import KeyPointsDataset
 from supervision.key_points.core import KeyPoints
 
@@ -482,6 +486,43 @@ class TestKeyPointsDatasetExport:
         output = tmp_path / "out"
 
         with pytest.raises(ValueError, match="no class_id"):
+            dataset.as_yolo(
+                images_directory_path=str(output / "images"),
+                annotations_directory_path=str(output / "labels"),
+            )
+
+        assert not output.exists()
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            pytest.param(
+                {KEYPOINT_VISIBILITY_DATA_FIELD: np.array([2.0])},
+                id="one-dimensional-visibility",
+            ),
+            pytest.param(
+                {XYXY_DATA_FIELD: np.array([[np.nan, 0.0, 2.0, 2.0]])},
+                id="nan-box",
+            ),
+        ],
+    )
+    def test_rejects_malformed_metadata_before_writing(
+        self, tmp_path: Path, data: dict[str, Any]
+    ) -> None:
+        """Box or visibility data the loader would refuse fails with nothing written."""
+        image_paths = []
+        for name in ("a.png", "b.png"):
+            Image.new("RGB", (20, 10)).save(tmp_path / name)
+            image_paths.append(str(tmp_path / name))
+        dataset = _dataset(image_paths)
+        dataset.annotations[image_paths[1]] = KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32),
+            class_id=np.array([0]),
+            data=data,
+        )
+        output = tmp_path / "out"
+
+        with pytest.raises(ValueError, match=r"b\.png"):
             dataset.as_yolo(
                 images_directory_path=str(output / "images"),
                 annotations_directory_path=str(output / "labels"),

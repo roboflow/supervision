@@ -34,8 +34,13 @@ def _write_dataset(
     tmp_path: Path,
     segmentation: Any,
     resolution_wh: tuple[int, int] = (8, 8),
+    annotation_image_id: int = 1,
 ) -> Path:
-    """Write a synthetic image and one-object COCO dataset at the requested size."""
+    """Write a synthetic image and one-object COCO dataset at the requested size.
+
+    The only listed image has id `1`; any other `annotation_image_id` attaches the
+    object to an image the file does not list.
+    """
     width, height = resolution_wh
     Image.new("RGB", resolution_wh).save(tmp_path / "image.png")
     path = tmp_path / "annotations.json"
@@ -54,7 +59,7 @@ def _write_dataset(
                 "annotations": [
                     {
                         "id": 1,
-                        "image_id": 1,
+                        "image_id": annotation_image_id,
                         "category_id": 1,
                         "bbox": [1, 1, 4, 4],
                         "area": 16,
@@ -305,6 +310,48 @@ class TestCocoMaskRasterizerSelection:
         detections = next(iter(dataset.annotations.values()))
         assert detections.mask is not None
         np.testing.assert_array_equal(detections.mask[0], expected)
+
+    @pytest.mark.parametrize(
+        ("segmentation", "annotation_image_id"),
+        [
+            pytest.param([[]], 1, id="empty-polygon-part"),
+            pytest.param([[1, 1, 5, 1, 5, 5, 1, 5]], 2, id="unlisted-image"),
+        ],
+    )
+    def test_omitted_selector_skips_warning_without_rasterized_polygon(
+        self, tmp_path: Path, segmentation: Any, annotation_image_id: int
+    ) -> None:
+        """No selector warning when no listed image has a polygon part to rasterize."""
+        path = _write_dataset(
+            tmp_path, segmentation, annotation_image_id=annotation_image_id
+        )
+
+        with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
+            DetectionDataset.from_coco(str(tmp_path), str(path))
+
+        assert not [
+            warning
+            for warning in recorded
+            if issubclass(warning.category, SupervisionWarnings)
+        ]
+
+    @pytest.mark.parametrize(
+        "segmentation",
+        [
+            pytest.param([[], [1, 1, 5, 1, 5, 5, 1, 5]], id="empty-and-filled-parts"),
+            pytest.param([[1, 1, 2, 2]], id="two-vertices"),
+            pytest.param([1, 1, 5, 1, 5, 5, 1, 5], id="flat-polygon"),
+        ],
+    )
+    def test_omitted_selector_warns_for_rasterized_polygon(
+        self, tmp_path: Path, segmentation: Any
+    ) -> None:
+        """A non-empty polygon part on a listed image triggers the selector warning."""
+        path = _write_dataset(tmp_path, segmentation)
+
+        with pytest.warns(SupervisionWarnings, match="no earlier than `0.35.0`"):
+            DetectionDataset.from_coco(str(tmp_path), str(path))
 
     @pytest.mark.parametrize(
         "segmentation",

@@ -1954,6 +1954,66 @@ def _validate_fusion_confidences(confidences: npt.NDArray[np.number]) -> None:
         )
 
 
+def _validate_fusion_boxes(boxes: npt.NDArray[np.number]) -> None:
+    """Reject Weighted Box Fusion boxes with non-finite or reversed corners.
+
+    A box with a NaN coordinate overlaps nothing, so it would come back unfused
+    as a NaN box, and an infinite coordinate makes the overlap arithmetic NaN. A
+    box with `x2 < x1` or `y2 < y1` is not a box at all. Zero-width and
+    zero-height boxes (`x2 == x1` or `y2 == y1`) are accepted: they overlap
+    nothing and come back unfused.
+
+    Args:
+        boxes: The `[x1, y1, x2, y2]` columns of the predictions passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`,
+            shape `(n, 4)`.
+
+    Raises:
+        ValueError: If any box has a NaN or infinite coordinate, or has `x2 < x1`
+            or `y2 < y1`.
+    """
+    finite = np.isfinite(boxes).all(axis=1)
+    # A NaN corner fails both comparisons, so it is flagged even without `finite`.
+    ordered = (boxes[:, 2] >= boxes[:, 0]) & (boxes[:, 3] >= boxes[:, 1])
+    invalid = ~(finite & ordered)
+    if invalid.any():
+        invalid_rows = np.flatnonzero(invalid)
+        raise ValueError(
+            "Boxes passed to box_weighted_box_fusion must have finite "
+            "[x1, y1, x2, y2] coordinates with x1 <= x2 and y1 <= y2, got "
+            f"{boxes[invalid_rows[:5]].tolist()} at rows "
+            f"{invalid_rows[:5].tolist()}. Drop those predictions or fix their "
+            "corners before fusing them."
+        )
+
+
+def _validate_fusion_class_ids(class_ids: npt.NDArray[np.number]) -> None:
+    """Reject Weighted Box Fusion class ids that are NaN or infinite.
+
+    Boxes are fused only within a class, and :func:`numpy.unique` collapses every
+    NaN into one group, so NaN class ids would be fused together and come back
+    with a NaN class. Fractional and negative class ids are not rejected: they
+    are grouped by their exact value.
+
+    Args:
+        class_ids: The class id column of the predictions passed to
+            :func:`~supervision.detection.utils.iou_and_nms.box_weighted_box_fusion`,
+            shape `(n,)`.
+
+    Raises:
+        ValueError: If any class id is NaN or infinite.
+    """
+    invalid = ~np.isfinite(class_ids)
+    if invalid.any():
+        invalid_rows = np.flatnonzero(invalid)
+        raise ValueError(
+            "Class ids passed to box_weighted_box_fusion must be finite, got "
+            f"{class_ids[invalid_rows[:5]].tolist()} at rows "
+            f"{invalid_rows[:5].tolist()}. Drop those predictions or assign them "
+            "a class id before fusing them."
+        )
+
+
 def _best_matching_cluster(
     fused_boxes: npt.NDArray[np.float64],
     box: npt.NDArray[np.float64],
@@ -2006,6 +2066,12 @@ def _fuse_single_class_boxes(
     confidence-weighted average of the cluster's boxes, or their plain average
     when the cluster's scores sum to zero.
 
+    The running sums use each score divided by the power of two that brings the
+    cluster's first, highest score into `[0.5, 1)`, and the mean score is scaled
+    back at the end. Sums of finite scores near the float64 limit therefore stay
+    finite, and since scaling by a power of two is exact, other inputs fuse to
+    the same values as with unscaled scores.
+
     Args:
         boxes: Boxes of a single class, shape `(n, 4)` in `[x1, y1, x2, y2]`
             format, with `n >= 1`.
@@ -2022,9 +2088,12 @@ def _fuse_single_class_boxes(
     box_count = len(boxes_float)
     fused_boxes = np.empty((box_count, 4), dtype=np.float64)
     cluster_origins = np.empty((box_count, 4), dtype=np.float64)
+    # int32 matches the exponent dtype of np.frexp and the C int that np.ldexp
+    # accepts on every platform, including Windows where C long is 32-bit.
+    cluster_exponents = np.zeros(box_count, dtype=np.int32)
     weighted_offset_sums = np.zeros((box_count, 4), dtype=np.float64)
     offset_sums = np.zeros((box_count, 4), dtype=np.float64)
-    score_sums = np.zeros(box_count, dtype=np.float64)
+    weight_sums = np.zeros(box_count, dtype=np.float64)
     cluster_sizes = np.zeros(box_count, dtype=np.int64)
     cluster_count = 0
 
@@ -2045,28 +2114,41 @@ def _fuse_single_class_boxes(
             # rounding in the weighted average.
             fused_boxes[cluster] = box
             cluster_origins[cluster] = box
+            # The first box has the cluster's highest score, so scaling every
+            # member by this power of two keeps all weights within [0, 1) and
+            # their sums finite even for scores near the float64 limit. A zero
+            # score gives exponent 0, leaving all-zero clusters unscaled.
+            cluster_exponents[cluster] = np.frexp(score)[1]
 
+        # Power-of-two scaling is exact, so the weighted mean below matches the
+        # unscaled one bit for bit unless the unscaled sums would overflow or a
+        # weight becomes subnormal, where its share of the sum is negligible.
+        weight = np.ldexp(score, -cluster_exponents[cluster])
         # Sum offsets from the cluster's first box instead of absolute
         # coordinates: with large coordinates the absolute sums lose low bits,
         # which would shift a cluster of identical boxes and split it.
         offset = box - cluster_origins[cluster]
-        weighted_offset_sums[cluster] += score * offset
+        weighted_offset_sums[cluster] += weight * offset
         offset_sums[cluster] += offset
-        score_sums[cluster] += score
+        weight_sums[cluster] += weight
         cluster_sizes[cluster] += 1
         if cluster_sizes[cluster] == 1:
             continue
 
         # Fall back to a plain average when the scores sum to zero (all-zero
         # scores), so the weighted mean stays defined instead of dividing by 0.
-        if score_sums[cluster] > 0:
-            mean_offset = weighted_offset_sums[cluster] / score_sums[cluster]
+        if weight_sums[cluster] > 0:
+            mean_offset = weighted_offset_sums[cluster] / weight_sums[cluster]
         else:
             mean_offset = offset_sums[cluster] / cluster_sizes[cluster]
         fused_boxes[cluster] = cluster_origins[cluster] + mean_offset
 
     sizes = cluster_sizes[:cluster_count]
-    mean_scores = score_sums[:cluster_count] / sizes
+    # Every weight is below 1, so their mean is too, and undoing the scale keeps
+    # the score within the float64 range even for the largest finite scores.
+    mean_scores = np.ldexp(
+        weight_sums[:cluster_count] / sizes, cluster_exponents[:cluster_count]
+    )
     return fused_boxes[:cluster_count], mean_scores, sizes
 
 
@@ -2116,8 +2198,11 @@ def box_weighted_box_fusion(
             bounding boxes coordinates in format `[x1, y1, x2, y2]`, the
             confidence scores, and optionally the class ids. Omit the class_id
             column to allow boxes of different classes to be fused together.
-            Confidences must be finite and non-negative; a cluster whose
-            confidences are all zero is fused with a plain, unweighted average.
+            Coordinates must be finite with `x1 <= x2` and `y1 <= y2`;
+            zero-width and zero-height boxes are accepted and come back
+            unfused. Confidences must be finite and non-negative; a cluster
+            whose confidences are all zero is fused with a plain, unweighted
+            average. Class ids, when present, must be finite.
         iou_threshold: The overlap threshold used to decide whether a box joins
             an existing cluster, measured against that cluster's current fused
             box. The comparison is exclusive, as in the WBF paper: the overlap
@@ -2152,7 +2237,9 @@ def box_weighted_box_fusion(
             positive integer, if `overlap_metric` is not a valid overlap
             metric (checked even when no overlap needs computing), if
             `predictions` is not a 2-D array with 5 or 6 columns (empty input
-            included), or if any confidence is negative, NaN, or infinite.
+            included), if any confidence is negative, NaN, or infinite, if any
+            box has a NaN or infinite coordinate or has `x2 < x1` or
+            `y2 < y1`, or if any class id is NaN or infinite.
 
     Examples:
         ```pycon
@@ -2200,10 +2287,12 @@ def box_weighted_box_fusion(
         empty_result: npt.NDArray[np.floating] = predictions.astype(output_dtype)
         return empty_result
     _validate_fusion_confidences(predictions[:, 4])
+    _validate_fusion_boxes(predictions[:, :4])
 
     has_class_column = predictions.shape[1] > 5
     if has_class_column:
         class_ids = predictions[:, 5]
+        _validate_fusion_class_ids(class_ids)
     else:
         class_ids = np.zeros(len(predictions))
     unique_class_ids, class_positions = np.unique(class_ids, return_inverse=True)

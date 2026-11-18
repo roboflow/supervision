@@ -341,14 +341,22 @@ def _require_pycocotools() -> None:
 
 
 def _has_polygon_segmentation(annotation: CocoDict) -> bool:
-    """Return whether an annotation's segmentation is rasterized as polygons.
+    """Return whether an annotation has a polygon part that will be rasterized.
 
     Mirrors the polygon branch of
     :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`: RLE dicts,
-    empty values and other types never reach the polygon rasterizer.
+    empty values and other types never reach the polygon rasterizer, and empty parts
+    such as ``[[]]`` are skipped before it.
     """
     segmentation = annotation.get("segmentation")
-    return isinstance(segmentation, list) and bool(segmentation)
+    if not isinstance(segmentation, list) or not segmentation:
+        return False
+    polygons = segmentation if isinstance(segmentation[0], list) else [segmentation]
+    # Only an empty list part is known to add no pixels; any other part, malformed
+    # ones included, reaches the rasterizer or its validation.
+    return any(
+        not isinstance(polygon, list) or len(polygon) > 0 for polygon in polygons
+    )
 
 
 def _resolve_mask_rasterizer(
@@ -358,9 +366,9 @@ def _resolve_mask_rasterizer(
     """Return the polygon rasterizer to use, warning when an omitted choice matters.
 
     An explicit value is validated and returned unchanged. ``None`` keeps the legacy
-    ``"supervision"`` convention, and warns only when ``annotations`` contain polygon
-    segmentation, because RLE and box-only annotations give the same masks under
-    both conventions.
+    ``"supervision"`` convention, and warns only when ``annotations`` contain a
+    non-empty polygon part, because RLE, box-only and empty polygon annotations give
+    the same masks under both conventions.
 
     Args:
         mask_rasterizer: The caller's choice, or ``None`` when it was omitted.
@@ -788,7 +796,8 @@ def load_coco_annotations(
         mask_rasterizer: Polygon rasterization convention; see
             :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`.
             ``None`` (default) keeps ``"supervision"`` and warns once per call
-            when the file contains polygon segmentation. Selecting
+            when an image listed in the file has a non-empty polygon part to
+            rasterize. Selecting
             ``"pycocotools"`` requires the ``supervision[coco]`` extra even when
             the file has no polygon segmentation.
 
@@ -810,8 +819,8 @@ def load_coco_annotations(
             no polygon segmentation.
 
     Warns:
-        SupervisionWarnings: When ``mask_rasterizer`` is omitted and the file
-            contains polygon segmentation.
+        SupervisionWarnings: When ``mask_rasterizer`` is omitted and an image
+            listed in the file has a non-empty polygon part to rasterize.
 
     Note:
         Each annotation's ``file_name`` is validated against
@@ -848,9 +857,18 @@ def _load_coco_annotations(
     """
     _validate_mask_rasterizer(mask_rasterizer)
     coco_data = read_json_file(file_path=annotations_path)
-    resolved_rasterizer = _resolve_mask_rasterizer(
-        mask_rasterizer, coco_data["annotations"]
+    coco_images = coco_data["images"]
+    coco_annotations_groups = group_coco_annotations_by_image_id(
+        coco_annotations=coco_data["annotations"]
     )
+    # Annotations whose image_id is not listed under "images" are never loaded, so
+    # only listed images' annotations can make the omitted rasterizer matter.
+    loaded_annotations = [
+        annotation
+        for coco_image in coco_images
+        for annotation in coco_annotations_groups.get(coco_image["id"], [])
+    ]
+    resolved_rasterizer = _resolve_mask_rasterizer(mask_rasterizer, loaded_annotations)
     if resolved_rasterizer == "pycocotools":
         # Check the extra before any image is processed, even for files with no
         # polygon to rasterize, so opting in without it always fails the same way.
@@ -859,11 +877,6 @@ def _load_coco_annotations(
 
     class_index_mapping = build_coco_class_index_mapping(
         coco_categories=coco_data["categories"], target_classes=classes
-    )
-
-    coco_images = coco_data["images"]
-    coco_annotations_groups = group_coco_annotations_by_image_id(
-        coco_annotations=coco_data["annotations"]
     )
 
     images = []

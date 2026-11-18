@@ -40,6 +40,7 @@ from supervision.dataset.formats.yolo import (
     save_yolo_annotations,
 )
 from supervision.dataset.formats.yolo_pose import (
+    _check_yolo_pose_export,
     load_yolo_pose_annotations,
     save_pose_data_yaml,
     save_yolo_pose_annotations,
@@ -1005,7 +1006,7 @@ class DetectionDataset(BaseDataset):
                 optional ``supervision[coco]`` extra for this mode; it is
                 required even when the file has no polygon segmentation.
                 ``None`` (default) behaves like ``"supervision"`` and warns
-                when the file contains polygon segmentation. RLE masks are
+                when a loaded image has a non-empty polygon part. RLE masks are
                 decoded identically in all modes.
 
         Returns:
@@ -1021,8 +1022,8 @@ class DetectionDataset(BaseDataset):
                 polygon segmentation.
 
         Warns:
-            SupervisionWarnings: When ``mask_rasterizer`` is omitted and the
-                annotation file contains polygon segmentation. Relying on the
+            SupervisionWarnings: When ``mask_rasterizer`` is omitted and a
+                loaded image has a non-empty polygon part. Relying on the
                 default is deprecated in ``0.32.0``.
 
         Note:
@@ -1197,8 +1198,10 @@ class KeyPointsDataset(BaseDataset):
     skeleton per object. Alongside the coordinates, the annotations carry the
     object box under ``data['xyxy']`` and, for a ``kpt_shape`` of ``[K, 3]``,
     the raw visibility values under ``data['keypoint_visibility']`` as
-    ``float32``: the ``0``/``1``/``2`` flags, or the keypoint confidence that
-    labels written from model output carry.
+    ``float64``: the ``0``/``1``/``2`` flags, or the keypoint confidence that
+    labels written from model output carry. Coordinates loaded by
+    :meth:`~supervision.dataset.core.KeyPointsDataset.from_yolo` are ``float64``
+    too, so that each value is rounded once, when written.
 
     ``KeyPoints.visible`` marks every keypoint with a positive raw value: flag
     ``1`` (occluded) as well as flag ``2`` (visible), and any positive
@@ -1553,6 +1556,10 @@ class KeyPointsDataset(BaseDataset):
             The loaded dataset.
 
         Raises:
+            FileNotFoundError: If the images or labels directory does not
+                exist; an image without a label file in an existing labels
+                directory still loads, with empty key points.
+            NotADirectoryError: If the images or labels path names a file.
             ValueError: If data.yaml declares no valid ``kpt_shape`` or an
                 invalid ``flip_idx``, or if a label file holds an invalid line;
                 the message names the file.
@@ -1622,7 +1629,10 @@ class KeyPointsDataset(BaseDataset):
             ValueError: Before any file is written, if two images would share an
                 output file name, or if labels are requested and a non-empty
                 annotation, for instance one replaced after construction, carries
-                no ``class_id``.
+                no ``class_id``, or carries a ``data['xyxy']`` not of shape
+                ``(N, 4)`` or a ``data['keypoint_visibility']`` not of shape
+                ``(N, K)``, either holding a non-finite value, or a negative
+                visibility value.
 
         Examples:
             ```python
@@ -1652,6 +1662,9 @@ class KeyPointsDataset(BaseDataset):
             # `annotations` is a public dict, so an entry may have been replaced
             # since the constructor checked it.
             _check_key_points_carry_class_id(annotations=self.annotations)
+            # Checked here as well as by the label writer, because the images
+            # are written first.
+            _check_yolo_pose_export(dataset=self)
 
         if images_directory_path is not None:
             save_dataset_images(

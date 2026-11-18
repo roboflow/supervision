@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
 from types import ModuleType
-from typing import Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -54,9 +54,37 @@ from supervision.utils.image import (
     letterbox_image,
     scale_image,
 )
+from supervision.utils.internal import warn_deprecated
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+if not TYPE_CHECKING:
+
+    def __getattr__(name: str) -> Any:
+        """Resolve ``resolve_color``, kept importable from this module until `0.35.0`.
+
+        Releases before `0.32.0` exposed
+        :func:`~supervision.annotators.utils.resolve_color` here as a side effect of
+        the annotators importing it. A module-level lookup keeps that import working
+        with a deprecation warning, without binding the name when this module loads.
+        It is hidden from type checkers, which would otherwise type every missing
+        name in this module as ``Any`` and mask typos in imports from it.
+
+        Raises:
+            AttributeError: If ``name`` is not a deprecated alias of this module.
+        """
+        if name == "resolve_color":
+            from supervision.annotators.utils import resolve_color
+
+            warn_deprecated(
+                "Importing 'resolve_color' from 'supervision.annotators.core' is "
+                "deprecated in `0.32.0`, removed in `0.35.0`. Pass a 'sv.ColorPalette' "
+                "as 'color' together with 'color_lookup' to the annotators instead."
+            )
+            return resolve_color
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # Hebrew, Arabic, Syriac, Thaana, NKo and their presentation forms
 _RTL_TEXT = re.compile("[֐-ࣿיִ-﷿ﹰ-ﻼ]")
