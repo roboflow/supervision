@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.plot_image` and `sv.plot_images_grid` now draw grayscale images shaped `(H, W, 1)` with `cmap`, as they already did for `(H, W)` images. Without OpenCV they raised `ValueError`, and with OpenCV they ignored `cmap`. ([#XXXX](https://github.com/roboflow/supervision/pull/XXXX))
+- `sv.plot_image` and `sv.plot_images_grid` now draw grayscale images shaped `(H, W, 1)` with `cmap`, as they already did for `(H, W)` images. Without OpenCV they raised `ValueError`, and with OpenCV they ignored `cmap`. ([#3024](https://github.com/roboflow/supervision/pull/3024))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
