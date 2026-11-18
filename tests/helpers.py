@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 from collections.abc import Mapping, Sequence
 from fractions import Fraction
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -877,3 +878,24 @@ def write_browser_recorded_webm(path: str, frame_count: int = 60) -> None:
                 container.mux(packet)
         for packet in stream.encode():
             container.mux(packet)
+    _void_matroska_default_duration(path)
+
+
+def _void_matroska_default_duration(path: str) -> None:
+    """Blank the track's `DefaultDuration`, the frame rate a browser never writes.
+
+    PyAV before 19 writes a 24 fps `DefaultDuration` even when the frame rate is
+    zero. The element is overwritten in place by an EBML `Void` element of the same
+    length, so no parent size changes.
+    """
+    data = bytearray(Path(path).read_bytes())
+    # DefaultDuration ID followed by a one-byte size of a 1-8 byte unsigned int.
+    start = data.find(b"\x23\xe3\x83")
+    if start < 0:
+        return
+    length = 4 + (data[start + 3] & 0x7F)
+    # Void element: ID 0xEC, one-byte size, zero payload.
+    data[start : start + length] = bytes([0xEC, 0x80 | (length - 2)]) + bytes(
+        length - 2
+    )
+    Path(path).write_bytes(data)
