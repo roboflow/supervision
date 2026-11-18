@@ -16,14 +16,10 @@ from supervision.detection.core import (
     Detections,
     _merge_detection_group,
     _merge_obb_corners,
-    merge_inner_detection_object_pair,
-    merge_inner_detections_objects,
 )
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_iou_batch,
-    oriented_box_iou_batch,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
@@ -1440,175 +1436,6 @@ def test_equal(
 
 
 @pytest.mark.parametrize(
-    ("detection_1", "detection_2", "expected_result", "exception"),
-    [
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            DoesNotRaise(),
-        ),  # Merge with self
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            Detections.empty(),
-            None,
-            pytest.raises(ValueError, match="exactly 1 detected object"),
-        ),  # merge with empty: error
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30], [40, 40, 60, 60]],
-            ),
-            None,
-            pytest.raises(ValueError, match="Both Detections should have"),
-        ),  # merge with 2+ objects: error
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                confidence=[0.1],
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            _create_detections(
-                xyxy=[[20, 20, 40, 40]],
-                confidence=[0.1],
-                class_id=[2],
-                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[2],
-                data={"key_2": [2]},
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 40, 40]],
-                confidence=[0.1],
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            DoesNotRaise(),
-        ),  # Same confidence - merge box & mask, tie-break to detection_1
-        (
-            _create_detections(
-                xyxy=[[0, 0, 20, 20]],
-                confidence=[0.1],
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 50, 50]],
-                confidence=[0.2],
-                class_id=[2],
-                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[2],
-                data={"key_2": [2]},
-            ),
-            _create_detections(
-                xyxy=[[0, 0, 50, 50]],
-                confidence=[(1 * 0.1 + 4 * 0.2) / 5],
-                class_id=[2],
-                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[2],
-                data={"key_2": [2]},
-            ),
-            DoesNotRaise(),
-        ),  # Different confidence, different area
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                confidence=None,
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            _create_detections(
-                xyxy=[[20, 20, 40, 40]],
-                confidence=None,
-                class_id=[2],
-                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[2],
-                data={"key_2": [2]},
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 40, 40]],
-                confidence=None,
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            DoesNotRaise(),
-        ),  # No confidence at all
-        (
-            _create_detections(
-                xyxy=[[0, 0, 20, 20]],
-                confidence=None,
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                confidence=[0.2],
-            ),
-            None,
-            pytest.raises(ValueError, match="Field 'confidence'"),
-        ),  # confidence: None + [x]
-        (
-            _create_detections(
-                xyxy=[[0, 0, 20, 20]],
-                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                mask=None,
-            ),
-            None,
-            pytest.raises(ValueError, match="Field 'mask'"),
-        ),  # mask: None + [x]
-        (
-            _create_detections(xyxy=[[0, 0, 20, 20]], tracker_id=[1]),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                tracker_id=None,
-            ),
-            None,
-            pytest.raises(ValueError, match="Field 'tracker_id'"),
-        ),  # tracker_id: None + []
-        (
-            _create_detections(xyxy=[[0, 0, 20, 20]], class_id=[1]),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                class_id=None,
-            ),
-            None,
-            pytest.raises(ValueError, match="Field 'class_id'"),
-        ),  # class_id: None + []
-    ],
-)
-def test_merge_inner_detection_object_pair(
-    detection_1: Detections,
-    detection_2: Detections,
-    expected_result: Detections | None,
-    exception: AbstractContextManager[object],
-) -> None:
-    with exception:
-        result = merge_inner_detection_object_pair(detection_1, detection_2)
-        assert result == expected_result
-
-
-@pytest.mark.parametrize(
     ("detections", "expected"),
     [
         pytest.param(
@@ -2038,50 +1865,6 @@ class TestDetectionsObbDispatch:
         result = getattr(detections, method)(threshold=0.5)
 
         assert len(result) == 2
-
-    def test_deprecated_merge_uses_obb_iou_before_merging(self) -> None:
-        """Deprecated inner merge keeps separated OBBs despite overlapping envelopes."""
-        quad_a = _rotated_rect(50, 50, 100, 10, 45)
-        quad_b = _rotated_rect(58, 50, 100, 10, -45)
-        detections_a = _make_obb_detections([quad_a], [0.9], [0])
-        detections_b = _make_obb_detections([quad_b], [0.8], [0])
-
-        obb_iou = oriented_box_iou_batch(
-            np.asarray(detections_a.data[ORIENTED_BOX_COORDINATES]),
-            np.asarray(detections_b.data[ORIENTED_BOX_COORDINATES]),
-        )[0, 0]
-        aabb_iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)[0, 0]
-
-        assert obb_iou < 0.5
-        assert aabb_iou > 0.5
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = merge_inner_detections_objects(
-                [detections_a, detections_b], threshold=0.5
-            )
-
-        np.testing.assert_array_equal(result.xyxy, detections_a.xyxy)
-
-    def test_deprecated_merge_chain_across_three_with_changing_geometry(self) -> None:
-        """N>2 chain: merge OBB pair, fall back to box IoU for AABB-only detection."""
-        quad_a = _rotated_rect(50, 50, 20, 10, 10)
-        quad_b = _rotated_rect(52, 50, 20, 10, -10)
-        detections_a = _make_obb_detections([quad_a], [0.9], [0])
-        detections_b = _make_obb_detections([quad_b], [0.85], [0])
-        detections_c = Detections(
-            xyxy=np.array([[35, 40, 65, 60]], dtype=np.float32),
-            confidence=np.array([0.7], dtype=np.float32),
-            class_id=np.array([0], dtype=int),
-        )
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = merge_inner_detections_objects(
-                [detections_a, detections_b, detections_c], threshold=0.3
-            )
-
-        assert len(result) == 1
-        np.testing.assert_array_equal(result.class_id, np.array([0]))
 
     @pytest.mark.parametrize(
         "method",

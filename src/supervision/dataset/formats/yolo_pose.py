@@ -550,10 +550,32 @@ def save_pose_data_yaml(
     value_dim: int,
     flip_idx: list[int] | None = None,
 ) -> None:
-    """Write the data.yaml of a YOLO pose dataset, including ``kpt_shape``.
+    """Save class names, keypoint shape, and flip index to a YOLO pose YAML file.
 
-    ``flip_idx`` is written only when the dataset carries one, so a dataset loaded
-    without it round trips without gaining a field it never had.
+    Creates parent directories automatically if they do not exist. Writes ``nc``
+    (number of classes), ``names`` (list of class names), and ``kpt_shape``
+    ([keypoint_count, value_dim]). ``flip_idx`` is written only when provided,
+    ensuring datasets loaded without it round trip without gaining a field they
+    never had.
+
+    Args:
+        data_yaml_path: Target filesystem path for the output YAML file.
+        classes: List of class names ordered by class ID.
+        keypoint_count: Number of keypoints per skeleton.
+        value_dim: Dimension of each keypoint (2 for x,y or 3 for x,y,visibility).
+        flip_idx: Optional keypoint index permutation for flip augmentation.
+
+    Example:
+        ```python
+        import supervision as sv
+
+        sv.dataset.formats.yolo_pose.save_pose_data_yaml(
+            data_yaml_path="dataset/data.yaml",
+            classes=["person"],
+            keypoint_count=17,
+            value_dim=3,
+        )
+        ```
     """
     data: dict[str, object] = {
         "nc": len(classes),
