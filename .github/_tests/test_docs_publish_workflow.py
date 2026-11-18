@@ -160,6 +160,23 @@ def test_inject_step_reads_root_files_from_the_deployed_commit(
     assert 'cp "docs/' not in step["run"]
     assert 'git show "$GITHUB_SHA:docs/$f" > "/tmp/$f"' in step["run"]
     assert 'git show "$GITHUB_SHA:.github/root-index.html"' in step["run"]
+    assert 'git show "$GITHUB_SHA:.github/root-404.html"' in step["run"]
+
+
+def test_inject_step_publishes_the_root_404_page(workflow_step: StepLookup) -> None:
+    """Copy the version-less redirect page to the gh-pages root and stage it."""
+    step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, INJECT_STEP)
+
+    assert "cp /tmp/root-404.html 404.html" in step["run"]
+    assert "files_to_add+=(404.html)" in step["run"]
+
+
+def test_root_404_page_redirects_only_version_less_paths(repo_root: Path) -> None:
+    """Keep the 404 page from looping on paths that already carry a version."""
+    page = (repo_root / ".github" / "root-404.html").read_text(encoding="utf-8")
+
+    assert r"/^\/(latest|develop|\d+\.\d+\.\d+)(\/|$)/" in page
+    assert 'window.location.replace(\n          "/latest" + path' in page
 
 
 def test_every_mike_deploy_step_exports_the_banner_version(
