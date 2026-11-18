@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.with_soft_nms` now decays oriented-box detections by their rotated bodies (`data["xyxyxyxy"]`) instead of their axis-aligned envelope, like `with_nms` and `with_nmm`. The new `sv.oriented_box_soft_non_max_suppression` does the same for raw arrays. ([#3023](https://github.com/roboflow/supervision/pull/3023))
+
 - Removed the APIs deprecated in `0.29.0`, as scheduled for `0.32.0`: the public `validate_*` helpers in `supervision.validators`, `supervision.detection.vlm` (`validate_vlm_parameters`), `supervision.detection.core` (`validate_fields_both_defined_or_none`), `supervision.annotators.utils` (`validate_labels`) and `supervision.metrics.detection` (`validate_input_tensors`), `sv.PercentageBarAnnotator.validate_custom_values`, `merge_inner_detection_object_pair`, `merge_inner_detections_objects` and `merge_inner_detections_objects_without_iou` in `supervision.detection.core`, and the `confidence` argument and attribute of `sv.KeyPoints`. Use `sv.KeyPoints.keypoint_confidence` instead of `sv.KeyPoints.confidence`. ([#3019](https://github.com/roboflow/supervision/pull/3019))
 
 - Dataset merging builds a class-name lookup per dataset instead of rescanning the merged class list for every class. ([#3017](https://github.com/roboflow/supervision/pull/3017))
