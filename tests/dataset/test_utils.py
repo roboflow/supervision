@@ -579,6 +579,31 @@ class TestBuildClassIndexMapping:
         with pytest.raises(ValueError, match="Class zebra not found in target classes"):
             build_class_index_mapping(source_classes, target_classes)
 
+    def test_does_not_scan_target_list_per_source_class(self) -> None:
+        """Mapping uses a prebuilt lookup instead of scanning the target list."""
+
+        class ScanCountingList(list):
+            """List that counts the linear-scan operations performed on it."""
+
+            scans = 0
+
+            def index(self, *args: object, **kwargs: object) -> int:
+                """Count and delegate a linear ``index`` scan."""
+                type(self).scans += 1
+                return super().index(*args, **kwargs)
+
+            def __contains__(self, item: object) -> bool:
+                """Count and delegate a linear membership scan."""
+                type(self).scans += 1
+                return super().__contains__(item)
+
+        target_classes = ScanCountingList(["cat", "dog", "person"])
+
+        result = build_class_index_mapping(["person", "cat", "dog"], target_classes)
+
+        assert result == {0: 2, 1: 0, 2: 1}
+        assert ScanCountingList.scans == 0
+
 
 @pytest.mark.parametrize(
     ("source_to_target_mapping", "detections", "expected_result", "exception"),
