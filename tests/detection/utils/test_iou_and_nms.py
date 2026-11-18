@@ -3397,6 +3397,35 @@ class TestBoxWeightedBoxFusion:
 
         np.testing.assert_allclose(result, expected_result)
 
+    @pytest.mark.parametrize(
+        ("predictions", "threshold", "expected_x"),
+        [
+            pytest.param(
+                [[0.0, 0.0, 1e308, 0.1, 0.125]]
+                + [[8e307, 0.0, 1.6e308, 0.1, 0.125]] * 5,
+                0.1,
+                6.666666666666666e307,
+                id="finite-mean-of-overflowing-offsets",
+            ),
+            pytest.param(
+                [[0.0, 0.0, 1e150, 1.0, 1e308], [1e148, 0.0, 1.01e150, 1.0, 1e-24]],
+                0.5,
+                1e-184,
+                id="representable-offset-with-underflowing-weight",
+            ),
+        ],
+    )
+    def test_retains_weighted_offsets_across_extreme_ranges(
+        self, predictions: list[list[float]], threshold: float, expected_x: float
+    ) -> None:
+        """A representable weighted coordinate neither overflows nor rounds to zero."""
+        result = box_weighted_box_fusion(
+            np.array(predictions, dtype=np.float64), iou_threshold=threshold
+        )
+
+        assert result.shape == (1, 5)
+        assert result[0, 0] == pytest.approx(expected_x, rel=1e-12, abs=0)
+
     @pytest.mark.parametrize("class_id", [np.nan, np.inf, -np.inf])
     def test_rejects_non_finite_class_ids(self, class_id: float) -> None:
         """A NaN or infinite class id raises instead of forming its own fused class."""

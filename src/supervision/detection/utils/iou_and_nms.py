@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from collections.abc import Callable, Sequence
 from enum import Enum
+from fractions import Fraction
 from typing import Any, cast
 
 import numpy as np
@@ -2069,8 +2070,8 @@ def _fuse_single_class_boxes(
     The running sums use each score divided by the power of two that brings the
     cluster's first, highest score into `[0.5, 1)`, and the mean score is scaled
     back at the end. Sums of finite scores near the float64 limit therefore stay
-    finite, and since scaling by a power of two is exact, other inputs fuse to
-    the same values as with unscaled scores.
+    finite. When coordinate sums can overflow or scaling can underflow a
+    positive score, exact arithmetic accumulates coordinates until division.
 
     Args:
         boxes: Boxes of a single class, shape `(n, 4)` in `[x1, y1, x2, y2]`
@@ -2096,6 +2097,17 @@ def _fuse_single_class_boxes(
     weight_sums = np.zeros(box_count, dtype=np.float64)
     cluster_sizes = np.zeros(box_count, dtype=np.int64)
     cluster_count = 0
+    limits = np.finfo(np.float64)
+    smallest_score = np.min(scores_float, where=scores_float > 0, initial=np.inf)
+    # Differences can span twice the largest magnitude, and all offsets can
+    # add in the same direction. Scaling can also round a small positive weight
+    # before it is multiplied by a large offset. Keep the existing float
+    # accumulation for ordinary ranges to preserve rounding at IoU thresholds.
+    exact_totals: dict[int, tuple[Fraction, list[Fraction]]] | None = None
+    if np.max(np.abs(boxes_float)) > limits.max / (2 * box_count) or (
+        smallest_score <= (2 * limits.tiny) * scores_float.max()
+    ):
+        exact_totals = {}
 
     # WBF is order dependent: every box is matched against fused boxes that the
     # higher-scoring boxes before it have already moved, so the visit itself is
@@ -2120,18 +2132,33 @@ def _fuse_single_class_boxes(
             # score gives exponent 0, leaving all-zero clusters unscaled.
             cluster_exponents[cluster] = np.frexp(score)[1]
 
-        # Power-of-two scaling is exact, so the weighted mean below matches the
-        # unscaled one bit for bit unless the unscaled sums would overflow or a
-        # weight becomes subnormal, where its share of the sum is negligible.
         weight = np.ldexp(score, -cluster_exponents[cluster])
+        weight_sums[cluster] += weight
+        cluster_sizes[cluster] += 1
+        if exact_totals is not None:
+            # Divide the exact weighted coordinates before converting to
+            # float64. A cluster that starts with zero weight can only receive
+            # other zero-score boxes because scores are visited in descending order.
+            exact_weight = (
+                Fraction(float(score)) if weight_sums[cluster] else Fraction(1)
+            )
+            total, sums = exact_totals.get(cluster, (Fraction(), [Fraction()] * 4))
+            total += exact_weight
+            sums = [
+                value + exact_weight * Fraction(float(coordinate))
+                for value, coordinate in zip(sums, box)
+            ]
+            exact_totals[cluster] = (total, sums)
+            if cluster_sizes[cluster] > 1:
+                fused_boxes[cluster] = [float(value / total) for value in sums]
+            continue
+
         # Sum offsets from the cluster's first box instead of absolute
         # coordinates: with large coordinates the absolute sums lose low bits,
         # which would shift a cluster of identical boxes and split it.
         offset = box - cluster_origins[cluster]
         weighted_offset_sums[cluster] += weight * offset
         offset_sums[cluster] += offset
-        weight_sums[cluster] += weight
-        cluster_sizes[cluster] += 1
         if cluster_sizes[cluster] == 1:
             continue
 
