@@ -668,6 +668,16 @@ def decode_semantic_label_map(payload: Any, field: str) -> npt.NDArray[np.intege
                 if image.format != "PNG":
                     raise ValueError(f"{field} must be a PNG image.")
                 array = np.asarray(image)
+                # The PNG header (IHDR) stores bit depth and color type here.
+                # Pillow returns bool for 1-bit grayscale and expands 2- and
+                # 4-bit grayscale to 8-bit intensities. Recover the stored sample
+                # values; indexed-color PNGs already return their palette indices.
+                bit_depth, color_type = png_bytes[24:26]
+                if color_type == 0:
+                    if bit_depth == 1:
+                        array = array.astype(np.uint8)
+                    elif bit_depth in (2, 4):
+                        array = array >> (8 - bit_depth)
         except OSError as error:
             raise ValueError(f"{field} is not a decodable PNG.") from error
     else:
