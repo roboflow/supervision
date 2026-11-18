@@ -3176,12 +3176,15 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h1 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">&para;</a></h1>
 <p>These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are typically supported for multiple subsequent releases, providing time for users to transition to updated methods.</p>
 <ul>
-<li><code>KeyPoints.confidence</code> is deprecated in <code>supervision-0.29.0</code>. Use <code>KeyPoints.keypoint_confidence</code> instead. It will be removed in <code>supervision-0.32.0</code>.</li>
-<li>Public <code>validate_*</code> helper functions are deprecated in <code>supervision-0.29.0</code> and will be removed in <code>supervision-0.32.0</code>. Supervision internals now use private <code>_validate_*</code> helpers.</li>
-<li><code>merge_inner_detection_object_pair</code>, <code>merge_inner_detections_objects</code>, and <code>merge_inner_detections_objects_without_iou</code> in <code>supervision.detection.core</code> are deprecated in <code>supervision-0.29.0</code> and will be removed in <code>supervision-0.32.0</code>.</li>
 <li>Passing <code>overlap_metric</code> or <code>mask_dimension</code> positionally to <a href="https://supervision.roboflow.com/latest/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.mask_non_max_merge"><code>sv.mask_non_max_merge</code></a> is deprecated in <code>supervision-0.30.0</code> and will be removed in <code>supervision-0.33.0</code>. Pass both by keyword instead.</li>
 </ul>
 <h1 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h1>
+<h3 id="0320">0.32.0<a class="headerlink" href="#0320" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>KeyPoints.confidence</code> and the <code>confidence</code> argument of <code>KeyPoints()</code> were removed as of <code>supervision-0.32.0</code>. Use <code>KeyPoints.keypoint_confidence</code> instead.</li>
+<li>The public <code>validate_*</code> helper functions (in <code>supervision.validators</code>, <code>supervision.detection.vlm</code>, <code>supervision.detection.core</code>, <code>supervision.annotators.utils</code>, <code>supervision.metrics.detection</code>, and <code>PercentageBarAnnotator.validate_custom_values</code>) were removed as of <code>supervision-0.32.0</code>. Supervision internals use private <code>_validate_*</code> helpers.</li>
+<li><code>merge_inner_detection_object_pair</code>, <code>merge_inner_detections_objects</code>, and <code>merge_inner_detections_objects_without_iou</code> in <code>supervision.detection.core</code> were removed as of <code>supervision-0.32.0</code>.</li>
+</ul>
 <h3 id="0310">0.31.0<a class="headerlink" href="#0310" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>sv.ByteTrack</code> was removed as of <code>supervision-0.31.0</code>. Use <code>ByteTrackTracker</code> from the external <a href="https://pypi.org/project/trackers/"><code>trackers</code></a> package (<code>pip install trackers</code>) instead; its update method is <code>update()</code>, not <code>update_with_detections()</code>.</li>
@@ -3250,7 +3253,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 18, 2026 14:16:47 UTC">November 18, 2026</span>
   </span>
 
     
