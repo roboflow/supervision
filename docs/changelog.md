@@ -5,6 +5,10 @@ date_modified: 2026-11-18
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- **Behaviour change:** `sv.JSONSink` writes `NaN` and infinite values as `null`. It wrote them as `NaN`, `Infinity` or `-Infinity`, which are not valid JSON, so strict parsers such as `JSON.parse` in browsers raised `SyntaxError` on files with a missing value. Python's `json` module now reads these values as `None` instead of `float("nan")`. (PR link to follow)
+
 ### 0.32.0 <small>Nov 18, 2026</small>
 
 - **Zones**: `sv.PolygonZone` counts entries and exits per class and measures dwell time, and the zone annotators accept a `coord_transform`.

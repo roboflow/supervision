@@ -669,6 +669,105 @@ class TestJSONSinkReservedFields:
         ]
 
 
+def _reject_constant(token: str) -> None:
+    """Raise for the non-standard NaN and Infinity tokens a strict parser rejects."""
+    raise ValueError(f"non-standard JSON token {token}")
+
+
+def _load_strict(file_name: str) -> Any:
+    """Load a JSON file, failing on NaN, Infinity or -Infinity tokens."""
+    with open(file_name) as file:
+        return json.load(file, parse_constant=_reject_constant)
+
+
+class TestJSONSinkNonFiniteValues:
+    """Non-finite floats are written as null so the file stays valid JSON."""
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            pytest.param(float("nan"), id="python-nan"),
+            pytest.param(float("inf"), id="python-inf"),
+            pytest.param(float("-inf"), id="python-negative-inf"),
+            pytest.param(np.float32("nan"), id="numpy-float32-nan"),
+            pytest.param(np.float64("-inf"), id="numpy-float64-negative-inf"),
+        ],
+    )
+    def test_scalar_custom_data_becomes_null(self, tmp_path: Any, value: Any) -> None:
+        """A non-finite scalar in custom_data is written as null."""
+        file_name = str(tmp_path / "output.json")
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+
+        with sv.JSONSink(file_name) as sink:
+            sink.append(detections, custom_data={"angle": value})
+
+        assert _load_strict(file_name)[0]["angle"] is None
+
+    def test_per_detection_data_keeps_finite_rows(self, tmp_path: Any) -> None:
+        """Only the non-finite entries of a per-detection array become null."""
+        file_name = str(tmp_path / "output.json")
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+            data={"angle": np.array([np.nan, 87.5])},
+        )
+
+        with sv.JSONSink(file_name) as sink:
+            sink.append(detections)
+
+        rows = _load_strict(file_name)
+        assert rows[0]["angle"] is None
+        assert rows[1]["angle"] == 87.5
+
+    def test_nested_values_become_null(self, tmp_path: Any) -> None:
+        """Non-finite values inside nested arrays, lists and dicts become null."""
+        file_name = str(tmp_path / "output.json")
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+        custom_data = {
+            "joints": np.array([[1.5, np.nan], [np.inf, 2.0]]),
+            "meta": {"scores": [0.25, float("nan")], "pair": (float("-inf"), 3)},
+        }
+
+        with sv.JSONSink(file_name) as sink:
+            sink.append(detections, custom_data=custom_data)
+
+        row = _load_strict(file_name)[0]
+        assert row["joints"] == [[1.5, None], [None, 2.0]]
+        assert row["meta"] == {"scores": [0.25, None], "pair": [None, 3]}
+
+    def test_non_finite_box_coordinate_becomes_null(self, tmp_path: Any) -> None:
+        """A non-finite box coordinate is written as null, not as a NaN token."""
+        file_name = str(tmp_path / "output.json")
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+        detections.xyxy[0, 2] = np.nan
+
+        with sv.JSONSink(file_name) as sink:
+            sink.append(detections)
+
+        assert _load_strict(file_name)[0]["x_max"] is None
+
+    def test_finite_values_unchanged(self, tmp_path: Any) -> None:
+        """Finite numbers, booleans, strings and None are written as before."""
+        file_name = str(tmp_path / "output.json")
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+        custom_data = {
+            "score": np.float32(0.5),
+            "flag": np.bool_(True),
+            "name": "runner",
+            "missing": None,
+            "count": np.int64(3),
+        }
+
+        with sv.JSONSink(file_name) as sink:
+            sink.append(detections, custom_data=custom_data)
+
+        row = _load_strict(file_name)[0]
+        assert row["score"] == 0.5
+        assert row["flag"] is True
+        assert row["name"] == "runner"
+        assert row["missing"] is None
+        assert row["count"] == 3
+
+
 def assert_json_equal(file_name: str, expected_rows: list[dict[str, Any]]) -> None:
     """Assert a JSON sink file holds the expected rows, then delete it."""
     with open(file_name) as file:
