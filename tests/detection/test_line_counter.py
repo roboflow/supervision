@@ -778,6 +778,35 @@ class TestLineZoneSubThresholdFlicker:
 
         assert (line_zone.in_count, line_zone.out_count) == (0, 1)
 
+    @pytest.mark.parametrize("copies", [2, 3])
+    def test_repeated_tracker_id_is_one_observation(self, copies: int) -> None:
+        """Copies of one id in a frame cannot satisfy the threshold on their own."""
+        line_zone = self._line_zone(minimum_crossing_threshold=copies)
+        line_zone.trigger(
+            _create_detections(xyxy=_boxes_from_sides("A"), tracker_id=[0])
+        )
+        duplicates = _create_detections(
+            xyxy=_boxes_from_sides("B" * copies), tracker_id=[0] * copies
+        )
+
+        line_zone.trigger(duplicates)
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+    def test_repeated_tracker_id_on_both_sides_keeps_first_copy(self) -> None:
+        """Copies of one id on both sides of the line give one crossing, not two."""
+        line_zone = self._line_zone(minimum_crossing_threshold=1)
+        line_zone.trigger(
+            _create_detections(xyxy=_boxes_from_sides("A"), tracker_id=[0])
+        )
+        split_copies = _create_detections(
+            xyxy=_boxes_from_sides("BA"), tracker_id=[0, 0]
+        )
+
+        line_zone.trigger(split_copies)
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
     def test_dropped_frame_inside_excursion_is_coasted_through(self) -> None:
         """A single dropped frame mid-excursion is coasted through, not reset.
 
