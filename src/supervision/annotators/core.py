@@ -8,7 +8,6 @@ from typing import Any, ClassVar, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from PIL import Image, ImageDraw, ImageFont, features
 from scipy.interpolate import splev, splprep
 
@@ -3191,18 +3190,6 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
-
-    @staticmethod
-    @deprecated(  # type: ignore[untyped-decorator]
-        target=_validate_custom_values.__func__,  # type: ignore[attr-defined]
-        deprecated_in="0.29.0",
-        remove_in="0.32.0",
-    )
-    def validate_custom_values(
-        custom_values: npt.NDArray[np.float64] | list[float] | None,
-        detections: Detections,
-    ) -> None:
-        void(custom_values, detections)
 
 
 class CropAnnotator(BaseAnnotator):
