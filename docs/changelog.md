@@ -44,6 +44,8 @@ date_modified: 2026-11-18
     - `resolve_color`, `resolve_color_idx` and `get_color_by_index` in `supervision.annotators.utils` are deprecated in `0.32.0` and will be removed in `0.35.0`. They emit a `SupervisionWarnings` deprecation warning, which `SUPERVISION_DEPRECATION_WARNING=0` silences, and forward to private helpers; annotators no longer depend on them. Pass a `sv.ColorPalette` as `color` together with `color_lookup` to the annotators instead, or use `sv.ColorPalette.by_idx` in place of `get_color_by_index`. `resolve_color` stays importable from `supervision.annotators.core` until `0.35.0` and warns the same way when called; import it from `supervision.annotators.utils`. ([#2343](https://github.com/roboflow/supervision/pull/2343))
     - `load_coco_annotations` imported from `supervision.dataset.core` and `get_detection_size_category` imported from `supervision.metrics.mean_average_recall` are deprecated in `0.32.0` and will be removed in `0.35.0`. Both modules exposed these as a side effect of using them, so the names now warn when called; import them from `supervision.dataset.formats.coco` and `supervision.metrics.utils.object_size`.
 
+- The documentation site retries missing unversioned URLs under `/latest/` and preserves 404s for compact and dotted alpha and beta release tags. ([#3020](https://github.com/roboflow/supervision/pull/3020))
+
 ### 0.31.7 <small>Nov 11, 2026</small>
 
 - **Metrics**: `sv.metrics.MeanAveragePrecision` agrees with `pycocotools` on size buckets and crowd targets.
