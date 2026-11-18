@@ -9,6 +9,10 @@ date_modified: 2026-10-31
 
 - Fixed `sv.KeyPoints.from_transformers` to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. An empty first pose no longer hides later poses. ([#2978](https://github.com/roboflow/supervision/pull/2978))
 
+- Removed the APIs deprecated in `0.29.0`, as scheduled for `0.32.0`: the public `validate_*` helpers in `supervision.validators`, `supervision.detection.vlm` (`validate_vlm_parameters`), `supervision.detection.core` (`validate_fields_both_defined_or_none`), `supervision.annotators.utils` (`validate_labels`) and `supervision.metrics.detection` (`validate_input_tensors`), `sv.PercentageBarAnnotator.validate_custom_values`, `merge_inner_detection_object_pair`, `merge_inner_detections_objects` and `merge_inner_detections_objects_without_iou` in `supervision.detection.core`, and the `confidence` argument and attribute of `sv.KeyPoints`. Use `sv.KeyPoints.keypoint_confidence` instead of `sv.KeyPoints.confidence`. ([#3019](https://github.com/roboflow/supervision/pull/3019))
+
+- Dataset merging builds a class-name lookup per dataset instead of rescanning the merged class list for every class. ([#3017](https://github.com/roboflow/supervision/pull/3017))
+
 - `sv.VertexAnnotator`, `sv.EdgeAnnotator` and `sv.VertexLabelAnnotator` now accept a `sv.ColorPalette` and a `color_lookup` argument. `sv.ColorLookup.INDEX` and `sv.ColorLookup.CLASS` work as for detection annotators, and the new `sv.ColorLookup.KEYPOINT` colors each keypoint by its index within the skeleton. `sv.ColorLookup.TRACK` is not supported for keypoints and is rejected when the annotator is created. ([#2343](https://github.com/roboflow/supervision/pull/2343))
 
 - Passing a `list[sv.Color]` as `color` or `text_color` to `sv.VertexLabelAnnotator` is deprecated in `0.32.0` and will be removed in `0.35.0`. Use a `sv.ColorPalette` or a single `sv.Color` instead. ([#2343](https://github.com/roboflow/supervision/pull/2343))
