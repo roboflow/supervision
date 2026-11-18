@@ -1,0 +1,181 @@
+{% set class = "md-header" %}
+{% if "navigation.tabs.sticky" in features %}
+  {% set class = class ~ " md-header--shadow md-header--lifted" %}
+{% elif "navigation.tabs" not in features %}
+  {% set class = class ~ " md-header--shadow" %}
+{% endif %}
+
+<!-- Header -->
+<header class="{{ class }}" data-md-component="header">
+  <nav
+    class="md-header__inner md-grid"
+    aria-label="{{ lang.t('header') }}"
+  >
+
+    <!-- Link to home -->
+    <a
+      href="{{ config.extra.homepage | d(nav.homepage.url, true) | url }}"
+      title="{{ config.site_name | e }}"
+      class="md-header__button md-logo"
+      aria-label="{{ config.site_name }}"
+      data-md-component="logo"
+    >
+      {% include "partials/logo.html" %}
+    </a>
+
+    <!-- Button to open drawer -->
+    <label class="md-header__button md-icon" for="__drawer">
+      {% set icon = config.theme.icon.menu or "material/menu" %}
+      {% include ".icons/" ~ icon ~ ".svg" %}
+    </label>
+
+    <!-- Header title -->
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            {{ config.site_name }} Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis" style="display: flex; align-items: center; gap: 0.5rem;">
+            <a
+            href="{{ config.extra.homepage | d(nav.homepage.url, true) | url }}"
+            title="{{ config.site_name | e }}"
+            class="md-header__button md-logo"
+            aria-label="{{ config.site_name }}"
+            data-md-component="logo"
+            id="item-logo"
+            >
+            {% include "partials/logo.html" %}
+            </a>
+            {% if page.meta and page.meta.title %}
+              {{ page.meta.title }}
+            {% else %}
+              {{ page.title }}
+            {% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+    <!-- Button to open search modal -->
+    {% if "material/search" in config.plugins %}
+      {% set search = config.plugins["material/search"] | attr("config") %}
+
+      <!-- Check if search is actually enabled - see https://t.ly/DT_0V -->
+      {% if search.enabled %}
+        <label class="md-header__button md-icon" for="__search">
+          {% set icon = config.theme.icon.search or "material/magnify" %}
+          {% include ".icons/" ~ icon ~ ".svg" %}
+        </label>
+
+        <!-- Search interface -->
+        {% include "partials/search.html" %}
+      {% endif %}
+    {% endif %}
+
+
+    <ul class="header-list">
+        <li style="align-items: center;" id="resources-list">
+            <label for="dropdown-resources"><span>Resources <img src="https://ka-p.fontawesome.com/releases/v6.6.0/svgs/regular/chevron-down.svg?v=2&token=a463935e93" style="height: 0.5rem;" /></span></label>
+            <input type="radio" name="dropdown" id="dropdown-resources" style="display: none;" />
+            <ul class="resources-sublist sublist">
+                <li><a href="https://blog.roboflow.com">Blog</a></li>
+                <li><a href="https://discuss.roboflow.com">Community Forum</a></li>
+                <li><a href="https://roboflow.com/sales">Contact Sales</a></li>
+                <li><a href="https://universe.roboflow.com">Universe</a></li>
+            </ul>
+        </li>
+        <li style="align-items: center;" id="products-list">
+            <label for="dropdown-products"><span>Docs <img src="https://ka-p.fontawesome.com/releases/v6.6.0/svgs/regular/chevron-down.svg?v=2&token=a463935e93" style="height: 0.5rem;" /></span></label>
+            <input type="radio" name="dropdown" id="dropdown-products" style="display: none;" />
+            <ul class="products-sublist sublist">
+                <li><a href="https://inference.roboflow.com">Inference</a></li>
+                <li><a href="https://supervision.roboflow.com">Supervision</a></li>
+                <li><a href="https://trackers.roboflow.com">Trackers</a></li>
+                <li><a href="https://maestro.roboflow.com">Maestro</a></li>
+                <li><a href="https://docs.roboflow.com">Roboflow</a></li>
+            </ul>
+        </li>
+        <script>
+          document.addEventListener('click', function(event) {
+            const resourcesList = document.getElementById('resources-list');
+            const productsList = document.getElementById('products-list');
+            const dropdownResources = document.getElementById('dropdown-resources');
+            const dropdownProducts = document.getElementById('dropdown-products');
+
+            if (!resourcesList.contains(event.target)) {
+              dropdownResources.checked = false;
+            }
+            if (!productsList.contains(event.target)) {
+              dropdownProducts.checked = false;
+            }
+          });
+          // on mouse over
+          document.getElementById('resources-list').addEventListener('mouseover', function() {
+            document.getElementById('dropdown-resources').checked = true;
+          });
+          document.getElementById('products-list').addEventListener('mouseover', function() {
+            document.getElementById('dropdown-products').checked = true;
+          });
+          // on mouse out
+          document.getElementById('resources-list').addEventListener('mouseout', function() {
+            // if not hovering over the sublist or the label, uncheck the dropdown
+            // wait 1 sec
+            setTimeout(function() {
+              if (!document.querySelector('.resources-sublist:hover') && !document.querySelector('#resources-list:hover')) {
+                document.getElementById('dropdown-resources').checked = false;
+              }
+            }, 350);
+          });
+          // if mouseout of sublist, uncheck immediately
+          document.querySelector('.resources-sublist').addEventListener('mouseout', function() {
+            setTimeout(function() {
+              if (!document.querySelector('.resources-sublist:hover') && !document.querySelector('#resources-list:hover')) {
+                document.getElementById('dropdown-resources').checked = false;
+              }
+            }, 450);
+          });
+          document.getElementById('products-list').addEventListener('mouseout', function() {
+            // if not hovering over the sublist, uncheck the dropdown
+            // wait 1 sec
+            setTimeout(function() {
+              if (!document.querySelector('.products-sublist:hover') && !document.querySelector('#products-list:hover')) {
+                document.getElementById('dropdown-products').checked = false;
+              }
+            }, 500);
+          });
+          // if mouseout of sublist, uncheck immediately
+          document.querySelector('.products-sublist').addEventListener('mouseout', function() {
+            setTimeout(function() {
+              if (!document.querySelector('.products-sublist:hover') && !document.querySelector('#products-list:hover')) {
+                document.getElementById('dropdown-products').checked = false;
+              }
+            }, 500);
+          });
+
+        </script>
+        <style>
+          #dropdown-resources:checked ~ .resources-sublist {
+            display: block;
+          }
+          #dropdown-products:checked ~ .products-sublist {
+            display: block;
+          }
+          /* Hide dropdown if clicking outside */
+          body:not(:has(#dropdown-resources:checked)) .resources-sublist,
+          body:not(:has(#dropdown-products:checked)) .products-sublist {
+            display: none;
+          }
+        </style>
+        <a href="https://github.com/roboflow/supervision"><li class="header-btn" style="border-radius: 5px; color: white; background: var(--md-typeset-a-color); padding-top: 0.25rem; padding-left: 0.5rem; padding-bottom: 0.25rem; padding-right: 0.5rem; border: 1px solid #8315F9;">Go to GitHub</li></a>
+    </ul>
+  </nav>
+
+  <!-- Navigation tabs (sticky) -->
+  {% if "navigation.tabs.sticky" in features %}
+    {% if "navigation.tabs" in features %}
+      {% include "partials/tabs.html" %}
+    {% endif %}
+  {% endif %}
+</header>
