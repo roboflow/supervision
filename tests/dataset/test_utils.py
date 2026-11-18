@@ -1,8 +1,9 @@
 import random
+import sys
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, SupportsIndex, TypeVar
 
 import numpy as np
 import pytest
@@ -582,15 +583,20 @@ class TestBuildClassIndexMapping:
     def test_does_not_scan_target_list_per_source_class(self) -> None:
         """Mapping uses a prebuilt lookup instead of scanning the target list."""
 
-        class ScanCountingList(list):
+        class ScanCountingList(list[str]):
             """List that counts the linear-scan operations performed on it."""
 
             scans = 0
 
-            def index(self, *args: object, **kwargs: object) -> int:
+            def index(
+                self,
+                value: str,
+                start: SupportsIndex = 0,
+                stop: SupportsIndex = sys.maxsize,
+            ) -> int:
                 """Count and delegate a linear ``index`` scan."""
                 type(self).scans += 1
-                return super().index(*args, **kwargs)
+                return super().index(value, start, stop)
 
             def __contains__(self, item: object) -> bool:
                 """Count and delegate a linear membership scan."""
