@@ -32,8 +32,12 @@ class TestRemapClasses:
         result = animals.remap_classes(["animal", "car"], {"dog": "animal"})
 
         # Assert
+        class_names = result.data["class_name"]
+        assert isinstance(class_names, np.ndarray)
+        assert result.class_id is not None
+        assert result.tracker_id is not None
         assert result.class_id.tolist() == [0, 1]
-        assert result.data["class_name"].tolist() == ["animal", "car"]
+        assert class_names.tolist() == ["animal", "car"]
         assert result.tracker_id.tolist() == [10, 13]
 
     def test_rejects_multiple_class_names_per_detection(
@@ -57,7 +61,10 @@ class TestRemapClasses:
         result = animals.remap_classes(classes, class_name_mapping=mapping)
 
         # Assert
-        assert result.data["class_name"].tolist() == ["animal", "animal", "bird", "car"]
+        class_names = result.data["class_name"]
+        assert isinstance(class_names, np.ndarray)
+        assert result.class_id is not None
+        assert class_names.tolist() == ["animal", "animal", "bird", "car"]
         assert result.class_id.tolist() == [0, 0, 1, 2]
 
     def test_drops_detections_outside_the_classes(self, animals: Detections) -> None:
@@ -66,7 +73,10 @@ class TestRemapClasses:
         result = animals.remap_classes(["car"])
 
         # Assert
-        assert result.data["class_name"].tolist() == ["car"]
+        class_names = result.data["class_name"]
+        assert isinstance(class_names, np.ndarray)
+        assert result.class_id is not None
+        assert class_names.tolist() == ["car"]
         assert result.class_id.tolist() == [0]
 
     def test_keeps_other_fields_aligned_with_kept_rows(
@@ -77,6 +87,9 @@ class TestRemapClasses:
         result = animals.remap_classes(["car", "dog"])
 
         # Assert
+        assert result.confidence is not None
+        assert result.tracker_id is not None
+        assert result.class_id is not None
         assert result.xyxy.tolist() == [[0, 0, 1, 1], [3, 3, 4, 4]]
         assert result.confidence.tolist() == [0.9, 0.6]
         assert result.tracker_id.tolist() == [10, 13]
@@ -99,8 +112,11 @@ class TestRemapClasses:
         animals.remap_classes(["animal"], class_name_mapping={"dog": "animal"})
 
         # Assert
+        class_names = animals.data["class_name"]
+        assert isinstance(class_names, np.ndarray)
+        assert animals.class_id is not None
         assert animals.class_id.tolist() == [0, 1, 2, 3]
-        assert animals.data["class_name"].tolist() == ["dog", "cat", "eagle", "car"]
+        assert class_names.tolist() == ["dog", "cat", "eagle", "car"]
 
     def test_keeps_list_valued_data_of_kept_rows(self, animals: Detections) -> None:
         """Per-detection lists, ragged ones included, are filtered, not coerced."""
@@ -135,6 +151,7 @@ class TestRemapClasses:
 
         # Assert
         assert len(result) == 0
+        assert result.class_id is not None
         assert np.issubdtype(result.class_id.dtype, np.integer)
 
     def test_returns_integer_ids_for_empty_input(self) -> None:
@@ -148,6 +165,7 @@ class TestRemapClasses:
 
         # Assert
         assert len(result) == 0
+        assert result.class_id is not None
         assert np.issubdtype(result.class_id.dtype, np.integer)
 
     def test_raises_without_class_name(self) -> None:
