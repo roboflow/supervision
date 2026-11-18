@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.match_detections` with `iou_threshold=0` no longer matches detections that do not overlap. A pair with an IoU of exactly 0 satisfied `IoU >= 0`, so boxes far apart were reported as matched; a match now needs a positive overlap. Results for thresholds above 0 are unchanged. ([#2992](https://github.com/roboflow/supervision/pull/2992))
+
 -
 
 ### 0.32.0 <small>Nov 18, 2026</small>
