@@ -1156,14 +1156,32 @@ class TestPolygonZoneUnusableIds:
 
         assert (zone.current_count, zone.in_count) == (1, expected_in_count)
 
-    def test_none_in_object_ids_skips_only_its_own_detection(self) -> None:
-        """A `None` placeholder does not hide the valid ids beside it in the frame."""
+    @pytest.mark.parametrize(
+        "unusable_id",
+        [
+            pytest.param(None, id="placeholder"),
+            pytest.param(np.timedelta64(7, "ms"), id="milliseconds"),
+            pytest.param(np.timedelta64(7, "ns"), id="nanoseconds"),
+            pytest.param(
+                np.longdouble("7.0000000000000001"),
+                marks=pytest.mark.skipif(
+                    np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+                    reason="longdouble has no extra precision on this platform",
+                ),
+                id="extended-precision-fraction",
+            ),
+        ],
+    )
+    def test_unusable_object_id_preserves_the_valid_detection(
+        self, unusable_id: object
+    ) -> None:
+        """An unusable object ID does not acquire a valid track's crossing or dwell."""
         zone = sv.PolygonZone(POLYGON)
         frames = [
             sv.Detections(
                 xyxy=np.array([box, INSIDE_BOX]),
-                class_id=np.array([3, None], dtype=object),
-                tracker_id=np.array([7, None], dtype=object),
+                class_id=np.array([3, unusable_id], dtype=object),
+                tracker_id=np.array([7, unusable_id], dtype=object),
             )
             for box in (OUTSIDE_BOX, INSIDE_BOX)
         ]

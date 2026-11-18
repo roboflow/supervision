@@ -124,8 +124,8 @@ def _object_integral_key(value: object) -> int | None:
     """Convert one id held in an object array into an `int64` key, or `None`.
 
     Accepts the values a numeric id array would hold: integers and finite
-    integral floats, NumPy scalars included, that fit `int64`. Booleans, strings,
-    `None` and any other object are unusable, as arrays of them are.
+    integral floats, NumPy scalars included, that fit `int64`. Booleans, temporal
+    scalars, strings, `None` and any other object are unusable.
 
     Args:
         value: One element of an object-dtype id array.
@@ -133,12 +133,13 @@ def _object_integral_key(value: object) -> int | None:
     Returns:
         The integer key, or `None` when the value cannot name one object.
     """
-    if isinstance(value, (bool, np.bool_)):
+    # NumPy classifies timedelta64 as an integer scalar, but it is never an ID.
+    if isinstance(value, (bool, np.bool_, np.timedelta64)):
         return None
     if isinstance(value, (int, np.integer)):
         key = int(value)
     elif isinstance(value, (float, np.floating)) and np.isfinite(value):
-        if not float(value).is_integer():
+        if value != np.trunc(value):
             return None
         key = int(value)
     else:
