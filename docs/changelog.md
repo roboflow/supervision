@@ -5,6 +5,10 @@ date_modified: 2026-11-18
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `sv.KeyPoints.as_detections()` keeps `data` keys and the `class_id` dtype on frames without skeletons or key points, as it already did when every key point is invalid. It returned `sv.Detections.empty()` there, so the documented recipe for attaching tracker IDs to key points raised `KeyError: 'row'` on the first frame without people. Out-of-range `selected_keypoint_indices` now raise `IndexError` on such frames too, instead of only when skeletons are present. (PR link to follow)
+
 ### 0.32.0 <small>Nov 18, 2026</small>
 
 - **Zones**: `sv.PolygonZone` counts entries and exits per class and measures dwell time, and the zone annotators accept a `coord_transform`.
