@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.RichLabelAnnotator` now annotates four-channel BGRA arrays in place instead of raising a NumPy broadcast error. The scene keeps its alpha channel, and labels are drawn opaque, so the BGR channels match the BGR-scene result. ([#2996](https://github.com/roboflow/supervision/pull/2996))
+
 -
 
 ### 0.32.0 <small>Nov 18, 2026</small>
