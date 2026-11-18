@@ -9,15 +9,35 @@ timing reports frame size, detection count, mask area ratio, and
 Run with:
     uv run python examples/compact_mask/benchmark.py
 
+``--section`` selects what runs: ``matrix`` is the synthetic dense-vs-compact
+scenario matrix, ``yolo`` measures ``DetectionDataset.from_yolo`` loading with and
+without ``compact_masks=True``, and ``all`` (default) runs both. For example,
+``uv run python examples/compact_mask/benchmark.py --section yolo`` skips the matrix.
+
 No GPU or real model is required — everything is synthesized with NumPy.
 Mask complexity is controlled by ``num_vertices``: random polygons with more
 vertices produce jaggier boundaries and more RLE runs per row.
+
+The YOLO section generates 16 images with 8 small polygons each using the
+``vision-synth`` package (``pip install vision-synth``), loads them in three fresh
+processes per mode, and reports mask buffer bytes, load time and peak RSS.
+Peak RSS comes from the POSIX ``resource`` module, so that section is skipped on
+platforms without it, such as Windows. Peak RSS includes interpreter, import and input
+generation overhead; mask buffer bytes exclude Python objects and allocator overhead.
+Pixel equality between dense and compact loading is checked in a separate process so
+decoding does not inflate the measured RSS. Compression and timing differ for real
+datasets, especially fragmented masks.
 """
 
+import argparse
 import dataclasses
 import gc
 import json
 import math
+import statistics
+import subprocess
+import sys
+import tempfile
 import time
 import tracemalloc
 from collections.abc import Callable
@@ -43,6 +63,11 @@ from rich.table import Table
 
 import supervision as sv
 from supervision.detection.compact_mask import CompactMask, _nearest_source_index
+
+try:
+    import resource
+except ImportError:  # Windows has no POSIX resource module
+    resource = None
 
 console = Console(width=240, force_terminal=True)
 
@@ -1103,7 +1128,190 @@ def save_results_csv(results: list[ScenarioResult], path: Path) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-def main() -> None:
+# ══════════════════════════════════════════════════════════════════════════════
+# YOLO dataset loading
+# ══════════════════════════════════════════════════════════════════════════════
+
+#: Scenario name -> vision-synth primitive shapes; circles give the densest polygons.
+YOLO_SCENARIOS = {
+    "rectangles": ("rectangle",),
+    "triangles": ("triangle",),
+    "circles": ("circle",),
+}
+YOLO_NUM_IMAGES = 16
+YOLO_OBJECTS_PER_IMAGE = 8
+YOLO_IMG_SIZE = 1024  # square images, pixels
+YOLO_SAMPLES = 3  # fresh processes per (scenario, mode)
+YOLO_TIMEOUT_S = 120
+
+
+def _maxrss_mib() -> float:
+    """Return this process's peak resident set size in MiB."""
+    if resource is None:
+        raise RuntimeError("peak RSS needs the POSIX 'resource' module")
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # macOS reports ru_maxrss in bytes; Linux and other POSIX systems use KiB.
+    divisor = 2**20 if sys.platform == "darwin" else 1024
+    return peak / divisor
+
+
+def _write_yolo_dataset(root: Path, scenario: str) -> tuple[Path, Path, Path]:
+    """Generate a seeded YOLO segmentation dataset; return image dir, label dir, yaml.
+
+    Uses ``vision-synth`` (imported lazily so the matrix section does not need it) to
+    draw ``YOLO_OBJECTS_PER_IMAGE`` small polygons of the scenario's shape per image,
+    all in the ``train`` split.
+    """
+    from synth_datasets import SplitRatios, generate_dataset
+    from synth_datasets.primitives import PrimitiveShape
+
+    shapes = tuple(PrimitiveShape(name) for name in YOLO_SCENARIOS[scenario])
+    generate_dataset(
+        root,
+        num_images=YOLO_NUM_IMAGES,
+        fmt="yolo",
+        split_ratios=SplitRatios(train=1.0, val=0.0, test=0.0),
+        seed=0,
+        task="segmentation",
+        img_size=YOLO_IMG_SIZE,
+        shapes=shapes,
+        min_objects=YOLO_OBJECTS_PER_IMAGE,
+        max_objects=YOLO_OBJECTS_PER_IMAGE,
+        min_size_ratio=0.03,
+        max_size_ratio=0.08,
+    )
+    return root / "images" / "train", root / "labels" / "train", root / "data.yaml"
+
+
+def _loaded_mask_bytes(dataset: sv.DetectionDataset) -> int:
+    """Sum the retained mask buffer bytes of a loaded dataset (dense or compact)."""
+    total = 0
+    for detections in dataset.annotations.values():
+        mask = detections.mask
+        if isinstance(mask, CompactMask):
+            total += mask._offsets.nbytes + mask._crop_shapes.nbytes
+            total += sum(rle.nbytes for rle in mask._rles)
+        else:
+            if not isinstance(mask, np.ndarray):
+                raise TypeError("Dense loading did not return a NumPy mask")
+            total += mask.nbytes
+    return total
+
+
+def yolo_worker(mode: str, scenario: str) -> None:
+    """Load one synthetic YOLO dataset in this process and print a JSON result line.
+
+    ``mode`` is ``dense`` or ``compact`` for a measured load, or ``verify`` for an
+    untimed pixel, box and class-ID equality check between the two loaders.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        images, labels, data_yaml = _write_yolo_dataset(Path(tmp), scenario)
+        rss_before_mib = _maxrss_mib()
+        start = time.perf_counter()
+        dataset = sv.DetectionDataset.from_yolo(
+            str(images), str(labels), str(data_yaml), compact_masks=mode == "compact"
+        )
+        elapsed = time.perf_counter() - start
+        peak_rss_mib = _maxrss_mib()
+        if mode == "verify":
+            compact = sv.DetectionDataset.from_yolo(
+                str(images), str(labels), str(data_yaml), compact_masks=True
+            )
+            for path, expected in dataset.annotations.items():
+                actual = compact.annotations[path]
+                if not isinstance(actual.mask, CompactMask):
+                    raise TypeError("Compact loading did not return CompactMask")
+                np.testing.assert_array_equal(actual.mask.to_dense(), expected.mask)
+                np.testing.assert_array_equal(actual.xyxy, expected.xyxy)
+                np.testing.assert_array_equal(actual.class_id, expected.class_id)
+            print(json.dumps({"scenario": scenario, "pixel_equality": True}))
+            return
+        print(
+            json.dumps(
+                {
+                    "mode": mode,
+                    "scenario": scenario,
+                    "resolution": [YOLO_IMG_SIZE, YOLO_IMG_SIZE],
+                    "mask_buffer_bytes": _loaded_mask_bytes(dataset),
+                    "load_seconds": elapsed,
+                    "peak_rss_mib": peak_rss_mib,
+                    "rss_before_mib": rss_before_mib,
+                }
+            )
+        )
+
+
+def _run_yolo_worker(mode: str, scenario: str) -> dict:
+    """Run :func:`yolo_worker` in a fresh process and parse its JSON result line."""
+    # Only this interpreter/file and fixed mode/scenario choices run.
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            __file__,
+            "--yolo-worker",
+            mode,
+            "--yolo-scenario",
+            scenario,
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=YOLO_TIMEOUT_S,
+    )
+    return json.loads(result.stdout)
+
+
+def run_yolo_loading() -> None:
+    """Compare dense and compact ``from_yolo`` loading and print a summary table."""
+    if resource is None:
+        console.print(
+            "[yellow]YOLO loading section skipped: it needs the POSIX 'resource' "
+            "module to read peak RSS; run it on Linux or macOS.[/yellow]"
+        )
+        return
+
+    table = Table(
+        title=f"YOLO loading — median of {YOLO_SAMPLES} fresh processes",
+        box=box.SIMPLE_HEAD,
+    )
+    for column in ("scenario", "mode", "mask buffer KiB", "load s", "peak RSS MiB"):
+        table.add_column(
+            column, justify="left" if column in ("scenario", "mode") else "right"
+        )
+    table.add_column("pixel equality")
+
+    for scenario in YOLO_SCENARIOS:
+        for mode in ("dense", "compact"):
+            samples = [_run_yolo_worker(mode, scenario) for _ in range(YOLO_SAMPLES)]
+            verified = ""
+            if mode == "compact":
+                # Untimed, separate process so decoding never enters measured RSS.
+                check = _run_yolo_worker("verify", scenario)
+                verified = "✓" if check["pixel_equality"] else "✗"
+            buffer_kib = (
+                statistics.median(s["mask_buffer_bytes"] for s in samples) / 1024
+            )
+            load_s = statistics.median(s["load_seconds"] for s in samples)
+            peak_mib = statistics.median(s["peak_rss_mib"] for s in samples)
+            table.add_row(
+                scenario,
+                mode,
+                f"{buffer_kib:,.1f}",
+                f"{load_s:.3f}",
+                f"{peak_mib:.1f}",
+                verified,
+            )
+    console.print(table)
+    console.print(
+        f"[dim]vision-synth inputs: {YOLO_NUM_IMAGES} images x "
+        f"{YOLO_OBJECTS_PER_IMAGE} small polygons. Peak RSS includes "
+        "interpreter, import and input-generation overhead; mask buffer bytes "
+        "exclude Python objects and allocator overhead.[/dim]"
+    )
+
+
+def run_matrix() -> None:
+    """Run the synthetic dense-vs-compact scenario matrix and print the summary."""
     # ── parameter matrix ──────────────────────────────────────────────────────
     # (tier_label, (image_width, image_height), num_objects)
     TIERS: list[tuple[str, tuple[int, int], int]] = [
@@ -1164,6 +1372,35 @@ def main() -> None:
     csv_path = results_path.with_suffix(".csv")
     save_results_csv(results, csv_path)
     console.print(f"[dim]results saved → {results_path.name}  ·  {csv_path.name}[/dim]")
+
+
+def main() -> None:
+    """Parse arguments and run the selected benchmark sections."""
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--section",
+        choices=["all", "matrix", "yolo"],
+        default="all",
+        help="benchmark section to run (default: all)",
+    )
+    # Internal: the YOLO section re-runs this file in fresh processes.
+    parser.add_argument(
+        "--yolo-worker", choices=["dense", "compact", "verify"], help=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--yolo-scenario",
+        choices=YOLO_SCENARIOS,
+        default="triangles",
+        help=argparse.SUPPRESS,
+    )
+    args = parser.parse_args()
+    if args.yolo_worker:
+        yolo_worker(args.yolo_worker, args.yolo_scenario)
+        return
+    if args.section in ("all", "matrix"):
+        run_matrix()
+    if args.section in ("all", "yolo"):
+        run_yolo_loading()
 
 
 if __name__ == "__main__":
