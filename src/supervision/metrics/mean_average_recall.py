@@ -63,7 +63,7 @@ def get_detection_size_category(
     Releases before `0.32.0` exposed this helper from this module, so the name stays
     importable here until `0.35.0`.
     """
-    return cast(npt.NDArray[np.int_], void(detections, metric_target))
+    return void(detections, metric_target)  # type: ignore[no-any-return]
 
 
 @dataclass

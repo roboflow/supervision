@@ -98,16 +98,13 @@ def load_coco_annotations(
     Releases before `0.32.0` exposed this loader from this module, so the name stays
     importable here until `0.35.0`.
     """
-    return cast(
-        tuple[list[str], list[str], dict[str, Detections]],
-        void(
-            images_directory_path,
-            annotations_path,
-            force_masks,
-            use_iscrowd,
-            show_progress,
-            mask_rasterizer=mask_rasterizer,
-        ),
+    return void(  # type: ignore[no-any-return]
+        images_directory_path,
+        annotations_path,
+        force_masks,
+        use_iscrowd,
+        show_progress,
+        mask_rasterizer=mask_rasterizer,
     )
 
 

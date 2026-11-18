@@ -80,7 +80,7 @@ def resolve_color(
     Releases before `0.32.0` exposed this helper from this module as a side effect of
     the annotators importing it, so the name stays importable here until `0.35.0`.
     """
-    return cast(Color, void(color, detections, detection_idx, color_lookup))
+    return void(color, detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
 
 
 # Hebrew, Arabic, Syriac, Thaana, NKo and their presentation forms

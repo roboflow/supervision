@@ -202,7 +202,7 @@ def resolve_color_idx(
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
     """Deprecated: resolve the palette index used to color a single detection."""
-    return cast(int, void(detections, detection_idx, color_lookup))
+    return void(detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
 
 
 def resolve_text_background_xyxy(
@@ -286,7 +286,7 @@ def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
 )
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     """Deprecated: pick the color drawn for a palette index."""
-    return cast(Color, void(color, idx))
+    return void(color, idx)  # type: ignore[no-any-return]
 
 
 def _resolve_detection_color(
@@ -336,7 +336,7 @@ def resolve_color(
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> Color:
     """Deprecated: resolve the color used to draw a single detection."""
-    return cast(Color, void(color, detections, detection_idx, color_lookup))
+    return void(color, detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
 
 
 def _resolve_annotator_color(
