@@ -345,8 +345,13 @@ def from_qwen_2_5_vl(
     out_w, out_h = _validate_resolution(resolution_wh)
 
     text = result.strip()
-    text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
-    text = re.sub(r"```$", "", text).strip()
+    # Read the fenced block wherever it starts: text before the fence, such as a
+    # sentence or a thinking model's reasoning, can hold a `[` of its own, and the
+    # slice below would then start there instead of at the JSON array. A response
+    # cut off before the closing fence keeps everything after the opening one.
+    fence = re.search(r"```(?:json)?", text, flags=re.IGNORECASE)
+    if fence is not None:
+        text = text[fence.end() :].split("```")[0].strip()
 
     # A response cut off inside a box's `bbox_2d` array ends in that array's
     # elements, so the last `]` below belongs to the previous object's box and the
