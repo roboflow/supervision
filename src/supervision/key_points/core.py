@@ -302,7 +302,7 @@ class KeyPoints:
             (one entry per detected object).
     """  # noqa: E501 // docs
 
-    xy: npt.NDArray[np.float32]
+    xy: npt.NDArray[np.floating[Any]]
     class_id: npt.NDArray[np.int_] | None = None
     keypoint_confidence: npt.NDArray[np.float32] | None = None
     detection_confidence: npt.NDArray[np.float32] | None = None
@@ -311,7 +311,7 @@ class KeyPoints:
 
     def __init__(
         self,
-        xy: npt.NDArray[np.float32],
+        xy: npt.NDArray[np.floating[Any]],
         class_id: npt.NDArray[np.int_] | None = None,
         keypoint_confidence: npt.NDArray[np.float32] | None = None,
         detection_confidence: npt.NDArray[np.float32] | None = None,
@@ -397,7 +397,7 @@ class KeyPoints:
         self,
     ) -> Iterator[
         tuple[
-            npt.NDArray[np.float32],
+            npt.NDArray[np.floating[Any]],
             npt.NDArray[np.float32] | None,
             npt.NDArray[np.int_] | None,
             _DetectionDataType,

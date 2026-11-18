@@ -530,6 +530,54 @@ class TestKeyPointsDatasetExport:
 
         assert not output.exists()
 
+    @pytest.mark.parametrize(
+        ("coordinates", "class_id", "error"),
+        [
+            pytest.param([np.nan, 2.0], np.array([0]), "coordinates", id="nan-x"),
+            pytest.param([1.0, np.inf], np.array([0]), "coordinates", id="infinite-y"),
+            pytest.param(
+                [1.0, 2.0], np.array([0.9]), "class_id", id="fractional-class"
+            ),
+            pytest.param([1.0, 2.0], np.array([1]), "class_id", id="unknown-class"),
+            pytest.param([1.0, 2.0], np.array([-1]), "class_id", id="negative-class"),
+            pytest.param(
+                [1.0, 2.0],
+                np.array([np.timedelta64(0, "ms")]),
+                "class_id",
+                id="duration-is-not-a-class",
+            ),
+            pytest.param(
+                [1.0, 2.0], np.empty(0, dtype=int), "class_id", id="missing-class-row"
+            ),
+        ],
+    )
+    def test_rejects_invalid_pose_rows_before_writing(
+        self, tmp_path: Path, coordinates: list[float], class_id: Any, error: str
+    ) -> None:
+        """A bad second annotation leaves all requested outputs untouched."""
+        first_image = tmp_path / "a.png"
+        second_image = tmp_path / "b.png"
+        Image.new("RGB", (20, 10)).save(first_image)
+        Image.new("RGB", (20, 10)).save(second_image)
+        dataset = _dataset([str(first_image), str(second_image)])
+        replacement = KeyPoints(
+            xy=np.array([[coordinates, [4.0, 5.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={XYXY_DATA_FIELD: np.array([[0.0, 0.0, 10.0, 8.0]])},
+        )
+        replacement.class_id = class_id
+        dataset.annotations[str(second_image)] = replacement
+        output = tmp_path / "out"
+
+        with pytest.raises(ValueError, match=rf"b\.png.*{error}"):
+            dataset.as_yolo(
+                images_directory_path=str(output / "images"),
+                annotations_directory_path=str(output / "labels"),
+                data_yaml_path=str(output / "data.yaml"),
+            )
+
+        assert not output.exists()
+
 
 class TestKeyPointsDatasetFlipIdx:
     """Tests for the `flip_idx` keypoint permutation on the dataset."""

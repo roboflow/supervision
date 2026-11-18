@@ -191,10 +191,9 @@ def yolo_pose_annotations_to_key_points(
     :class:`~supervision.metrics.keypoint_mean_average_precision.KeyPointMeanAveragePrecision`
     and COCO evaluation count keypoints. The raw values, ``0``/``1``/``2`` flags
     or a keypoint confidence in labels written from model output, are kept in
-    ``data`` as ``float64`` so that a round trip through
+    ``data`` as ``float64`` to limit rounding during a round trip through
     :func:`~supervision.dataset.formats.yolo_pose.key_points_to_yolo_pose_annotations`
-    rewrites each annotation line unchanged, to the six significant digits the
-    writer emits.
+    which formats each value to six significant digits.
 
     Args:
         lines: Annotation lines of a single image.
@@ -228,11 +227,9 @@ def yolo_pose_annotations_to_key_points(
 
     w, h = resolution_wh
     stacked = np.stack(rows)
-    # Pixel coordinates stay float64: in float32 a coordinate such as 555.085 is
-    # off by up to 3e-5 pixels, enough to change its sixth significant digit
-    # once the writer normalizes it again. `KeyPoints` annotates `xy` as float32
-    # but holds any floating array, hence the wider annotation here.
-    xy: npt.NDArray[Any] = stacked[:, :, :2] * np.array([w, h], dtype=np.float64)
+    # Keep float64 pixel coordinates to avoid rounding them to float32 before
+    # the writer normalizes them and formats them to six significant digits.
+    xy = stacked[:, :, :2] * np.array([w, h], dtype=np.float64)
 
     visible: npt.NDArray[np.bool_] | None = None
     # denormalize_boxes keeps a floating input dtype, so the boxes stay float64.
@@ -429,30 +426,33 @@ def _export_data_field(
 
 
 def _validated_export_fields(
-    key_points: KeyPoints, keypoint_count: int
+    key_points: KeyPoints, keypoint_count: int, class_count: int | None = None
 ) -> _YoloPoseExportFields:
     """Check that non-empty key points can be written as YOLO pose labels.
 
     Shared by the per-image writer and the dataset preflight, so a dataset
     export rejects malformed key points before its first file is written
-    rather than midway, and nothing is written that the loader would refuse.
+    rather than midway.
 
     Args:
         key_points: The non-empty key points of a single image.
         keypoint_count: ``K`` from ``kpt_shape``.
+        class_count: Number of dataset classes, when known.
 
     Returns:
         The class ids, and the stored boxes and raw visibility values as
             ``float64``.
 
     Raises:
-        ValueError: If the key points carry no ``class_id``, hold a keypoint
-            count other than ``keypoint_count``, carry ``data['xyxy']`` not of
+        ValueError: If class ids are missing, misaligned, non-integer or out of
+            bounds, planar coordinates are non-finite, the keypoint count
+            differs from ``keypoint_count``, or ``data['xyxy']`` is not of
             shape ``(N, 4)`` or ``data['keypoint_visibility']`` not of shape
             ``(N, K)``, either holding a non-finite value, or a negative
             visibility value.
     """
-    if key_points.class_id is None:
+    class_id = key_points.class_id
+    if class_id is None:
         raise ValueError(
             "KeyPoints must carry `class_id` to be written as YOLO pose annotations."
         )
@@ -462,6 +462,15 @@ def _validated_export_fields(
             f"but 'kpt_shape' declares {keypoint_count}."
         )
     skeleton_count = len(key_points)
+    if class_id.shape != (skeleton_count,) or class_id.dtype.kind not in "iu":
+        raise ValueError("KeyPoints must carry one integer class_id per skeleton.")
+    if np.any(class_id < 0) or (
+        class_count is not None and np.any(class_id >= class_count)
+    ):
+        raise ValueError("KeyPoints carry a class_id outside the allowed range.")
+    # Only x and y are serialized. A missing z value in 3D keypoints is irrelevant.
+    if not np.all(np.isfinite(key_points.xy[..., :2])):
+        raise ValueError("KeyPoints carry non-finite planar coordinates.")
     boxes = _export_data_field(
         key_points=key_points,
         key=XYXY_DATA_FIELD,
@@ -480,9 +489,7 @@ def _validated_export_fields(
             f"data[{KEYPOINT_VISIBILITY_DATA_FIELD!r}]; expected non-negative "
             "visibility flags or keypoint confidences."
         )
-    return _YoloPoseExportFields(
-        class_id=key_points.class_id, boxes=boxes, visibility=visibility
-    )
+    return _YoloPoseExportFields(class_id=class_id, boxes=boxes, visibility=visibility)
 
 
 def _check_yolo_pose_export(dataset: KeyPointsDataset) -> None:
@@ -506,7 +513,9 @@ def _check_yolo_pose_export(dataset: KeyPointsDataset) -> None:
             continue
         try:
             _validated_export_fields(
-                key_points=key_points, keypoint_count=dataset.keypoint_count
+                key_points=key_points,
+                keypoint_count=dataset.keypoint_count,
+                class_count=len(dataset.classes),
             )
         except ValueError as error:
             raise ValueError(
@@ -594,15 +603,12 @@ def key_points_to_yolo_pose_annotations(
     update ``data['xyxy']`` or pop it to have the box derived again. With
     ``value_dim=3``, ``visible`` decides which keypoints are labelled: a cleared
     keypoint is written as flag 0, and a labelled one keeps its raw flag from
-    ``data['keypoint_visibility']``, or 2 when it has none. A line read by
-    :func:`~supervision.dataset.formats.yolo_pose.yolo_pose_annotations_to_key_points`
-    is therefore written back unchanged.
+    ``data['keypoint_visibility']``, or 2 when it has none.
 
     Values are written with six significant digits, matching the precision of a
     YOLO pose label and exceeding the five decimals
-    :func:`~supervision.dataset.formats.yolo.object_to_yolo` writes. A source
-    label carrying more precision than that is rewritten rounded, so the round
-    trip is exact to six significant digits rather than byte for byte.
+    :func:`~supervision.dataset.formats.yolo.object_to_yolo` writes. Converting
+    center and size to corners and back can lose precision for very narrow boxes.
 
     Args:
         key_points: The key points of a single image.
@@ -615,8 +621,9 @@ def key_points_to_yolo_pose_annotations(
         One annotation line per skeleton.
 
     Raises:
-        ValueError: If the key points carry no ``class_id``, hold a keypoint
-            count other than ``keypoint_count``, carry ``data['xyxy']`` not of
+        ValueError: If class ids are missing, misaligned, non-integer or negative,
+            planar coordinates are non-finite, the keypoint count differs
+            from ``keypoint_count``, or ``data['xyxy']`` is not of
             shape ``(N, 4)`` or ``data['keypoint_visibility']`` not of shape
             ``(N, K)``, either holding a non-finite value, or a negative
             visibility value.

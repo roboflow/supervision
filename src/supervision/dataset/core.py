@@ -1247,7 +1247,7 @@ class KeyPointsDataset(BaseDataset):
     ``float64``: the ``0``/``1``/``2`` flags, or the keypoint confidence that
     labels written from model output carry. Coordinates loaded by
     :meth:`~supervision.dataset.core.KeyPointsDataset.from_yolo` are ``float64``
-    too, so that each value is rounded once, when written.
+    too, to reduce rounding during export.
 
     ``KeyPoints.visible`` marks every keypoint with a positive raw value: flag
     ``1`` (occluded) as well as flag ``2`` (visible), and any positive
@@ -1675,7 +1675,8 @@ class KeyPointsDataset(BaseDataset):
             ValueError: Before any file is written, if two images would share an
                 output file name, or if labels are requested and a non-empty
                 annotation, for instance one replaced after construction, carries
-                no ``class_id``, or carries a ``data['xyxy']`` not of shape
+                missing, misaligned or invalid class IDs, non-finite planar
+                coordinates, or a ``data['xyxy']`` not of shape
                 ``(N, 4)`` or a ``data['keypoint_visibility']`` not of shape
                 ``(N, K)``, either holding a non-finite value, or a negative
                 visibility value.

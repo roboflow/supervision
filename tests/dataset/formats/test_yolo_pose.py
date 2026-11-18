@@ -509,6 +509,7 @@ class TestYoloPoseRoundTrip:
             data_yaml_path=str(out / "data.yaml"),
         )
 
+        assert next(iter(dataset.annotations.values())).xy.dtype == np.dtype(np.float64)
         assert (out / "labels" / "a.txt").read_text() == f"{line}\n"
 
     def test_round_trip_rounds_to_six_significant_digits(self) -> None:
