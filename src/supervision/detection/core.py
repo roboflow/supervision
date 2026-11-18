@@ -2227,13 +2227,10 @@ class Detections:
 
             * All inputs carry dense `ndarray` → result is `ndarray` (backward
               compatible).
-            * The pairwise merge path used by
-              :meth:`~supervision.detection.core.Detections.with_nms` /
-              :meth:`~supervision.detection.core.Detections.with_nmm`
-              (via ``_merge_detection_group``)
-              does **not** preserve
-              :class:`~supervision.detection.compact_mask.CompactMask` — mixed
-              inputs materialise to a dense `ndarray` on that path.
+            * :meth:`~supervision.detection.core.Detections.with_nms` preserves
+              compact masks by selecting detections.
+              :meth:`~supervision.detection.core.Detections.with_nmm` preserves
+              compact masks by taking their union within each merge group.
 
         Args:
             detections_list: A list of Detections objects to merge.
