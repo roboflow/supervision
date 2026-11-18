@@ -8,8 +8,9 @@
     <!--
       Site-root 404 page, served by GitHub Pages for every path with no file on gh-pages.
 
-      Versioned docs live under /latest/, /develop/ and /X.Y.Z/, so a link written
-      without a version (for example /how_to/track_objects/) has no file and lands here.
+      Versioned docs live under /latest/, /develop/ and release tags, which can have
+      alpha or beta suffixes. A versionless path such as /how_to/detect_small_objects/
+      may have no file at the site root and land here.
       GitHub Pages cannot serve a 301, so this page redirects client-side: a path with
       no version prefix is retried under /latest/. A path that already has a version
       prefix is a genuine 404 and stays on this page, which also prevents a redirect
@@ -21,7 +22,7 @@
     <script>
       (function () {
         var path = window.location.pathname;
-        if (/^\/(latest|develop|\d+\.\d+\.\d+)(\/|$)/.test(path)) {
+        if (/^\/(latest|develop|\d+\.\d+\.\d+(?:\.?[ab]\d+)?)(\/|$)/.test(path)) {
           return;
         }
         window.location.replace(
