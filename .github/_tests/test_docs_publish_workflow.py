@@ -1,5 +1,8 @@
 """Regression tests for the version wiring in the docs publish workflow."""
 
+import json
+import shutil
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -160,6 +163,105 @@ def test_inject_step_reads_root_files_from_the_deployed_commit(
     assert 'cp "docs/' not in step["run"]
     assert 'git show "$GITHUB_SHA:docs/$f" > "/tmp/$f"' in step["run"]
     assert 'git show "$GITHUB_SHA:.github/root-index.html"' in step["run"]
+    assert 'git show "$GITHUB_SHA:.github/root-404.html"' in step["run"]
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="requires Bash")
+@pytest.mark.parametrize("has_asset", [True, False])
+def test_inject_step_publishes_the_optional_root_404(
+    workflow_step: StepLookup, tmp_path: Path, has_asset: bool
+) -> None:
+    """Stage the new 404 only when the deployed commit supplies it."""
+    bash = shutil.which("bash")
+    assert bash is not None
+    step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, INJECT_STEP)
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    published = tmp_path / "404.html"
+    published.write_bytes(b"previous 404")
+    asset = tmp_path / "source-404.html"
+    if has_asset:
+        asset.write_bytes(b"new 404")
+
+    # Stub Git at the deployment boundary so the actual copy and staging
+    # decisions exercise the workflow without changing a Git branch.
+    git_fixture = r"""
+GITHUB_SHA=source
+GITHUB_REF=refs/heads/develop
+git() {
+  case "$1" in
+    cat-file) [[ "$3" == source:.github/root-404.html && -f source-404.html ]] ;;
+    show)
+      case "$2" in
+        source:docs/*) printf '%s\n' "$2" ;;
+        source:.github/root-404.html) cat source-404.html ;;
+        *) return 2 ;;
+      esac ;;
+    add) printf '%s\n' "${@:2}" > scratch/staged ;;
+    checkout|fetch|diff|push) return 0 ;;
+    *) return 2 ;;
+  esac
+}
+"""
+    # Rewrite the workflow's path literal into the fixture's private directory.
+    script = git_fixture + step["run"].replace("/tmp/", "scratch/")  # noqa: S108
+
+    subprocess.run([bash, "-e", "-c", script], cwd=tmp_path, check=True)
+
+    assert published.read_bytes() == (b"new 404" if has_asset else b"previous 404")
+    staged = (scratch / "staged").read_text(encoding="utf-8").splitlines()
+    assert ("404.html" in staged) is has_asset
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="requires Node.js")
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        pytest.param(
+            "/how_to/detect_small_objects/?source=docs#example",
+            ["/latest/how_to/detect_small_objects/?source=docs#example"],
+            id="versionless-with-query-and-fragment",
+        ),
+        pytest.param(
+            "/latest-guide/missing/",
+            ["/latest/latest-guide/missing/"],
+            id="similar-prefix",
+        ),
+        pytest.param("/latest/missing/", [], id="latest"),
+        pytest.param("/develop/missing/", [], id="develop"),
+        pytest.param("/0.31.7/missing/", [], id="stable"),
+        pytest.param("/0.32.0a1/missing/", [], id="compact-alpha"),
+        pytest.param("/0.32.0.b1/missing/", [], id="dotted-beta"),
+        pytest.param("/0.32.0b1", [], id="compact-beta-version-root"),
+    ],
+)
+def test_root_404_page_redirects_only_versionless_paths(
+    repo_root: Path, url: str, expected: list[str]
+) -> None:
+    """Run the shipped redirect and capture its browser navigation target."""
+    node = shutil.which("node")
+    assert node is not None
+    page = (repo_root / ".github" / "root-404.html").read_text(encoding="utf-8")
+    script = page.split("<script>", 1)[1].split("</script>", 1)[0]
+    harness = """
+const vm = require("node:vm");
+const [script, path] = process.argv.slice(1);
+const { pathname, search, hash } = new URL(path, "https://supervision.roboflow.com");
+const calls = [];
+const location = { pathname, search, hash, replace: path => calls.push(path) };
+const window = { location };
+vm.runInNewContext(script, { window }, { timeout: 1000 });
+console.log(JSON.stringify(calls));
+"""
+
+    completed = subprocess.run(
+        [node, "--eval", harness, "--", script, url],
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == expected
 
 
 def test_every_mike_deploy_step_exports_the_banner_version(

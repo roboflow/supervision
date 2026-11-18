@@ -468,7 +468,7 @@ def build_class_index_mapping(
 
     Returns:
         A dictionary mapping each source class index to its corresponding target
-        class index.
+        class index. Repeated target names use their first occurrence.
 
     Raises:
         ValueError: If any class in ``source_classes`` is not found in
@@ -484,16 +484,19 @@ def build_class_index_mapping(
         )
         ```
     """
-    index_mapping = {}
+    index_mapping: dict[int, int] = {}
+
+    target_indices: dict[str, int] = {}
+    for target_index, class_name in enumerate(target_classes):
+        target_indices.setdefault(class_name, target_index)
 
     for i, class_name in enumerate(source_classes):
-        if class_name not in target_classes:
+        if class_name not in target_indices:
             raise ValueError(
                 f"Class {class_name} not found in target classes. "
                 "source_classes must be a subset of target_classes."
             )
-        corresponding_index = target_classes.index(class_name)
-        index_mapping[i] = corresponding_index
+        index_mapping[i] = target_indices[class_name]
 
     return index_mapping
 
