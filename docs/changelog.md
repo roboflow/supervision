@@ -5,6 +5,10 @@ date_modified: 2026-11-18
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+-
+
 ### 0.32.0 <small>Nov 18, 2026</small>
 
 - **Zones**: `sv.PolygonZone` counts entries and exits per class and measures dwell time, and the zone annotators accept a `coord_transform`.
