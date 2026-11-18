@@ -43,7 +43,12 @@ from supervision.detection.utils.converters import (
 from supervision.detection.utils.masks import _masks_to_roi
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
+from supervision.draw.utils import (
+    _composite_over_bgra,
+    draw_polygon,
+    draw_rounded_rectangle,
+    draw_text,
+)
 from supervision.geometry.core import Point, Position, Rect
 from supervision.utils.conversion import (
     ensure_cv2_image_for_class_method,
@@ -2680,6 +2685,12 @@ class HeatMapAnnotator(BaseAnnotator):
         # A grayscale scene takes the heat colors as their gray luminance.
         heat_overlay = _match_overlay_to_scene_channels(overlay=heat_bgr, roi=scene)
         mask2d = heat_mask > 0
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            # A BGRA scene gets the heat composited over its alpha, as `draw_image`
+            # does, so the hidden colors of transparent pixels do not darken it.
+            alpha = (self.opacity * mask2d[..., np.newaxis]).astype(np.float32)
+            scene[:] = _composite_over_bgra(scene, heat_overlay, alpha)
+            return scene
         # OpenCV drops a singleton channel axis; restore the scene's layout.
         blended = cv2.addWeighted(
             heat_overlay, self.opacity, scene, 1 - self.opacity, 0

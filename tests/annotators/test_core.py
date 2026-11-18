@@ -1312,6 +1312,77 @@ class TestHeatMapAnnotator:
         assert result.getpixel((40, 40)) != 100
         assert result.getpixel((2, 2)) == 100
 
+    def test_bgra_matches_color_scene_and_stays_opaque(self) -> None:
+        """An opaque BGRA scene gets the BGR heat map and keeps an opaque alpha."""
+        bgr = np.arange(60 * 80 * 3, dtype=np.uint8).reshape(60, 80, 3)
+        scene = np.dstack([bgr, np.full((60, 80), 255, dtype=np.uint8)])
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        expected = HeatMapAnnotator().annotate(scene=bgr.copy(), detections=detections)
+
+        result = HeatMapAnnotator().annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == (60, 80, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        np.testing.assert_array_equal(result[..., 3], 255)
+
+    def test_bgra_heat_composites_over_transparent_scene(self) -> None:
+        """Opaque heat on a transparent scene is opaque; other pixels stay clear."""
+        scene = np.zeros((60, 80, 4), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        annotator = HeatMapAnnotator(opacity=1.0)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert annotator.heat_mask is not None
+        heat = annotator.heat_mask > 0
+        assert heat.any()
+        np.testing.assert_array_equal(result[..., 3][heat], 255)
+        np.testing.assert_array_equal(result[..., 3][~heat], 0)
+
+    def test_bgra_hidden_colors_of_transparent_scene_do_not_show(self) -> None:
+        """On a fully transparent scene, its hidden colors do not tint the heat."""
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        black = np.zeros((60, 80, 4), dtype=np.uint8)
+        white = black.copy()
+        white[..., :3] = 255
+
+        on_black = HeatMapAnnotator().annotate(scene=black, detections=detections)
+        on_white = HeatMapAnnotator().annotate(scene=white, detections=detections)
+
+        heat = on_black[..., 3] > 0
+        assert heat.any()
+        np.testing.assert_array_equal(on_black[heat], on_white[heat])
+
+    @pytest.mark.parametrize(
+        "scene_alpha",
+        [pytest.param(0, id="transparent"), pytest.param(128, id="translucent")],
+    )
+    def test_bgra_fractional_opacity_composites_over_scene(
+        self, scene_alpha: int
+    ) -> None:
+        """Heat at fractional opacity composites over the scene's alpha ("over")."""
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        bgr = np.zeros((60, 80, 3), dtype=np.uint8)
+        opacity = 0.2
+        heat_on_black = (
+            HeatMapAnnotator(opacity=1.0)
+            .annotate(scene=bgr, detections=detections)[30, 40]
+            .astype(np.float64)
+        )
+        scene = np.full((60, 80, 4), (0, 0, 0, scene_alpha), dtype=np.uint8)
+        scene_weight = (1 - opacity) * scene_alpha / 255
+        output_alpha = opacity + scene_weight
+        expected = [*(opacity * heat_on_black / output_alpha), 255 * output_alpha]
+
+        result = HeatMapAnnotator(opacity=opacity).annotate(
+            scene=scene, detections=detections
+        )
+
+        np.testing.assert_allclose(result[30, 40], expected, atol=1)
+        assert result[2, 2].tolist() == [0, 0, 0, scene_alpha]
+
 
 class TestCenterOfMassPosition:
     """Tests for annotators anchored at `Position.CENTER_OF_MASS`."""

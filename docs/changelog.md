@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.HeatMapAnnotator` now annotates four-channel BGRA scenes instead of raising `addWeighted inputs must have equal shapes`. Heat is composited over the scene's alpha, as `sv.draw_image` does, so the hidden colors of transparent pixels do not darken it, an opaque scene stays opaque, and its BGR channels match the BGR-scene result. ([#2994](https://github.com/roboflow/supervision/pull/2994))
+
 -
 
 ### 0.32.0 <small>Nov 18, 2026</small>
