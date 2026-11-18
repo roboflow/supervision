@@ -296,7 +296,8 @@ def resize_image(
 
     Args:
         image: The image to resize.
-        resolution_wh: Target resolution as `(width, height)`.
+        resolution_wh: Target resolution as `(width, height)`. Dimensions may be
+            Python integers or NumPy integer scalars.
         keep_aspect_ratio: Flag to maintain original aspect ratio.
             Defaults to `False`.
 
@@ -343,9 +344,16 @@ def resize_image(
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
+    target_width, target_height = resolution_wh
+    # NumPy integer scalars otherwise keep their narrow dtype during the aspect
+    # ratio products, which can overflow even for ordinary image dimensions.
+    if isinstance(target_width, np.integer):
+        target_width = int(target_width)
+    if isinstance(target_height, np.integer):
+        target_height = int(target_height)
+
     if keep_aspect_ratio:
         height_old, width_old = image.shape[:2]
-        target_width, target_height = resolution_wh
         # Compare and scale with integer products, not float ratios. A ratio such as
         # 640 / 427 is inexact, so `640 / (640 / 427)` gives 426.99999999999994 and
         # `int()` dropped a pixel from a fitted axis whose exact size is whole.
@@ -359,7 +367,7 @@ def resize_image(
             height_new = target_height
             width_new = max(1, int(target_height * width_old // height_old))
     else:
-        width_new, height_new = resolution_wh
+        width_new, height_new = target_width, target_height
 
     resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
     return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
