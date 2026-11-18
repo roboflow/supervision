@@ -462,6 +462,14 @@ def _validated_export_fields(
             f"but 'kpt_shape' declares {keypoint_count}."
         )
     skeleton_count = len(key_points)
+    if key_points.visible is not None and (
+        not isinstance(key_points.visible, np.ndarray)
+        or key_points.visible.shape != (skeleton_count, keypoint_count)
+    ):
+        raise ValueError(
+            "KeyPoints must carry `visible` of shape "
+            f"{(skeleton_count, keypoint_count)}, aligned with `xy`."
+        )
     if class_id.shape != (skeleton_count,) or class_id.dtype.kind not in "iu":
         raise ValueError("KeyPoints must carry one integer class_id per skeleton.")
     if np.any(class_id < 0) or (
