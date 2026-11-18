@@ -639,6 +639,22 @@ def from_florence_2(
     raise RuntimeError(f"Unimplemented task: {task}")
 
 
+def _is_valid_gemini_box(box: Any) -> bool:
+    """Tell whether a Gemini `box_2d` value is four finite coordinates.
+
+    Args:
+        box: The raw `box_2d` value of one response item.
+
+    Returns:
+        `True` when `box` converts to four finite floats, otherwise `False`.
+    """
+    try:
+        coordinates = np.asarray(box, dtype=float)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    return coordinates.shape == (4,) and bool(np.isfinite(coordinates).all())
+
+
 def _strip_gemini_json_fence(result: str) -> str:
     """Unwrap the JSON payload of a Gemini response from its markdown fence.
 
@@ -896,6 +912,8 @@ def from_google_gemini_2_0(
     for item in data:
         if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
             continue
+        if not _is_valid_gemini_box(item["box_2d"]):
+            continue
         labels.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
@@ -980,7 +998,10 @@ def from_google_gemini_2_5(
     items = [
         item
         for item in data
-        if isinstance(item, dict) and "box_2d" in item and "label" in item
+        if isinstance(item, dict)
+        and "box_2d" in item
+        and "label" in item
+        and _is_valid_gemini_box(item["box_2d"])
     ]
     if not items:
         return empty_result
@@ -1163,7 +1184,10 @@ def from_google_gemini_3_6(
     items = [
         item
         for item in payload["boxes"]
-        if isinstance(item, dict) and "box_2d" in item and "label" in item
+        if isinstance(item, dict)
+        and "box_2d" in item
+        and "label" in item
+        and _is_valid_gemini_box(item["box_2d"])
     ]
     xyxy, class_id, class_name, confidence, keep_mask = _parse_gemini_boxes(
         items, resolution_wh, classes
