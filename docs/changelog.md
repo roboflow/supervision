@@ -61,6 +61,8 @@ date_modified: 2026-10-31
 
 - `sv.PolygonZoneAnnotator.annotate` and `sv.LineZoneAnnotator.annotate` accept the same optional `coord_transform` as `trigger`, so zones, lines and their counts are drawn where they appear while the camera moves. A zone or line with a point mapped to a non-finite coordinate or beyond `2**20` pixels is skipped for that frame. ([#2760](https://github.com/roboflow/supervision/pull/2760))
 
+- The documentation site retries missing unversioned URLs under `/latest/` and preserves 404s for compact and dotted alpha and beta release tags. ([#3020](https://github.com/roboflow/supervision/pull/3020))
+
 ### 0.31.7 <small>Nov 11, 2026</small>
 
 - **Metrics**: `sv.metrics.MeanAveragePrecision` agrees with `pycocotools` on size buckets and crowd targets.
