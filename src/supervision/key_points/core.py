@@ -302,7 +302,7 @@ class KeyPoints:
             (one entry per detected object).
     """  # noqa: E501 // docs
 
-    xy: npt.NDArray[np.float32]
+    xy: npt.NDArray[np.floating[Any]]
     class_id: npt.NDArray[np.int_] | None = None
     keypoint_confidence: npt.NDArray[np.float32] | None = None
     detection_confidence: npt.NDArray[np.float32] | None = None
@@ -311,7 +311,7 @@ class KeyPoints:
 
     def __init__(
         self,
-        xy: npt.NDArray[np.float32],
+        xy: npt.NDArray[np.floating[Any]],
         class_id: npt.NDArray[np.int_] | None = None,
         keypoint_confidence: npt.NDArray[np.float32] | None = None,
         detection_confidence: npt.NDArray[np.float32] | None = None,
@@ -350,6 +350,29 @@ class KeyPoints:
             data=self.data,
         )
 
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Assign an attribute, rejecting the ``confidence`` name removed in `0.32.0`.
+
+        Without this guard, ``key_points.confidence = ...`` would silently create a
+        detached attribute that nothing reads, so code written for earlier releases
+        would keep running while its confidence update is ignored. Reading
+        ``confidence`` raises the default :class:`AttributeError`.
+
+        Args:
+            name: Name of the attribute to assign.
+            value: Value to assign.
+
+        Raises:
+            AttributeError: If ``name`` is ``"confidence"``; assign
+                ``keypoint_confidence`` instead.
+        """
+        if name == "confidence":
+            raise AttributeError(
+                "'KeyPoints.confidence' was removed in `0.32.0`. "
+                "Assign 'KeyPoints.keypoint_confidence' instead."
+            )
+        super().__setattr__(name, value)
+
     def __len__(self) -> int:
         """Returns the number of objects in the
         :class:`~supervision.key_points.core.KeyPoints` object.
@@ -374,7 +397,7 @@ class KeyPoints:
         self,
     ) -> Iterator[
         tuple[
-            npt.NDArray[np.float32],
+            npt.NDArray[np.floating[Any]],
             npt.NDArray[np.float32] | None,
             npt.NDArray[np.int_] | None,
             _DetectionDataType,
