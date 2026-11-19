@@ -595,6 +595,49 @@ class TestDatasetEqualityContracts:
         assert ds_a == ds_b
         assert ds_a != ds_c
 
+    @pytest.mark.parametrize(
+        "second_shape",
+        [
+            pytest.param((6, 8, 3), id="different-size"),
+            pytest.param((4, 4), id="grayscale"),
+        ],
+    )
+    @pytest.mark.parametrize("dataset_type", ["detection", "classification"])
+    def test_in_memory_images_of_different_shapes(
+        self, dataset_type: str, second_shape: tuple[int, ...]
+    ) -> None:
+        """In-memory images of different shapes compare image by image."""
+        images = {
+            "img1.jpg": _create_image(fill_value=1),
+            "img2.jpg": np.full(second_shape, 2, dtype=np.uint8),
+        }
+        changed_images = {**images, "img2.jpg": np.full(second_shape, 3, np.uint8)}
+
+        def build(
+            images: dict[str, npt.NDArray[np.uint8]],
+        ) -> DetectionDataset | ClassificationDataset:
+            """Build the parametrized dataset type from in-memory images."""
+            if dataset_type == "detection":
+                with pytest.warns(SupervisionWarnings, match="deprecated"):
+                    return DetectionDataset(
+                        classes=["dog"],
+                        images=images,
+                        annotations={path: Detections.empty() for path in images},
+                    )
+            annotations = {
+                path: Classifications(class_id=np.array([0])) for path in images
+            }
+            with pytest.warns(SupervisionWarnings, match="deprecated"):
+                return ClassificationDataset(
+                    classes=["dog"], images=images, annotations=annotations
+                )
+
+        dataset = build(images)
+
+        assert dataset == dataset
+        assert dataset == build(dict(images))
+        assert dataset != build(changed_images)
+
 
 class TestDetectionDatasetExportCollisions:
     """Regression tests for the basename-collision guard on export (DAT-04)."""
