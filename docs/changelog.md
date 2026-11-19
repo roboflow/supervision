@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.KeyPoints.__setitem__` now raises `ValueError` when the value's length does not match the number of objects, as `sv.Detections.__setitem__` already does. Previously a wrong-length list or array was stored silently and only failed later, in `as_detections()`, `merge`, or when selecting objects. ([#2974](https://github.com/roboflow/supervision/pull/2974))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
