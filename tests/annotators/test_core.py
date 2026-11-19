@@ -1038,6 +1038,81 @@ class TestBgraMaskAnnotators:
         assert result[12, 18, 3] == 128
         assert result[2, 2, 3] == 0
 
+    @pytest.mark.parametrize(
+        ("annotator", "pixel"),
+        [
+            pytest.param(
+                MaskAnnotator(color=Color.RED, opacity=0.5), (12, 18), id="mask"
+            ),
+            pytest.param(
+                BackgroundOverlayAnnotator(color=Color.RED, opacity=0.5),
+                (2, 2),
+                id="background",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("background_alpha", "expected"),
+        [
+            pytest.param(0, [0, 0, 255, 128], id="transparent"),
+            pytest.param(128, [0, 67, 170, 192], id="translucent"),
+        ],
+    )
+    def test_transparent_background_does_not_tint_color(
+        self,
+        annotator: MaskAnnotator | BackgroundOverlayAnnotator,
+        pixel: tuple[int, int],
+        background_alpha: int,
+        expected: list[int],
+    ) -> None:
+        """Paint colors weight the destination RGB by its alpha."""
+        scene = np.full((30, 40, 4), (0, 200, 0, background_alpha), dtype=np.uint8)
+
+        result = annotator.annotate(scene, self._detections())
+
+        np.testing.assert_array_equal(result[pixel], expected)
+
+    def test_comparison_composites_transparent_background(self) -> None:
+        """Comparison colors retain their intensity over transparent pixels."""
+        scene = np.full((30, 40, 4), (0, 200, 0, 0), dtype=np.uint8)
+        annotator = ComparisonAnnotator(color_1=Color.RED, opacity=0.5)
+
+        result = annotator.annotate(scene, self._detections(), Detections.empty())
+
+        np.testing.assert_array_equal(result[12, 18], [0, 0, 255, 128])
+
+    def test_halo_ignores_hidden_background_color(self) -> None:
+        """Halo pixels do not contain colors hidden by zero destination alpha."""
+        scene = np.full((30, 40, 4), (0, 200, 0, 0), dtype=np.uint8)
+        annotator = HaloAnnotator(color=Color.RED, opacity=0.5, kernel_size=5)
+
+        result = annotator.annotate(scene, self._detections())
+
+        assert result[7, 12, 3] > 0
+        assert result[7, 12, 1] == 0
+        assert result[7, 12, 2] > 0
+
+    def test_comparison_labels_preserve_opaque_alpha(self) -> None:
+        """Comparison legends remain visible on an opaque BGRA scene."""
+        scene = np.full((200, 400, 4), 255, dtype=np.uint8)
+        annotator = ComparisonAnnotator(label_1="first")
+        detections = Detections(xyxy=np.array([[0, 0, 10, 10]]))
+
+        result = annotator.annotate(scene, detections, Detections.empty())
+
+        assert (result[..., 3] == 255).all()
+
+    def test_comparison_labels_cover_transparent_scene(self) -> None:
+        """A legend becomes visible without changing unrelated transparent pixels."""
+        scene = np.zeros((200, 400, 4), dtype=np.uint8)
+        annotator = ComparisonAnnotator(label_1="first")
+        detections = Detections(xyxy=np.array([[0, 0, 10, 10]]))
+
+        result = annotator.annotate(scene, detections, Detections.empty())
+
+        assert result[70, 70, 3] == 255
+        assert result[199, 399, 3] == 0
+
 
 class TestPaintMasksByArea:
     """Tests for the _paint_masks_by_area helper function."""
