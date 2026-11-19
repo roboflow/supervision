@@ -1,9 +1,10 @@
 import random
+import sys
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from fractions import Fraction
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, SupportsIndex, TypeVar
 
 import numpy as np
 import pytest
@@ -531,6 +532,84 @@ def test_build_class_index_mapping(
             source_classes=source_classes, target_classes=target_classes
         )
         assert result == expected_result
+
+
+class TestBuildClassIndexMapping:
+    """Class-name lookup preserves ordering and repeated-name behavior."""
+
+    @pytest.mark.parametrize(
+        ("source_classes", "target_classes", "expected"),
+        [
+            pytest.param([], [], {}, id="both-empty"),
+            pytest.param([], ["cat", "cat"], {}, id="empty-source"),
+            pytest.param(["cat"], ["cat", "cat"], {0: 0}, id="first-duplicate"),
+            pytest.param(
+                ["cat", "dog", "cat"],
+                ["dog", "cat", "dog", "cat"],
+                {0: 1, 1: 0, 2: 1},
+                id="repeated-source-and-target",
+            ),
+            pytest.param(
+                ["dog", "cat"],
+                ["person", "cat", "dog"],
+                {0: 2, 1: 1},
+                id="reordered-subset",
+            ),
+        ],
+    )
+    def test_preserves_first_target_index_and_input_lists(
+        self,
+        source_classes: list[str],
+        target_classes: list[str],
+        expected: dict[int, int],
+    ) -> None:
+        """Repeated names map to their first target occurrence without mutation."""
+        source_before = source_classes.copy()
+        target_before = target_classes.copy()
+
+        result = build_class_index_mapping(source_classes, target_classes)
+
+        assert result == expected
+        assert source_classes == source_before
+        assert target_classes == target_before
+
+    def test_reports_first_missing_source_name(self) -> None:
+        """Missing classes are reported in source order, not sorted order."""
+        source_classes = ["zebra", "ant"]
+        target_classes = ["cat", "cat"]
+
+        with pytest.raises(ValueError, match="Class zebra not found in target classes"):
+            build_class_index_mapping(source_classes, target_classes)
+
+    def test_does_not_scan_target_list_per_source_class(self) -> None:
+        """Mapping uses a prebuilt lookup instead of scanning the target list."""
+
+        class ScanCountingList(list[str]):
+            """List that counts the linear-scan operations performed on it."""
+
+            scans = 0
+
+            def index(
+                self,
+                value: str,
+                start: SupportsIndex = 0,
+                stop: SupportsIndex = sys.maxsize,
+            ) -> int:
+                """Count and delegate a linear ``index`` scan."""
+                type(self).scans += 1
+                return super().index(value, start, stop)
+
+            def __contains__(self, item: object) -> bool:
+                """Count and delegate a linear membership scan."""
+                type(self).scans += 1
+                return super().__contains__(item)
+
+        target_classes = ScanCountingList(["cat", "dog", "person"])
+
+        result = build_class_index_mapping(["person", "cat", "dog"], target_classes)
+
+        assert result == {0: 2, 1: 0, 2: 1}
+        assert ScanCountingList.scans == 0
 
 
 @pytest.mark.parametrize(

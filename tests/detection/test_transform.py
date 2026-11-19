@@ -166,6 +166,13 @@ class TestRemapClasses:
                 ["car", "car"], None, ValueError, "duplicate", id="duplicates"
             ),
             pytest.param(
+                ["z", "b", "a", "z", "b"],
+                None,
+                ValueError,
+                r"duplicate names: \['b', 'z'\]",
+                id="duplicates-sorted",
+            ),
+            pytest.param(
                 ["animal"],
                 {"dog": "animl"},
                 ValueError,
