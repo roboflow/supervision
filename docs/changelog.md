@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.Detections.get_anchors_coordinates` with `sv.Position.CENTER_OF_MASS` now anchors a detection whose mask has no pixels at the center of its bounding box, for dense masks and `sv.CompactMask` alike, instead of the frame's top-left corner `(0, 0)`. The mask centroid of an empty mask is undefined and `sv.calculate_masks_centroids` reports `(0, 0)`, so a stationary object whose mask came out empty in one frame made `sv.LineZone` count a phantom crossing, made `sv.PolygonZone` report it in the zone when the zone contained the corner, and was drawn at the corner by `sv.DotAnnotator`, `sv.LabelAnnotator` and `sv.TraceAnnotator`. Centroids of non-empty masks are unchanged, and `sv.calculate_masks_centroids` itself still returns `(0, 0)` for an empty mask. ([#2976](https://github.com/roboflow/supervision/pull/2976))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
