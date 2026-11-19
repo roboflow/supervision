@@ -1789,6 +1789,41 @@ class TestConfusionMatrixPlot:
         assert fig is not None
         plt.close(fig)
 
+    @pytest.mark.parametrize(
+        ("matrix", "expected"),
+        [
+            pytest.param(
+                # All 10 cats are found, half of the 10 dogs are predicted as cat.
+                [[10, 0, 0], [5, 5, 0], [0, 0, 0]],
+                [[1.0, np.nan, np.nan], [0.5, 0.5, np.nan], [np.nan, np.nan, np.nan]],
+                id="misclassified-targets",
+            ),
+            pytest.param(
+                # Missed targets land in the FN column, unmatched predictions in
+                # the FP row.
+                [[8, 0, 2], [0, 6, 4], [3, 7, 0]],
+                [[0.8, np.nan, 0.2], [np.nan, 0.6, 0.4], [0.3, 0.7, np.nan]],
+                id="with-fn-and-fp",
+            ),
+        ],
+    )
+    def test_normalized_rows_show_share_of_each_target_class(
+        self, matrix: list[list[int]], expected: list[list[float]]
+    ) -> None:
+        """Non-empty normalized rows are split over predicted columns and sum to 1."""
+        confusion_matrix = ConfusionMatrix(
+            matrix=np.array(matrix, dtype=np.int32),
+            classes=["cat", "dog"],
+            conf_threshold=0.3,
+            iou_threshold=0.5,
+        )
+
+        fig = confusion_matrix.plot(normalize=True)
+        plotted = np.asarray(fig.axes[0].images[0].get_array().filled(np.nan))
+
+        np.testing.assert_allclose(plotted, np.array(expected), atol=1e-6)
+        plt.close(fig)
+
 
 class TestConfusionMatrixMasks:
     """ConfusionMatrix scored on ``MetricTarget.MASKS``."""

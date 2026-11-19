@@ -2953,3 +2953,43 @@ class TestCovarianceSelection:
         np.testing.assert_array_equal(
             key_points.data[KEYPOINT_COVARIANCE_DATA_FIELD], covariance
         )
+
+
+class TestKeyPointsRemovedConfidence:
+    """The `confidence` name removed in `0.32.0` cannot be silently re-created."""
+
+    @staticmethod
+    def _key_points() -> KeyPoints:
+        """Build one two-keypoint skeleton with keypoint confidence of `0.9`."""
+        return KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32),
+            keypoint_confidence=np.full((1, 2), 0.9, dtype=np.float32),
+        )
+
+    def test_assignment_raises_migration_error(self) -> None:
+        """Assigning `confidence` fails, pointing at `keypoint_confidence`."""
+        key_points = self._key_points()
+
+        with pytest.raises(AttributeError, match="keypoint_confidence"):
+            key_points.confidence = np.full((1, 2), 0.1, dtype=np.float32)
+
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_allclose(key_points.keypoint_confidence, 0.9)
+        assert "confidence" not in vars(key_points)
+
+    def test_read_stays_missing_attribute(self) -> None:
+        """Reading `confidence` still reports a missing attribute."""
+        key_points = self._key_points()
+
+        has_confidence = hasattr(key_points, "confidence")
+
+        assert has_confidence is False
+
+    def test_keypoint_confidence_stays_assignable(self) -> None:
+        """The guard leaves assignment of the replacement field untouched."""
+        key_points = self._key_points()
+        updated = np.full((1, 2), 0.1, dtype=np.float32)
+
+        key_points.keypoint_confidence = updated
+
+        assert key_points.keypoint_confidence is updated

@@ -128,8 +128,13 @@ def extract_ultralytics_semantic_masks(
 
     Returns:
         Class IDs in ascending order and their boolean masks of shape `(N, H, W)`.
+
+    Raises:
+        ValueError: If `semantic_mask` is not a single-channel integer `(H, W)` map.
     """
-    class_map = _to_numpy(ultralytics_results.semantic_mask.data)
+    class_map = _require_integer_label_map(
+        _to_numpy(ultralytics_results.semantic_mask.data), "semantic_mask"
+    )
     names = ultralytics_results.names
     map_values = np.unique(class_map)
     if len(names) == 1:
@@ -583,6 +588,22 @@ def _is_semantic_map_payload(value: Any) -> bool:
     return isinstance(value, (str, np.ndarray)) or hasattr(value, "cpu")
 
 
+def _require_integer_label_map(
+    array: npt.NDArray[Any], field: str
+) -> npt.NDArray[np.integer]:
+    """Return a class map unchanged, or raise unless it is an integer ``(H, W)`` map.
+
+    A batched map would fail later while unpacking box coordinates, and a float map
+    would silently lose fractional class IDs, so both are rejected up front.
+    """
+    if array.ndim != 2 or not np.issubdtype(array.dtype, np.integer):
+        raise ValueError(
+            f"{field} must be a single-channel integer (H, W) array, got shape "
+            f"{array.shape} and dtype {array.dtype}."
+        )
+    return cast(npt.NDArray[np.integer], array)
+
+
 def _read_semantic_field(source: Any, field: str) -> Any:
     """Read a field from a dict or an attribute-style Inference response."""
     if isinstance(source, dict):
@@ -635,13 +656,18 @@ def read_semantic_result(
     return segmentation_mask, class_map, confidence_mask
 
 
-def decode_semantic_label_map(payload: Any, field: str) -> npt.NDArray[np.integer]:
+def decode_semantic_label_map(
+    payload: Any, field: str, *, accept_one_bit: bool = True
+) -> npt.NDArray[np.integer]:
     """Decode a semantic segmentation map into an ``(H, W)`` integer array.
 
     Args:
         payload: Base64 PNG string without a data-URI prefix, as Roboflow Inference
             returns it, or an ``(H, W)`` integer array or tensor.
         field: Name of the argument being decoded, used in error messages.
+        accept_one_bit: Read a one-bit PNG as values ``0`` and ``1``. Pass ``False``
+            for maps on another scale, such as 8-bit confidence, where ``1`` would
+            not mean the maximum.
 
     Returns:
         The map with its integer values unchanged, so class ids keep their meaning.
@@ -668,16 +694,15 @@ def decode_semantic_label_map(payload: Any, field: str) -> npt.NDArray[np.intege
                 if image.format != "PNG":
                     raise ValueError(f"{field} must be a PNG image.")
                 array = np.asarray(image)
+                if accept_one_bit and image.mode == "1":
+                    # Pillow exposes a one-bit PNG as booleans; its pixels are the
+                    # class IDs 0 and 1, so read them as integers.
+                    array = array.astype(np.uint8)
         except OSError as error:
             raise ValueError(f"{field} is not a decodable PNG.") from error
     else:
         array = _to_numpy(payload)
-    if array.ndim != 2 or not np.issubdtype(array.dtype, np.integer):
-        raise ValueError(
-            f"{field} must be a single-channel integer (H, W) array, got shape "
-            f"{array.shape} and dtype {array.dtype}."
-        )
-    return cast(npt.NDArray[np.integer], array)
+    return _require_integer_label_map(array, field)
 
 
 def process_semantic_segmentation(
@@ -690,7 +715,7 @@ def process_semantic_segmentation(
     npt.NDArray[np.floating],
     npt.NDArray[np.floating] | None,
     npt.NDArray[np.integer],
-    npt.NDArray[np.bool_] | CompactMask | None,
+    npt.NDArray[np.bool_] | CompactMask,
     _DetectionDataType,
 ]:
     """Split a semantic segmentation map into one mask per class id.
@@ -709,8 +734,8 @@ def process_semantic_segmentation(
 
     Returns:
         ``(xyxy, confidence, class_id, masks, data)`` aligned on the first axis;
-            ``confidence`` is ``None`` without ``confidence_mask`` and ``masks`` is
-            ``None`` when no class remains.
+            ``confidence`` is ``None`` without ``confidence_mask``. When no class
+            remains every array is empty and ``masks`` keeps the requested kind.
 
     Raises:
         ValueError: If a map cannot be decoded or the two maps differ in shape.
@@ -739,7 +764,9 @@ def process_semantic_segmentation(
     label_map = label_map.astype(np.int64, copy=False)
     confidence_map = None
     if confidence_mask is not None:
-        confidence_map = decode_semantic_label_map(confidence_mask, "confidence_mask")
+        confidence_map = decode_semantic_label_map(
+            confidence_mask, "confidence_mask", accept_one_bit=False
+        )
         if confidence_map.shape != label_map.shape:
             raise ValueError(
                 "confidence_mask and segmentation_mask must have the same shape, got "
@@ -759,7 +786,18 @@ def process_semantic_segmentation(
     )
     data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
     if class_ids.size == 0:
-        return np.empty((0, 4)), None, class_ids, None, data
+        # Keep the requested output types so an empty frame needs no special case:
+        # a zero-length mask of the requested kind, and confidence only with a map.
+        empty_masks = np.zeros((0, *label_map.shape), dtype=bool)
+        empty_result_masks: npt.NDArray[np.bool_] | CompactMask = empty_masks
+        if compact_masks:
+            empty_result_masks = CompactMask.from_dense(
+                masks=empty_masks, xyxy=np.empty((0, 4)), image_shape=label_map.shape
+            )
+        empty_confidence = None
+        if confidence_map is not None:
+            empty_confidence = np.empty(0, dtype=np.float64)
+        return np.empty((0, 4)), empty_confidence, class_ids, empty_result_masks, data
 
     boxes: list[list[int]] = []
     masks: list[Any] = []
