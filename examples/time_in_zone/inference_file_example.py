@@ -83,7 +83,7 @@ def main(
                 custom_color_lookup=custom_color_lookup,
             )
             labels = [
-                f"#{tracker_id} {int(time // 60):02d}:{int(time % 60):02d}"
+                f"#{tracker_id} t={time:.1f}s"
                 for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)
             ]
             annotated_frame = LABEL_ANNOTATOR.annotate(
