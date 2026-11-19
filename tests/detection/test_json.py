@@ -745,6 +745,20 @@ class TestJSONSinkNonFiniteValues:
 
         assert _load_strict(file_name)[0]["x_max"] is None
 
+    def test_non_finite_dict_keys_stay_string_keys(self, tmp_path: Any) -> None:
+        """Non-finite float keys are written as the string keys json always used."""
+        file_name = str(tmp_path / "output.json")
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+        custom_data = {
+            "meta": {float("nan"): 1.5, float("inf"): 2, float("-inf"): 3, 2.5: 4}
+        }
+
+        with sv.JSONSink(file_name) as sink:
+            sink.append(detections, custom_data=custom_data)
+
+        row = _load_strict(file_name)[0]
+        assert row["meta"] == {"NaN": 1.5, "Infinity": 2, "-Infinity": 3, "2.5": 4}
+
     def test_finite_values_unchanged(self, tmp_path: Any) -> None:
         """Finite numbers, booleans, strings and None are written as before."""
         file_name = str(tmp_path / "output.json")

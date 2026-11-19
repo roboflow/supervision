@@ -144,11 +144,33 @@ class JSONSink:
             return value if math.isfinite(value) else None
         if isinstance(value, dict):
             return {
-                key: JSONSink._replace_non_finite(item) for key, item in value.items()
+                JSONSink._json_key(key): JSONSink._replace_non_finite(item)
+                for key, item in value.items()
             }
         if isinstance(value, (list, tuple)):
             return [JSONSink._replace_non_finite(item) for item in value]
         return value
+
+    @staticmethod
+    def _json_key(key: Any) -> Any:
+        """Return a non-finite float key as the string :func:`json.dump` wrote for it.
+
+        JSON object keys are strings, so a ``NaN`` key was always written as the valid
+        key ``"NaN"``; ``allow_nan=False`` would now reject it, so it is converted
+        here to keep that output.
+
+        Args:
+            key: Dictionary key from row data.
+
+        Returns:
+            ``"NaN"``, ``"Infinity"`` or ``"-Infinity"`` for a non-finite float key,
+            otherwise ``key`` unchanged.
+        """
+        if isinstance(key, float) and not math.isfinite(key):
+            if math.isnan(key):
+                return "NaN"
+            return "Infinity" if key > 0 else "-Infinity"
+        return key
 
     def write_and_close(self) -> None:
         """Write and close the JSON file.
