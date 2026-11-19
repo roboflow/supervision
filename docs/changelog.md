@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset` and `sv.ClassificationDataset` built from in-memory images now compare those images one by one. A dataset holding images of different sizes or channel counts was unequal even to itself, because the images could not be stacked into a single array. ([#XXXX](https://github.com/roboflow/supervision/pull/XXXX))
+- `sv.DetectionDataset` and `sv.ClassificationDataset` built from in-memory images now compare those images one by one. A dataset holding images of different sizes or channel counts was unequal even to itself, because the images could not be stacked into a single array. ([#3029](https://github.com/roboflow/supervision/pull/3029))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
