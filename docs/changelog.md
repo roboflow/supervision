@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.DetectionDataset.split` and `sv.ClassificationDataset.split` now keep the training image that floating-point rounding dropped when `split_ratio` times the number of images is a whole number. For example, 90 images at `split_ratio=0.7` gave 62 train and 28 test images instead of 63 and 27. The ratio is now read as the decimal you wrote and multiplied exactly, then rounded down as before. ([#2969](https://github.com/roboflow/supervision/pull/2969))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
