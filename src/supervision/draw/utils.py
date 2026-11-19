@@ -48,6 +48,24 @@ def _map_to_drawing_coordinates(
     return mapped
 
 
+def _color_for_canvas(
+    color_bgr: tuple[int, int, int], canvas: npt.NDArray[np.uint8]
+) -> tuple[int, ...]:
+    """Return the color as the pixel value OpenCV drawing writes to `canvas`.
+
+    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
+    channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
+    polygons other annotators draw on the same scene. A BGRA canvas gets an opaque
+    alpha, because OpenCV pads a 3-value color with 0 and would leave the drawn pixels
+    fully transparent.
+    """
+    if canvas.ndim == 2 or canvas.shape[2] == 1:
+        return color_bgr[:1]
+    if canvas.shape[2] == 4:
+        return (*color_bgr, 255)
+    return color_bgr
+
+
 def draw_line(
     scene: npt.NDArray[np.uint8],
     start: Point,
@@ -86,7 +104,7 @@ def draw_line(
         scene,
         start.as_xy_int_tuple(),
         end.as_xy_int_tuple(),
-        color.as_bgr(),
+        _color_for_canvas(color.as_bgr(), scene),
         thickness=thickness,
     )
     return scene
@@ -127,7 +145,7 @@ def draw_rectangle(
         scene,
         rect.top_left.as_xy_int_tuple(),
         rect.bottom_right.as_xy_int_tuple(),
-        color.as_bgr(),
+        _color_for_canvas(color.as_bgr(), scene),
         thickness=thickness,
     )
     return scene
@@ -169,7 +187,7 @@ def draw_filled_rectangle(
             scene,
             rect.top_left.as_xy_int_tuple(),
             rect.bottom_right.as_xy_int_tuple(),
-            color.as_bgr(),
+            _color_for_canvas(color.as_bgr(), scene),
             -1,
         )
     else:
@@ -178,7 +196,7 @@ def draw_filled_rectangle(
             scene_with_annotations,
             rect.top_left.as_xy_int_tuple(),
             rect.bottom_right.as_xy_int_tuple(),
-            color.as_bgr(),
+            _color_for_canvas(color.as_bgr(), scene),
             -1,
         )
         cv2.addWeighted(
@@ -234,7 +252,7 @@ def draw_rounded_rectangle(
             img=scene,
             pt1=(x1, y1),
             pt2=(x2, y2),
-            color=color.as_bgr(),
+            color=_color_for_canvas(color.as_bgr(), scene),
             thickness=-1,
         )
         return scene
@@ -255,7 +273,7 @@ def draw_rounded_rectangle(
             img=scene,
             pt1=coordinates[0],
             pt2=coordinates[1],
-            color=color.as_bgr(),
+            color=_color_for_canvas(color.as_bgr(), scene),
             thickness=-1,
         )
     for center in circle_centers:
@@ -263,7 +281,7 @@ def draw_rounded_rectangle(
             img=scene,
             center=center,
             radius=border_radius,
-            color=color.as_bgr(),
+            color=_color_for_canvas(color.as_bgr(), scene),
             thickness=-1,
         )
     return scene
@@ -300,7 +318,11 @@ def draw_polygon(
         ```
     """
     cv2.polylines(
-        scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
+        scene,
+        [polygon],
+        isClosed=True,
+        color=_color_for_canvas(color.as_bgr(), scene),
+        thickness=thickness,
     )
     return scene
 
@@ -336,10 +358,14 @@ def draw_filled_polygon(
         ```
     """
     if opacity == 1:
-        cv2.fillPoly(scene, [polygon], color=color.as_bgr())
+        cv2.fillPoly(scene, [polygon], color=_color_for_canvas(color.as_bgr(), scene))
     else:
         scene_with_annotations = scene.copy()
-        cv2.fillPoly(scene_with_annotations, [polygon], color=color.as_bgr())
+        cv2.fillPoly(
+            scene_with_annotations,
+            [polygon],
+            color=_color_for_canvas(color.as_bgr(), scene),
+        )
         cv2.addWeighted(
             scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
         )
@@ -422,7 +448,7 @@ def draw_text(
         org=(text_anchor_x - text_width // 2, text_anchor_y + text_height // 2),
         fontFace=text_font,
         fontScale=text_scale,
-        color=text_color.as_bgr(),
+        color=_color_for_canvas(text_color.as_bgr(), scene),
         thickness=text_thickness,
         lineType=cv2.LINE_AA,
     )

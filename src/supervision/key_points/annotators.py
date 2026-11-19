@@ -6,7 +6,6 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import _cv2 as cv2
-from supervision.annotators.core import _color_for_canvas
 from supervision.annotators.utils import (
     ColorLookup,
     _get_color_by_index,
@@ -15,7 +14,7 @@ from supervision.annotators.utils import (
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_rounded_rectangle
+from supervision.draw.utils import _color_for_canvas, draw_rounded_rectangle
 from supervision.geometry.core import Rect
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT

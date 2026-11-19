@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -6,10 +7,13 @@ import pytest
 from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    _color_for_canvas,
     _map_to_drawing_coordinates,
+    draw_filled_polygon,
     draw_filled_rectangle,
     draw_image,
     draw_line,
+    draw_polygon,
     draw_rectangle,
     draw_rounded_rectangle,
     draw_text,
@@ -450,3 +454,90 @@ class TestDrawImageSceneLayouts:
         assert result.shape == (4, 4, 4)
         np.testing.assert_array_equal(result[..., :3], np.full((4, 4, 3), expected_bgr))
         np.testing.assert_array_equal(result[..., 3], np.full((4, 4), expected_alpha))
+
+
+class TestColorForCanvas:
+    @pytest.mark.parametrize(
+        ("canvas_shape", "expected"),
+        [
+            pytest.param((4, 4), (10,), id="grayscale-2d"),
+            pytest.param((4, 4, 1), (10,), id="grayscale-3d"),
+            pytest.param((4, 4, 3), (10, 20, 30), id="bgr"),
+            pytest.param((4, 4, 4), (10, 20, 30, 255), id="bgra"),
+        ],
+    )
+    def test_matches_canvas_channels(
+        self, canvas_shape: tuple[int, ...], expected: tuple[int, ...]
+    ) -> None:
+        """The pixel value has one entry per canvas channel; BGRA gets opaque alpha."""
+        canvas = np.zeros(canvas_shape, dtype=np.uint8)
+
+        result = _color_for_canvas((10, 20, 30), canvas)
+
+        assert result == expected
+
+
+class TestDrawOnBgraScene:
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_line(scene, Point(2, 2), Point(17, 17), Color.RED),
+                id="line",
+            ),
+            pytest.param(
+                lambda scene: draw_rectangle(scene, Rect(2, 2, 15, 15), Color.RED),
+                id="rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_rectangle(
+                    scene, Rect(2, 2, 15, 15), Color.RED
+                ),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_rounded_rectangle(
+                    scene, Rect(2, 2, 15, 15), Color.RED, border_radius=4
+                ),
+                id="rounded-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_polygon(
+                    scene, np.array([[2, 2], [17, 2], [17, 17]]), Color.RED
+                ),
+                id="polygon",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(
+                    scene, np.array([[2, 2], [17, 2], [17, 17]]), Color.RED
+                ),
+                id="filled-polygon",
+            ),
+            pytest.param(
+                lambda scene: draw_text(
+                    scene, "A", Point(10, 10), background_color=Color.RED
+                ),
+                id="text-background",
+            ),
+        ],
+    )
+    def test_drawn_pixels_are_opaque(
+        self, draw: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Pixels drawn in red on a transparent BGRA scene are fully opaque."""
+        scene = np.zeros((20, 20, 4), dtype=np.uint8)
+
+        result = draw(scene)
+
+        red = np.all(result[..., :3] == Color.RED.as_bgr(), axis=-1)
+        assert red.any()
+        np.testing.assert_array_equal(result[..., 3][red], 255)
+
+    def test_filled_rectangle_opacity_scales_alpha(self) -> None:
+        """A translucent filled rectangle makes its pixels equally translucent."""
+        scene = np.zeros((20, 20, 4), dtype=np.uint8)
+
+        result = draw_filled_rectangle(scene, Rect(2, 2, 15, 15), Color.RED, 0.5)
+
+        assert result[10, 10, 3] == 128
+        assert result[0, 0, 3] == 0
