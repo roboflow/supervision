@@ -2119,3 +2119,48 @@ class TestLineZoneAnnotatorWithCoordTransform:
             LineZoneAnnotator().annotate(
                 frame, line_zone, coord_transform=_WrongShapeTransform()
             )
+
+
+class TestLineZoneAnnotatorsOnBgraScene:
+    """Line zone annotators on transparent BGRA frames."""
+
+    @pytest.mark.parametrize(
+        "annotate",
+        [
+            pytest.param(
+                lambda frame: LineZoneAnnotator().annotate(
+                    frame, LineZone(Point(10, 60), Point(190, 60))
+                ),
+                id="line",
+            ),
+            pytest.param(
+                lambda frame: LineZoneAnnotatorMulticlass(
+                    text_color=Color.RED
+                ).annotate(frame, [LineZone(Point(10, 60), Point(190, 60))]),
+                id="multiclass-table",
+            ),
+        ],
+    )
+    def test_drawn_pixels_are_visible(
+        self, annotate: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Every pixel drawn on a transparent frame gets a non-zero alpha."""
+        expected_bgr = annotate(np.zeros((120, 200, 3), dtype=np.uint8))
+        drawn = np.any(expected_bgr != 0, axis=-1)
+
+        result = annotate(np.zeros((120, 200, 4), dtype=np.uint8))
+
+        np.testing.assert_array_equal(result[..., :3], expected_bgr)
+        assert drawn.any()
+        assert np.all(result[..., 3][drawn] > 0)
+
+    def test_line_and_endpoints_are_opaque(self) -> None:
+        """The line and its endpoint markers are opaque on a transparent frame."""
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((120, 200, 4), dtype=np.uint8)
+
+        result = annotator.annotate(frame, LineZone(Point(10, 60), Point(190, 60)))
+
+        assert result[60, 100, 3] == 255
+        assert result[60, 10, 3] == 255
+        assert result[0, 0, 3] == 0

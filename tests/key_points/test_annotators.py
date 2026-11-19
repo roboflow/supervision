@@ -1168,3 +1168,59 @@ class TestAnnotatorInputValidation:
         annotator = annotator_class(**kwargs)
         with pytest.raises(TypeError, match="Unsupported image type"):
             annotator.annotate(scene="not_an_image", key_points=sample_key_points)
+
+
+class TestBgraSceneKeyPointAnnotators:
+    """Verify OpenCV-drawn key point annotators on transparent BGRA scenes."""
+
+    @staticmethod
+    def _key_points() -> sv.KeyPoints:
+        """Return one skeleton of three key points with covariances in 80x80."""
+        return sv.KeyPoints(
+            xy=np.array([[[20.0, 20.0], [50.0, 30.0], [40.0, 60.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={
+                "covariance": np.tile(np.eye(2, dtype=np.float32) * 25, (1, 3, 1, 1))
+            },
+        )
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(sv.VertexAnnotator(color=sv.Color.RED), id="vertex"),
+            pytest.param(
+                sv.EdgeAnnotator(color=sv.Color.RED, edges=[(1, 2), (2, 3)]), id="edge"
+            ),
+            pytest.param(
+                sv.VertexEllipseOutlineAnnotator(sigma=1.0, color=sv.Color.RED),
+                id="ellipse-outline",
+            ),
+            pytest.param(
+                sv.VertexLabelAnnotator(color=sv.Color.RED, text_color=sv.Color.WHITE),
+                id="label",
+            ),
+        ],
+    )
+    def test_drawn_pixels_are_visible(
+        self,
+        annotator: sv.VertexAnnotator
+        | sv.EdgeAnnotator
+        | sv.VertexEllipseOutlineAnnotator
+        | sv.VertexLabelAnnotator,
+    ) -> None:
+        """Pixels drawn on a transparent scene match a BGR scene and are visible.
+
+        OpenCV writes anti-aliasing coverage into alpha, so edges may be translucent.
+        """
+        key_points = self._key_points()
+        expected_bgr = annotator.annotate(
+            np.zeros((80, 80, 3), dtype=np.uint8), key_points
+        )
+        drawn = np.any(expected_bgr != 0, axis=-1)
+
+        result = annotator.annotate(np.zeros((80, 80, 4), dtype=np.uint8), key_points)
+
+        np.testing.assert_array_equal(result[..., :3], expected_bgr)
+        assert drawn.any()
+        assert np.all(result[..., 3][drawn] > 0)
+        assert np.all(result[..., 3][~drawn] == 0)

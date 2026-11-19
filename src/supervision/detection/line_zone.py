@@ -15,6 +15,7 @@ from supervision.detection.core import Detections
 from supervision.detection.utils.internal import cross_product
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    _color_for_canvas,
     _map_to_drawing_coordinates,
     draw_rectangle,
     draw_text,
@@ -617,7 +618,7 @@ class LineZoneAnnotator:
             frame,
             line_start,
             line_end,
-            self.color.as_bgr(),
+            _color_for_canvas(self.color.as_bgr(), frame),
             self.thickness,
             lineType=cv2.LINE_AA,
             shift=0,
@@ -626,7 +627,7 @@ class LineZoneAnnotator:
             frame,
             line_start,
             radius=5,
-            color=self.text_color.as_bgr(),
+            color=_color_for_canvas(self.text_color.as_bgr(), frame),
             thickness=-1,
             lineType=cv2.LINE_AA,
         )
@@ -634,7 +635,7 @@ class LineZoneAnnotator:
             frame,
             line_end,
             radius=5,
-            color=self.text_color.as_bgr(),
+            color=_color_for_canvas(self.text_color.as_bgr(), frame),
             thickness=-1,
             lineType=cv2.LINE_AA,
         )
@@ -1125,7 +1126,7 @@ class LineZoneAnnotatorMulticlass:
                 org=(anchor_x, anchor_y),
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=self.text_scale,
-                color=self.text_color.as_bgr(),
+                color=_color_for_canvas(self.text_color.as_bgr(), frame),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )

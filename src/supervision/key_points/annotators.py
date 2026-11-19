@@ -231,7 +231,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
                     img=scene,
                     center=(int(x), int(y)),
                     radius=self.radius,
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), scene),
                     thickness=-1,
                 )
 
@@ -430,7 +430,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     img=scene,
                     pt1=(int(xy_a[0]), int(xy_a[1])),
                     pt2=(int(xy_b[0]), int(xy_b[1])),
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), scene),
                     thickness=self.thickness,
                 )
 
@@ -640,7 +640,7 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
                     angle=angle,
                     startAngle=0,
                     endAngle=360,
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), overlay),
                     thickness=-1,
                     lineType=cv2.LINE_AA,
                 )
@@ -741,7 +741,7 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
                     angle=angle,
                     startAngle=0,
                     endAngle=360,
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), scene),
                     thickness=self.thickness,
                     lineType=cv2.LINE_AA,
                 )
@@ -1154,7 +1154,7 @@ class VertexLabelAnnotator:
                 org=(box[0], box[3]),
                 fontFace=font,
                 fontScale=self.text_scale,
-                color=text_color.as_bgr(),
+                color=_color_for_canvas(text_color.as_bgr(), scene),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
