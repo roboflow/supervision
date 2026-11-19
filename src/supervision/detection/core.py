@@ -363,6 +363,10 @@ class Detections:
         Returns:
             A new Detections object.
 
+        Raises:
+            ValueError: If a semantic segmentation result's `semantic_mask` is not a
+                single-channel integer `(H, W)` class map.
+
         Example:
             ```python
             from supervision import _cv2 as cv2
@@ -941,12 +945,14 @@ class Detections:
                 or an object, from which `segmentation_mask`, `class_map` and
                 `confidence_mask` are read. Also accepts the per-pixel class ids
                 alone, as a base64 PNG string without a data-URI prefix or an
-                `(H, W)` integer array or tensor. Class IDs must fit in `int64`.
+                `(H, W)` integer array or tensor. A one-bit PNG holds class IDs
+                `0` and `1`. Class IDs must fit in `int64`.
             class_map: Maps a class id, as an integer or as text, to its name, for
                 example `{"1": "road"}`. A class missing from it is named by its id.
                 Overrides the one inside `segmentation_result`.
             confidence_mask: Optional per-pixel 8-bit confidence with the same
-                shape as the class ids, in the same formats and in the range 0-255.
+                shape as the class ids, in the same formats except a one-bit PNG,
+                and in the range 0-255.
                 When available,
                 `confidence` is each class's mean over its pixels divided by
                 255; otherwise `confidence` is `None`. Overrides the one inside
@@ -960,7 +966,8 @@ class Detections:
         Returns:
             A Detections object with one entry per remaining class id.
                 `detections.data["class_name"]` is always present, empty when
-                no class remains.
+                no class remains. An empty result keeps a zero-length `mask` of
+                the requested kind, and `confidence` follows the rule above.
 
         Raises:
             ValueError: If the input is a list or holds no map, a map is not valid
@@ -989,10 +996,6 @@ class Detections:
             background_id=background_id,
             compact_masks=compact_masks,
         )
-        if masks is None:
-            empty_detection = cls.empty()
-            empty_detection.data = data
-            return empty_detection
         return cls(
             xyxy=xyxy, confidence=confidence, class_id=class_id, mask=masks, data=data
         )

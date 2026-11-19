@@ -3519,6 +3519,19 @@ class TestDetectionsFromSemanticSegmentation:
         assert detections.class_id is not None
         assert np.array_equal(detections.class_id, [7, 300])
 
+    def test_decodes_one_bit_png_as_class_ids_zero_and_one(self) -> None:
+        """A one-bit PNG, which Pillow reads as booleans, holds class ids 0 and 1."""
+        label_map = np.array([[False, True], [True, True]])
+
+        detections = Detections.from_semantic_segmentation(
+            _png_b64(label_map), background_id=None
+        )
+
+        assert detections.class_id is not None
+        assert isinstance(detections.mask, np.ndarray)
+        assert np.array_equal(detections.class_id, [0, 1])
+        assert np.array_equal(detections.mask, [~label_map, label_map])
+
     def test_returns_empty_detections_when_only_background(self) -> None:
         """A map holding only the background id yields no detections."""
         detections = Detections.from_semantic_segmentation(
@@ -3527,6 +3540,43 @@ class TestDetectionsFromSemanticSegmentation:
 
         assert len(detections) == 0
         assert len(detections.data["class_name"]) == 0
+
+    @pytest.mark.parametrize(
+        ("compact_masks", "mask_type"),
+        [
+            pytest.param(False, np.ndarray, id="dense"),
+            pytest.param(True, CompactMask, id="compact"),
+        ],
+    )
+    def test_background_only_result_keeps_requested_mask_type(
+        self, compact_masks: bool, mask_type: type
+    ) -> None:
+        """A background-only map returns an empty mask of the requested kind."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8), compact_masks=compact_masks
+        )
+
+        assert detections.mask is not None
+        assert isinstance(detections.mask, mask_type)
+        assert detections.mask.shape == (0, 2, 3)
+
+    def test_background_only_result_has_no_confidence_without_map(self) -> None:
+        """Without a confidence map an empty result keeps `confidence` as `None`."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8)
+        )
+
+        assert detections.confidence is None
+
+    def test_background_only_result_has_empty_confidence_with_map(self) -> None:
+        """With a confidence map an empty result has an empty `confidence` array."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8),
+            confidence_mask=np.full((2, 3), 255, dtype=np.uint8),
+        )
+
+        assert detections.confidence is not None
+        assert detections.confidence.shape == (0,)
 
     def test_names_classes_from_integer_keys(self) -> None:
         """An integer-keyed `id2label` names classes like a text-keyed `class_map`.
@@ -3621,6 +3671,7 @@ class TestDetectionsFromSemanticSegmentation:
         [
             pytest.param(np.zeros((2, 3), dtype=np.float32), id="float-map"),
             pytest.param({"a": 1}, id="dict"),
+            pytest.param(_png_b64(np.zeros((2, 3), dtype=bool)), id="one-bit-png"),
         ],
     )
     def test_undecodable_confidence_error_names_confidence_mask(

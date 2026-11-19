@@ -3430,3 +3430,133 @@ class TestBoxWeightedBoxFusion:
         )
         result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.array_equal(result, expected_result)
+
+    @pytest.mark.parametrize(
+        ("predictions", "expected_result"),
+        [
+            pytest.param(
+                [
+                    [0.0, 0.0, 100.0, 100.0, 1e308, 0.0],
+                    [5.0, 5.0, 105.0, 105.0, 1e308, 0.0],
+                ],
+                [[2.5, 2.5, 102.5, 102.5, 1e308, 0.0]],
+                id="equal-huge-scores-average-shifted-boxes",
+            ),
+            pytest.param(
+                [
+                    [0.0, 0.0, 10.0, 10.0, 1e308, 0.0],
+                    [1.0, 1.0, 11.0, 11.0, 1e308, 0.0],
+                ],
+                [[0.5, 0.5, 10.5, 10.5, 1e308, 0.0]],
+                id="equal-huge-scores-average-unit-shift",
+            ),
+            pytest.param(
+                [
+                    [0.0, 0.0, 100.0, 100.0, 1e308, 0.0],
+                    [6.0, 6.0, 106.0, 106.0, 5e307, 0.0],
+                ],
+                [[2.0, 2.0, 102.0, 102.0, 7.5e307, 0.0]],
+                id="unequal-huge-scores-keep-weighting",
+            ),
+            pytest.param(
+                [
+                    [0.0, 0.0, 10.0, 10.0, np.finfo(np.float64).max, 0.0],
+                    [0.0, 0.0, 10.0, 10.0, np.finfo(np.float64).max, 0.0],
+                ],
+                [[0.0, 0.0, 10.0, 10.0, np.finfo(np.float64).max, 0.0]],
+                id="largest-finite-score-stays-finite",
+            ),
+        ],
+    )
+    def test_huge_finite_confidences_fuse_without_overflow(
+        self, predictions: list[list[float]], expected_result: list[list[float]]
+    ) -> None:
+        """Scores near the float64 limit fuse to the weighted box and mean score."""
+        predictions_array = np.array(predictions, dtype=np.float64)
+
+        result = box_weighted_box_fusion(predictions_array, iou_threshold=0.5)
+
+        np.testing.assert_allclose(result, expected_result)
+
+    @pytest.mark.parametrize(
+        ("predictions", "threshold", "expected_x"),
+        [
+            pytest.param(
+                [[0.0, 0.0, 1e308, 0.1, 0.125]]
+                + [[8e307, 0.0, 1.6e308, 0.1, 0.125]] * 5,
+                0.1,
+                6.666666666666666e307,
+                id="finite-mean-of-overflowing-offsets",
+            ),
+            pytest.param(
+                [[0.0, 0.0, 1e150, 1.0, 1e308], [1e148, 0.0, 1.01e150, 1.0, 1e-24]],
+                0.5,
+                1e-184,
+                id="representable-offset-with-underflowing-weight",
+            ),
+        ],
+    )
+    def test_retains_weighted_offsets_across_extreme_ranges(
+        self, predictions: list[list[float]], threshold: float, expected_x: float
+    ) -> None:
+        """A representable weighted coordinate neither overflows nor rounds to zero."""
+        result = box_weighted_box_fusion(
+            np.array(predictions, dtype=np.float64), iou_threshold=threshold
+        )
+
+        assert result.shape == (1, 5)
+        assert result[0, 0] == pytest.approx(expected_x, rel=1e-12, abs=0)
+
+    @pytest.mark.parametrize("class_id", [np.nan, np.inf, -np.inf])
+    def test_rejects_non_finite_class_ids(self, class_id: float) -> None:
+        """A NaN or infinite class id raises instead of forming its own fused class."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, class_id],
+                [1.0, 1.0, 11.0, 11.0, 0.8, class_id],
+            ]
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="Class ids passed to box_weighted_box_fusion must be finite",
+        ):
+            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+    @pytest.mark.parametrize(
+        "invalid_box",
+        [
+            pytest.param([np.nan, 0.0, 10.0, 10.0], id="nan-coordinate"),
+            pytest.param([0.0, 0.0, np.inf, 10.0], id="infinite-coordinate"),
+            pytest.param([10.0, 0.0, 0.0, 10.0], id="reversed-x-corners"),
+            pytest.param([0.0, 10.0, 10.0, 0.0], id="reversed-y-corners"),
+        ],
+    )
+    def test_rejects_non_finite_or_reversed_boxes(
+        self, invalid_box: list[float]
+    ) -> None:
+        """A box with a non-finite coordinate or reversed corners raises."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [*invalid_box, 0.8, 0.0],
+            ]
+        )
+
+        with pytest.raises(
+            ValueError, match="Boxes passed to box_weighted_box_fusion must have finite"
+        ):
+            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+    def test_keeps_zero_width_and_zero_height_boxes(self) -> None:
+        """Degenerate boxes with equal corners are accepted and returned unfused."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 0.0, 10.0, 0.9, 0.0],
+                [0.0, 0.0, 10.0, 0.0, 0.8, 0.0],
+            ]
+        )
+
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+        assert np.array_equal(result, predictions)
