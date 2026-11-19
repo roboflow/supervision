@@ -225,6 +225,25 @@ class TestFromUltralyticsSemanticSegmentation:
             det.mask, [class_map == class_id for class_id in expected_class_id]
         )
 
+    @pytest.mark.parametrize(
+        "class_map",
+        [
+            pytest.param(np.zeros((1, 2, 3), dtype=np.uint8), id="batched-3d"),
+            pytest.param(
+                np.array([[0.0, 1.5], [1.0, 0.0]], dtype=np.float32),
+                id="fractional-float",
+            ),
+        ],
+    )
+    def test_rejects_map_that_is_not_two_dimensional_integer(
+        self, class_map: np.ndarray
+    ) -> None:
+        """A batched or non-integer map raises instead of failing late or losing IDs."""
+        results = _semantic_results(class_map, names={0: "road", 1: "car"})
+
+        with pytest.raises(ValueError, match=r"semantic_mask.*single-channel integer"):
+            Detections.from_ultralytics(results)
+
 
 def _semantic_results(
     class_map: np.ndarray, names: dict[int, str], backend: str = "tensor"
