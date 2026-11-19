@@ -12,12 +12,6 @@ status: new
 :::supervision.detection.vlm.VLM
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.vlm.validate_vlm_parameters">validate_vlm_parameters</a></h2>
-</div>
-
-:::supervision.detection.vlm.validate_vlm_parameters
-
-<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.vlms.edit_distance">edit_distance</a></h2>
 </div>
 
