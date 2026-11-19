@@ -213,6 +213,24 @@ class TestBoxAnnotator:
     essential for users to visualize detection results.
     """
 
+    def test_track_lookup_explains_missing_tracker(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Missing track IDs explain how to populate detections before annotation."""
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        annotator = BoxAnnotator(color_lookup=ColorLookup.TRACK)
+
+        with pytest.raises(
+            ValueError, match="Could not resolve color by track"
+        ) as exc_info:
+            annotator.annotate(scene=test_image, detections=detections)
+
+        assert str(exc_info.value) == (
+            "Could not resolve color by track because "
+            "Detections do not have tracker_id. Did you run a tracker's "
+            "update(...) method (e.g. ByteTrackTracker) before annotating?"
+        )
+
     def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
         """Verify that annotation with no detections does not change the image.
 
@@ -1556,6 +1574,43 @@ class TestLabelAnnotator:
 class TestRichLabelAnnotator:
     """Tests for RichLabelAnnotator class."""
 
+    @pytest.mark.parametrize(
+        "label",
+        [
+            pytest.param("مرحبا بالعالم " * 4, id="arabic"),
+            pytest.param("שלום עולם " * 4, id="hebrew"),
+            pytest.param(
+                "Long Latin label " * 4 + "\n" + "مرحبا بالعالم " * 4, id="mixed"
+            ),
+        ],
+    )
+    def test_oversized_rtl_label_keeps_leading_text_in_frame(
+        self, monkeypatch: pytest.MonkeyPatch, label: str
+    ) -> None:
+        """Keep the leading edge of oversized shaped text visible."""
+        khatt = pytest.importorskip("khatt")
+        original_draw = khatt.draw_text
+        right_edges: list[float] = []
+
+        def record_draw(image: Image.Image, xy: Any, text: str, **kwargs: Any) -> Any:
+            """Record the rendered ink boundary while drawing the text."""
+            options = {key: value for key, value in kwargs.items() if key != "fill"}
+            right_edges.append(xy[0] + khatt.text_bbox(text, **options)[2])
+            return original_draw(image, xy, text, **kwargs)
+
+        monkeypatch.setattr(khatt, "draw_text", record_draw)
+        scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[10, 40, 20, 70]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            font_size=24, smart_position=True, text_position=Position.TOP_LEFT
+        )
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=[label])
+
+        assert right_edges
+        assert all(0 < edge <= scene.shape[1] for edge in right_edges)
+        assert np.any(np.all(result == 255, axis=-1))
+
     def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
         """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
@@ -1571,6 +1626,56 @@ class TestRichLabelAnnotator:
             scene=test_image.copy(), detections=detections, labels=["test"]
         )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.95)
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((100, 100), id="two-dimensional"),
+            pytest.param((100, 100, 1), id="singleton-channel"),
+        ],
+    )
+    def test_array_grayscale_scene_draws_blue_channel(
+        self, shape: tuple[int, ...]
+    ) -> None:
+        """A grayscale array gets the blue channel of the background, in its shape."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        color = Color(r=10, g=20, b=200)
+        scene = np.zeros(shape, dtype=np.uint8)
+
+        result = RichLabelAnnotator(color=color).annotate(
+            scene=scene, detections=detections, labels=["a"]
+        )
+
+        assert result is scene
+        assert result.shape == shape
+        assert 200 in result
+
+    @pytest.mark.parametrize(
+        ("mode", "expected"),
+        [
+            pytest.param("1", 255, id="one-bit"),
+            pytest.param("L", 200, id="eight-bit"),
+            pytest.param("LA", (200, 255), id="eight-bit-alpha"),
+            pytest.param("I", 200 * 257, id="signed-32-bit"),
+            pytest.param("I;16", 200 * 257, id="sixteen-bit"),
+            pytest.param("F", 200.0, id="float"),
+        ],
+    )
+    def test_pillow_grayscale_scene_draws_label_background(
+        self, mode: str, expected: float | tuple[int, ...]
+    ) -> None:
+        """Every Pillow grayscale mode draws the background in its own value range."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            color=Color(r=10, g=20, b=200), text_position=Position.TOP_LEFT
+        )
+        scene = Image.new(mode, (100, 100))
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=["a"])
+
+        assert result is scene
+        assert result.mode == mode
+        assert result.getpixel((21, 39)) == expected
 
     def test_smart_position_spreads_boxes_once(
         self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray

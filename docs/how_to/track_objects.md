@@ -489,22 +489,27 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](https://super
 
 === "Inference"
 
-    ```{ .py hl_lines="5-6 11-12" }
+    ```{ .py hl_lines="4 6-7 11-12 14-20" }
     import numpy as np
     import supervision as sv
     from inference.models.utils import get_roboflow_model
+    from supervision.key_points.skeletons import Skeleton
 
     model = get_roboflow_model(
         model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
-    edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model.infer(frame)[0]
         key_points = sv.KeyPoints.from_inference(results)
 
-        annotated_frame = edge_annotator.annotate(
-            frame.copy(), key_points=key_points)
+        # Inference may omit trailing joints, so keep only edges within the array.
+        keypoint_count = key_points.xy.shape[1]
+        edges = [edge for edge in Skeleton.COCO.value if max(edge) <= keypoint_count]
+        annotated_frame = frame.copy()
+        if edges:
+            annotated_frame = sv.EdgeAnnotator(edges=edges).annotate(
+                annotated_frame, key_points=key_points)
         return vertex_annotator.annotate(
             annotated_frame, key_points=key_points)
 
@@ -588,14 +593,14 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
 
 === "Inference"
 
-    ```{ .py hl_lines="9 14 20-21" }
+    ```{ .py hl_lines="9 14 25-26" }
     import numpy as np
     import supervision as sv
     from inference.models.utils import get_roboflow_model
+    from supervision.key_points.skeletons import Skeleton
 
     model = get_roboflow_model(
         model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
-    edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
 
@@ -604,8 +609,13 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
         key_points = sv.KeyPoints.from_inference(results)
         detections = key_points.as_detections()
 
-        annotated_frame = edge_annotator.annotate(
-            frame.copy(), key_points=key_points)
+        # Inference may omit trailing joints, so keep only edges within the array.
+        keypoint_count = key_points.xy.shape[1]
+        edges = [edge for edge in Skeleton.COCO.value if max(edge) <= keypoint_count]
+        annotated_frame = frame.copy()
+        if edges:
+            annotated_frame = sv.EdgeAnnotator(edges=edges).annotate(
+                annotated_frame, key_points=key_points)
         annotated_frame = vertex_annotator.annotate(
             annotated_frame, key_points=key_points)
         return box_annotator.annotate(
@@ -697,15 +707,15 @@ Now that we have a `Detections` object, we can track it throughout the video. Th
 
 === "Inference"
 
-    ```{ .py hl_lines="12-13 19 28-29" }
+    ```{ .py hl_lines="12-13 19 33-34" }
     import numpy as np
     import supervision as sv
     from inference.models.utils import get_roboflow_model
+    from supervision.key_points.skeletons import Skeleton
     from trackers import ByteTrackTracker
 
     model = get_roboflow_model(
         model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
-    edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
 
@@ -719,8 +729,13 @@ Now that we have a `Detections` object, we can track it throughout the video. Th
         detections = tracker.update(detections)
         detections = detections[detections.tracker_id != -1]
 
-        annotated_frame = edge_annotator.annotate(
-            frame.copy(), key_points=key_points)
+        # Inference may omit trailing joints, so keep only edges within the array.
+        keypoint_count = key_points.xy.shape[1]
+        edges = [edge for edge in Skeleton.COCO.value if max(edge) <= keypoint_count]
+        annotated_frame = frame.copy()
+        if edges:
+            annotated_frame = sv.EdgeAnnotator(edges=edges).annotate(
+                annotated_frame, key_points=key_points)
         annotated_frame = vertex_annotator.annotate(
             annotated_frame, key_points=key_points)
         annotated_frame = box_annotator.annotate(
@@ -828,11 +843,11 @@ We could stop here as we have successfully tracked the object detected by the ke
     import numpy as np
     import supervision as sv
     from inference.models.utils import get_roboflow_model
+    from supervision.key_points.skeletons import Skeleton
     from trackers import ByteTrackTracker
 
     model = get_roboflow_model(
         model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
-    edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
 
@@ -848,8 +863,13 @@ We could stop here as we have successfully tracked the object detected by the ke
         detections = detections[detections.tracker_id != -1]
         detections = smoother.update_with_detections(detections)
 
-        annotated_frame = edge_annotator.annotate(
-            frame.copy(), key_points=key_points)
+        # Inference may omit trailing joints, so keep only edges within the array.
+        keypoint_count = key_points.xy.shape[1]
+        edges = [edge for edge in Skeleton.COCO.value if max(edge) <= keypoint_count]
+        annotated_frame = frame.copy()
+        if edges:
+            annotated_frame = sv.EdgeAnnotator(edges=edges).annotate(
+                annotated_frame, key_points=key_points)
         annotated_frame = vertex_annotator.annotate(
             annotated_frame, key_points=key_points)
         annotated_frame = box_annotator.annotate(

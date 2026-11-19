@@ -8,24 +8,25 @@ from typing import Any, ClassVar, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
+from deprecate import deprecated, void
 from PIL import Image, ImageDraw, ImageFont, features
 from scipy.interpolate import splev, splprep
 
 from supervision import _cv2 as cv2
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
+    _DETECTION_COLOR_HELPER_DEPRECATION,
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
     _iter_resolved_colors,
     _resolve_annotator_color,
+    _resolve_detection_color,
     _validate_labels,
     calculate_dynamic_kernel_size,
     calculate_dynamic_pixel_size,
     get_labels_text,
     hex_to_rgba,
-    resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
     wrap_text,
@@ -55,9 +56,32 @@ from supervision.utils.image import (
     letterbox_image,
     scale_image,
 )
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+)
+def resolve_color(
+    color: Color | ColorPalette,
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
+) -> Color:
+    """Deprecated: resolve the color used to draw a single detection.
+
+    Releases before `0.32.0` exposed this helper from this module as a side effect of
+    the annotators importing it, so the name stays importable here until `0.35.0`.
+    """
+    return void(color, detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
+
 
 # Hebrew, Arabic, Syriac, Thaana, NKo and their presentation forms
 _RTL_TEXT = re.compile("[֐-ࣿיִ-﷿ﹰ-ﻼ]")
@@ -478,6 +502,33 @@ def _color_for_canvas(
     return color_bgr
 
 
+def _pillow_fill(color: Color, mode: str) -> float | tuple[int, ...]:
+    """Return `color` as the fill Pillow's `ImageDraw` accepts for a scene of `mode`.
+
+    Pillow rejects an RGB tuple on grayscale modes. Those take the first (blue) BGR
+    channel, as :func:`~supervision.annotators.core._color_for_canvas` does, so rich
+    labels match what the other annotators draw on the same scene. Integer modes
+    deeper than 8 bits scale it by 257, the mapping of 0-255 onto 0-65535 that
+    :func:`~supervision.utils.conversion.ensure_cv2_image_for_class_method` applies.
+
+    Args:
+        color: Color to draw.
+        mode: Pillow mode of the scene.
+
+    Returns:
+        Fill value for `ImageDraw` on an image of that mode.
+    """
+    if mode == "1":
+        return 255 if color.b >= 128 else 0
+    if mode in ("L", "F"):
+        return color.b
+    if mode == "LA":
+        return (color.b, 255)
+    if mode == "I" or mode.startswith("I;16"):
+        return color.b * 257
+    return color.as_rgb()
+
+
 def _paint_masks_by_area(
     canvas: npt.NDArray[np.uint8],
     detections: Detections,
@@ -524,7 +575,7 @@ def _paint_masks_by_area(
     canvas_h, canvas_w = canvas.shape[:2]
     for detection_idx in np.flip(np.argsort(detections.area)):
         pixel_value = _color_for_canvas(
-            resolve_color(
+            _resolve_detection_color(
                 color=color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -650,7 +701,7 @@ class MaskAnnotator(BaseAnnotator):
             self.color_lookup if custom_color_lookup is None else custom_color_lookup
         )
         if len(detections) > 0:
-            resolve_color(
+            _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=0,
@@ -1557,13 +1608,13 @@ class LabelAnnotator(_BaseLabelAnnotator):
         )
 
         for idx, label_property in enumerate(label_properties):
-            background_color = resolve_color(
+            background_color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
-            text_color = resolve_color(
+            text_color = _resolve_detection_color(
                 color=self.text_color,
                 detections=detections,
                 detection_idx=idx,
@@ -1781,7 +1832,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         Args:
             scene: The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale scenes, shaped `(H, W)` or
+                `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`,
+                `I`, `F` or `I;16`), are supported.
             detections: Object detections to annotate.
             labels: Custom labels for each detection.
             custom_color_lookup: Custom color lookup array.
@@ -1947,6 +2000,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None,
     ) -> None:
+        """Draw each label's background and text in a fill valid for `scene.mode`."""
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
             f"labels ({len(labels)}) and detections ({len(detections)}) "
@@ -1959,13 +2013,13 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         for idx, label_property in enumerate(label_properties):
-            background_color = resolve_color(
+            background_color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
-            text_color = resolve_color(
+            text_color = _resolve_detection_color(
                 color=self.text_color,
                 detections=detections,
                 detection_idx=idx,
@@ -1980,7 +2034,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             draw.rounded_rectangle(
                 tuple(box_xyxy),
                 radius=self.border_radius,
-                fill=background_color.as_rgb(),
+                fill=_pillow_fill(background_color, scene.mode),
                 outline=None,
             )
 
@@ -1993,12 +2047,16 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                 khatt = self._rtl_engine(draw, line)
                 if khatt is not None:
                     # Right-aligned in the box, with its ink top where Pillow's
-                    # lines start
+                    # lines start. Oversized boxes extend beyond the frame, so
+                    # align shaped RTL text to the visible right edge instead.
                     _left, top, right, _bottom = self._text_bbox(draw, line)
+                    right_edge = box_xyxy[2]
+                    if self.smart_position and box_xyxy[2] - box_xyxy[0] > scene.width:
+                        right_edge = min(right_edge, scene.width)
                     khatt.draw_text(
                         scene,
                         (
-                            box_xyxy[2] - self.text_padding - right,
+                            right_edge - self.text_padding - right,
                             y_position + text_top - top,
                         ),
                         line,
@@ -2010,7 +2068,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                         xy=(x_position, y_position),
                         text=line,
                         font=self.font,
-                        fill=text_color.as_rgb(),
+                        fill=_pillow_fill(text_color, scene.mode),
                     )
 
                 # Move to the next line position
@@ -3157,18 +3215,6 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
-
-    @staticmethod
-    @deprecated(  # type: ignore[untyped-decorator]
-        target=_validate_custom_values.__func__,  # type: ignore[attr-defined]
-        deprecated_in="0.29.0",
-        remove_in="0.32.0",
-    )
-    def validate_custom_values(
-        custom_values: npt.NDArray[np.float64] | list[float] | None,
-        detections: Detections,
-    ) -> None:
-        void(custom_values, detections)
 
 
 class CropAnnotator(BaseAnnotator):

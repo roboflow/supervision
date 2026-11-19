@@ -18,6 +18,7 @@ from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     check_no_basename_collisions,
 )
+from supervision.detection.compact_mask import CompactMask, _polygon_to_compact_mask
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import _DetectionDataType
 from supervision.detection.utils.boxes import _sort_box_corners
@@ -39,14 +40,44 @@ if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 
+#: Image file extensions the YOLO detection and pose loaders list from the images
+#: directory; matched case-insensitively by
+#: :func:`~supervision.utils.file.list_files_with_extensions`.
+_YOLO_IMAGE_EXTENSIONS: tuple[str, ...] = (
+    "bmp",
+    "dng",
+    "jpg",
+    "jpeg",
+    "mpo",
+    "png",
+    "tif",
+    "tiff",
+    "webp",
+)
+
+
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
     """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
 
-    Every value must be finite: ``nan`` or an infinity cannot place a box, and ``nan``
-    would pass the extent check below unnoticed. A negative width or height would
-    place ``x_min`` past ``x_max``, breaking the ordering every consumer of ``xyxy``
-    assumes: :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
-    reports no overlap between identical regions,
+    Returns the corners of
+    :func:`~supervision.dataset.formats.yolo._parse_relative_xyxy` as a
+    ``float32`` array, the precision of the detection loader.
+    """
+    return np.array(_parse_relative_xyxy(values=values), dtype=np.float32)
+
+
+def _parse_relative_xyxy(values: list[str]) -> tuple[float, float, float, float]:
+    """Validate a YOLO ``x_center y_center width height`` box, return its corners.
+
+    The corners are relative ``(x_min, y_min, x_max, y_max)`` Python floats, so
+    a caller picks the array precision it stores them in.
+
+    Every value must be finite: ``nan`` or an infinity cannot place a box, and
+    ``nan`` would pass the extent check below unnoticed. A negative width or
+    height would place ``x_min`` past ``x_max``, breaking the ordering every
+    consumer of ``xyxy`` assumes:
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch` reports no
+    overlap between identical regions,
     :meth:`~supervision.detection.core.Detections.with_nms` stops suppressing,
     and the :class:`~supervision.detection.core.Detections` ``area`` property
     turns negative when only one of the two extents is negative. Reject both
@@ -65,14 +96,11 @@ def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
             f"Invalid box extent ({width!r}, {height!r}) in YOLO annotation; "
             "expected a non-negative width and height."
         )
-    return np.array(
-        [
-            box_x_center - box_width / 2,
-            box_y_center - box_height / 2,
-            box_x_center + box_width / 2,
-            box_y_center + box_height / 2,
-        ],
-        dtype=np.float32,
+    return (
+        box_x_center - box_width / 2,
+        box_y_center - box_height / 2,
+        box_x_center + box_width / 2,
+        box_y_center + box_height / 2,
     )
 
 
@@ -99,6 +127,27 @@ def _polygons_to_masks(
             for polygon in polygons
         ],
         dtype=bool,
+    )
+
+
+def _polygons_to_compact_masks(
+    polygons: Sequence[npt.NDArray[np.number]], resolution_wh: tuple[int, int]
+) -> CompactMask:
+    """Encode nonempty polygons individually, retaining only crop-scoped RLE.
+
+    The result is lossless: it decodes to the pixels of
+    :func:`~supervision.dataset.formats.yolo._polygons_to_masks`. Each polygon is
+    rasterized full-frame and encoded by
+    :func:`~supervision.detection.compact_mask._polygon_to_compact_mask` before the
+    next one is drawn, so the temporary memory stays bounded by a few frame-sized
+    buffers whatever the number of polygons, and a dense ``(N, H, W)`` stack is never
+    constructed.
+    """
+    return CompactMask.merge(
+        [
+            _polygon_to_compact_mask(vertices=vertices, resolution_wh=resolution_wh)
+            for vertices in polygons
+        ]
     )
 
 
@@ -170,7 +219,26 @@ def _read_data_yaml(file_path: str) -> dict[str, Any]:
 
 
 def _extract_class_names(file_path: str) -> list[str]:
-    """Return class names from a YOLO data.yaml file ordered by class index.
+    """Read a YOLO data.yaml file and return its class names by class index.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        Class names in class-index order.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping, or if ``names`` is
+            invalid as described in
+            :func:`~supervision.dataset.formats.yolo._extract_class_names_from_data`.
+    """
+    return _extract_class_names_from_data(
+        data=_read_data_yaml(file_path=file_path), file_path=file_path
+    )
+
+
+def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list[str]:
+    """Return class names from parsed YOLO data.yaml content ordered by class index.
 
     Supports list and dict forms of the ``names`` field. Dict keys that are
     all int-like (plain ints or digit strings) are sorted numerically so
@@ -180,16 +248,16 @@ def _extract_class_names(file_path: str) -> list[str]:
     because ``bool`` is a subclass of ``int`` in Python.
 
     Args:
-        file_path: Path to the data.yaml file.
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
 
     Returns:
         Class names in class-index order.
 
     Raises:
-        ValueError: If the YAML root is not a mapping, if ``names`` is
-            neither a list nor a dict, or if the dict has mixed key types.
+        ValueError: If ``names`` is neither a list nor a dict, or if the dict
+            has mixed key types.
     """
-    data = _read_data_yaml(file_path=file_path)
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
@@ -241,10 +309,7 @@ def _is_positive_whole_number(value: Any) -> bool:
 
 
 def _extract_pose_value_count(file_path: str) -> int:
-    """Return the number of keypoint values that follow the box in a pose label.
-
-    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
-    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+    """Read a YOLO data.yaml file and return the keypoint values per pose label.
 
     Args:
         file_path: Path to the data.yaml file.
@@ -254,9 +319,31 @@ def _extract_pose_value_count(file_path: str) -> int:
 
     Raises:
         ValueError: If the YAML root is not a mapping, or if ``kpt_shape`` is
-            not ``[K, 2]`` or ``[K, 3]`` with a positive whole number ``K``.
+            invalid as described in
+            :func:`~supervision.dataset.formats.yolo._extract_pose_value_count_from_data`.
     """
-    data = _read_data_yaml(file_path=file_path)
+    return _extract_pose_value_count_from_data(
+        data=_read_data_yaml(file_path=file_path), file_path=file_path
+    )
+
+
+def _extract_pose_value_count_from_data(data: dict[str, Any], file_path: str) -> int:
+    """Return the number of keypoint values that follow the box in a pose label.
+
+    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
+    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+
+    Args:
+        data: The parsed data.yaml content.
+        file_path: Path to the data.yaml file, named in error messages.
+
+    Returns:
+        ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
+
+    Raises:
+        ValueError: If ``kpt_shape`` is not ``[K, 2]`` or ``[K, 3]`` with a
+            positive whole number ``K``.
+    """
     if "kpt_shape" not in data:
         return 0
     kpt_shape = data["kpt_shape"]
@@ -324,6 +411,8 @@ def yolo_annotations_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
     is_obb: bool = False,
+    *,
+    compact_masks: bool = False,
 ) -> Detections:
     """Convert YOLO annotation lines into
     :class:`~supervision.detection.core.Detections`.
@@ -339,11 +428,36 @@ def yolo_annotations_to_detections(
     :func:`~supervision.dataset.formats.yolo.load_yolo_annotations` drops them
     before calling this function.
 
+    Args:
+        lines: YOLO annotation rows for one image.
+        resolution_wh: Image width and height in pixels.
+        with_masks: Whether to rasterize polygons and boxes into masks.
+        is_obb: Whether to parse oriented bounding boxes.
+        compact_masks: When `True` and `with_masks=True`, encode each mask as
+            :class:`~supervision.detection.compact_mask.CompactMask` instead of
+            retaining a dense NumPy stack. Has no effect when masks are disabled.
+
+    Returns:
+        Parsed detections with dense masks by default, compact masks on request,
+        or no masks when disabled or `lines` is empty.
+
     Raises:
         ValueError: If a line has fewer than five tokens, or is not nine tokens
             with ``is_obb=True``; or if a class id is not a whole number, a box
             value is not finite, a box has a negative width or height, or a
             coordinate token is not numeric.
+
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.yolo import yolo_annotations_to_detections
+        >>> detections = yolo_annotations_to_detections(
+        ...     ["0 0.1 0.1 0.2 0.1 0.2 0.2"], (100, 80),
+        ...     with_masks=True, compact_masks=True,
+        ... )
+        >>> detections.mask.shape
+        (1, 80, 100)
+
+        ```
     """
     if len(lines) == 0:
         return Detections.empty()
@@ -395,7 +509,13 @@ def yolo_annotations_to_detections(
         polygon * np.array(resolution_wh, dtype=np.float32)
         for polygon in relative_polygon_list
     ]
-    mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+    mask: npt.NDArray[np.bool_] | CompactMask
+    if compact_masks:
+        mask = _polygons_to_compact_masks(
+            polygons=polygons, resolution_wh=resolution_wh
+        )
+    else:
+        mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
     return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
 
 
@@ -406,6 +526,8 @@ def load_yolo_annotations(
     force_masks: bool = False,
     is_obb: bool = False,
     show_progress: bool = False,
+    *,
+    compact_masks: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """Loads YOLO annotations and returns class names, images, and their corresponding
     detections.
@@ -427,11 +549,14 @@ def load_yolo_annotations(
             OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
             where pairs of [x, y] are box corners.
         show_progress: If True, display a progress bar during loading.
+        compact_masks: If True, store generated masks as
+            :class:`~supervision.detection.compact_mask.CompactMask` instead of
+            dense NumPy arrays. Does not enable mask generation for box-only or
+            OBB annotations. Each mask is rasterized full-frame before encoding.
 
     Returns:
-        A tuple containing a list of class names, a dictionary with
-            image names as keys and images as values, and a dictionary
-            with image names as keys and corresponding Detections instances as values.
+        A tuple containing class names, image file paths, and a dictionary mapping
+        image paths to :class:`~supervision.detection.core.Detections` instances.
 
     Raises:
         ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
@@ -439,6 +564,18 @@ def load_yolo_annotations(
             or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
             `kpt_shape: null` included. Also if an annotation file contains an
             invalid line; the message names the offending file.
+
+    Example:
+        ```python
+        from supervision.dataset.formats.yolo import load_yolo_annotations
+
+        classes, image_paths, annotations = load_yolo_annotations(
+            images_directory_path="dataset/images",
+            annotations_directory_path="dataset/labels",
+            data_yaml_path="dataset/data.yaml",
+            compact_masks=True,
+        )
+        ```
     """
     if is_obb and force_masks:
         warnings.warn(
@@ -451,17 +588,7 @@ def load_yolo_annotations(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path,
-            extensions=[
-                "bmp",
-                "dng",
-                "jpg",
-                "jpeg",
-                "mpo",
-                "png",
-                "tif",
-                "tiff",
-                "webp",
-            ],
+            extensions=_YOLO_IMAGE_EXTENSIONS,
         )
     ]
 
@@ -499,6 +626,7 @@ def load_yolo_annotations(
                 resolution_wh=resolution_wh,
                 with_masks=with_masks,
                 is_obb=is_obb,
+                compact_masks=compact_masks,
             )
         except ValueError as error:
             # One bad label among thousands of files must be traceable to its file.
@@ -803,6 +931,26 @@ def save_yolo_annotations(
 
 
 def save_data_yaml(data_yaml_path: str, classes: list[str]) -> None:
+    """Save class names and class count to a YOLO dataset YAML metadata file.
+
+    Creates parent directories automatically if they do not exist, and writes
+    a dictionary containing ``nc`` (number of classes) and ``names`` (list of class
+    names).
+
+    Args:
+        data_yaml_path: Target filesystem path for the output YAML file.
+        classes: List of class names ordered by class ID.
+
+    Example:
+        ```python
+        import supervision as sv
+
+        sv.dataset.formats.yolo.save_data_yaml(
+            data_yaml_path="dataset/data.yaml",
+            classes=["dog", "cat"],
+        )
+        ```
+    """
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)

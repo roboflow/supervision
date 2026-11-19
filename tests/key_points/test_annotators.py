@@ -5,6 +5,7 @@ from PIL import Image
 import supervision as sv
 from supervision import _cv2
 from supervision.key_points.angles import JointAngle
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import assert_image_mostly_same
 
 
@@ -864,40 +865,283 @@ class TestVertexLabelAnnotator:
         with pytest.raises(ValueError, match=match):
             sv.VertexLabelAnnotator._resolve_labels(labels, points_count, class_id)
 
-    @pytest.mark.parametrize(
-        ("colors", "points_count", "expected"),
-        [
-            pytest.param(
-                sv.Color.RED,
-                3,
-                [sv.Color.RED, sv.Color.RED, sv.Color.RED],
-                id="single-color-expands",
-            ),
-            pytest.param(
-                [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE],
-                3,
-                [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE],
-                id="list-returns-as-is",
-            ),
-        ],
+
+# Six distinct colors: every palette slot is told apart by its exact BGR value.
+_LOOKUP_PALETTE = sv.ColorPalette(
+    colors=[
+        sv.Color(r=255, g=0, b=0),
+        sv.Color(r=0, g=255, b=0),
+        sv.Color(r=0, g=0, b=255),
+        sv.Color(r=255, g=255, b=0),
+        sv.Color(r=0, g=255, b=255),
+        sv.Color(r=255, g=0, b=255),
+    ]
+)
+
+# Class ids are chosen outside every instance index {0, 1} and keypoint index
+# {0, 1, 2}, so INDEX, CLASS and KEYPOINT lookups can never agree by accident.
+_LOOKUP_CLASS_IDS = (3, 5)
+
+# Label anchors of a two-keypoint layout in instance-major order, spaced so the padded
+# label boxes never touch.
+_LABEL_ANCHORS = [(20, 20), (80, 20), (20, 60), (80, 60)]
+# Inside each padded box and above the glyphs, so only the background color shows.
+_LABEL_BACKGROUND_PROBES = [(x, y - 11) for x, y in _LABEL_ANCHORS]
+
+
+def _lookup_key_points(points_per_instance: int) -> sv.KeyPoints:
+    """Build two horizontal skeletons with distinct class ids on a 100x100 canvas."""
+    xs = np.linspace(20.0, 80.0, points_per_instance)
+    rows = [[[x, y] for x in xs] for y in (20.0, 60.0)]
+    return sv.KeyPoints(
+        xy=np.array(rows, dtype=np.float32),
+        class_id=np.array(_LOOKUP_CLASS_IDS, dtype=int),
     )
-    def test_resolve_color_list_returns_expected(self, colors, points_count, expected):
-        result = sv.VertexLabelAnnotator._resolve_color_list(colors, points_count)
-        assert result == expected
+
+
+# Vertices in instance-major order: instance 0 (class 3) then instance 1 (class 5).
+_VERTEX_POINTS = [(20, 20), (50, 20), (80, 20), (20, 60), (50, 60), (80, 60)]
+# Edge midpoints in instance-major order: two segments per skeleton, each segment
+# starting at keypoint 0 and keypoint 1 respectively.
+_EDGE_MIDPOINTS = [(35, 20), (65, 20), (35, 60), (65, 60)]
+# Label lookups over the two-keypoint layout: palette slots per label, instance-major.
+_LABEL_LOOKUPS = [
+    pytest.param(sv.ColorLookup.INDEX, [0, 0, 1, 1], id="index"),
+    pytest.param(sv.ColorLookup.CLASS, [3, 3, 5, 5], id="class"),
+    pytest.param(sv.ColorLookup.KEYPOINT, [0, 1, 0, 1], id="keypoint"),
+]
+
+
+def _palette_bgr(indices: list[int]) -> np.ndarray:
+    """Return the BGR triplets of the given palette slots, one row per slot."""
+    return np.array([_LOOKUP_PALETTE.colors[i].as_bgr() for i in indices])
+
+
+def _sample(image: np.ndarray, points: list[tuple[int, int]]) -> np.ndarray:
+    """Read the pixel at each ``(x, y)`` point, one row per point."""
+    return np.array([image[y, x] for x, y in points])
+
+
+def _crop(image: np.ndarray, point: tuple[int, int], half: int = 14) -> np.ndarray:
+    """Cut a square patch centred on an ``(x, y)`` point."""
+    x, y = point
+    return image[y - half : y + half + 1, x - half : x + half + 1]
+
+
+class TestVertexAnnotatorColorLookup:
+    """Verify VertexAnnotator maps each ColorLookup strategy to the right color."""
 
     @pytest.mark.parametrize(
-        ("colors", "points_count"),
+        ("color_lookup", "expected_slots"),
         [
-            pytest.param(
-                [sv.Color.RED, sv.Color.GREEN],
-                3,
-                id="list-wrong-length",
-            ),
+            pytest.param(sv.ColorLookup.INDEX, [0, 0, 0, 1, 1, 1], id="index"),
+            pytest.param(sv.ColorLookup.CLASS, [3, 3, 3, 5, 5, 5], id="class"),
+            pytest.param(sv.ColorLookup.KEYPOINT, [0, 1, 2, 0, 1, 2], id="keypoint"),
         ],
     )
-    def test_resolve_color_list_wrong_length_raises(self, colors, points_count):
-        with pytest.raises(ValueError, match="Number of colors"):
-            sv.VertexLabelAnnotator._resolve_color_list(colors, points_count)
+    def test_each_vertex_gets_its_lookup_color(
+        self, scene, color_lookup, expected_slots
+    ):
+        """Every vertex is filled with the palette color its lookup selects."""
+        annotator = sv.VertexAnnotator(
+            color=_LOOKUP_PALETTE, radius=4, color_lookup=color_lookup
+        )
+
+        result = annotator.annotate(
+            scene=scene.copy(), key_points=_lookup_key_points(3)
+        )
+
+        assert np.array_equal(
+            _sample(result, _VERTEX_POINTS), _palette_bgr(expected_slots)
+        )
+
+    @pytest.mark.parametrize(
+        ("class_id", "expected_slot"),
+        [
+            pytest.param(-1, 5, id="negative-wraps-from-end"),
+            pytest.param(8, 2, id="beyond-palette-wraps-around"),
+        ],
+    )
+    def test_out_of_range_class_id_wraps_modulo_palette(
+        self, scene, class_id, expected_slot
+    ):
+        """A class id outside the palette wraps around instead of raising."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
+            class_id=np.array([class_id], dtype=int),
+        )
+        annotator = sv.VertexAnnotator(
+            color=_LOOKUP_PALETTE, radius=4, color_lookup=sv.ColorLookup.CLASS
+        )
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert np.array_equal(
+            result[50, 50], _LOOKUP_PALETTE.colors[expected_slot].as_bgr()
+        )
+
+    def test_annotate_class_lookup_raises_when_class_id_none(self, scene):
+        """CLASS strategy raises ValueError when key_points.class_id is None."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[30.0, 30.0], [50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            color_lookup=sv.ColorLookup.CLASS,
+        )
+
+        with pytest.raises(ValueError, match="class_id"):
+            annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+
+class TestEdgeAnnotatorColorLookup:
+    """Verify EdgeAnnotator maps each ColorLookup strategy to the right color."""
+
+    @pytest.mark.parametrize(
+        ("color_lookup", "expected_slots"),
+        [
+            pytest.param(sv.ColorLookup.INDEX, [0, 0, 1, 1], id="index"),
+            pytest.param(sv.ColorLookup.CLASS, [3, 3, 5, 5], id="class"),
+            pytest.param(sv.ColorLookup.KEYPOINT, [0, 1, 0, 1], id="keypoint"),
+        ],
+    )
+    def test_each_edge_gets_its_lookup_color(self, scene, color_lookup, expected_slots):
+        """Every edge is drawn in the palette color its lookup selects.
+
+        For ``KEYPOINT`` an edge takes the color of its first (start) keypoint.
+        """
+        annotator = sv.EdgeAnnotator(
+            color=_LOOKUP_PALETTE,
+            thickness=3,
+            edges=[(1, 2), (2, 3)],
+            color_lookup=color_lookup,
+        )
+
+        result = annotator.annotate(
+            scene=scene.copy(), key_points=_lookup_key_points(3)
+        )
+
+        assert np.array_equal(
+            _sample(result, _EDGE_MIDPOINTS), _palette_bgr(expected_slots)
+        )
+
+    def test_annotate_class_lookup_raises_when_class_id_none(self, scene):
+        """CLASS strategy raises ValueError when key_points.class_id is None."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[10.0, 10.0], [80.0, 10.0]]], dtype=np.float32),
+        )
+        annotator = sv.EdgeAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            edges=[(1, 2)],
+            color_lookup=sv.ColorLookup.CLASS,
+        )
+
+        with pytest.raises(ValueError, match="class_id"):
+            annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+
+class TestVertexLabelAnnotatorColorLookup:
+    """Verify VertexLabelAnnotator maps each ColorLookup strategy to the right color."""
+
+    @pytest.mark.parametrize(("color_lookup", "expected_slots"), _LABEL_LOOKUPS)
+    def test_each_label_background_gets_its_lookup_color(
+        self, scene, color_lookup, expected_slots
+    ):
+        """Every label background takes the palette color its lookup selects."""
+        annotator = sv.VertexLabelAnnotator(
+            color=_LOOKUP_PALETTE, color_lookup=color_lookup
+        )
+
+        result = annotator.annotate(
+            scene=scene.copy(), key_points=_lookup_key_points(2)
+        )
+
+        assert np.array_equal(
+            _sample(result, _LABEL_BACKGROUND_PROBES), _palette_bgr(expected_slots)
+        )
+
+    @pytest.mark.parametrize(("color_lookup", "expected_slots"), _LABEL_LOOKUPS)
+    def test_each_label_text_matches_plain_color_render(
+        self, scene, color_lookup, expected_slots
+    ):
+        """Palette text colors render like an explicit plain Color for each label.
+
+        Anti-aliased glyph pixels are fragile to assert exactly, so each label patch
+        is compared with a render that uses the expected palette entry as a plain
+        ``Color`` for ``text_color``.
+        """
+        key_points = _lookup_key_points(2)
+        annotator = sv.VertexLabelAnnotator(
+            text_color=_LOOKUP_PALETTE, color_lookup=color_lookup
+        )
+        references = [
+            sv.VertexLabelAnnotator(text_color=_LOOKUP_PALETTE.colors[slot]).annotate(
+                scene=scene.copy(), key_points=key_points
+            )
+            for slot in expected_slots
+        ]
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert all(
+            np.array_equal(_crop(result, anchor), _crop(reference, anchor))
+            for anchor, reference in zip(_LABEL_ANCHORS, references)
+        )
+
+    def test_annotate_class_lookup_raises_when_class_id_none(self, scene):
+        """CLASS strategy raises ValueError when key_points.class_id is None."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[30.0, 30.0], [50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexLabelAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            color_lookup=sv.ColorLookup.CLASS,
+        )
+
+        with pytest.raises(ValueError, match="class_id"):
+            annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+
+class TestVertexLabelAnnotatorColorList:
+    """Verify the deprecated ``list[Color]`` inputs still color labels per keypoint."""
+
+    def test_color_list_colors_backgrounds_by_keypoint_index(self, scene):
+        """Each label background takes the list entry at its keypoint index."""
+        colors = _LOOKUP_PALETTE.colors[:2]
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            annotator = sv.VertexLabelAnnotator(color=colors)
+
+        result = annotator.annotate(
+            scene=scene.copy(), key_points=_lookup_key_points(2)
+        )
+
+        assert np.array_equal(
+            _sample(result, _LABEL_BACKGROUND_PROBES), _palette_bgr([0, 1, 0, 1])
+        )
+
+    def test_text_color_list_matches_keypoint_palette(self, scene):
+        """A ``text_color`` list renders like the same palette with KEYPOINT lookup."""
+        key_points = _lookup_key_points(2)
+        colors = _LOOKUP_PALETTE.colors[:2]
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            legacy = sv.VertexLabelAnnotator(text_color=colors)
+        modern = sv.VertexLabelAnnotator(
+            text_color=sv.ColorPalette(colors=colors),
+            color_lookup=sv.ColorLookup.KEYPOINT,
+        )
+
+        legacy_result = legacy.annotate(scene=scene.copy(), key_points=key_points)
+        modern_result = modern.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert np.array_equal(legacy_result, modern_result)
+
+    @pytest.mark.parametrize("argument", ["color", "text_color"])
+    def test_list_argument_warns_deprecated(self, argument):
+        """Passing a ``list[Color]`` for ``color`` or ``text_color`` warns."""
+        colors = _LOOKUP_PALETTE.colors[:2]
+
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            sv.VertexLabelAnnotator(**{argument: colors})
 
 
 JOINT = JointAngle(name="joint", a=0, b=1, c=2)

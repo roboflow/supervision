@@ -1,9 +1,13 @@
 from contextlib import nullcontext as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
 
-from supervision.config import HANDEDNESS_SCORE_DATA_FIELD
+from supervision.config import (
+    HANDEDNESS_SCORE_DATA_FIELD,
+    KEYPOINT_VISIBILITY_DATA_FIELD,
+)
 from supervision.key_points.core import KeyPoints
 from tests.helpers import (
     _create_key_points,
@@ -374,7 +378,7 @@ KEY_POINTS = _create_key_points(
                 class_id=[0],
             ),
             DoesNotRaise(),
-        ),  # kp[kp.confidence > 0.5] — single-object canonical use case
+        ),  # kp[kp.keypoint_confidence > 0.5] — single-object canonical use case
     ],
 )
 def test_key_points_getitem(key_points, index, expected_result, exception):
@@ -553,6 +557,140 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
 class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_rejects_mismatched_numpy_boolean_list(self, axis: int) -> None:
+        """Reject NumPy boolean scalar lists that do not match the selected axis."""
+        key_points = KeyPoints(xy=np.zeros((2, 3, 2)))
+        mask = [np.bool_(True)]
+        index = (mask, [0]) if axis == 0 else ([0], mask)
+
+        with pytest.raises(IndexError, match="boolean index"):
+            key_points.select(index)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_selects_with_numpy_boolean_list(self, axis: int) -> None:
+        """Select matching entries using a list of NumPy boolean scalars."""
+        key_points = KeyPoints(xy=np.arange(12).reshape(2, 3, 2))
+        mask = [np.bool_(True)] + [np.bool_(False)] * (key_points.xy.shape[axis] - 1)
+        index = (mask, [0]) if axis == 0 else ([0], mask)
+
+        result = key_points.select(index)
+
+        np.testing.assert_array_equal(result.xy, key_points.xy[:1, :1])
+
+    @pytest.mark.parametrize("method", ["select", "__getitem__"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("as_array", [False, True])
+    @pytest.mark.parametrize("too_long", [False, True])
+    @pytest.mark.parametrize("all_false", [False, True])
+    def test_rejects_mismatched_boolean_mask_length(
+        self,
+        method: str,
+        axis: int,
+        as_array: bool,
+        too_long: bool,
+        all_false: bool,
+    ) -> None:
+        """Reject nonempty boolean masks that do not match their selected axis."""
+        key_points = KeyPoints(xy=np.arange(12, dtype=float).reshape(2, 3, 2))
+        mask_length = key_points.xy.shape[axis] + (1 if too_long else -1)
+        mask = [False] * mask_length
+        if not all_false:
+            mask[0] = True
+        selector = np.array(mask) if as_array else mask
+        index = selector if axis == 0 else (slice(None), selector)
+
+        with pytest.raises(IndexError, match="boolean index"):
+            getattr(key_points, method)(index)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize("empty", [False, True])
+    def test_empty_boolean_mask_preserves_axis_shape(
+        self, axis: int, empty: bool
+    ) -> None:
+        """An empty boolean mask remains a valid selection of no entries."""
+        xy = np.zeros((0 if empty else 2, 3, 2), dtype=np.float32)
+        key_points = KeyPoints(xy=xy)
+        selector = np.array([], dtype=bool)
+        index = selector if axis == 0 else (slice(None), selector)
+
+        result = key_points.select(index)
+
+        expected_shape = (0, 3, 2) if axis == 0 else (xy.shape[0], 0, 2)
+        assert result.xy.shape == expected_shape
+
+    @pytest.mark.parametrize("method", ["select", "__getitem__"])
+    @pytest.mark.parametrize("row", [0, -1])
+    @pytest.mark.parametrize(
+        "anchors",
+        [
+            pytest.param([2, 0], id="integer-list"),
+            pytest.param(np.array([2, 0]), id="integer-array"),
+            pytest.param([True, False, True], id="boolean-list"),
+            pytest.param(np.array([True, False, True]), id="boolean-array"),
+        ],
+    )
+    def test_scalar_array_row_with_multiple_anchors(
+        self, method: str, row: int, anchors: Any
+    ) -> None:
+        """Scalar array rows retain aligned fields when selecting multiple joints."""
+        xy = np.arange(18, dtype=np.float32).reshape(2, 3, 3)
+        keypoint_confidence = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
+        visible = np.array([[True, False, True], [False, True, False]])
+        key_points = KeyPoints(
+            xy=xy,
+            keypoint_confidence=keypoint_confidence,
+            visible=visible,
+            class_id=np.array([2, 3]),
+            detection_confidence=np.array([0.7, 0.8]),
+            data={"names": ["first", "second"], "id": np.array([10, 20])},
+        )
+
+        result = getattr(key_points, method)((np.array(row), anchors))
+
+        np.testing.assert_array_equal(result.xy, xy[row, anchors][None, ...])
+        np.testing.assert_array_equal(
+            result.keypoint_confidence, keypoint_confidence[row, anchors][None, ...]
+        )
+        np.testing.assert_array_equal(result.visible, visible[row, anchors][None, ...])
+        np.testing.assert_array_equal(result.class_id, [2 if row == 0 else 3])
+        np.testing.assert_array_equal(
+            result.detection_confidence, [0.7 if row == 0 else 0.8]
+        )
+        np.testing.assert_array_equal(result.data["id"], [10 if row == 0 else 20])
+        assert result.data["names"] == ["first" if row == 0 else "second"]
+
+    @pytest.mark.parametrize(
+        "anchor_index",
+        [
+            pytest.param([0, 1], id="list"),
+            pytest.param(0, id="integer"),
+            pytest.param(np.int64(0), id="numpy-integer"),
+            pytest.param(np.array([0, 1]), id="integer-array"),
+            pytest.param([True, False], id="boolean-list"),
+            pytest.param(np.array([True, False]), id="boolean-array"),
+        ],
+    )
+    def test_keypoint_selection_on_empty_result_stays_empty(
+        self, anchor_index: Any
+    ) -> None:
+        """Selecting joints on a frame without poses returns an empty result."""
+        key_points = KeyPoints.empty()
+
+        result = key_points[:, anchor_index]
+
+        assert isinstance(result, KeyPoints)
+        assert result.is_empty()
+        assert result.xy.shape == (0, 0, 2)
+
+    @pytest.mark.parametrize("empty", [True, False])
+    def test_zero_step_anchor_slice_raises(self, empty: bool) -> None:
+        """Reject a zero-step anchor slice for empty and populated results."""
+        key_points = KeyPoints.empty() if empty else KeyPoints(xy=np.zeros((1, 2, 2)))
+
+        with pytest.raises(ValueError, match="slice step cannot be zero"):
+            key_points[:, ::0]
+
     @pytest.mark.parametrize("method", ["select", "__getitem__"])
     @pytest.mark.parametrize("coordinate_count", [2, 3])
     @pytest.mark.parametrize("with_fields", [False, True])
@@ -611,6 +749,81 @@ class TestKeyPointsSelect:
             assert result.visible is None
             assert result.class_id is None
             assert result.data == {}
+
+
+class TestKeyPointsSelectKeypointAlignedData:
+    """Tests that keypoint-aligned ``data`` fields follow keypoint-axis selection."""
+
+    @pytest.mark.parametrize(
+        ("index", "expected"),
+        [
+            pytest.param(
+                (slice(None), [2, 1, 0]), [[0, 1, 2], [1, 2, 0]], id="reorder"
+            ),
+            pytest.param((slice(None), [0, 2]), [[2, 0], [0, 1]], id="subset"),
+            pytest.param(
+                (slice(None), np.array([True, False, True])),
+                [[2, 0], [0, 1]],
+                id="boolean-mask",
+            ),
+            pytest.param((np.array(1), [2, 0]), [[1, 0]], id="scalar-array-row"),
+            pytest.param((0, 1), [[1]], id="single-keypoint"),
+            pytest.param(([1, 0], 2), [[1], [0]], id="scalar-keypoint"),
+        ],
+    )
+    def test_indexes_visibility_along_the_keypoint_axis(
+        self, index: Any, expected: list[list[int]]
+    ) -> None:
+        """The visibility field is selected along the keypoint axis, like ``visible``.
+
+        Selected by skeleton only, a reordered or narrowed annotation would keep stale
+        flags against moved coordinates and export them as such.
+        """
+        flags = np.array([[2, 1, 0], [0, 2, 1]], dtype=np.float32)
+        key_points = KeyPoints(
+            xy=np.arange(12, dtype=np.float32).reshape(2, 3, 2),
+            visible=flags > 0,
+            data={KEYPOINT_VISIBILITY_DATA_FIELD: flags},
+        )
+
+        result = key_points[index]
+
+        assert isinstance(result, KeyPoints)
+        np.testing.assert_array_equal(
+            result.data[KEYPOINT_VISIBILITY_DATA_FIELD], expected
+        )
+
+    def test_two_dimensional_mask_selects_visibility_per_skeleton(self) -> None:
+        """A 2D boolean mask picks each skeleton's own visibility values."""
+        flags = np.array([[2, 1, 0], [0, 2, 1]], dtype=np.float32)
+        key_points = KeyPoints(
+            xy=np.arange(12, dtype=np.float32).reshape(2, 3, 2),
+            data={KEYPOINT_VISIBILITY_DATA_FIELD: flags},
+        )
+        mask = np.array([[True, False, True], [False, True, True]])
+
+        result = key_points[mask]
+
+        assert isinstance(result, KeyPoints)
+        np.testing.assert_array_equal(
+            result.data[KEYPOINT_VISIBILITY_DATA_FIELD], [[2, 0], [2, 1]]
+        )
+
+    def test_keeps_other_data_fields_row_aligned(self) -> None:
+        """A field not registered as keypoint-aligned is indexed by skeleton only.
+
+        A per-skeleton box is as wide as a 4-keypoint skeleton, so the width of a value
+        must not decide whether it follows the keypoint axis.
+        """
+        boxes = np.array([[0, 0, 4, 4], [1, 1, 5, 5]], dtype=np.float32)
+        key_points = KeyPoints(
+            xy=np.zeros((2, 4, 2), dtype=np.float32), data={"xyxy": boxes}
+        )
+
+        result = key_points[:, [3, 2, 1, 0]]
+
+        assert isinstance(result, KeyPoints)
+        np.testing.assert_array_equal(result.data["xyxy"], boxes)
 
 
 class TestKeyPointsVisible:
@@ -734,6 +947,16 @@ def test_key_points_empty():
     assert len(empty_key_points) == 0
     assert empty_key_points.is_empty()
     assert empty_key_points.xy.shape == (0, 0, 2)
+
+
+@pytest.mark.parametrize("field", ["detection_confidence", "keypoint_confidence"])
+def test_key_points_empty_filters_by_confidence(field: str) -> None:
+    """A frame without poses filters by confidence like a frame with poses."""
+    key_points = KeyPoints.empty()
+
+    filtered = key_points[getattr(key_points, field) > 0.5]
+
+    assert filtered.is_empty()
 
 
 def test_key_points_is_empty():
@@ -1826,8 +2049,8 @@ class TestFromTransformers:
         np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
         np.testing.assert_array_equal(key_points.class_id, [0])
 
-    def test_multiple_poses_are_stacked_with_sequential_class_ids(self) -> None:
-        """Several poses stack into one `(N, K, 2)` array with ids `0..N-1`."""
+    def test_multiple_poses_are_stacked_with_one_shared_class_id(self) -> None:
+        """Several poses stack into one `(N, K, 2)` array, all with class ID `0`."""
         results = [
             {
                 "keypoints": _FakeTensor(
@@ -1847,7 +2070,7 @@ class TestFromTransformers:
 
         assert key_points.xy.shape == (2, 2, 2)
         assert key_points.xy.dtype == np.float32
-        np.testing.assert_array_equal(key_points.class_id, [0, 1])
+        np.testing.assert_array_equal(key_points.class_id, [0, 0])
 
 
 class _FakeDetectron2Instances:
@@ -1898,6 +2121,7 @@ class TestFromDetectron2:
             _FakeYoloNasKeyPointResults(
                 _FakeYoloNasKeyPoint(
                     poses=[[[100.0, 150.0, 0.9], [120.0, 160.0, 0.85]]],
+                    scores=[0.95],
                     labels=[1],
                 ),
             ),
@@ -1905,12 +2129,14 @@ class TestFromDetectron2:
                 xy=[[[100.0, 150.0], [120.0, 160.0]]],
                 confidence=[[0.9, 0.85]],
                 class_id=[1],
+                detection_confidence=[0.95],
             ),
         ),
         (
             _FakeYoloNasKeyPointResults(
                 _FakeYoloNasKeyPoint(
                     poses=[],
+                    scores=[],
                 ),
             ),
             KeyPoints.empty(),
@@ -2042,45 +2268,8 @@ def test_from_mediapipe_unknown_result_type_raises() -> None:
         KeyPoints.from_mediapipe(object(), resolution_wh=(100, 100))
 
 
-class TestDeprecatedConfidenceConstructor:
-    """Tests for backward-compatible `confidence=` kwarg in KeyPoints()."""
-
-    def test_constructor_accepts_and_warns_on_deprecated_confidence_kwarg(self):
-        """Deprecated confidence= warns and maps value to keypoint_confidence."""
-        from supervision.utils.internal import SupervisionWarnings
-
-        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
-        confidence = np.array([[0.9, 0.8]], dtype=np.float32)
-
-        with pytest.warns(SupervisionWarnings, match="deprecated since"):
-            key_points = KeyPoints(xy=xy, confidence=confidence)
-
-        np.testing.assert_array_equal(key_points.keypoint_confidence, confidence)
-        assert key_points.xy is xy
-
-    @pytest.mark.parametrize(
-        "kwargs",
-        [
-            pytest.param(
-                {"confidence": None, "keypoint_confidence": None},
-                id="confidence-first",
-            ),
-            pytest.param(
-                {"keypoint_confidence": None, "confidence": None},
-                id="keypoint-confidence-first",
-            ),
-        ],
-    )
-    def test_constructor_rejects_both_confidence_and_keypoint_confidence(
-        self, kwargs: dict
-    ):
-        """ValueError raised regardless of kwarg order when both are passed."""
-        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
-        confidence_arr = np.array([[0.9, 0.8]], dtype=np.float32)
-        actual_kwargs = {k: confidence_arr for k in kwargs}
-
-        with pytest.raises(ValueError, match="Cannot pass both"):
-            KeyPoints(xy=xy, **actual_kwargs)
+class TestKeyPointsConstructor:
+    """Tests for the `KeyPoints()` constructor."""
 
     def test_constructor_normal_keypoint_confidence_path(self):
         """Normal keypoint_confidence= path works and emits no deprecation warning."""
@@ -2096,18 +2285,6 @@ class TestDeprecatedConfidenceConstructor:
         np.testing.assert_array_equal(kp.keypoint_confidence, kp_conf)
         assert kp.data == {}
 
-    def test_constructor_confidence_none_does_not_warn(self):
-        """Explicit confidence=None is silently ignored — no warning emitted."""
-        import warnings
-
-        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            kp = KeyPoints(xy=xy, confidence=None)
-
-        assert kp.keypoint_confidence is None
-
     def test_constructor_data_none_defaults_to_empty_dict(self):
         """Explicit data=None normalizes to empty dict, not None."""
         xy = np.array([[[1.0, 2.0]]], dtype=np.float32)
@@ -2121,10 +2298,7 @@ class TestDeprecatedConfidenceConstructor:
         import inspect
 
         field_names = {f.name for f in dataclasses.fields(KeyPoints)}
-        init_params = set(inspect.signature(KeyPoints.__init__).parameters) - {
-            "self",
-            "confidence",
-        }
+        init_params = set(inspect.signature(KeyPoints.__init__).parameters) - {"self"}
         assert field_names == init_params, (
             f"Field/init drift: {field_names.symmetric_difference(init_params)}"
         )
@@ -2729,3 +2903,43 @@ class TestFromMediapipeHandedness:
 
         assert key_points.class_id is None
         assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
+
+
+class TestKeyPointsRemovedConfidence:
+    """The `confidence` name removed in `0.32.0` cannot be silently re-created."""
+
+    @staticmethod
+    def _key_points() -> KeyPoints:
+        """Build one two-keypoint skeleton with keypoint confidence of `0.9`."""
+        return KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32),
+            keypoint_confidence=np.full((1, 2), 0.9, dtype=np.float32),
+        )
+
+    def test_assignment_raises_migration_error(self) -> None:
+        """Assigning `confidence` fails, pointing at `keypoint_confidence`."""
+        key_points = self._key_points()
+
+        with pytest.raises(AttributeError, match="keypoint_confidence"):
+            key_points.confidence = np.full((1, 2), 0.1, dtype=np.float32)
+
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_allclose(key_points.keypoint_confidence, 0.9)
+        assert "confidence" not in vars(key_points)
+
+    def test_read_stays_missing_attribute(self) -> None:
+        """Reading `confidence` still reports a missing attribute."""
+        key_points = self._key_points()
+
+        has_confidence = hasattr(key_points, "confidence")
+
+        assert has_confidence is False
+
+    def test_keypoint_confidence_stays_assignable(self) -> None:
+        """The guard leaves assignment of the replacement field untouched."""
+        key_points = self._key_points()
+        updated = np.full((1, 2), 0.1, dtype=np.float32)
+
+        key_points.keypoint_confidence = updated
+
+        assert key_points.keypoint_confidence is updated

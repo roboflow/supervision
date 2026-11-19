@@ -17,8 +17,10 @@ from supervision.dataset.formats.yolo import (
     detections_to_yolo_annotations,
     load_yolo_annotations,
     object_to_yolo,
+    save_data_yaml,
     yolo_annotations_to_detections,
 )
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 
 
@@ -602,6 +604,7 @@ def _write_yolo_dataset(root: Path, label: str) -> tuple[str, str, str]:
 class TestFromYoloLabelLines:
     """Tests for how ``DetectionDataset.from_yolo`` reads the lines of a label file."""
 
+    @pytest.mark.parametrize("compact_masks", [False, True])
     @pytest.mark.parametrize(
         ("valid_line", "invalid_line", "is_obb", "line_error"),
         [
@@ -612,6 +615,14 @@ class TestFromYoloLabelLines:
                 "Invalid YOLO annotation line '1 0.5 0.5 0.2'; expected at least 5 "
                 "tokens (class id and four box values), got 4.",
                 id="box-missing-height",
+            ),
+            pytest.param(
+                "0 0.1 0.2 0.6 0.2 0.3 0.7",
+                "1 0.5 0.5 0.2",
+                False,
+                "Invalid YOLO annotation line '1 0.5 0.5 0.2'; expected at least 5 "
+                "tokens (class id and four box values), got 4.",
+                id="polygon-file-box-missing-height",
             ),
             pytest.param(
                 "0 0.1 0.1 0.9 0.1 0.9 0.9 0.1 0.9",
@@ -630,6 +641,7 @@ class TestFromYoloLabelLines:
         invalid_line: str,
         is_obb: bool,
         line_error: str,
+        compact_masks: bool,
     ) -> None:
         """An invalid line between valid ones is reported with its file and its text."""
         paths = _write_yolo_dataset(
@@ -641,7 +653,9 @@ class TestFromYoloLabelLines:
         )
 
         with pytest.raises(ValueError, match=expected):
-            DetectionDataset.from_yolo(*paths, is_obb=is_obb)
+            DetectionDataset.from_yolo(
+                *paths, is_obb=is_obb, compact_masks=compact_masks
+            )
 
     def test_skips_trailing_blank_and_whitespace_only_lines(
         self, tmp_path: Path
@@ -1011,7 +1025,18 @@ def test_load_yolo_annotations_accepts_pil_readable_image_modes(
     )
 
 
-def test_from_yolo_scales_annotations_to_exif_rotated_image(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("compact_masks", "mask_type"),
+    [
+        pytest.param(False, np.ndarray, id="dense"),
+        pytest.param(True, CompactMask, id="compact"),
+    ],
+)
+def test_from_yolo_scales_annotations_to_exif_rotated_image(
+    tmp_path: Path,
+    compact_masks: bool,
+    mask_type: type[np.ndarray] | type[CompactMask],
+) -> None:
     """Boxes and masks match the image as loaded, after its EXIF rotation."""
     images_dir = tmp_path / "images"
     labels_dir = tmp_path / "labels"
@@ -1022,18 +1047,18 @@ def test_from_yolo_scales_annotations_to_exif_rotated_image(tmp_path: Path) -> N
     Image.new("RGB", (100, 40)).save(images_dir / "photo.jpg", exif=exif.tobytes())
     (labels_dir / "photo.txt").write_text("0 0.5 0.5 0.5 0.5\n")
     (tmp_path / "data.yaml").write_text("names: ['object']\n")
+    paths = (str(images_dir), str(labels_dir), str(tmp_path / "data.yaml"))
+    _, _, dense_detections = DetectionDataset.from_yolo(*paths, force_masks=True)[0]
 
     dataset = DetectionDataset.from_yolo(
-        images_directory_path=str(images_dir),
-        annotations_directory_path=str(labels_dir),
-        data_yaml_path=str(tmp_path / "data.yaml"),
-        force_masks=True,
+        *paths, force_masks=True, compact_masks=compact_masks
     )
     _, image, detections = dataset[0]
 
     assert image.shape[:2] == (100, 40)
-    assert isinstance(detections.mask, np.ndarray)
+    assert isinstance(detections.mask, mask_type)
     assert detections.mask.shape == (1, 100, 40)
+    np.testing.assert_array_equal(np.asarray(detections.mask), dense_detections.mask)
     np.testing.assert_allclose(detections.xyxy, [[10.0, 25.0, 30.0, 75.0]])
 
 
@@ -1654,6 +1679,40 @@ class TestAsYoloMaskWithHole:
         assert len(result) == 1
         np.testing.assert_array_equal(result.mask, mask)
 
+    def test_simplified_export_keeps_hole_behind_thin_walls(
+        self, tmp_path: Path, ragged_mask_with_hole: np.ndarray
+    ) -> None:
+        """A ragged mask exports with simplification instead of raising."""
+        mask = ragged_mask_with_hole[np.newaxis, ...]
+        image_path = str(tmp_path / "source" / "ragged.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (7, 10)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[1, 1, 5, 8]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["blob"], images=[image_path], annotations={image_path: detections}
+        )
+
+        dataset.as_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+            approximation_percentage=0.5,
+        )
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+            force_masks=True,
+        )
+
+        result = next(iter(reloaded.annotations.values()))
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.mask, mask)
+
 
 class TestAsYoloMultiSegmentMask:
     """Tests for exporting masks consisting of disconnected segments to YOLO."""
@@ -1768,3 +1827,17 @@ class TestAsYoloCrowdAnnotations:
         ann_file = labels_dir / "sample.txt"
         lines = ann_file.read_text().strip().splitlines()
         assert len(lines) == 2
+
+
+def test_save_data_yaml(tmp_path: Path) -> None:
+    """Verify save_data_yaml writes classes and class count and creates parents."""
+    from supervision.utils.file import read_yaml_file
+
+    yaml_path = tmp_path / "nested" / "dir" / "data.yaml"
+    classes = ["dog", "cat", "horse"]
+
+    save_data_yaml(data_yaml_path=str(yaml_path), classes=classes)
+
+    assert yaml_path.is_file()
+    data = read_yaml_file(str(yaml_path))
+    assert data == {"nc": 3, "names": ["dog", "cat", "horse"]}

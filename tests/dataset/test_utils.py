@@ -1,14 +1,16 @@
 import random
+import sys
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, SupportsIndex, TypeVar
 
 import numpy as np
 import pytest
 
 import supervision.dataset.utils as dataset_utils
 from supervision import DetectionDataset, Detections, _cv2
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.utils import (
     _bridge_holes,
     _is_hole_contour,
@@ -17,10 +19,12 @@ from supervision.dataset.utils import (
     build_class_index_mapping,
     check_no_basename_collisions,
     map_detections_class_id,
+    map_key_points_class_id,
     merge_class_lists,
     train_test_split,
 )
 from supervision.detection.utils.converters import mask_to_polygons, polygon_to_mask
+from supervision.key_points.core import KeyPoints
 from tests.helpers import _create_detections
 
 T = TypeVar("T")
@@ -376,6 +380,22 @@ class TestApproximateMaskWithPolygons:
         assert len(simplified) == len(exact) == 1
         assert len(simplified[0]) < len(exact[0])
 
+    @pytest.mark.parametrize("approximation_percentage", [0.5, 0.75])
+    def test_bridges_traced_contours_when_simplified_ones_have_no_seam(
+        self, approximation_percentage: float, ragged_mask_with_hole: np.ndarray
+    ) -> None:
+        """A hole the simplified outline cannot reach is bridged, not raised."""
+        mask = ragged_mask_with_hole
+
+        polygons = approximate_mask_with_polygons(
+            mask,
+            approximation_percentage=approximation_percentage,
+            bridge_holes=True,
+        )
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (7, 10)), mask)
+
 
 class TestIsSegmentInsideMask:
     """Tests for `_is_segment_inside_mask`."""
@@ -511,6 +531,84 @@ def test_build_class_index_mapping(
             source_classes=source_classes, target_classes=target_classes
         )
         assert result == expected_result
+
+
+class TestBuildClassIndexMapping:
+    """Class-name lookup preserves ordering and repeated-name behavior."""
+
+    @pytest.mark.parametrize(
+        ("source_classes", "target_classes", "expected"),
+        [
+            pytest.param([], [], {}, id="both-empty"),
+            pytest.param([], ["cat", "cat"], {}, id="empty-source"),
+            pytest.param(["cat"], ["cat", "cat"], {0: 0}, id="first-duplicate"),
+            pytest.param(
+                ["cat", "dog", "cat"],
+                ["dog", "cat", "dog", "cat"],
+                {0: 1, 1: 0, 2: 1},
+                id="repeated-source-and-target",
+            ),
+            pytest.param(
+                ["dog", "cat"],
+                ["person", "cat", "dog"],
+                {0: 2, 1: 1},
+                id="reordered-subset",
+            ),
+        ],
+    )
+    def test_preserves_first_target_index_and_input_lists(
+        self,
+        source_classes: list[str],
+        target_classes: list[str],
+        expected: dict[int, int],
+    ) -> None:
+        """Repeated names map to their first target occurrence without mutation."""
+        source_before = source_classes.copy()
+        target_before = target_classes.copy()
+
+        result = build_class_index_mapping(source_classes, target_classes)
+
+        assert result == expected
+        assert source_classes == source_before
+        assert target_classes == target_before
+
+    def test_reports_first_missing_source_name(self) -> None:
+        """Missing classes are reported in source order, not sorted order."""
+        source_classes = ["zebra", "ant"]
+        target_classes = ["cat", "cat"]
+
+        with pytest.raises(ValueError, match="Class zebra not found in target classes"):
+            build_class_index_mapping(source_classes, target_classes)
+
+    def test_does_not_scan_target_list_per_source_class(self) -> None:
+        """Mapping uses a prebuilt lookup instead of scanning the target list."""
+
+        class ScanCountingList(list[str]):
+            """List that counts the linear-scan operations performed on it."""
+
+            scans = 0
+
+            def index(
+                self,
+                value: str,
+                start: SupportsIndex = 0,
+                stop: SupportsIndex = sys.maxsize,
+            ) -> int:
+                """Count and delegate a linear ``index`` scan."""
+                type(self).scans += 1
+                return super().index(value, start, stop)
+
+            def __contains__(self, item: object) -> bool:
+                """Count and delegate a linear membership scan."""
+                type(self).scans += 1
+                return super().__contains__(item)
+
+        target_classes = ScanCountingList(["cat", "dog", "person"])
+
+        result = build_class_index_mapping(["person", "cat", "dog"], target_classes)
+
+        assert result == {0: 2, 1: 0, 2: 1}
+        assert ScanCountingList.scans == 0
 
 
 @pytest.mark.parametrize(
@@ -726,3 +824,52 @@ class TestSaveDatasetImages:
 
         saved = _cv2.imread(str(tmp_path / "image.png"))
         np.testing.assert_array_equal(saved, image)
+
+
+class TestMapKeyPointsClassId:
+    """Tests for remapping key point class ids onto a merged class list."""
+
+    def test_remaps_class_id_and_drops_stale_class_name(self) -> None:
+        """Remapping renumbers ``class_id`` and clears the cached class name."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={CLASS_NAME_DATA_FIELD: np.array(["cat"])},
+        )
+
+        result = map_key_points_class_id(
+            source_to_target_mapping={0: 3}, key_points=key_points
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([3]))
+        assert CLASS_NAME_DATA_FIELD not in result.data
+
+    def test_does_not_mutate_the_input(self) -> None:
+        """The source key points keep their original class ids."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([0])
+        )
+
+        map_key_points_class_id(source_to_target_mapping={0: 3}, key_points=key_points)
+
+        np.testing.assert_array_equal(key_points.class_id, np.array([0]))
+
+    def test_rejects_key_points_without_class_id(self) -> None:
+        """Key points with no ``class_id`` have nothing to remap, so they raise."""
+        key_points = KeyPoints(xy=np.array([[[1.0, 2.0]]], dtype=np.float32))
+
+        with pytest.raises(ValueError, match="class_id"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )
+
+    def test_rejects_a_class_id_missing_from_the_mapping(self) -> None:
+        """A class id with no target is an error rather than a silent pass."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([5])
+        )
+
+        with pytest.raises(ValueError, match="subset"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )

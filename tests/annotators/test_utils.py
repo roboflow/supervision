@@ -1,3 +1,4 @@
+import re
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from typing import cast
@@ -8,13 +9,16 @@ import pytest
 from supervision.annotators.utils import (
     ColorLookup,
     Trace,
+    _resolve_annotator_color,
+    _resolve_color_idx,
+    _resolve_detection_color,
+    _resolve_detection_color_idx,
     get_labels_text,
     hex_to_rgba,
     is_valid_hex,
-    resolve_color,
-    resolve_color_idx,
     resolve_text_background_xyxy,
     rgba_to_hex,
+    snap_boxes,
     wrap_text,
 )
 from supervision.detection.core import Detections
@@ -82,7 +86,17 @@ from tests.helpers import _create_detections
             0,
             ColorLookup.CLASS,
             None,
-            pytest.raises(ValueError, match="resolve color by class"),
+            pytest.raises(
+                ValueError,
+                match="^"
+                + re.escape(
+                    "Could not resolve color by class because "
+                    "Detections do not have class_id. If using an annotator, "
+                    "try setting color_lookup to sv.ColorLookup.INDEX or "
+                    "sv.ColorLookup.TRACK."
+                )
+                + "$",
+            ),
         ),  # multiple detections; class lookup; no class_id
         (
             _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
@@ -114,8 +128,9 @@ def test_resolve_color_idx(
     expected_result: int | None,
     exception: AbstractContextManager[object],
 ) -> None:
+    """Detection resolver maps each lookup to its palette index or raises."""
     with exception:
-        result = resolve_color_idx(
+        result = _resolve_detection_color_idx(
             detections=detections,
             detection_idx=detection_idx,
             color_lookup=color_lookup,
@@ -123,12 +138,110 @@ def test_resolve_color_idx(
         assert result == expected_result
 
 
+_CLASS_IDS = np.array([5, 3, 7])
+_TRACKER_IDS = np.array([2, 6, 4])
+
+
+_DEFAULT_FIELDS: dict[str, object] = {
+    "count": 3,
+    "class_id": _CLASS_IDS,
+    "tracker_id": _TRACKER_IDS,
+}
+
+
+@pytest.mark.parametrize(
+    ("instance_idx", "color_lookup", "fields", "expected_result"),
+    [
+        pytest.param(0, ColorLookup.INDEX, {}, 0, id="index-first"),
+        pytest.param(1, ColorLookup.INDEX, {}, 1, id="index-second"),
+        pytest.param(0, ColorLookup.CLASS, {}, 5, id="class-first"),
+        pytest.param(1, ColorLookup.CLASS, {}, 3, id="class-second"),
+        pytest.param(0, ColorLookup.TRACK, {}, 2, id="track-first"),
+        pytest.param(1, ColorLookup.TRACK, {}, 6, id="track-second"),
+        pytest.param(0, ColorLookup.KEYPOINT, {"keypoint_idx": 4}, 4, id="keypoint"),
+    ],
+)
+def test_resolve_color_idx_from_fields(
+    instance_idx: int,
+    color_lookup: ColorLookup,
+    fields: dict[str, object],
+    expected_result: int,
+) -> None:
+    """Field-level resolver maps each lookup to its palette index.
+
+    Rows override only the fields that differ from `_DEFAULT_FIELDS`.
+    """
+    result = _resolve_color_idx(
+        instance_idx=instance_idx,
+        color_lookup=color_lookup,
+        **{**_DEFAULT_FIELDS, **fields},  # type: ignore[arg-type]
+    )
+
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("instance_idx", "color_lookup", "fields", "error_type", "message"),
+    [
+        pytest.param(
+            3,
+            ColorLookup.INDEX,
+            {},
+            ValueError,
+            "Instance index 3 is out of bounds for length 3",
+            id="out-of-bounds",
+        ),
+        pytest.param(
+            0,
+            ColorLookup.CLASS,
+            {"class_id": None},
+            ValueError,
+            "Could not resolve color by class because class_id is not available",
+            id="class-no-class-id",
+        ),
+        pytest.param(
+            0,
+            ColorLookup.TRACK,
+            {"tracker_id": None},
+            ValueError,
+            "Could not resolve color by track because tracker_id is not available",
+            id="track-no-tracker-id",
+        ),
+        pytest.param(
+            0,
+            ColorLookup.KEYPOINT,
+            {},
+            ValueError,
+            "ColorLookup.KEYPOINT is only valid for keypoint annotators",
+            id="keypoint-no-keypoint-idx",
+        ),
+    ],
+)
+def test_resolve_color_idx_from_fields_raises(
+    instance_idx: int,
+    color_lookup: ColorLookup,
+    fields: dict[str, object],
+    error_type: type[Exception],
+    message: str,
+) -> None:
+    """Field-level resolver rejects unusable input with a specific message.
+
+    Rows override only the fields that differ from `_DEFAULT_FIELDS`.
+    """
+    with pytest.raises(error_type, match=message):
+        _resolve_color_idx(
+            instance_idx=instance_idx,
+            color_lookup=color_lookup,
+            **{**_DEFAULT_FIELDS, **fields},  # type: ignore[arg-type]
+        )
+
+
 def test_resolve_color_accepts_negative_class_id() -> None:
     """Negative class ids map deterministically instead of aborting annotation."""
     detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[-1])
     palette = ColorPalette.from_hex(["#ff0000", "#00ff00", "#0000ff"])
 
-    result = resolve_color(
+    result = _resolve_detection_color(
         color=palette,
         detections=detections,
         detection_idx=0,
@@ -146,7 +259,7 @@ def test_resolve_color_accepts_palette_from_src_namespace() -> None:
 
     detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
 
-    result = resolve_color(
+    result = _resolve_detection_color(
         color=SrcColorPalette.DEFAULT,
         detections=detections,
         detection_idx=0,
@@ -154,6 +267,24 @@ def test_resolve_color_accepts_palette_from_src_namespace() -> None:
     )
 
     assert result.as_bgr() == (251, 81, 163)
+
+
+def test_detection_annotator_color_rejects_keypoint_lookup() -> None:
+    """Detection annotators reject the keypoint-only lookup and list valid ones."""
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+    expected_message = (
+        "ColorLookup.KEYPOINT is only valid for keypoint annotators; "
+        "supported lookups for detection annotators: INDEX, CLASS, TRACK."
+    )
+
+    with pytest.raises(ValueError, match=f"^{re.escape(expected_message)}$"):
+        _resolve_annotator_color(
+            color=Color.RED,
+            detections=detections,
+            detection_idx=0,
+            color_lookup=ColorLookup.CLASS,
+            custom_color_lookup=ColorLookup.KEYPOINT,
+        )
 
 
 @pytest.mark.parametrize(
@@ -539,3 +670,43 @@ class TestTraceEmptyFrames:
 
         with pytest.raises(ValueError, match="without a detection mask"):
             trace.put(detections)
+
+
+class TestSnapBoxes:
+    """Tests for `snap_boxes`, which moves label boxes into the frame."""
+
+    @pytest.mark.parametrize(
+        ("xyxy", "expected"),
+        [
+            pytest.param(
+                [-10, 10, 30, 50], [0, 10, 40, 50], id="off-left-edge-shifts-right"
+            ),
+            pytest.param(
+                [310, 200, 350, 250],
+                [280, 190, 320, 240],
+                id="off-right-and-bottom-edges-shift-in",
+            ),
+            pytest.param(
+                [-20, 10, 350, 50],
+                [0, 10, 370, 50],
+                id="wider-than-frame-from-outside-keeps-left-edge",
+            ),
+            pytest.param(
+                [10, 10, 400, 50],
+                [0, 10, 390, 50],
+                id="wider-than-frame-from-inside-keeps-left-edge",
+            ),
+            pytest.param(
+                [10, 10, 40, 300],
+                [10, 0, 40, 290],
+                id="taller-than-frame-from-inside-keeps-top-edge",
+            ),
+        ],
+    )
+    def test_snaps_box_into_frame_prioritizing_top_left(
+        self, xyxy: list[float], expected: list[float]
+    ) -> None:
+        """A box moves into the frame; one too large for it keeps its top-left."""
+        snapped = snap_boxes(np.array([xyxy], dtype=np.float32), (320, 240))
+
+        assert np.array_equal(snapped, np.array([expected], dtype=np.float32))

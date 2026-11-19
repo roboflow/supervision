@@ -19,6 +19,7 @@ from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
 from supervision._cv2._image import _EXIF_ORIENTATION_TAG
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
 from supervision.detection.utils.polygons import (
@@ -44,8 +45,50 @@ def _image_file_resolution_wh(image_path: str) -> tuple[int, int]:
     return width, height
 
 
+def _validate_flip_idx(flip_idx: object, keypoint_count: int) -> list[int]:
+    """Check that a ``flip_idx`` permutes the keypoint indices and return it as ints.
+
+    ``flip_idx`` maps each keypoint to the one it becomes under a horizontal flip, so
+    training mirrors a left shoulder into a right one. A repeated or out-of-range
+    entry would drop or duplicate a joint in every flipped sample. Shared by
+    :class:`~supervision.dataset.core.KeyPointsDataset` and the YOLO pose loader, so
+    that a value the dataset accepts is one the loader reads back after export.
+
+    Args:
+        flip_idx: The candidate permutation, as a list, tuple or 1D array of
+            Python or NumPy integers.
+        keypoint_count: The number of keypoints per skeleton, ``K``.
+
+    Returns:
+        The permutation as plain Python ints, which the YAML writer emits as plain
+            integers rather than tagged NumPy scalars.
+
+    Raises:
+        ValueError: If ``flip_idx`` is not a sequence of ``K`` integers forming a
+            permutation of ``0..K-1``; booleans and floats are refused.
+    """
+    values = flip_idx.tolist() if isinstance(flip_idx, np.ndarray) else flip_idx
+    # bool subclasses int, so `[True, False]` would otherwise pass as `[1, 0]`;
+    # np.bool_ and floats such as `1.0` fail the integer check on their own.
+    if (
+        isinstance(values, (list, tuple))
+        and len(values) == keypoint_count
+        and all(
+            isinstance(value, (int, np.integer)) and not isinstance(value, bool)
+            for value in values
+        )
+        and sorted(int(value) for value in values) == list(range(keypoint_count))
+    ):
+        return [int(value) for value in values]
+    raise ValueError(
+        f"`flip_idx` must be a permutation of the {keypoint_count} keypoint "
+        f"indices 0..{keypoint_count - 1} given as integers, got {flip_idx!r}."
+    )
+
+
 if TYPE_CHECKING:
-    from supervision.dataset.core import DetectionDataset
+    from supervision.dataset.core import DetectionDataset, KeyPointsDataset
+    from supervision.key_points.core import KeyPoints
 
 T = TypeVar("T")
 
@@ -318,14 +361,16 @@ def approximate_mask_with_polygons(
         bridge_holes: If `True`, each hole is joined to its outer contour, or to a
             hole already joined, by a zero-width seam along foreground pixels, so a
             mask with holes yields one polygon per connected component instead of
-            one extra polygon per hole.
+            one extra polygon per hole. A component whose simplified contours
+            leave no seam on foreground is joined from its traced contours and so
+            is returned unsimplified.
 
     Returns:
         A list of polygons, each of shape `(N, 2)`.
 
     Raises:
         ValueError: If no candidate seam stays within foreground pixels when
-            `bridge_holes=True`.
+            `bridge_holes=True`, even between the traced contours.
 
     Examples:
         ```pycon
@@ -369,9 +414,15 @@ def approximate_mask_with_polygons(
             ]
             bridged = simplified_outer
             if simplified_holes:
-                bridged = _bridge_holes(
-                    mask=mask, outer=simplified_outer, holes=simplified_holes
-                )
+                try:
+                    bridged = _bridge_holes(
+                        mask=mask, outer=simplified_outer, holes=simplified_holes
+                    )
+                except _SeamNotFoundError:
+                    # Simplifying can drop every vertex where a hole comes close to
+                    # the outline, so no straight seam stays on foreground. The
+                    # traced contours run along foreground pixels, so join those.
+                    bridged = _bridge_holes(mask=mask, outer=outer, holes=holes)
             bridged_polygons.append(bridged)
         return bridged_polygons
     return [
@@ -381,6 +432,21 @@ def approximate_mask_with_polygons(
 
 
 def merge_class_lists(class_lists: list[list[str]]) -> list[str]:
+    """Merge multiple lists of class names into a single deduplicated, sorted list.
+
+    Args:
+        class_lists: A list of class name lists to merge.
+
+    Returns:
+        A sorted list of unique class names across all input lists.
+
+    Examples:
+        ```python
+        from supervision.dataset.utils import merge_class_lists
+
+        merged = merge_class_lists([["dog", "cat"], ["cat", "person"]])
+        ```
+    """
     unique_classes = set()
 
     for class_list in class_lists:
@@ -393,17 +459,44 @@ def merge_class_lists(class_lists: list[list[str]]) -> list[str]:
 def build_class_index_mapping(
     source_classes: list[str], target_classes: list[str]
 ) -> dict[int, int]:
-    """Returns the index map of source classes -> target classes."""
-    index_mapping = {}
+    """Build an index mapping from source classes to their positions in target classes.
+
+    Args:
+        source_classes: Ordered list of source class names.
+        target_classes: Ordered list of target class names. Every class in
+            ``source_classes`` must be present in ``target_classes``.
+
+    Returns:
+        A dictionary mapping each source class index to its corresponding target
+        class index. Repeated target names use their first occurrence.
+
+    Raises:
+        ValueError: If any class in ``source_classes`` is not found in
+            ``target_classes``.
+
+    Examples:
+        ```python
+        from supervision.dataset.utils import build_class_index_mapping
+
+        mapping = build_class_index_mapping(
+            source_classes=["dog", "cat"],
+            target_classes=["cat", "dog", "person"],
+        )
+        ```
+    """
+    index_mapping: dict[int, int] = {}
+
+    target_indices: dict[str, int] = {}
+    for target_index, class_name in enumerate(target_classes):
+        target_indices.setdefault(class_name, target_index)
 
     for i, class_name in enumerate(source_classes):
-        if class_name not in target_classes:
+        if class_name not in target_indices:
             raise ValueError(
                 f"Class {class_name} not found in target classes. "
                 "source_classes must be a subset of target_classes."
             )
-        corresponding_index = target_classes.index(class_name)
-        index_mapping[i] = corresponding_index
+        index_mapping[i] = target_indices[class_name]
 
     return index_mapping
 
@@ -411,6 +504,37 @@ def build_class_index_mapping(
 def map_detections_class_id(
     source_to_target_mapping: dict[int, int], detections: Detections
 ) -> Detections:
+    """Remap the ``class_id`` of detections onto a merged or transformed class list.
+
+    The detection counterpart of
+    :func:`~supervision.dataset.utils.map_key_points_class_id`, used by
+    :meth:`~supervision.dataset.core.DetectionDataset.merge`.
+
+    Args:
+        source_to_target_mapping: Mapping from the source class index to the
+            index of the same class in the target list.
+        detections: The detections to remap; not mutated.
+
+    Returns:
+        A copy of ``detections`` carrying the remapped ``class_id``.
+
+    Raises:
+        ValueError: If ``detections.class_id`` is None, or if it contains a
+            class id not present in ``source_to_target_mapping``.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+        from supervision.dataset.utils import map_detections_class_id
+
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            class_id=np.array([0]),
+        )
+        remapped = map_detections_class_id({0: 2}, detections)
+        ```
+    """
     if detections.class_id is None:
         raise ValueError("Detections must have class_id attribute.")
     if set(np.unique(detections.class_id)) - set(source_to_target_mapping.keys()):
@@ -426,6 +550,48 @@ def map_detections_class_id(
         )
 
     return detections_copy
+
+
+def map_key_points_class_id(
+    source_to_target_mapping: dict[int, int], key_points: KeyPoints
+) -> KeyPoints:
+    """Remap the ``class_id`` of key points onto a merged class list.
+
+    The keypoint counterpart of
+    :func:`~supervision.dataset.utils.map_detections_class_id`, used by
+    :meth:`~supervision.dataset.core.KeyPointsDataset.merge`. Unlike the
+    detection version it also drops ``data['class_name']``: after remapping, the
+    stored names would describe the old class indices, so the copy carries none
+    rather than stale ones until
+    :class:`~supervision.dataset.core.KeyPointsDataset` re-derives them from the
+    merged class list.
+
+    Args:
+        source_to_target_mapping: Mapping from the source class index to the
+            index of the same class in the merged list.
+        key_points: The key points to remap; not mutated.
+
+    Returns:
+        A copy carrying the remapped ``class_id`` and no ``data['class_name']``.
+
+    Raises:
+        ValueError: If the key points carry no ``class_id``, or hold a class id
+            missing from the mapping.
+    """
+    if key_points.class_id is None:
+        raise ValueError("KeyPoints must have class_id attribute.")
+    if set(np.unique(key_points.class_id)) - set(source_to_target_mapping.keys()):
+        raise ValueError(
+            "KeyPoints class_id must be a subset of source_to_target_mapping keys."
+        )
+
+    key_points_copy = copy.deepcopy(key_points)
+    if len(key_points_copy) > 0 and key_points_copy.class_id is not None:
+        key_points_copy.class_id = np.vectorize(source_to_target_mapping.get)(
+            key_points_copy.class_id
+        )
+        key_points_copy.data.pop(CLASS_NAME_DATA_FIELD, None)
+    return key_points_copy
 
 
 def check_no_basename_collisions(
@@ -480,7 +646,7 @@ def check_no_basename_collisions(
 
 
 def save_dataset_images(
-    dataset: DetectionDataset,
+    dataset: DetectionDataset | KeyPointsDataset,
     images_directory_path: str,
     show_progress: bool = False,
 ) -> None:
@@ -489,7 +655,9 @@ def save_dataset_images(
     Images already in memory are written with ``cv2.imwrite``; images stored
     only as file paths are copied with ``shutil.copyfile``. An image file that is
     already at its destination, because the images are exported into the folder
-    they were loaded from, is left where it is.
+    they were loaded from, is left where it is. A dataset that is lazy-only, such
+    as :class:`~supervision.dataset.core.KeyPointsDataset`, carries no in-memory
+    store and always takes the copy path.
 
     Args:
         dataset: The dataset whose images are saved.
@@ -510,20 +678,28 @@ def save_dataset_images(
 
         ```
     """
+    # Imported here because `supervision.dataset.core` imports this module.
+    from supervision.dataset.core import DetectionDataset
+
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: Path(image_path).name,
         output_kind="image",
     )
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
+    # Only DetectionDataset keeps decoded images in memory; KeyPointsDataset is
+    # lazy-only, so its images always take the copy path below.
+    images_in_memory: dict[str, npt.NDArray[np.uint8]] = (
+        dataset._images_in_memory if isinstance(dataset, DetectionDataset) else {}
+    )
     for image_path in tqdm(
         dataset.image_paths,
         desc="Saving images",
         disable=not show_progress,
     ):
         final_path = os.path.join(images_directory_path, Path(image_path).name)
-        if image_path in dataset._images_in_memory:
-            image = dataset._images_in_memory[image_path]
+        if image_path in images_in_memory:
+            image = images_in_memory[image_path]
             if not cv2.imwrite(final_path, image):
                 raise OSError(f"Failed to save image to path: {final_path}")
         else:

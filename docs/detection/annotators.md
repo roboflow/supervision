@@ -7,6 +7,10 @@ description: API reference for supervision's annotator classes — draw bounding
 
 Annotators accept detections and apply box or mask visualizations to the detections. Annotators have many available styles.
 
+!!! note "Pillow scenes"
+
+    Annotators also accept a `PIL.Image.Image` as `scene`. They update it in place and change only the pixels they draw, so transparency and 16-bit depth of untouched pixels stay intact. For annotators that draw through NumPy, palette images (modes `P` and `PA`) use opaque slots unused by untouched pixels to add drawn colors to RGB palettes; RGBA palettes and colors without a free slot use the nearest opaque entry. A palette that is full and has no opaque entry raises `ValueError` on this drawing path. `RichLabelAnnotator` draws directly through Pillow and uses Pillow's native palette handling instead.
+
 === "Outlines"
 
     === "Box"
@@ -183,9 +187,12 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         ```python
         import supervision as sv
+        from rfdetr.detr import RFDETRSegSmall
 
         image = ...
-        detections = sv.Detections(...)
+        model = RFDETRSegSmall()
+        # RF-DETR segmentation models return masks in `detections.mask`.
+        detections = model.predict(image[:, :, ::-1])
 
         mask_annotator = sv.MaskAnnotator()
         annotated_frame = mask_annotator.annotate(
