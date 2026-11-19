@@ -21,7 +21,7 @@ concurrency:
 jobs:
   main:
     permissions:
-      pull-requests: read
+      pull-requests: write
       issues: write
     timeout-minutes: 10
     runs-on: ubuntu-latest

@@ -8,24 +8,25 @@ from typing import Any, ClassVar, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
+from deprecate import deprecated, void
 from PIL import Image, ImageDraw, ImageFont, features
 from scipy.interpolate import splev, splprep
 
 from supervision import _cv2 as cv2
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
+    _DETECTION_COLOR_HELPER_DEPRECATION,
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
     _iter_resolved_colors,
     _resolve_annotator_color,
+    _resolve_detection_color,
     _validate_labels,
     calculate_dynamic_kernel_size,
     calculate_dynamic_pixel_size,
     get_labels_text,
     hex_to_rgba,
-    resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
     wrap_text,
@@ -55,9 +56,32 @@ from supervision.utils.image import (
     letterbox_image,
     scale_image,
 )
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+)
+def resolve_color(
+    color: Color | ColorPalette,
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
+) -> Color:
+    """Deprecated: resolve the color used to draw a single detection.
+
+    Releases before `0.32.0` exposed this helper from this module as a side effect of
+    the annotators importing it, so the name stays importable here until `0.35.0`.
+    """
+    return void(color, detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
+
 
 # Hebrew, Arabic, Syriac, Thaana, NKo and their presentation forms
 _RTL_TEXT = re.compile("[֐-ࣿיִ-﷿ﹰ-ﻼ]")
@@ -551,7 +575,7 @@ def _paint_masks_by_area(
     canvas_h, canvas_w = canvas.shape[:2]
     for detection_idx in np.flip(np.argsort(detections.area)):
         pixel_value = _color_for_canvas(
-            resolve_color(
+            _resolve_detection_color(
                 color=color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -677,7 +701,7 @@ class MaskAnnotator(BaseAnnotator):
             self.color_lookup if custom_color_lookup is None else custom_color_lookup
         )
         if len(detections) > 0:
-            resolve_color(
+            _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=0,
@@ -1584,13 +1608,13 @@ class LabelAnnotator(_BaseLabelAnnotator):
         )
 
         for idx, label_property in enumerate(label_properties):
-            background_color = resolve_color(
+            background_color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
-            text_color = resolve_color(
+            text_color = _resolve_detection_color(
                 color=self.text_color,
                 detections=detections,
                 detection_idx=idx,
@@ -1989,13 +2013,13 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         for idx, label_property in enumerate(label_properties):
-            background_color = resolve_color(
+            background_color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
-            text_color = resolve_color(
+            text_color = _resolve_detection_color(
                 color=self.text_color,
                 detections=detections,
                 detection_idx=idx,
@@ -3191,18 +3215,6 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
-
-    @staticmethod
-    @deprecated(  # type: ignore[untyped-decorator]
-        target=_validate_custom_values.__func__,  # type: ignore[attr-defined]
-        deprecated_in="0.29.0",
-        remove_in="0.32.0",
-    )
-    def validate_custom_values(
-        custom_values: npt.NDArray[np.float64] | list[float] | None,
-        detections: Detections,
-    ) -> None:
-        void(custom_values, detections)
 
 
 class CropAnnotator(BaseAnnotator):

@@ -53,6 +53,27 @@ _MASK_RASTERIZER_DEFAULT_WARNING = (
 
 
 def coco_categories_to_classes(coco_categories: list[CocoDict]) -> list[str]:
+    """Extract and sort class names from COCO ``categories`` entries by category id.
+
+    Args:
+        coco_categories: List of COCO category dictionaries, each containing
+            at least ``id`` and ``name`` keys.
+
+    Returns:
+        A list of class names ordered by ascending category id.
+
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.coco import coco_categories_to_classes
+        >>> categories = [
+        ...     {"id": 2, "name": "dog"},
+        ...     {"id": 1, "name": "cat"}
+        ... ]
+        >>> coco_categories_to_classes(categories)
+        ['cat', 'dog']
+
+        ```
+    """
     return [
         category["name"]
         for category in sorted(coco_categories, key=lambda category: category["id"])
@@ -62,6 +83,40 @@ def coco_categories_to_classes(coco_categories: list[CocoDict]) -> list[str]:
 def build_coco_class_index_mapping(
     coco_categories: list[CocoDict], target_classes: list[str]
 ) -> dict[int, int]:
+    """Build a mapping from COCO category id to internal target class index.
+
+    Matches each class name in ``target_classes`` to its corresponding COCO category
+    in ``coco_categories``. Source categories not present in ``target_classes`` are
+    omitted from the resulting mapping. Every name in ``target_classes`` must exist in
+    ``coco_categories``; otherwise, a ``KeyError`` is raised.
+
+    Args:
+        coco_categories: List of COCO category dictionaries, each containing
+            ``id`` and ``name`` keys.
+        target_classes: Ordered list of target class names representing internal
+            class indices (0-indexed).
+
+    Returns:
+        A dictionary mapping COCO ``category_id`` (source id) to the target
+        class index (0-indexed position in ``target_classes``).
+
+    Raises:
+        KeyError: If a class name in ``target_classes`` is not found in
+            ``coco_categories``.
+
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.coco import build_coco_class_index_mapping
+        >>> categories = [
+        ...     {"id": 1, "name": "cat"},
+        ...     {"id": 2, "name": "dog"}
+        ... ]
+        >>> target = ["dog", "cat"]
+        >>> build_coco_class_index_mapping(categories, target) == {2: 0, 1: 1}
+        True
+
+        ```
+    """
     source_class_to_index = {
         category["name"]: category["id"] for category in coco_categories
     }
@@ -108,6 +163,34 @@ def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
 def group_coco_annotations_by_image_id(
     coco_annotations: list[CocoDict],
 ) -> dict[int, list[CocoDict]]:
+    """Group COCO annotation dictionaries by their associated ``image_id``.
+
+    Args:
+        coco_annotations: List of COCO annotation dictionaries, each containing
+            an ``image_id`` key.
+
+    Returns:
+        A dictionary mapping each ``image_id`` to a list of annotations belonging
+        to that image.
+
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.coco import (
+        ...     group_coco_annotations_by_image_id,
+        ... )
+        >>> annotations = [
+        ...     {"id": 1, "image_id": 10, "bbox": [0, 0, 50, 50]},
+        ...     {"id": 2, "image_id": 20, "bbox": [10, 10, 30, 30]},
+        ...     {"id": 3, "image_id": 10, "bbox": [5, 5, 40, 40]},
+        ... ]
+        >>> groups = group_coco_annotations_by_image_id(annotations)
+        >>> sorted(groups.keys())
+        [10, 20]
+        >>> len(groups[10])
+        2
+
+        ```
+    """
     annotations: dict[int, list[CocoDict]] = {}
     for annotation in coco_annotations:
         image_id = annotation["image_id"]
@@ -258,14 +341,22 @@ def _require_pycocotools() -> None:
 
 
 def _has_polygon_segmentation(annotation: CocoDict) -> bool:
-    """Return whether an annotation's segmentation is rasterized as polygons.
+    """Return whether an annotation has a polygon part that will be rasterized.
 
     Mirrors the polygon branch of
     :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`: RLE dicts,
-    empty values and other types never reach the polygon rasterizer.
+    empty values and other types never reach the polygon rasterizer, and empty parts
+    such as ``[[]]`` are skipped before it.
     """
     segmentation = annotation.get("segmentation")
-    return isinstance(segmentation, list) and bool(segmentation)
+    if not isinstance(segmentation, list) or not segmentation:
+        return False
+    polygons = segmentation if isinstance(segmentation[0], list) else [segmentation]
+    # Only an empty list part is known to add no pixels; any other part, malformed
+    # ones included, reaches the rasterizer or its validation.
+    return any(
+        not isinstance(polygon, list) or len(polygon) > 0 for polygon in polygons
+    )
 
 
 def _resolve_mask_rasterizer(
@@ -275,9 +366,9 @@ def _resolve_mask_rasterizer(
     """Return the polygon rasterizer to use, warning when an omitted choice matters.
 
     An explicit value is validated and returned unchanged. ``None`` keeps the legacy
-    ``"supervision"`` convention, and warns only when ``annotations`` contain polygon
-    segmentation, because RLE and box-only annotations give the same masks under
-    both conventions.
+    ``"supervision"`` convention, and warns only when ``annotations`` contain a
+    non-empty polygon part, because RLE, box-only and empty polygon annotations give
+    the same masks under both conventions.
 
     Args:
         mask_rasterizer: The caller's choice, or ``None`` when it was omitted.
@@ -705,7 +796,8 @@ def load_coco_annotations(
         mask_rasterizer: Polygon rasterization convention; see
             :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`.
             ``None`` (default) keeps ``"supervision"`` and warns once per call
-            when the file contains polygon segmentation. Selecting
+            when an image listed in the file has a non-empty polygon part to
+            rasterize. Selecting
             ``"pycocotools"`` requires the ``supervision[coco]`` extra even when
             the file has no polygon segmentation.
 
@@ -727,8 +819,8 @@ def load_coco_annotations(
             no polygon segmentation.
 
     Warns:
-        SupervisionWarnings: When ``mask_rasterizer`` is omitted and the file
-            contains polygon segmentation.
+        SupervisionWarnings: When ``mask_rasterizer`` is omitted and an image
+            listed in the file has a non-empty polygon part to rasterize.
 
     Note:
         Each annotation's ``file_name`` is validated against
@@ -765,9 +857,18 @@ def _load_coco_annotations(
     """
     _validate_mask_rasterizer(mask_rasterizer)
     coco_data = read_json_file(file_path=annotations_path)
-    resolved_rasterizer = _resolve_mask_rasterizer(
-        mask_rasterizer, coco_data["annotations"]
+    coco_images = coco_data["images"]
+    coco_annotations_groups = group_coco_annotations_by_image_id(
+        coco_annotations=coco_data["annotations"]
     )
+    # Annotations whose image_id is not listed under "images" are never loaded, so
+    # only listed images' annotations can make the omitted rasterizer matter.
+    loaded_annotations = [
+        annotation
+        for coco_image in coco_images
+        for annotation in coco_annotations_groups.get(coco_image["id"], [])
+    ]
+    resolved_rasterizer = _resolve_mask_rasterizer(mask_rasterizer, loaded_annotations)
     if resolved_rasterizer == "pycocotools":
         # Check the extra before any image is processed, even for files with no
         # polygon to rasterize, so opting in without it always fails the same way.
@@ -776,11 +877,6 @@ def _load_coco_annotations(
 
     class_index_mapping = build_coco_class_index_mapping(
         coco_categories=coco_data["categories"], target_classes=classes
-    )
-
-    coco_images = coco_data["images"]
-    coco_annotations_groups = group_coco_annotations_by_image_id(
-        coco_annotations=coco_data["annotations"]
     )
 
     images = []
