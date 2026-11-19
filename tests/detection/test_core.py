@@ -3544,6 +3544,119 @@ class TestDetectionsFromSemanticSegmentation:
         assert detections.confidence is not None
         assert detections.confidence.shape == (0,)
 
+    # Class 1 forms two separate patches, class 2 one patch touching class 1 only
+    # diagonally, and class 3 two patches joined only diagonally.
+    PATCH_MAP: ClassVar[np.ndarray] = np.array(
+        [
+            [1, 1, 0, 0, 1],
+            [1, 1, 0, 0, 1],
+            [0, 0, 0, 0, 0],
+            [0, 3, 0, 2, 2],
+            [0, 0, 3, 0, 0],
+        ],
+        dtype=np.uint8,
+    )
+
+    def test_split_components_gives_each_patch_its_own_detection(self) -> None:
+        """Each separate patch of a class becomes its own detection with its own box.
+
+        A class such as water in flood imagery shows up as several patches, and a single
+        box over all of them would also cover the land between them.
+        """
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 1, 2, 3])
+        assert np.array_equal(
+            detections.xyxy, [[0, 0, 1, 1], [4, 0, 4, 1], [3, 3, 4, 3], [1, 3, 2, 4]]
+        )
+
+    def test_split_components_masks_partition_each_class(self) -> None:
+        """The component masks of one class are disjoint and cover every class pixel."""
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True
+        )
+
+        assert isinstance(detections.mask, np.ndarray)
+        assert detections.class_id is not None
+        class_one = detections.mask[detections.class_id == 1]
+        assert np.array_equal(class_one.sum(axis=0), (self.PATCH_MAP == 1).astype(int))
+        assert np.array_equal(class_one.sum(axis=(1, 2)), [4, 2])
+
+    def test_split_components_joins_diagonal_pixels(self) -> None:
+        """Pixels touching only at a corner belong to the same patch."""
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True
+        )
+
+        assert detections.class_id is not None
+        assert np.count_nonzero(detections.class_id == 3) == 1
+
+    def test_split_components_default_keeps_one_detection_per_class(self) -> None:
+        """Without `split_components`, every patch of a class stays in one detection."""
+        detections = Detections.from_semantic_segmentation(self.PATCH_MAP)
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 2, 3])
+
+    def test_split_components_names_each_patch_after_its_class(self) -> None:
+        """Every patch carries the class name of the class it was split from."""
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, class_map={"1": "water"}, split_components=True
+        )
+
+        assert np.array_equal(
+            detections.data["class_name"], ["water", "water", "2", "3"]
+        )
+
+    def test_split_components_scores_each_patch_by_its_own_pixels(self) -> None:
+        """Confidence is the mean over the pixels of that patch, not of its class."""
+        confidence_map = np.full(self.PATCH_MAP.shape, 255, dtype=np.uint8)
+        confidence_map[0:2, 4] = 51
+
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, confidence_mask=confidence_map, split_components=True
+        )
+
+        assert detections.confidence is not None
+        assert np.allclose(detections.confidence, [1.0, 0.2, 1.0, 1.0])
+
+    def test_split_components_compact_masks_match_dense_masks(self) -> None:
+        """`compact_masks=True` returns a CompactMask with the same patch pixels."""
+        dense = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True
+        )
+
+        compact = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True, compact_masks=True
+        )
+
+        assert isinstance(compact.mask, CompactMask)
+        assert isinstance(dense.mask, np.ndarray)
+        assert np.array_equal(compact.mask.to_dense(), dense.mask)
+        assert np.array_equal(compact.xyxy, dense.xyxy)
+
+    def test_split_components_keeps_background_patches_when_requested(self) -> None:
+        """`background_id=None` also splits the background into its patches."""
+        label_map = np.array([[0, 1, 0]], dtype=np.uint8)
+
+        detections = Detections.from_semantic_segmentation(
+            label_map, background_id=None, split_components=True
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [0, 0, 1])
+
+    def test_split_components_on_background_only_map_is_empty(self) -> None:
+        """A map holding only the background still yields no detections."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8), split_components=True
+        )
+
+        assert len(detections) == 0
+
     def test_names_classes_from_integer_keys(self) -> None:
         """An integer-keyed `id2label` names classes like a text-keyed `class_map`.
 

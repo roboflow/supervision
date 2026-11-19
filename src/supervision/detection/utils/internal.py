@@ -705,12 +705,50 @@ def decode_semantic_label_map(
     return _require_integer_label_map(array, field)
 
 
+def _split_class_regions(
+    class_mask: npt.NDArray[np.bool_], split_components: bool
+) -> list[tuple[list[int], npt.NDArray[np.bool_]]]:
+    """Return the ``(xyxy, mask)`` regions one class contributes to a semantic map.
+
+    Without ``split_components`` the whole class is one region. With it, each
+    8-connected patch is its own region, ordered top to bottom and then left to
+    right by the top-left corner of its box.
+
+    Args:
+        class_mask: Boolean ``(H, W)`` mask of every pixel of one class; not empty.
+        split_components: Split the class into its connected patches.
+
+    Returns:
+        One ``(xyxy, mask)`` pair per region, with an integer pixel box.
+    """
+    if not split_components:
+        rows = np.flatnonzero(class_mask.any(axis=1))
+        cols = np.flatnonzero(class_mask.any(axis=0))
+        return [
+            ([int(cols[0]), int(rows[0]), int(cols[-1]), int(rows[-1])], class_mask)
+        ]
+
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        class_mask.astype(np.uint8), connectivity=8
+    )
+    regions: list[tuple[list[int], npt.NDArray[np.bool_]]] = []
+    # Label 0 is the background of the class mask; stats columns are
+    # left, top, width, height, area.
+    for label in range(1, count):
+        left, top, width, height = (int(value) for value in stats[label, :4])
+        box = [left, top, left + width - 1, top + height - 1]
+        regions.append((box, labels == label))
+    regions.sort(key=lambda region: (region[0][1], region[0][0]))
+    return regions
+
+
 def process_semantic_segmentation(
     segmentation_mask: Any,
     class_map: dict[int, str] | dict[str, str] | None,
     confidence_mask: Any,
     background_id: int | None,
     compact_masks: bool,
+    split_components: bool = False,
 ) -> tuple[
     npt.NDArray[np.floating],
     npt.NDArray[np.floating] | None,
@@ -722,7 +760,9 @@ def process_semantic_segmentation(
 
     The background id is dropped, class names come from ``class_map`` with the id
     as text when a class is not listed, and confidence is the class's mean 8-bit
-    ``confidence_mask`` over its pixels divided by 255.
+    ``confidence_mask`` over its pixels divided by 255. With ``split_components``
+    each 8-connected patch of a class is its own entry, with the class's name and
+    its own confidence, ordered by class id and then top to bottom, left to right.
 
     Args:
         segmentation_mask: Per-pixel class ids, see :func:`decode_semantic_label_map`.
@@ -731,6 +771,8 @@ def process_semantic_segmentation(
         background_id: Class id to leave out, or ``None`` to keep every class.
         compact_masks: Return a :class:`~supervision.detection.compact_mask.CompactMask`
             built one class at a time instead of a dense stack.
+        split_components: Emit one entry per connected patch of each class instead of
+            one per class.
 
     Returns:
         ``(xyxy, confidence, class_id, masks, data)`` aligned on the first axis;
@@ -780,11 +822,7 @@ def process_semantic_segmentation(
     class_ids = np.unique(label_map)
     if background_id is not None:
         class_ids = class_ids[class_ids != background_id]
-    class_names = np.array(
-        [names_by_id.get(str(class_id), str(class_id)) for class_id in class_ids],
-        dtype=str,
-    )
-    data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
+    data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: np.array([], dtype=str)}
     if class_ids.size == 0:
         # Keep the requested output types so an empty frame needs no special case:
         # a zero-length mask of the requested kind, and confidence only with a map.
@@ -802,30 +840,44 @@ def process_semantic_segmentation(
     boxes: list[list[int]] = []
     masks: list[Any] = []
     scores: list[float] = []
-    # The loop runs over class ids, never pixels. Building one class at a time keeps
-    # peak memory at one (H, W) plane when compact masks are requested.
+    entry_class_ids: list[int] = []
+    # The loop runs over class ids and their patches, never pixels. Building one
+    # region at a time keeps peak memory at one (H, W) plane when compact masks are
+    # requested.
     for class_id in class_ids:
-        mask = label_map == class_id
-        rows = np.flatnonzero(mask.any(axis=1))
-        cols = np.flatnonzero(mask.any(axis=0))
-        box = [int(cols[0]), int(rows[0]), int(cols[-1]), int(rows[-1])]
-        boxes.append(box)
-        if compact_masks:
-            masks.append(
-                CompactMask.from_dense(
-                    masks=mask[np.newaxis],
-                    xyxy=np.array([box]),
-                    image_shape=label_map.shape,
+        for box, mask in _split_class_regions(label_map == class_id, split_components):
+            entry_class_ids.append(int(class_id))
+            boxes.append(box)
+            if compact_masks:
+                masks.append(
+                    CompactMask.from_dense(
+                        masks=mask[np.newaxis],
+                        xyxy=np.array([box]),
+                        image_shape=label_map.shape,
+                    )
                 )
-            )
-        else:
-            masks.append(mask)
-        if confidence_map is not None:
-            scores.append(float(confidence_map[mask].mean()) / 255.0)
+            else:
+                masks.append(mask)
+            if confidence_map is not None:
+                scores.append(float(confidence_map[mask].mean()) / 255.0)
 
     result_masks = CompactMask.merge(masks) if compact_masks else np.stack(masks)
     confidence = np.array(scores, dtype=np.float64) if scores else None
-    return np.array(boxes, dtype=np.float64), confidence, class_ids, result_masks, data
+    result_class_ids = np.array(entry_class_ids, dtype=class_ids.dtype)
+    data[CLASS_NAME_DATA_FIELD] = np.array(
+        [
+            names_by_id.get(str(class_id), str(class_id))
+            for class_id in result_class_ids
+        ],
+        dtype=str,
+    )
+    return (
+        np.array(boxes, dtype=np.float64),
+        confidence,
+        result_class_ids,
+        result_masks,
+        data,
+    )
 
 
 def is_data_equal(
