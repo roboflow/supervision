@@ -42,9 +42,15 @@ def _write_video(path: Path, values: list[int], fps: int = 5) -> None:
 
 
 def _write_video_with_audio(
-    path: Path, frame_count: int = 5, fps: int = 5, *, audio_first: bool = False
+    path: Path,
+    frame_count: int = 5,
+    fps: int = 5,
+    *,
+    audio_first: bool = False,
+    audio_delay: int = 0,
+    video_start: int = 0,
 ) -> None:
-    """Write a short video with one AAC audio stream for remux tests."""
+    """Write a short video with AAC audio and optional stream timing offsets."""
     container = av.open(str(path), mode="w")
     audio_stream = container.add_stream("aac", rate=8_000) if audio_first else None
     video_stream = container.add_stream("mpeg4", rate=fps)
@@ -59,13 +65,14 @@ def _write_video_with_audio(
             frame = av.VideoFrame.from_ndarray(
                 np.full((16, 16, 3), value * 20, dtype=np.uint8), format="bgr24"
             )
+            frame.pts = value + video_start * fps
             for packet in video_stream.encode(frame):
                 container.mux(packet)
 
         samples = np.zeros((1, 8_000), dtype=np.int16)
         audio_frame = av.AudioFrame.from_ndarray(samples, format="s16", layout="mono")
         audio_frame.sample_rate = 8_000
-        audio_frame.pts = 0
+        audio_frame.pts = (video_start + audio_delay) * 8_000
         for packet in audio_stream.encode(audio_frame):
             container.mux(packet)
         for packet in video_stream.encode():
@@ -516,3 +523,47 @@ def test_mux_audio_leaves_target_unchanged_on_failure(tmp_path: Path) -> None:
     _mux_audio(str(tmp_path / "missing.mp4"), str(target_path))
 
     assert target_path.read_bytes() == original
+
+
+@pytest.mark.parametrize("video_start", [0, 2])
+@pytest.mark.parametrize("audio_delay", [0, 1])
+def test_mux_audio_preserves_delayed_audio(
+    tmp_path: Path, video_start: int, audio_delay: int
+) -> None:
+    """Preserve audio delay relative to the first source video frame."""
+    source_path = tmp_path / "delayed.mp4"
+    target_path = tmp_path / "target.mp4"
+    _write_video_with_audio(
+        source_path, frame_count=10, audio_delay=audio_delay, video_start=video_start
+    )
+    _write_video(target_path, list(range(10)))
+    with av.open(str(source_path)) as source:
+        video = source.streams.video[0]
+        audio = source.streams.audio[0]
+        expected = max(
+            0.0,
+            float(
+                audio.start_time * audio.time_base - video.start_time * video.time_base
+            ),
+        )
+
+    _mux_audio(str(source_path), str(target_path))
+
+    with av.open(str(target_path)) as output:
+        audio = output.streams.audio[0]
+        actual = float(audio.start_time * audio.time_base)
+        assert actual == pytest.approx(expected, abs=1 / 8_000)
+
+
+def test_mux_audio_excludes_audio_starting_after_output(tmp_path: Path) -> None:
+    """A video ending before delayed audio must not gain early audio packets."""
+    source_path = tmp_path / "delayed.mp4"
+    target_path = tmp_path / "short.mp4"
+    _write_video_with_audio(source_path, frame_count=10, audio_delay=1)
+    _write_video(target_path, [0, 40])
+
+    _mux_audio(str(source_path), str(target_path))
+
+    with av.open(str(target_path)) as output:
+        assert output.streams.video[0].frames == 2
+        assert len(output.streams.audio) == 0
