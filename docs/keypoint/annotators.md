@@ -134,6 +134,27 @@ comments: true
     )
     ```
 
+=== "JointAngleAnnotator"
+
+    ```python
+    import supervision as sv
+    from supervision.key_points.angles import JointAngle
+
+    image = ...
+    key_points = sv.KeyPoints(...)
+
+    # Zero-based positions in key_points.xy; b is the vertex. COCO: hip, knee, ankle.
+    left_knee = JointAngle(name="left_knee", a=11, b=13, c=15)
+    joint_angle_annotator = sv.JointAngleAnnotator(
+        angles=[left_knee],
+        color=sv.Color.GREEN,
+    )
+    annotated_frame = joint_angle_annotator.annotate(
+        scene=image.copy(),
+        key_points=key_points,
+    )
+    ```
+
 <div class="md-typeset">
   <h2><a href="#supervision.key_points.annotators.VertexAnnotator">VertexAnnotator</a></h2>
 </div>
@@ -169,3 +190,9 @@ comments: true
 </div>
 
 :::supervision.key_points.annotators.VertexEllipseHaloAnnotator
+
+<div class="md-typeset">
+  <h2><a href="#supervision.key_points.annotators.JointAngleAnnotator">JointAngleAnnotator</a></h2>
+</div>
+
+:::supervision.key_points.annotators.JointAngleAnnotator
