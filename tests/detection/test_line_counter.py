@@ -32,9 +32,29 @@ WHITE = [255, 255, 255]
 BLACK = [0, 0, 0]
 
 
+class _TiltTransform:
+    """A camera motion that moves each point down by `factor` times its x."""
+
+    def __init__(self, factor: float) -> None:
+        """Store how much y shifts per unit of x."""
+        self.factor = factor
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        tilted = np.array(points, dtype=np.float64)
+        tilted[:, 1] += self.factor * tilted[:, 0]
+        return tilted
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        level = np.array(points, dtype=np.float64)
+        level[:, 1] -= self.factor * level[:, 0]
+        return level
+
+
 def _oriented_label_pixels(
     line_zone: LineZone,
-    coord_transform: _ShiftTransform | _ConstantTransform | None,
+    coord_transform: _ShiftTransform | _ConstantTransform | _TiltTransform | None,
     text_centered: bool = True,
 ) -> np.ndarray:
     """Return a mask of the pixels the oriented "in" count label changes.
@@ -1974,6 +1994,24 @@ class TestLineZoneAnnotatorWithCoordTransform:
         rows = np.flatnonzero(label.any(axis=1))
         columns = np.flatnonzero(label.any(axis=0))
         assert rows[-1] - rows[0] > columns[-1] - columns[0]
+
+    def test_one_pixel_tilt_keeps_near_end_label_in_place(self) -> None:
+        """A level line tilted by one pixel keeps its near-end label where it was.
+
+        Level lines drew a plain label, centered even with `text_centered=False`, so a
+        one-pixel camera tilt moved the label from the center to the line's end.
+        """
+        line_zone = LineZone(Point(10, 50), Point(190, 50))
+
+        level = _oriented_label_pixels(line_zone, _ShiftTransform(0, 0), False)
+        tilted = _oriented_label_pixels(line_zone, _TiltTransform(1 / 180), False)
+
+        level_rows, level_columns = np.nonzero(level)
+        tilted_rows, tilted_columns = np.nonzero(tilted)
+        assert level_rows.size > 0
+        assert abs(level_columns.min() - tilted_columns.min()) <= 3
+        assert abs(level_columns.max() - tilted_columns.max()) <= 3
+        assert abs(level_rows.min() - tilted_rows.min()) <= 3
 
     @pytest.mark.parametrize(
         "new_x",

@@ -12,34 +12,135 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
 
 PENDING_TRACK_COLOR = Color.GREY
 PENDING_TRACK_ID = -1
+
+#: Warning text for the deprecated detection color helpers. It names the supported
+#: annotator options rather than the private helpers the decorators forward to.
+_DETECTION_COLOR_HELPER_DEPRECATION = (
+    "`%(source_name)s` is deprecated in `%(deprecated_in)s` and will be removed in "
+    "`%(remove_in)s`. Pass a `sv.ColorPalette` as `color` together with "
+    "`color_lookup` to the annotators instead."
+)
+#: Warning text for the deprecated palette lookup helper, whose direct public
+#: replacement is :meth:`~supervision.draw.color.ColorPalette.by_idx`.
+_PALETTE_COLOR_HELPER_DEPRECATION = (
+    "`%(source_name)s` is deprecated in `%(deprecated_in)s` and will be removed in "
+    "`%(remove_in)s`. Use `sv.ColorPalette.by_idx` instead, or pass a "
+    "`sv.ColorPalette` as `color` together with `color_lookup` to the annotators."
+)
 
 
 class ColorLookup(Enum):
     """Enumeration class to define strategies for mapping colors to annotations.
 
-    This enum supports three different lookup strategies:
+    This enum supports four different lookup strategies:
         - `INDEX`: Colors are determined by the index of the detection within the scene.
         - `CLASS`: Colors are determined by the class label of the detected object.
         - `TRACK`: Colors are determined by the tracking identifier of the object.
+        - `KEYPOINT`: Colors are determined by the keypoint index within each skeleton.
+            Only valid for keypoint annotators.
     """
 
     INDEX = "index"
     CLASS = "class"
     TRACK = "track"
+    KEYPOINT = "keypoint"
 
     @classmethod
     def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
 
-def resolve_color_idx(
+def _resolve_color_idx(
+    instance_idx: int,
+    color_lookup: ColorLookup,
+    count: int,
+    class_id: npt.NDArray[np.generic] | None = None,
+    tracker_id: npt.NDArray[np.generic] | None = None,
+    keypoint_idx: int | None = None,
+) -> int:
+    """Resolve a palette index from raw field arrays.
+
+    Low-level helper used by both detection and keypoint annotators.
+
+    Args:
+        instance_idx: Index of the current detection or skeleton.
+        color_lookup: Strategy for mapping colors.
+        count: Total number of detections or skeletons.
+        class_id: Per-instance class IDs, required for ``CLASS``.
+        tracker_id: Per-instance tracker IDs, required for ``TRACK``.
+        keypoint_idx: Index of a keypoint within a skeleton, required for
+            ``KEYPOINT``.
+
+    Returns:
+        An integer index suitable for
+        :meth:`~supervision.draw.color.ColorPalette.by_idx`.
+
+    Raises:
+        ValueError: If ``instance_idx`` is out of bounds for the given ``count``.
+        ValueError: If ``color_lookup`` is ``CLASS`` and ``class_id`` is ``None``.
+        ValueError: If ``color_lookup`` is ``TRACK`` and ``tracker_id`` is ``None``.
+        ValueError: If ``color_lookup`` is ``KEYPOINT`` and ``keypoint_idx`` is
+            ``None``.
+        ValueError: If ``color_lookup`` is an unsupported strategy.
+    """
+    if instance_idx >= count:
+        raise ValueError(
+            f"Instance index {instance_idx} is out of bounds for length {count}"
+        )
+
+    if color_lookup == ColorLookup.INDEX:
+        return instance_idx
+    elif color_lookup == ColorLookup.CLASS:
+        if class_id is None:
+            raise ValueError(
+                "Could not resolve color by class because class_id is not available. "
+                "Try setting color_lookup to sv.ColorLookup.INDEX."
+            )
+        return int(class_id[instance_idx])
+    elif color_lookup == ColorLookup.TRACK:
+        if tracker_id is None:
+            raise ValueError(
+                "Could not resolve color by track because tracker_id is not available. "
+                "Make sure tracker_id is set on the input object."
+            )
+        return int(tracker_id[instance_idx])
+    elif color_lookup == ColorLookup.KEYPOINT:
+        if keypoint_idx is None:
+            raise ValueError(
+                "ColorLookup.KEYPOINT is only valid for keypoint annotators."
+            )
+        return keypoint_idx
+    raise ValueError(f"Unsupported color lookup strategy: {color_lookup}")
+
+
+def _resolve_detection_color_idx(
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
+    """Resolve a palette index for a single detection.
+
+    Args:
+        detections: The :class:`~supervision.detection.core.Detections` being
+            annotated.
+        detection_idx: Index of the current detection.
+        color_lookup: Strategy for mapping colors. Also accepts a custom
+            ``np.ndarray`` of integer indices.
+
+    Returns:
+        An integer index suitable for
+        :meth:`~supervision.draw.color.ColorPalette.by_idx`.
+
+    Raises:
+        ValueError: If class colors are requested without detection class IDs.
+        ValueError: If tracking colors are requested without detection tracker IDs.
+        ValueError: If ``color_lookup`` is ``KEYPOINT``, which only keypoint
+            annotators support.
+    """
     if detection_idx >= len(detections):
         raise ValueError(
             f"Detection index {detection_idx} "
@@ -53,26 +154,55 @@ def resolve_color_idx(
                 f"does not match length of detections {len(detections)}"
             )
         return int(color_lookup[detection_idx])
-    elif color_lookup == ColorLookup.INDEX:
-        return detection_idx
-    elif color_lookup == ColorLookup.CLASS:
-        if detections.class_id is None:
-            raise ValueError(
-                "Could not resolve color by class because "
-                "Detections do not have class_id. If using an annotator, "
-                "try setting color_lookup to sv.ColorLookup.INDEX or "
-                "sv.ColorLookup.TRACK."
-            )
-        return int(detections.class_id[detection_idx])
-    elif color_lookup == ColorLookup.TRACK:
-        if detections.tracker_id is None:
-            raise ValueError(
-                "Could not resolve color by track because "
-                "Detections do not have tracker_id. Did you run a tracker's "
-                "update(...) method (e.g. ByteTrackTracker) before annotating?"
-            )
-        return int(detections.tracker_id[detection_idx])
-    raise ValueError(f"Unsupported color lookup strategy: {color_lookup}")
+
+    # KEYPOINT shares the enum with the detection lookups but has no meaning for a
+    # detection, so name the lookups this family does support.
+    if color_lookup == ColorLookup.KEYPOINT:
+        raise ValueError(
+            "ColorLookup.KEYPOINT is only valid for keypoint annotators; "
+            "supported lookups for detection annotators: INDEX, CLASS, TRACK."
+        )
+
+    # Detection-specific hints live here: the shared resolver also serves keypoint
+    # annotators, for which suggesting a tracker or a TRACK lookup would be wrong.
+    if color_lookup == ColorLookup.CLASS and detections.class_id is None:
+        raise ValueError(
+            "Could not resolve color by class because "
+            "Detections do not have class_id. If using an annotator, "
+            "try setting color_lookup to sv.ColorLookup.INDEX or "
+            "sv.ColorLookup.TRACK."
+        )
+
+    if color_lookup == ColorLookup.TRACK and detections.tracker_id is None:
+        raise ValueError(
+            "Could not resolve color by track because "
+            "Detections do not have tracker_id. Did you run a tracker's "
+            "update(...) method (e.g. ByteTrackTracker) before annotating?"
+        )
+
+    return _resolve_color_idx(
+        instance_idx=detection_idx,
+        color_lookup=color_lookup,
+        count=len(detections),
+        class_id=detections.class_id,
+        tracker_id=detections.tracker_id,
+    )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color_idx,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+)
+def resolve_color_idx(
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
+) -> int:
+    """Deprecated: resolve the palette index used to color a single detection."""
+    return void(detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
 
 
 def resolve_text_background_xyxy(
@@ -130,7 +260,7 @@ def resolve_text_background_xyxy(
     raise ValueError(f"Unsupported position: {position}")
 
 
-def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
+def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     """Resolve a color-like object to a concrete :class:`~supervision.draw.color.Color`
     for an index."""
     color_like = cast(Any, color)
@@ -147,13 +277,38 @@ def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     )
 
 
-def resolve_color(
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_get_color_by_index,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_PALETTE_COLOR_HELPER_DEPRECATION,
+)
+def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
+    """Deprecated: pick the color drawn for a palette index."""
+    return void(color, idx)  # type: ignore[no-any-return]
+
+
+def _resolve_detection_color(
     color: Color | ColorPalette,
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> Color:
-    idx = resolve_color_idx(
+    """Resolve the color for a single detection.
+
+    Args:
+        color: A single color or a palette to pick from.
+        detections: The :class:`~supervision.detection.core.Detections` being
+            annotated.
+        detection_idx: Index of the current detection.
+        color_lookup: Strategy for mapping colors. Also accepts a custom
+            ``np.ndarray`` of integer indices.
+
+    Returns:
+        The resolved :class:`~supervision.draw.color.Color`.
+    """
+    idx = _resolve_detection_color_idx(
         detections=detections,
         detection_idx=detection_idx,
         color_lookup=color_lookup,
@@ -164,7 +319,24 @@ def resolve_color(
         and idx == PENDING_TRACK_ID
     ):
         return PENDING_TRACK_COLOR
-    return get_color_by_index(color=color, idx=idx)
+    return _get_color_by_index(color=color, idx=idx)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+)
+def resolve_color(
+    color: Color | ColorPalette,
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
+) -> Color:
+    """Deprecated: resolve the color used to draw a single detection."""
+    return void(color, detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
 
 
 def _resolve_annotator_color(
@@ -179,8 +351,7 @@ def _resolve_annotator_color(
     Every annotator accepts an optional `custom_color_lookup` on `annotate()` that
     takes precedence over the lookup it was constructed with. Holding that precedence
     rule here gives it one definition instead of restating the same conditional at
-    each of the annotators'
-    :func:`~supervision.annotators.utils.resolve_color` call sites.
+    each of the annotators' color-resolution call sites.
 
     Args:
         color: The annotator's color or palette.
@@ -194,7 +365,7 @@ def _resolve_annotator_color(
     Returns:
         The resolved color for `detection_idx`.
     """
-    return resolve_color(
+    return _resolve_detection_color(
         color=color,
         detections=detections,
         detection_idx=detection_idx,
@@ -307,15 +478,6 @@ def _validate_labels(labels: list[str] | None, detections: Detections) -> None:
             f"number of detections ({len(detections)}). Each detection "
             f"should have exactly 1 label."
         )
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_labels,
-    deprecated_in="0.29.0",
-    remove_in="0.32.0",
-)
-def validate_labels(labels: list[str] | None, detections: Detections) -> None:
-    void(labels, detections)
 
 
 def get_labels_text(

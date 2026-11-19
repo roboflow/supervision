@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 import warnings
+from collections import Counter
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
-from functools import reduce
 from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
 
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
-from supervision.detection._geometry_dispatch import detection_area, detection_iou
+from supervision.detection._geometry_dispatch import detection_area
 from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
@@ -41,6 +40,7 @@ from supervision.detection.utils.converters import (
 )
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
+    extract_ultralytics_semantic_masks,
     get_data_item,
     is_data_equal,
     is_metadata_equal,
@@ -349,8 +349,11 @@ class Detections:
             :meth:`~supervision.detection.core.Detections.from_ultralytics` is
             compatible with
             [detection](https://docs.ultralytics.com/tasks/detect/),
-            [segmentation](https://docs.ultralytics.com/tasks/segment/), and
-            [OBB](https://docs.ultralytics.com/tasks/obb/) models.
+            [segmentation](https://docs.ultralytics.com/tasks/segment/),
+            [semantic segmentation](https://docs.ultralytics.com/tasks/semantic/),
+            and [OBB](https://docs.ultralytics.com/tasks/obb/) models. A semantic
+            segmentation result gives one detection per class present in the image,
+            with a mask covering all of that class's pixels and no confidence.
 
         Args:
             ultralytics_results: The output Results instance from Ultralytics,
@@ -358,6 +361,10 @@ class Detections:
 
         Returns:
             A new Detections object.
+
+        Raises:
+            ValueError: If a semantic segmentation result's `semantic_mask` is not a
+                single-channel integer `(H, W)` class map.
 
         Example:
             ```python
@@ -389,6 +396,26 @@ class Detections:
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
                     CLASS_NAME_DATA_FIELD: class_names,
                 },
+            )
+
+        if getattr(ultralytics_results, "semantic_mask", None) is not None:
+            class_id, semantic_masks = extract_ultralytics_semantic_masks(
+                ultralytics_results
+            )
+            if len(class_id) == 0:
+                # A map with no named class returns the same empty form as the
+                # other branches, not a (0, H, W) mask.
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
+            class_names = np.array(
+                [ultralytics_results.names[i] for i in class_id], dtype=str
+            )
+            return cls(
+                xyxy=mask_to_xyxy(semantic_masks),
+                mask=semantic_masks,
+                class_id=class_id,
+                data={CLASS_NAME_DATA_FIELD: class_names},
             )
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
@@ -917,12 +944,14 @@ class Detections:
                 or an object, from which `segmentation_mask`, `class_map` and
                 `confidence_mask` are read. Also accepts the per-pixel class ids
                 alone, as a base64 PNG string without a data-URI prefix or an
-                `(H, W)` integer array or tensor. Class IDs must fit in `int64`.
+                `(H, W)` integer array or tensor. A one-bit PNG holds class IDs
+                `0` and `1`. Class IDs must fit in `int64`.
             class_map: Maps a class id, as an integer or as text, to its name, for
                 example `{"1": "road"}`. A class missing from it is named by its id.
                 Overrides the one inside `segmentation_result`.
             confidence_mask: Optional per-pixel 8-bit confidence with the same
-                shape as the class ids, in the same formats and in the range 0-255.
+                shape as the class ids, in the same formats except a one-bit PNG,
+                and in the range 0-255.
                 When available,
                 `confidence` is each class's mean over its pixels divided by
                 255; otherwise `confidence` is `None`. Overrides the one inside
@@ -936,7 +965,8 @@ class Detections:
         Returns:
             A Detections object with one entry per remaining class id.
                 `detections.data["class_name"]` is always present, empty when
-                no class remains.
+                no class remains. An empty result keeps a zero-length `mask` of
+                the requested kind, and `confidence` follows the rule above.
 
         Raises:
             ValueError: If the input is a list or holds no map, a map is not valid
@@ -965,10 +995,6 @@ class Detections:
             background_id=background_id,
             compact_masks=compact_masks,
         )
-        if masks is None:
-            empty_detection = cls.empty()
-            empty_detection.data = data
-            return empty_detection
         return cls(
             xyxy=xyxy, confidence=confidence, class_id=class_id, mask=masks, data=data
         )
@@ -2204,13 +2230,10 @@ class Detections:
 
             * All inputs carry dense `ndarray` → result is `ndarray` (backward
               compatible).
-            * The pairwise merge path used by
-              :meth:`~supervision.detection.core.Detections.with_nms` /
-              :meth:`~supervision.detection.core.Detections.with_nmm`
-              (:func:`~supervision.detection.core.merge_inner_detection_object_pair`)
-              does **not** preserve
-              :class:`~supervision.detection.compact_mask.CompactMask` — mixed
-              inputs materialise to a dense `ndarray` on that path.
+            * :meth:`~supervision.detection.core.Detections.with_nms` preserves
+              compact masks by selecting detections.
+              :meth:`~supervision.detection.core.Detections.with_nmm` preserves
+              compact masks by taking their union within each merge group.
 
         Args:
             detections_list: A list of Detections objects to merge.
@@ -3271,12 +3294,14 @@ class Detections:
                 f"Detections must have {CLASS_NAME_DATA_FIELD!r} in .data "
                 "to use remap_classes()."
             )
-        # A repeated name would silently resolve to its first index
         class_list = list(classes)
-        duplicates = sorted({name for name in class_list if class_list.count(name) > 1})
-        if duplicates:
-            raise ValueError(f"classes holds duplicate names: {duplicates}")
         class_index = {name: index for index, name in enumerate(class_list)}
+        # Repeated names collapse into one key (last index wins), so a size
+        # mismatch means duplicates; this keeps the common unique path linear
+        if len(class_index) != len(class_list):
+            counts = Counter(class_list)
+            duplicates = sorted(name for name, count in counts.items() if count > 1)
+            raise ValueError(f"classes holds duplicate names: {duplicates}")
         if class_name_mapping is not None:
             if not isinstance(class_name_mapping, Mapping):
                 raise TypeError(
@@ -3504,140 +3529,6 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     )
 
 
-@deprecated(deprecated_in="0.29.0", remove_in="0.32.0")  # type: ignore[untyped-decorator]
-def merge_inner_detection_object_pair(
-    detections_1: Detections, detections_2: Detections
-) -> Detections:
-    """Merges two Detections objects into a single Detections object. Assumes each
-    Detections contains exactly one object.
-
-    A `winning` detection is determined based on the confidence score of the two
-    input detections. This winning detection is then used to specify which
-    `class_id`, `tracker_id`, and `data` to include in the merged Detections object.
-
-    The resulting `confidence` of the merged object is calculated by the weighted
-    contribution of each detection to the merged object.
-    The bounding boxes and masks of the two input detections are merged into a
-    single bounding box and mask, respectively.
-
-    Args:
-        detections_1: The first Detections object.
-        detections_2: The second Detections object.
-
-    Returns:
-        A new Detections object, with merged attributes.
-
-    Raises:
-        ValueError: If the input Detections objects do not have exactly 1 detected
-            object.
-
-    Example:
-        ```python
-        from supervision import _cv2 as cv2
-        import supervision as sv
-        from inference import get_model
-
-        image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = get_model(model_id="rfdetr-small")
-
-        result = model.infer(image)[0]
-        detections = sv.Detections.from_inference(result)
-
-        from supervision.detection.core import merge_inner_detection_object_pair
-
-        merged_detections = merge_inner_detection_object_pair(
-            detections[0], detections[1]
-        )
-        ```
-    """
-    if len(detections_1) != 1 or len(detections_2) != 1:
-        raise ValueError("Both Detections should have exactly 1 detected object.")
-
-    _validate_fields_both_defined_or_none(detections_1, detections_2)
-
-    xyxy_1 = detections_1.xyxy[0]
-    xyxy_2 = detections_2.xyxy[0]
-    if detections_1.confidence is None and detections_2.confidence is None:
-        merged_confidence = None
-    else:
-        assert detections_1.confidence is not None
-        assert detections_2.confidence is not None
-        detection_1_area = (xyxy_1[2] - xyxy_1[0]) * (xyxy_1[3] - xyxy_1[1])
-        detections_2_area = (xyxy_2[2] - xyxy_2[0]) * (xyxy_2[3] - xyxy_2[1])
-        merged_confidence = (
-            detection_1_area * detections_1.confidence[0]
-            + detections_2_area * detections_2.confidence[0]
-        ) / (detection_1_area + detections_2_area)
-        merged_confidence = np.array([merged_confidence])
-
-    merged_x1, merged_y1 = np.minimum(xyxy_1[:2], xyxy_2[:2])
-    merged_x2, merged_y2 = np.maximum(xyxy_1[2:], xyxy_2[2:])
-    merged_xyxy = np.array([[merged_x1, merged_y1, merged_x2, merged_y2]])
-
-    if detections_1.mask is None and detections_2.mask is None:
-        merged_mask = None
-    else:
-        merged_mask = np.logical_or(
-            cast(npt.NDArray[Any], detections_1.mask),
-            cast(npt.NDArray[Any], detections_2.mask),
-        )
-
-    if detections_1.confidence is None or detections_2.confidence is None:
-        winning_detection = detections_1
-    elif detections_1.confidence[0] >= detections_2.confidence[0]:
-        winning_detection = detections_1
-    else:
-        winning_detection = detections_2
-
-    metadata = merge_metadata([detections_1.metadata, detections_2.metadata])
-
-    return Detections(
-        xyxy=merged_xyxy,
-        mask=merged_mask,
-        confidence=merged_confidence,
-        class_id=winning_detection.class_id,
-        tracker_id=winning_detection.tracker_id,
-        data=winning_detection.data,
-        metadata=metadata,
-    )
-
-
-@deprecated(deprecated_in="0.29.0", remove_in="0.32.0")  # type: ignore[untyped-decorator]
-def merge_inner_detections_objects(
-    detections: list[Detections],
-    threshold: float = 0.5,
-    overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> Detections:
-    """Given N detections each of length 1 (exactly one object inside), combine them
-    into a single detection object of length 1. The contained inner object will be the
-    merged result of all the input detections.
-
-    For example, this lets you merge N boxes into one big box, N masks into one mask,
-    etc.
-    """
-    detections_1 = detections[0]
-    for detections_2 in detections[1:]:
-        iou = detection_iou(detections_1, detections_2, overlap_metric)[0]
-        if iou < threshold:
-            break
-        detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
-    return detections_1
-
-
-@deprecated(deprecated_in="0.29.0", remove_in="0.32.0")  # type: ignore[untyped-decorator]
-def merge_inner_detections_objects_without_iou(
-    detections: list[Detections],
-) -> Detections:
-    """Given N detections each of length 1 (exactly one object inside), combine them
-    into a single detection object of length 1. The contained inner object will be the
-    merged result of all the input detections.
-
-    For example, this lets you merge N boxes into one big box, N masks into one mask,
-    etc.
-    """
-    return reduce(merge_inner_detection_object_pair, detections)
-
-
 def _validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
 ) -> None:
@@ -3659,14 +3550,3 @@ def _validate_fields_both_defined_or_none(
                 f"Field '{attribute}' should be consistently None or not None in both "
                 "Detections."
             )
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_fields_both_defined_or_none,
-    deprecated_in="0.29.0",
-    remove_in="0.32.0",
-)
-def validate_fields_both_defined_or_none(
-    detections_1: Detections, detections_2: Detections
-) -> None:
-    void(detections_1, detections_2)
