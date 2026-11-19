@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.KeyPoints.as_detections()` keeps `data` keys and the `class_id` dtype on frames without skeletons or key points, as it already did when every key point is invalid. It returned `sv.Detections.empty()` there, so the documented recipe for attaching tracker IDs to key points raised `KeyError: 'row'` on the first frame without people. Out-of-range `selected_keypoint_indices` now raise `IndexError` on such frames too, instead of only when skeletons are present. ([#3026](https://github.com/roboflow/supervision/pull/3026))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
