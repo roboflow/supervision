@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Page not found</title>
+    <!--
+      Site-root 404 page, served by GitHub Pages for every path with no file on gh-pages.
+
+      Versioned docs live under /latest/, /develop/ and release tags, which can have
+      alpha or beta suffixes. A versionless path such as /how_to/detect_small_objects/
+      may have no file at the site root and land here.
+      GitHub Pages cannot serve a 301, so this page redirects client-side: a path with
+      no version prefix is retried under /latest/. A path that already has a version
+      prefix is a genuine 404 and stays on this page, which also prevents a redirect
+      loop for a page missing from /latest/.
+
+      The response keeps HTTP status 404, so crawlers do not index the unversioned URLs.
+      Deployed to the gh-pages root on every docs deploy by publish-docs.yml.
+    -->
+    <script>
+      (function () {
+        var path = window.location.pathname;
+        if (/^\/(latest|develop|\d+\.\d+\.\d+(?:\.?[ab]\d+)?)(\/|$)/.test(path)) {
+          return;
+        }
+        window.location.replace(
+          "/latest" + path + window.location.search + window.location.hash
+        );
+      })();
+    </script>
+  </head>
+  <body>
+    <h1>Page not found</h1>
+    <p><a href="/latest/">Go to the Supervision documentation</a></p>
+  </body>
+</html>

@@ -8,10 +8,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import (  # type: ignore[import-untyped,unused-ignore]
-    deprecated,
-    void,
-)
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
@@ -869,18 +865,6 @@ def _save_detection_validation_visualization(
             UserWarning,
             stacklevel=2,
         )
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_input_tensors,
-    deprecated_in="0.29.0",
-    remove_in="0.32.0",
-)
-def validate_input_tensors(
-    predictions: list[npt.NDArray[np.float32]],
-    targets: list[npt.NDArray[np.float32]],
-) -> None:
-    void(predictions, targets)
 
 
 @dataclass
