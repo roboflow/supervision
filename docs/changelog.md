@@ -1,13 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-11-18
+date_modified: 2026-11-19
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
 
--
+- Asset MD5 verification now reads bounded chunks instead of loading the complete file into memory, reducing peak Python allocations when checking cached videos. Hash comparison and download behavior are unchanged.
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
