@@ -1294,30 +1294,42 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
     def __init__(
         self,
         angles: Sequence[JointAngle],
-        color: Color = Color.ROBOFLOW,
+        color: Color | ColorPalette = Color.ROBOFLOW,
         thickness: int = 2,
         radius: int = 20,
         show_value: bool = True,
-        text_color: Color = Color.WHITE,
+        text_color: Color | ColorPalette = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 4,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
     ) -> None:
         """
         Args:
             angles: The joints to draw, see
                 :class:`~supervision.key_points.angles.JointAngle`.
-            color: The color of the arcs and of the label backgrounds.
+            color: The :class:`~supervision.draw.color.Color` or
+                :class:`~supervision.draw.color.ColorPalette` of the arcs and of the
+                label backgrounds.
             thickness: The line thickness of the arcs.
             radius: The radius of the arcs, in pixels.
             show_value: Whether to label each arc with its angle in whole degrees.
-            text_color: The color of the label text.
+            text_color: The :class:`~supervision.draw.color.Color` or
+                :class:`~supervision.draw.color.ColorPalette` of the label text.
             text_scale: The font scale of the label text.
             text_thickness: The thickness of the label text.
             text_padding: The padding between the label text and its background.
+            color_lookup: :class:`~supervision.annotators.utils.ColorLookup`
+                strategy for mapping palette colors to joints. Options are
+                ``INDEX`` (per-skeleton index), ``CLASS`` (per ``class_id``),
+                and ``KEYPOINT`` (per keypoint index; a joint takes the color of
+                its vertex ``b``).
 
         Raises:
-            ValueError: If ``radius`` or ``thickness`` is not positive.
+            ValueError: If ``radius`` or ``thickness`` is not positive, or if
+                ``color_lookup`` is ``TRACK``;
+                :class:`~supervision.key_points.core.KeyPoints` carry no
+                ``tracker_id``.
         """
         if radius <= 0:
             raise ValueError(f"radius must be positive, got {radius}.")
@@ -1332,6 +1344,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
         self.text_scale = text_scale
         self.text_thickness = text_thickness
         self.text_padding = text_padding
+        self.color_lookup = _validate_keypoint_color_lookup(color_lookup)
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
@@ -1385,6 +1398,13 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             vertex = xy[skeleton_index, angle.b]
             heading_a = self._heading(xy[skeleton_index, angle.a] - vertex)
             heading_c = self._heading(xy[skeleton_index, angle.c] - vertex)
+            color = _resolve_keypoint_color(
+                color=self.color,
+                color_lookup=self.color_lookup,
+                key_points=key_points,
+                instance_idx=int(skeleton_index),
+                keypoint_idx=angle.b,
+            )
             # The interior angle never exceeds 180 degrees, so the arc follows the
             # shorter way round from ray a to ray c. Both backends draw an arc
             # clockwise from the smaller to the larger angle in image coordinates.
@@ -1400,14 +1420,23 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
                     0.0,
                     start_angle,
                     end_angle,
-                    self.color.as_bgr(),
+                    color.as_bgr(),
                     self.thickness,
                     cv2.LINE_AA,
                 )
             if self.show_value:
+                text_color = _resolve_keypoint_color(
+                    color=self.text_color,
+                    color_lookup=self.color_lookup,
+                    key_points=key_points,
+                    instance_idx=int(skeleton_index),
+                    keypoint_idx=angle.b,
+                )
                 self._draw_value(
                     scene=scene,
                     text=f"{values[skeleton_index, angle_index]:.0f}",
+                    color=color,
+                    text_color=text_color,
                     vertex=vertex,
                     bisector=np.radians(heading_a + sweep / 2.0),
                 )
@@ -1424,6 +1453,8 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
         self,
         scene: npt.NDArray[np.uint8],
         text: str,
+        color: Color,
+        text_color: Color,
         vertex: npt.NDArray[np.float64],
         bisector: float,
     ) -> None:
@@ -1443,9 +1474,9 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             scene=scene,
             text=text,
             text_anchor=Point(x=float(center[0]), y=float(center[1])),
-            text_color=self.text_color,
+            text_color=text_color,
             text_scale=self.text_scale,
             text_thickness=self.text_thickness,
             text_padding=self.text_padding,
-            background_color=self.color,
+            background_color=color,
         )

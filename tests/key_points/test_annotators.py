@@ -1392,6 +1392,75 @@ class TestJointAngleAnnotator:
             sv.JointAngleAnnotator(angles=[JOINT], radius=radius, thickness=thickness)
 
 
+_PALETTE = sv.ColorPalette(
+    [sv.Color(255, 0, 0), sv.Color(0, 255, 0), sv.Color(0, 0, 255)]
+)
+
+
+def _two_right_angles(class_id: list[int] | None = None) -> sv.KeyPoints:
+    """Two skeletons with 90-degree joints at (50, 50) and (150, 50)."""
+    one = np.array([[90.0, 50.0], [50.0, 50.0], [50.0, 10.0]])
+    xy = np.stack([one, one + np.array([100.0, 0.0])]).astype(np.float32)
+    ids = None if class_id is None else np.array(class_id)
+    return sv.KeyPoints(xy=xy, class_id=ids)
+
+
+def _has_color(region: np.ndarray, color: sv.Color) -> bool:
+    """Report whether any pixel in the BGR region has exactly this color."""
+    return bool(np.any(np.all(region == color.as_bgr(), axis=-1)))
+
+
+class TestJointAngleAnnotatorColorPalette:
+    @pytest.mark.parametrize(
+        ("color_lookup", "class_id", "expected"),
+        [
+            pytest.param(sv.ColorLookup.INDEX, None, (0, 1), id="index"),
+            pytest.param(sv.ColorLookup.CLASS, [2, 0], (2, 0), id="class"),
+            pytest.param(sv.ColorLookup.KEYPOINT, None, (1, 1), id="keypoint-vertex-b"),
+        ],
+    )
+    def test_arcs_take_palette_colors(
+        self,
+        color_lookup: sv.ColorLookup,
+        class_id: list[int] | None,
+        expected: tuple[int, int],
+    ) -> None:
+        """Each skeleton's arc takes the palette color its lookup selects."""
+        scene = np.zeros((100, 200, 3), dtype=np.uint8)
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=_PALETTE,
+            color_lookup=color_lookup,
+            show_value=False,
+        )
+
+        result = annotator.annotate(scene, _two_right_angles(class_id))
+
+        left, right = result[:, :100], result[:, 100:]
+        assert _has_color(left, _PALETTE.by_idx(expected[0]))
+        assert _has_color(right, _PALETTE.by_idx(expected[1]))
+
+    def test_label_text_takes_palette_color(self) -> None:
+        """A palette for text_color colors each label by the same lookup."""
+        scene = np.zeros((100, 200, 3), dtype=np.uint8)
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.BLACK,
+            text_color=_PALETTE,
+            color_lookup=sv.ColorLookup.INDEX,
+        )
+
+        result = annotator.annotate(scene, _two_right_angles())
+
+        assert _has_color(result[:, :100], _PALETTE.by_idx(0))
+        assert _has_color(result[:, 100:], _PALETTE.by_idx(1))
+
+    def test_track_lookup_rejected_at_construction(self) -> None:
+        """TRACK is rejected when the annotator is created, as for other annotators."""
+        with pytest.raises(ValueError, match="not supported for keypoint"):
+            sv.JointAngleAnnotator(angles=[JOINT], color_lookup=sv.ColorLookup.TRACK)
+
+
 class TestAnnotatorInputValidation:
     """Verify that all keypoint annotators reject invalid scene types."""
 
