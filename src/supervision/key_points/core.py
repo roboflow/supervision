@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -32,16 +32,25 @@ from supervision.validators import _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
-# String aliases are not evaluated at import: subscripting NumPy scalar types such
-# as `np.integer[Any]` raises a TypeError before NumPy 1.22.
-Index1D: TypeAlias = (
-    "int | np.integer[Any] | slice | list[int] | list[bool]"
-    " | npt.NDArray[np.int_] | npt.NDArray[np.bool_]"
+if TYPE_CHECKING:
+    _AnyInteger: TypeAlias = np.integer[Any]
+else:
+    try:
+        _AnyInteger = np.integer[Any]
+    except TypeError:  # NumPy < 1.22 cannot subscript scalar types.
+        _AnyInteger = np.integer
+
+Index1D = (
+    int
+    | _AnyInteger
+    | slice
+    | list[int]
+    | list[bool]
+    | npt.NDArray[np.int_]
+    | npt.NDArray[np.bool_]
 )
-Index2D: TypeAlias = "tuple[Index1D, Index1D]"
-_RowIndexInput: TypeAlias = (
-    "int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice"
-)
+Index2D = tuple[Index1D, Index1D]
+_RowIndexInput = int | _AnyInteger | npt.NDArray[np.generic] | list[Any] | slice
 _NormalizedRowIndex = npt.NDArray[np.generic] | list[Any] | slice
 
 
