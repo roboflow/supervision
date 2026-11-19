@@ -1434,9 +1434,10 @@ class ConfusionMatrix:
             title: Title of the plot.
             classes: List of classes to be displayed on the plot.
                 If not provided, all classes will be displayed.
-            normalize: If True, divide each row (ground-truth class) by its sum,
-                so each row shows the share of that class's targets landing in
-                each predicted column (the diagonal is per-class recall).
+            normalize: If True, divide each row by its sum. Ground-truth class
+                rows show the share of each class's targets in each predicted
+                column, with per-class recall on the diagonal. The FP row shows
+                the distribution of unmatched predictions across classes.
             fig_size: Size of the plot.
 
         Returns:
