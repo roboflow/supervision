@@ -920,6 +920,7 @@ class Detections:
         confidence_mask: Any = None,
         background_id: int | None = 0,
         compact_masks: bool = False,
+        split_components: bool = False,
     ) -> Detections:
         """
         Create a :class:`~supervision.detection.core.Detections` object from a
@@ -928,7 +929,9 @@ class Detections:
         segmentation model returns.
 
         Each class id present in the map becomes one detection with a mask
-        covering every pixel of that class and the tight box around it.
+        covering every pixel of that class and the tight box around it. Pass
+        `split_components=True` to get one detection per separate patch of a class
+        instead, for example each flooded area of a `water` class.
 
         :meth:`~supervision.detection.core.Detections.from_inference` calls this
         method for a semantic result, so a whole Inference result loads either way.
@@ -961,9 +964,15 @@ class Detections:
             compact_masks: When `True`, return
                 :class:`~supervision.detection.compact_mask.CompactMask`, built
                 one class at a time, instead of a dense `(N, H, W)` array.
+            split_components: When `True`, split each class into its 8-connected
+                patches, so pixels touching only at a corner belong to the same
+                patch. Each patch becomes its own detection with its own mask, box
+                and mean `confidence`, and the name of its class. Entries are ordered
+                by class id, then top to bottom and left to right.
 
         Returns:
-            A Detections object with one entry per remaining class id.
+            A Detections object with one entry per remaining class id, or per
+                patch with `split_components`.
                 `detections.data["class_name"]` is always present, empty when
                 no class remains. An empty result keeps a zero-length `mask` of
                 the requested kind, and `confidence` follows the rule above.
@@ -994,6 +1003,7 @@ class Detections:
             confidence_mask=confidence_mask,
             background_id=background_id,
             compact_masks=compact_masks,
+            split_components=split_components,
         )
         return cls(
             xyxy=xyxy, confidence=confidence, class_id=class_id, mask=masks, data=data
