@@ -27,7 +27,7 @@ from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
     box_non_max_suppression,
 )
-from supervision.utils.internal import _to_numpy, warn_deprecated
+from supervision.utils.internal import _to_numpy
 from supervision.validators import _validate_data, _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
@@ -302,7 +302,7 @@ class KeyPoints:
             (one entry per detected object).
     """  # noqa: E501 // docs
 
-    xy: npt.NDArray[np.float32]
+    xy: npt.NDArray[np.floating[Any]]
     class_id: npt.NDArray[np.int_] | None = None
     keypoint_confidence: npt.NDArray[np.float32] | None = None
     detection_confidence: npt.NDArray[np.float32] | None = None
@@ -311,14 +311,12 @@ class KeyPoints:
 
     def __init__(
         self,
-        xy: npt.NDArray[np.float32],
+        xy: npt.NDArray[np.floating[Any]],
         class_id: npt.NDArray[np.int_] | None = None,
         keypoint_confidence: npt.NDArray[np.float32] | None = None,
         detection_confidence: npt.NDArray[np.float32] | None = None,
         visible: npt.NDArray[np.bool_] | None = None,
         data: _DetectionDataType | None = None,
-        *,
-        confidence: npt.NDArray[np.float32] | None = None,
     ) -> None:
         """Initialize KeyPoints.
 
@@ -333,27 +331,7 @@ class KeyPoints:
                 keypoints. Defaults to None.
             data: Dictionary of additional per-detection data arrays.
                 Defaults to an empty dict.
-            confidence: Deprecated since `0.29.0`, removed in `0.32.0`.
-                Use ``keypoint_confidence`` instead. Raises ``ValueError``
-                if passed together with ``keypoint_confidence``.
-
-        Raises:
-            ValueError: If both ``confidence`` and ``keypoint_confidence``
-                are provided.
         """
-        if confidence is not None:
-            if keypoint_confidence is not None:
-                raise ValueError(
-                    "Cannot pass both 'confidence' and 'keypoint_confidence'. "
-                    "'confidence' is deprecated — use 'keypoint_confidence' only."
-                )
-            warn_deprecated(
-                "'confidence' parameter in `KeyPoints()` is deprecated since "
-                "`0.29.0` and will be removed in `0.32.0`. Use "
-                "'keypoint_confidence' instead."
-            )
-            keypoint_confidence = confidence
-
         self.xy = xy
         self.class_id = class_id
         self.keypoint_confidence = keypoint_confidence
@@ -372,25 +350,28 @@ class KeyPoints:
             data=self.data,
         )
 
-    @property
-    def confidence(self) -> npt.NDArray[np.float32] | None:
-        """Deprecated since 0.29.0.
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Assign an attribute, rejecting the ``confidence`` name removed in `0.32.0`.
 
-        Use ``keypoint_confidence`` instead.
+        Without this guard, ``key_points.confidence = ...`` would silently create a
+        detached attribute that nothing reads, so code written for earlier releases
+        would keep running while its confidence update is ignored. Reading
+        ``confidence`` raises the default :class:`AttributeError`.
+
+        Args:
+            name: Name of the attribute to assign.
+            value: Value to assign.
+
+        Raises:
+            AttributeError: If ``name`` is ``"confidence"``; assign
+                ``keypoint_confidence`` instead.
         """
-        warn_deprecated(
-            "'KeyPoints.confidence' is deprecated since 0.29.0 and will be "
-            "removed in 0.32.0. Use 'KeyPoints.keypoint_confidence' instead."
-        )
-        return self.keypoint_confidence
-
-    @confidence.setter
-    def confidence(self, value: npt.NDArray[np.float32] | None) -> None:
-        warn_deprecated(
-            "'KeyPoints.confidence' is deprecated since 0.29.0 and will be "
-            "removed in 0.32.0. Use 'KeyPoints.keypoint_confidence' instead."
-        )
-        self.keypoint_confidence = value
+        if name == "confidence":
+            raise AttributeError(
+                "'KeyPoints.confidence' was removed in `0.32.0`. "
+                "Assign 'KeyPoints.keypoint_confidence' instead."
+            )
+        super().__setattr__(name, value)
 
     def __len__(self) -> int:
         """Returns the number of objects in the
@@ -416,7 +397,7 @@ class KeyPoints:
         self,
     ) -> Iterator[
         tuple[
-            npt.NDArray[np.float32],
+            npt.NDArray[np.floating[Any]],
             npt.NDArray[np.float32] | None,
             npt.NDArray[np.int_] | None,
             _DetectionDataType,
@@ -1052,13 +1033,14 @@ class KeyPoints:
         all persons"* — where the selected joint indices are identical across objects.
 
         It is **not** suitable for per-object confidence filtering
-        (`kp[kp.confidence > 0.5]`) when the threshold yields a different number of
-        passing keypoints per object, because NumPy cannot represent a ragged
+        (`kp[kp.keypoint_confidence > 0.5]`) when the threshold yields a different
+        number of passing keypoints per object, because NumPy cannot represent a ragged
         `(n, ?, 2)` array.  For that pattern either process objects individually or
-        zero out low-confidence entries in-place via `kp.confidence`.
+        zero out low-confidence entries in-place via `kp.keypoint_confidence`.
 
         For the single-object case (`n == 1`) any boolean mask always satisfies the
-        uniform-count requirement, so `kp[kp.confidence > 0.5]` works as expected.
+        uniform-count requirement, so `kp[kp.keypoint_confidence > 0.5]` works as
+        expected.
 
         Args:
             mask: A boolean array of shape `(n, m)` where `n` is the number of
