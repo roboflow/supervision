@@ -13,6 +13,7 @@ from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
@@ -21,6 +22,9 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (
     _load_coco_annotations,
     save_coco_annotations,
+)
+from supervision.dataset.formats.coco import (
+    load_coco_annotations as _load_coco_annotations_public,
 )
 from supervision.dataset.formats.createml import (
     load_createml_annotations,
@@ -40,6 +44,7 @@ from supervision.dataset.formats.yolo import (
     save_yolo_annotations,
 )
 from supervision.dataset.formats.yolo_pose import (
+    _check_yolo_pose_export,
     load_yolo_pose_annotations,
     save_pose_data_yaml,
     save_yolo_pose_annotations,
@@ -56,12 +61,51 @@ from supervision.dataset.utils import (
 )
 from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
-from supervision.utils.internal import warn_deprecated
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM, warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
 _IMAGE_FILE_EXTENSIONS = frozenset(
     {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 )
+
+#: Warning text for the copy of the COCO loader that this module exposed as a side
+#: effect of using it. The loader itself stays public in its own module.
+_COCO_LOADER_MODULE_DEPRECATION = (
+    "`%(source_name)s` imported from `supervision.dataset.core` is deprecated in "
+    "`%(deprecated_in)s` and will be removed in `%(remove_in)s`. Import it from "
+    "`supervision.dataset.formats.coco` instead."
+)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_load_coco_annotations_public,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_COCO_LOADER_MODULE_DEPRECATION,
+)
+def load_coco_annotations(
+    images_directory_path: str,
+    annotations_path: str,
+    force_masks: bool = False,
+    use_iscrowd: bool = True,
+    show_progress: bool = False,
+    *,
+    mask_rasterizer: Literal["supervision", "pycocotools"] | None = None,
+) -> tuple[list[str], list[str], dict[str, Detections]]:
+    """Deprecated: import `load_coco_annotations` from its own module.
+
+    Releases before `0.32.0` exposed this loader from this module, so the name stays
+    importable here until `0.35.0`.
+    """
+    return void(  # type: ignore[no-any-return]
+        images_directory_path,
+        annotations_path,
+        force_masks,
+        use_iscrowd,
+        show_progress,
+        mask_rasterizer=mask_rasterizer,
+    )
 
 
 def _validate_and_name_class_ids(
@@ -575,6 +619,8 @@ class DetectionDataset(BaseDataset):
         force_masks: bool = False,
         is_obb: bool = False,
         show_progress: bool = False,
+        *,
+        compact_masks: bool = False,
     ) -> DetectionDataset:
         """Creates a Dataset instance from YOLO formatted data.
 
@@ -603,6 +649,15 @@ class DetectionDataset(BaseDataset):
                 OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
                 where pairs of [x, y] are box corners.
             show_progress: If True, display a progress bar during loading.
+            compact_masks: If True, store segmentation masks as
+                :class:`~supervision.detection.compact_mask.CompactMask` instead
+                of dense NumPy arrays. Each mask is rasterized full-frame and
+                immediately encoded within its rounded polygon bounds without
+                changing pixels. This usually reduces retained memory, but
+                compression depends on mask complexity and can increase memory
+                for highly fragmented masks. Does not enable masks for box-only
+                datasets; combine with `force_masks=True` to generate compact box
+                masks. OBB annotations never generate masks.
 
         Returns:
             A DetectionDataset instance
@@ -635,6 +690,7 @@ class DetectionDataset(BaseDataset):
                 annotations_directory_path=f"{dataset.location}/train/labels",
                 data_yaml_path=f"{dataset.location}/data.yaml",
                 # pass show_progress=True to enable a tqdm progress bar
+                # pass compact_masks=True to reduce segmentation mask storage
             )
 
             ds.classes
@@ -648,6 +704,7 @@ class DetectionDataset(BaseDataset):
             force_masks=force_masks,
             is_obb=is_obb,
             show_progress=show_progress,
+            compact_masks=compact_masks,
         )
         return DetectionDataset(
             classes=classes, images=image_paths, annotations=annotations
@@ -992,7 +1049,7 @@ class DetectionDataset(BaseDataset):
                 optional ``supervision[coco]`` extra for this mode; it is
                 required even when the file has no polygon segmentation.
                 ``None`` (default) behaves like ``"supervision"`` and warns
-                when the file contains polygon segmentation. RLE masks are
+                when a loaded image has a non-empty polygon part. RLE masks are
                 decoded identically in all modes.
 
         Returns:
@@ -1008,8 +1065,8 @@ class DetectionDataset(BaseDataset):
                 polygon segmentation.
 
         Warns:
-            SupervisionWarnings: When ``mask_rasterizer`` is omitted and the
-                annotation file contains polygon segmentation. Relying on the
+            SupervisionWarnings: When ``mask_rasterizer`` is omitted and a
+                loaded image has a non-empty polygon part. Relying on the
                 default is deprecated in ``0.32.0``.
 
         Note:
@@ -1184,8 +1241,10 @@ class KeyPointsDataset(BaseDataset):
     skeleton per object. Alongside the coordinates, the annotations carry the
     object box under ``data['xyxy']`` and, for a ``kpt_shape`` of ``[K, 3]``,
     the raw visibility values under ``data['keypoint_visibility']`` as
-    ``float32``: the ``0``/``1``/``2`` flags, or the keypoint confidence that
-    labels written from model output carry.
+    ``float64``: the ``0``/``1``/``2`` flags, or the keypoint confidence that
+    labels written from model output carry. Coordinates loaded by
+    :meth:`~supervision.dataset.core.KeyPointsDataset.from_yolo` are ``float64``
+    too, to reduce rounding during export.
 
     ``KeyPoints.visible`` marks every keypoint with a positive raw value: flag
     ``1`` (occluded) as well as flag ``2`` (visible), and any positive
@@ -1540,6 +1599,10 @@ class KeyPointsDataset(BaseDataset):
             The loaded dataset.
 
         Raises:
+            FileNotFoundError: If the images or labels directory does not
+                exist; an image without a label file in an existing labels
+                directory still loads, with empty key points.
+            NotADirectoryError: If the images or labels path names a file.
             ValueError: If data.yaml declares no valid ``kpt_shape`` or an
                 invalid ``flip_idx``, or if a label file holds an invalid line;
                 the message names the file.
@@ -1609,7 +1672,11 @@ class KeyPointsDataset(BaseDataset):
             ValueError: Before any file is written, if two images would share an
                 output file name, or if labels are requested and a non-empty
                 annotation, for instance one replaced after construction, carries
-                no ``class_id``.
+                missing, misaligned or invalid class IDs, non-finite planar
+                coordinates, or a ``data['xyxy']`` not of shape
+                ``(N, 4)`` or a ``data['keypoint_visibility']`` not of shape
+                ``(N, K)``, either holding a non-finite value, or a negative
+                visibility value.
 
         Examples:
             ```python
@@ -1639,6 +1706,9 @@ class KeyPointsDataset(BaseDataset):
             # `annotations` is a public dict, so an entry may have been replaced
             # since the constructor checked it.
             _check_key_points_carry_class_id(annotations=self.annotations)
+            # Checked here as well as by the label writer, because the images
+            # are written first.
+            _check_yolo_pose_export(dataset=self)
 
         if images_directory_path is not None:
             save_dataset_images(
