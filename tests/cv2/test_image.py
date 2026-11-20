@@ -229,6 +229,32 @@ def test_fallback_add_weighted_breaks_float32_midpoint_with_dropped_addend(
     np.testing.assert_array_equal(actual, np.full_like(source, expected))
 
 
+@pytest.mark.parametrize(
+    ("shape", "alpha", "beta", "gamma"),
+    [
+        pytest.param((150, 48, 3), 0.35, 0.65, 0.0, id="bgr-multi-strip"),
+        pytest.param((150, 48), 0.7, 0.3, 12.5, id="gray-multi-strip-gamma"),
+        pytest.param((130, 32, 4), 1.2, -0.4, -10.0, id="bgra-negative-weights"),
+    ],
+)
+def test_fallback_add_weighted_uint8_lut_matches_reference_across_strips(
+    shape: tuple[int, ...], alpha: float, beta: float, gamma: float
+) -> None:
+    """Match direct float32 fused blending bit-for-bit across LUT strip boundaries."""
+    rng = np.random.default_rng(20261120)
+    source = rng.integers(0, 256, size=shape, dtype=np.uint8)
+    other = rng.integers(0, 256, size=shape, dtype=np.uint8)
+    # Force non-LUT reference by blending in float32 then rounding to uint8.
+    expected_f32 = _add_weighted(
+        source.astype(np.float32), alpha, other.astype(np.float32), beta, gamma
+    )
+    expected = np.clip(np.rint(expected_f32), 0, 255).astype(np.uint8)
+
+    actual = _add_weighted(source, alpha, other, beta, gamma)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def _round_exactly_to_float32(exact: Fraction) -> np.float32:
     """Round an exact rational to the nearest float32, ties to even."""
     guess = np.float32(float(exact))

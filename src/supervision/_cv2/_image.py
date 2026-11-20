@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import math
 import os
 from collections.abc import Sequence
+from functools import lru_cache
 from typing import Any, cast
 
 import numpy as np
@@ -149,6 +151,31 @@ def _blend_like_opencv_float32(
         return _fused_multiply_add_float32(src1, alpha32, inner.astype(np.float64))
 
 
+_ADD_WEIGHTED_STRIP_ROWS = 64
+
+
+@lru_cache(maxsize=64)
+def _uint8_add_weighted_lut(
+    alpha32: float, beta32: float, gamma32: float
+) -> npt.NDArray[np.uint8]:
+    """Build a bit-exact 256x256 lookup table for uint8 `addWeighted`.
+
+    Evaluates the exact OpenCV float32 FMA emulation over all 65,536 uint8
+    pairs once per `(alpha, beta, gamma)` weight tuple so full-frame blends
+    reduce to indexed lookups without allocating float64 frame temporaries.
+    """
+    values = np.arange(256, dtype=np.uint8)
+    src1_grid = np.broadcast_to(values[:, np.newaxis], (256, 256))
+    src2_grid = np.broadcast_to(values[np.newaxis, :], (256, 256))
+    return cast(
+        npt.NDArray[np.uint8],
+        _cast_array_like_opencv(
+            _blend_like_opencv_float32(src1_grid, alpha32, src2_grid, beta32, gamma32),
+            np.dtype(np.uint8),
+        ),
+    )
+
+
 def _add_weighted(
     src1: npt.NDArray[Any],
     alpha: float,
@@ -166,7 +193,52 @@ def _add_weighted(
         )
     if src1.shape != src2.shape:
         raise ValueError("addWeighted inputs must have equal shapes")
-    if src1.dtype in _FLOAT32_BLEND_DTYPES:
+
+    target = dst if dst is not None else np.empty(src1.shape, dtype=src1.dtype)
+    if src1.size == 0:
+        return target
+
+    if (
+        src1.dtype == np.uint8
+        and src2.dtype == np.uint8
+        and math.isfinite(alpha)
+        and math.isfinite(beta)
+        and math.isfinite(gamma)
+    ):
+        lut = _uint8_add_weighted_lut(
+            float(np.float32(alpha)),
+            float(np.float32(beta)),
+            float(np.float32(gamma)),
+        )
+        if src1.ndim >= 2 and src1.shape[0] > _ADD_WEIGHTED_STRIP_ROWS:
+            for start in range(0, src1.shape[0], _ADD_WEIGHTED_STRIP_ROWS):
+                stop = min(start + _ADD_WEIGHTED_STRIP_ROWS, src1.shape[0])
+                target[start:stop] = lut[src1[start:stop], src2[start:stop]]
+        else:
+            target[...] = lut[src1, src2]
+        return target
+
+    use_float32_blend = src1.dtype in _FLOAT32_BLEND_DTYPES
+    if src1.ndim >= 2 and src1.shape[0] > _ADD_WEIGHTED_STRIP_ROWS:
+        for start in range(0, src1.shape[0], _ADD_WEIGHTED_STRIP_ROWS):
+            stop = min(start + _ADD_WEIGHTED_STRIP_ROWS, src1.shape[0])
+            s1 = src1[start:stop]
+            s2 = src2[start:stop]
+            if use_float32_blend:
+                blended = _cast_array_like_opencv(
+                    _blend_like_opencv_float32(s1, alpha, s2, beta, gamma), src1.dtype
+                )
+            else:
+                blended = _cast_array_like_opencv(
+                    s1.astype(np.float64) * alpha
+                    + s2.astype(np.float64) * beta
+                    + gamma,
+                    src1.dtype,
+                )
+            target[start:stop] = blended
+        return target
+
+    if use_float32_blend:
         result = _cast_array_like_opencv(
             _blend_like_opencv_float32(src1, alpha, src2, beta, gamma), src1.dtype
         )
@@ -175,10 +247,8 @@ def _add_weighted(
             src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
             src1.dtype,
         )
-    if dst is not None:
-        dst[...] = result
-        return dst
-    return result
+    target[...] = result
+    return target
 
 
 def _convert_scale_abs(
