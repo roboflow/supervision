@@ -1156,3 +1156,50 @@ class TestMeanAverageRecallCocoSizeBuckets:
         boxes = np.array([[0, 0, 256, 256]], dtype=np.float16)
         areas = get_detection_areas(Detections(xyxy=boxes))
         np.testing.assert_allclose(areas, [65536.0])
+
+    def test_computes_per_image_iou_once_across_size_buckets(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Caching per-image IoU avoids recomputing IoU per COCO size bucket."""
+        import supervision.metrics.mean_average_recall as mar_mod
+        from supervision.detection.utils.iou_and_nms import (
+            box_iou_batch as original_box_iou,
+        )
+
+        calls = 0
+
+        def counting_box_iou(*args: Any, **kwargs: Any) -> np.ndarray:
+            """Count box_iou_batch invocations while delegating to original."""
+            nonlocal calls
+            calls += 1
+            return original_box_iou(*args, **kwargs)
+
+        monkeypatch.setattr(mar_mod, "box_iou_batch", counting_box_iou)
+        boxes = np.array(
+            [
+                [0, 0, 10, 10],  # small (100)
+                [100, 100, 160, 160],  # medium (3600)
+                [200, 200, 320, 320],  # large (14400)
+            ],
+            dtype=np.float32,
+        )
+        preds = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.8, 0.7], dtype=np.float32),
+            class_id=np.array([0, 0, 1], dtype=np.int32),
+        )
+        targets = Detections(
+            xyxy=boxes.copy(),
+            class_id=np.array([0, 0, 1], dtype=np.int32),
+        )
+
+        result = mar_mod.MeanAverageRecall().update([preds], [targets]).compute()
+
+        assert calls == 1
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+        assert result.mAR_at_100 == pytest.approx(1.0)
+        assert result.small_objects.mAR_at_100 == pytest.approx(1.0)
+        assert result.medium_objects.mAR_at_100 == pytest.approx(1.0)
+        assert result.large_objects.mAR_at_100 == pytest.approx(1.0)

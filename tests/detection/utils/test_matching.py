@@ -238,3 +238,46 @@ class TestMatchDetections:
 
         with pytest.raises(ValueError, match="class_id"):
             match_detections(empty, classified_empty)
+
+    def test_match_detection_batch_multi_threshold_greedy_assignment(self) -> None:
+        """Pre-sorted multi-threshold matching assigns each target at most once."""
+        from supervision.detection.utils.matching import (
+            _match_detection_batch_with_target_indices,
+        )
+
+        predictions_classes = np.array([0, 0, 0], dtype=np.int32)
+        target_classes = np.array([0, 0], dtype=np.int32)
+        # Shape (num_targets=2, num_predictions=3)
+        iou = np.array(
+            [
+                [0.9, 0.85, 0.4],
+                [0.6, 0.7, 0.3],
+            ],
+            dtype=np.float32,
+        )
+        thresholds = np.array([0.5, 0.75, 0.95], dtype=np.float32)
+
+        matches, target_indices = _match_detection_batch_with_target_indices(
+            predictions_classes=predictions_classes,
+            target_classes=target_classes,
+            iou=iou,
+            iou_thresholds=thresholds,
+        )
+
+        expected_matches = np.array(
+            [
+                [True, True, False],
+                [True, False, False],
+                [False, False, False],
+            ]
+        )
+        expected_targets = np.array(
+            [
+                [0, 0, -1],
+                [1, -1, -1],
+                [-1, -1, -1],
+            ],
+            dtype=np.int32,
+        )
+        np.testing.assert_array_equal(matches, expected_matches)
+        np.testing.assert_array_equal(target_indices, expected_targets)

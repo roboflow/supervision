@@ -1,4 +1,5 @@
 import warnings
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -570,3 +571,51 @@ class TestComputeF1:
 
         with pytest.raises(ValueError, match="Confusion matrix must have shape"):
             F1Score._compute_f1(confusion_matrix)
+
+    def test_caches_per_image_iou_across_size_buckets(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """F1Score computes per-image IoU once across ANY/SMALL/MEDIUM/LARGE."""
+        import supervision.metrics._confusion_matrix_metric as cmm_mod
+        from supervision.detection.utils.iou_and_nms import (
+            box_iou_batch as original_box_iou,
+        )
+        from supervision.metrics.f1_score import F1Score as LiveF1Score
+
+        calls = 0
+
+        def counting_box_iou(*args: Any, **kwargs: Any) -> np.ndarray:
+            """Count box_iou_batch invocations while delegating to original."""
+            nonlocal calls
+            calls += 1
+            return original_box_iou(*args, **kwargs)
+
+        monkeypatch.setattr(cmm_mod, "box_iou_batch", counting_box_iou)
+        boxes = np.array(
+            [
+                [0, 0, 10, 10],  # small
+                [100, 100, 160, 160],  # medium
+                [200, 200, 320, 320],  # large
+            ],
+            dtype=np.float32,
+        )
+        preds = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.8, 0.7], dtype=np.float32),
+            class_id=np.array([0, 0, 1], dtype=np.int32),
+        )
+        targets = Detections(
+            xyxy=boxes.copy(),
+            class_id=np.array([0, 0, 1], dtype=np.int32),
+        )
+
+        result = LiveF1Score().update([preds], [targets]).compute()
+
+        assert calls == 1
+        assert result.f1_50 == pytest.approx(1.0)
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+        assert result.small_objects.f1_50 == pytest.approx(1.0)
+        assert result.medium_objects.f1_50 == pytest.approx(1.0)
+        assert result.large_objects.f1_50 == pytest.approx(1.0)
