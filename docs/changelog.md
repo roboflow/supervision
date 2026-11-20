@@ -17,6 +17,8 @@ date_modified: 2026-11-18
 
 - `sv.ConfusionMatrix.plot(normalize=True)` now divides each row by its sum, so each ground-truth row shows how that class's targets were predicted and the diagonal is per-class recall, as in `sklearn.metrics.confusion_matrix(normalize="true")`. It used to divide by column sums, which did not match the `True` / `Predicted` axis labels: with 10 cats all found and 5 of 10 dogs predicted as cat, the plot showed cat -> cat 0.67 and dog -> dog 1.00 instead of 1.00 and 0.50. Normalized plots now show different numbers. ([#2954](https://github.com/roboflow/supervision/pull/2954))
 
+- `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). Cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#2970](https://github.com/roboflow/supervision/pull/2970))
+
 ### 0.32.0 <small>Nov 18, 2026</small>
 
 - **Zones**: `sv.PolygonZone` counts entries and exits per class and measures dwell time, and the zone annotators accept a `coord_transform`.
