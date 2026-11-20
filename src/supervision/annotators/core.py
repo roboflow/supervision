@@ -620,9 +620,21 @@ def _paint_masks_by_area(
         else:
             mask = np.asarray(masks[detection_idx], dtype=bool)
             mask = mask[origin_y : origin_y + canvas_h, origin_x : origin_x + canvas_w]
-            canvas[mask] = pixel_value
+            # Restrict indexing to the mask's tight foreground bbox so dense masks
+            # avoid scanning the entire canvas per detection.
+            row_any = np.asarray(mask.any(axis=1))
+            if not row_any.any():
+                continue
+            my1 = int(row_any.argmax())
+            my2 = canvas_h - int(row_any[::-1].argmax())
+            band = mask[my1:my2]
+            col_any = np.asarray(band.any(axis=0))
+            mx1 = int(col_any.argmax())
+            mx2 = canvas_w - int(col_any[::-1].argmax())
+            crop = band[:, mx1:mx2]
+            canvas[my1:my2, mx1:mx2][crop] = pixel_value
             if union is not None:
-                union |= mask
+                union[my1:my2, mx1:mx2] |= crop
     return union
 
 
@@ -737,7 +749,7 @@ class MaskAnnotator(BaseAnnotator):
             tmp = _composite_over_bgra(scene_roi, colored_mask[..., :3], alpha)
         else:
             tmp = cv2.addWeighted(
-                colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
+                colored_mask, self.opacity, scene_roi, 1 - self.opacity, 0
             )
         # OpenCV drops a singleton channel axis; restore it before assignment.
         scene_roi[:] = tmp.reshape(scene_roi.shape)
@@ -915,22 +927,54 @@ class ColorAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        scene_with_boxes = scene.copy()
-        for detection_idx, color in _iter_resolved_colors(
-            detections, self.color, self.color_lookup, custom_color_lookup
-        ):
+        resolved = list(
+            _iter_resolved_colors(
+                detections, self.color, self.color_lookup, custom_color_lookup
+            )
+        )
+        if not resolved:
+            return scene
+
+        height, width = scene.shape[:2]
+        boxes_to_draw: list[tuple[int, int, int, int, Color]] = []
+        rx1, ry1 = width, height
+        rx2, ry2 = -1, -1
+        for detection_idx, color in resolved:
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            bx1, bx2 = (int(x1), int(x2)) if x1 <= x2 else (int(x2), int(x1))
+            by1, by2 = (int(y1), int(y2)) if y1 <= y2 else (int(y2), int(y1))
+            cx1, cy1 = max(bx1, 0), max(by1, 0)
+            cx2, cy2 = min(bx2, width - 1), min(by2, height - 1)
+            if cx1 <= cx2 and cy1 <= cy2:
+                boxes_to_draw.append((cx1, cy1, cx2, cy2, color))
+                if cx1 < rx1:
+                    rx1 = cx1
+                if cy1 < ry1:
+                    ry1 = cy1
+                if cx2 > rx2:
+                    rx2 = cx2
+                if cy2 > ry2:
+                    ry2 = cy2
+
+        if not boxes_to_draw:
+            return scene
+
+        # Copy and blend only the bounding ROI of drawn boxes instead of the full frame.
+        scene_roi = scene[ry1 : ry2 + 1, rx1 : rx2 + 1]
+        roi_with_boxes = scene_roi.copy()
+        for bx1, by1, bx2, by2, color in boxes_to_draw:
             cv2.rectangle(
-                img=scene_with_boxes,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
+                img=roi_with_boxes,
+                pt1=(bx1 - rx1, by1 - ry1),
+                pt2=(bx2 - rx1, by2 - ry1),
                 color=color.as_bgr(),
                 thickness=-1,
             )
 
-        cv2.addWeighted(
-            scene_with_boxes, self.opacity, scene, 1 - self.opacity, gamma=0, dst=scene
+        blended_roi = cv2.addWeighted(
+            roi_with_boxes, self.opacity, scene_roi, 1 - self.opacity, gamma=0
         )
+        scene_roi[:] = blended_roi.reshape(scene_roi.shape)
         return scene
 
 
@@ -1038,25 +1082,37 @@ class HaloAnnotator(BaseAnnotator):
         if gray_max == 0:
             # no halo to draw (e.g. empty masks); leave the scene untouched
             return scene
-        alpha = self.opacity * gray / gray_max
-        alpha_mask = alpha if scene.ndim == 2 else alpha[:, :, np.newaxis]
-        # Blend in float space so halo opacity cannot wrap around uint8 boundaries.
-        blended_scene = np.clip(
-            scene.astype(np.float32) * (1 - alpha_mask)
-            + colored_mask.astype(np.float32) * alpha_mask,
-            0,
-            255,
-        ).astype(np.uint8)
-        if scene.ndim == 3 and scene.shape[2] == 4:
-            # Preserve existing opaque-scene rounding while compositing translucent
-            # pixels using their destination alpha.
-            translucent = scene[..., 3] < 255
-            composited = _composite_over_bgra(
-                scene, colored_mask[..., :3], alpha[..., np.newaxis]
-            )
-            blended_scene[translucent] = composited[translucent]
-            blended_scene[..., 3][~translucent] = 255
-        np.copyto(scene, blended_scene)
+        # Blend in horizontal row strips to avoid allocating full-frame float64
+        # 3-channel temporaries while preserving exact arithmetic and skipping
+        # rows with zero halo intensity.
+        is_bgra = scene.ndim == 3 and scene.shape[2] == 4
+        strip_rows = 64
+        height = scene.shape[0]
+        inv_scale = float(self.opacity) / float(gray_max)
+        for start in range(0, height, strip_rows):
+            stop = min(start + strip_rows, height)
+            gray_strip = gray[start:stop]
+            if not gray_strip.any():
+                continue
+            alpha = gray_strip.astype(np.float64) * inv_scale
+            alpha_mask = alpha if scene.ndim == 2 else alpha[:, :, np.newaxis]
+            scene_strip = scene[start:stop]
+            color_strip = colored_mask[start:stop]
+            blended_strip = np.clip(
+                scene_strip.astype(np.float32) * (1 - alpha_mask)
+                + color_strip.astype(np.float32) * alpha_mask,
+                0,
+                255,
+            ).astype(np.uint8)
+            if is_bgra:
+                translucent = scene_strip[..., 3] < 255
+                if translucent.any():
+                    composited = _composite_over_bgra(
+                        scene_strip, color_strip[..., :3], alpha[..., np.newaxis]
+                    )
+                    blended_strip[translucent] = composited[translucent]
+                blended_strip[..., 3][~translucent] = 255
+            scene[start:stop] = blended_strip
         return scene
 
 
@@ -2482,7 +2538,6 @@ class TraceAnnotator(BaseAnnotator):
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
         is_confirmed = detections.tracker_id != PENDING_TRACK_ID
-        filtered_detections: Detections = detections[is_confirmed]  # type: ignore
         # Validate before filtering so an invalid lookup cannot happen to match only
         # the confirmed tracks. The matching lookup then drops pending-track entries.
         if custom_color_lookup is not None:
@@ -2493,7 +2548,37 @@ class TraceAnnotator(BaseAnnotator):
                 )
             custom_color_lookup = custom_color_lookup[is_confirmed]
 
+        # Avoid slicing/copying dense masks that TraceAnnotator does not read
+        # (only CENTER_OF_MASS anchors inspect `detections.mask`).
+        if is_confirmed.all():
+            filtered_detections = detections
+        elif self.trace.anchor == Position.CENTER_OF_MASS:
+            filtered_detections = detections[is_confirmed]  # type: ignore
+        else:
+            filtered_detections = Detections(
+                xyxy=detections.xyxy[is_confirmed],
+                mask=None,
+                confidence=(
+                    detections.confidence[is_confirmed]
+                    if detections.confidence is not None
+                    else None
+                ),
+                class_id=(
+                    detections.class_id[is_confirmed]
+                    if detections.class_id is not None
+                    else None
+                ),
+                tracker_id=detections.tracker_id[is_confirmed],
+            )
+
         self.trace.put(filtered_detections)
+        spline_cache: dict[int, tuple[bytes, npt.NDArray[np.int32]]] | None = None
+        if self.smooth:
+            spline_cache = getattr(self, "_spline_cache", None)
+            if spline_cache is None:
+                spline_cache = {}
+                self._spline_cache = spline_cache
+
         for detection_idx in range(len(filtered_detections)):
             tracker_id_val = filtered_detections.tracker_id[detection_idx]  # type: ignore
             if tracker_id_val is None:
@@ -2509,32 +2594,40 @@ class TraceAnnotator(BaseAnnotator):
             xy = self.trace.get(tracker_id=tracker_id)
             spline_points: npt.NDArray[np.int32] = xy.astype(np.int32)
 
-            if self.smooth:
-                unique_xy = xy[
-                    np.concatenate(([True], np.any(np.diff(xy, axis=0) != 0, axis=1)))
-                ]
-                if len(unique_xy) > 3:
-                    try:
-                        x, y = unique_xy[:, 0], unique_xy[:, 1]
-                        tck, _u = splprep([x, y], s=20)
-                        x_new, y_new = splev(
-                            np.linspace(0, 1, 100),
-                            cast(
-                                tuple[
-                                    npt.NDArray[np.float64],
-                                    npt.NDArray[np.float64],
-                                    int,
-                                ],
-                                tck,
-                            ),
-                        )
-                        spline_points = np.stack((x_new, y_new), axis=1).astype(
-                            np.int32
-                        )
-                    except ValueError:
-                        spline_points = unique_xy.astype(np.int32)
+            if self.smooth and spline_cache is not None:
+                xy_key = xy.tobytes()
+                cached = spline_cache.get(tracker_id)
+                if cached is not None and cached[0] == xy_key:
+                    spline_points = cached[1]
                 else:
-                    spline_points = unique_xy.astype(np.int32)
+                    unique_xy = xy[
+                        np.concatenate(
+                            ([True], np.any(np.diff(xy, axis=0) != 0, axis=1))
+                        )
+                    ]
+                    if len(unique_xy) > 3:
+                        try:
+                            x, y = unique_xy[:, 0], unique_xy[:, 1]
+                            tck, _u = splprep([x, y], s=20)
+                            x_new, y_new = splev(
+                                np.linspace(0, 1, 100),
+                                cast(
+                                    tuple[
+                                        npt.NDArray[np.float64],
+                                        npt.NDArray[np.float64],
+                                        int,
+                                    ],
+                                    tck,
+                                ),
+                            )
+                            spline_points = np.stack((x_new, y_new), axis=1).astype(
+                                np.int32
+                            )
+                        except ValueError:
+                            spline_points = unique_xy.astype(np.int32)
+                    else:
+                        spline_points = unique_xy.astype(np.int32)
+                    spline_cache[tracker_id] = (xy_key, spline_points)
 
             if len(xy) > 1:
                 cv2.polylines(
@@ -2545,6 +2638,20 @@ class TraceAnnotator(BaseAnnotator):
                     thickness=self.thickness,
                 )
         return scene
+
+
+@lru_cache(maxsize=1)
+def _heatmap_hsv_to_bgr_lut() -> npt.NDArray[np.uint8]:
+    """Return a 256-entry exact BGR lookup table for HSV(h, 255, 255).
+
+    Uses the active `cv2.cvtColor` once on a 256-pixel strip so HeatMapAnnotator
+    matches OpenCV and fallback backends bit-for-bit without full-frame HSV->BGR
+    conversions.
+    """
+    hsv_strip = np.full((1, 256, 3), 255, dtype=np.uint8)
+    hsv_strip[0, :, 0] = np.arange(256, dtype=np.uint8)
+    bgr_strip = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv_strip, cv2.COLOR_HSV2BGR))
+    return cast(npt.NDArray[np.uint8], bgr_strip[0])
 
 
 class HeatMapAnnotator(BaseAnnotator):
@@ -2671,49 +2778,79 @@ class HeatMapAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        if self.heat_mask is None or self.heat_mask.shape != scene.shape[:2]:
-            self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
+        height, width = scene.shape[:2]
+        if self.heat_mask is None or self.heat_mask.shape != (height, width):
+            self.heat_mask = np.zeros((height, width), dtype=np.float32)
 
-        mask: npt.NDArray[np.float32] = np.zeros(scene.shape[:2], dtype=np.float32)
-        for xy in detections.get_anchors_coordinates(self.position):
-            x, y = int(xy[0]), int(xy[1])
-            cv2.circle(
-                img=mask,
-                center=(x, y),
-                radius=self.radius,
-                color=(1,),
-                thickness=-1,  # fill
-            )
-        self.heat_mask = mask + self.heat_mask
+        anchors = detections.get_anchors_coordinates(self.position)
+        if len(anchors) > 0:
+            xs = anchors[:, 0].astype(np.int64)
+            ys = anchors[:, 1].astype(np.int64)
+            rx1 = max(int(xs.min()) - self.radius, 0)
+            ry1 = max(int(ys.min()) - self.radius, 0)
+            rx2 = min(int(xs.max()) + self.radius + 1, width)
+            ry2 = min(int(ys.max()) + self.radius + 1, height)
+            if rx1 < rx2 and ry1 < ry2:
+                # Accumulate into a uint8 ROI mask (4x smaller than full float32)
+                # and add in place to `self.heat_mask`.
+                mask_roi = np.zeros((ry2 - ry1, rx2 - rx1), dtype=np.uint8)
+                for x, y in zip(xs.tolist(), ys.tolist()):
+                    cv2.circle(
+                        img=mask_roi,
+                        center=(x - rx1, y - ry1),
+                        radius=self.radius,
+                        color=(1,),
+                        thickness=-1,
+                    )
+                self.heat_mask[ry1:ry2, rx1:rx2] += mask_roi
+
         heat_mask = self.heat_mask
-        heat_values = heat_mask.copy()
-        max_val = heat_values.max()
-        if max_val > 0:
-            heat_values = self.low_hue - heat_values / max_val * (
-                self.low_hue - self.top_hue
-            )
-        heat_hue = heat_values.astype(np.uint8)
+        max_val = float(heat_mask.max())
+        if max_val <= 0.0:
+            return scene
+
+        mask2d = heat_mask > 0
+        row_any = np.asarray(mask2d.any(axis=1))
+        hy1 = int(row_any.argmax())
+        hy2 = height - int(row_any[::-1].argmax())
+        col_any = np.asarray(mask2d[hy1:hy2].any(axis=0))
+        hx1 = int(col_any.argmax())
+        hx2 = width - int(col_any[::-1].argmax())
+
+        hue_scale = (self.low_hue - self.top_hue) / max_val
+        heat_hue = (self.low_hue - heat_mask * hue_scale).astype(np.uint8)
         if self.kernel_size is not None:
             heat_hue = cast(
                 npt.NDArray[np.uint8],
                 cv2.blur(heat_hue, (self.kernel_size, self.kernel_size)),
             )
-        hsv = np.full((*scene.shape[:2], 3), 255, dtype=np.uint8)
-        hsv[..., 0] = heat_hue
-        heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
-        mask2d = heat_mask > 0
+
+        # Colorize and blend only the tight bounding ROI of nonzero heat via the
+        # cached 256-entry HSV(h, 255, 255) -> BGR table.
+        lut = _heatmap_hsv_to_bgr_lut()
+        heat_bgr_roi = lut[heat_hue[hy1:hy2, hx1:hx2]]
+        scene_roi: npt.NDArray[np.uint8] = scene[hy1:hy2, hx1:hx2]
+        mask2d_roi = mask2d[hy1:hy2, hx1:hx2]
+
         if scene.ndim == 3 and scene.shape[2] == 4:
-            alpha = np.full((*scene.shape[:2], 1), self.opacity, dtype=np.float32)
-            blended = _composite_over_bgra(scene, heat_bgr, alpha)
-            scene[mask2d] = blended[mask2d]
+            alpha = np.full((*scene_roi.shape[:2], 1), self.opacity, dtype=np.float32)
+            blended_roi = _composite_over_bgra(scene_roi, heat_bgr_roi, alpha)
+            scene_roi[mask2d_roi] = blended_roi[mask2d_roi]
             return scene
-        # A grayscale scene takes the heat colors as their gray luminance.
-        heat_overlay = _match_overlay_to_scene_channels(overlay=heat_bgr, roi=scene)
-        # OpenCV drops a singleton channel axis; restore the scene's layout.
-        blended = cv2.addWeighted(
-            heat_overlay, self.opacity, scene, 1 - self.opacity, 0
-        ).reshape(scene.shape)
-        scene[mask2d] = blended[mask2d]
+
+        heat_overlay_roi = _match_overlay_to_scene_channels(
+            overlay=heat_bgr_roi, roi=scene_roi
+        )
+        # Blend only the active pixels in `mask2d_roi` (exact 1D addWeighted),
+        # avoiding full-frame temporary allocations on both OpenCV and fallback.
+        blended_pixels = cv2.addWeighted(
+            heat_overlay_roi[mask2d_roi],
+            self.opacity,
+            scene_roi[mask2d_roi],
+            1 - self.opacity,
+            0,
+        )
+        scene_roi[mask2d_roi] = blended_pixels.reshape(scene_roi[mask2d_roi].shape)
         return scene
 
 

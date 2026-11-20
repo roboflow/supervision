@@ -862,3 +862,38 @@ class TestDetectionsSmootherUnconfirmedTracks:
         assert result.tracker_id is not None
         assert result.tracker_id.tolist() == [7, -1]
         assert result.confidence is None
+
+    def test_smoother_releases_superseded_masks_while_keeping_latest_mask(
+        self,
+    ) -> None:
+        """Superseded history drops masks while output preserves the latest mask."""
+        smoother = DetectionsSmoother(length=4)
+        expected_latest = np.zeros((1, 16, 16), dtype=bool)
+        for frame_idx in range(4):
+            mask = np.zeros((1, 16, 16), dtype=bool)
+            mask[0, frame_idx : frame_idx + 4, frame_idx : frame_idx + 4] = True
+            expected_latest = mask.copy()
+            smoothed = smoother.update_with_detections(
+                Detections(
+                    xyxy=np.array(
+                        [[frame_idx, frame_idx, frame_idx + 10, frame_idx + 10]],
+                        dtype=np.float32,
+                    ),
+                    mask=mask,
+                    tracker_id=np.array([1]),
+                )
+            )
+
+        history = list(smoother.tracks[1])
+        assert [entry is not None and entry.mask is None for entry in history[:-1]] == [
+            True,
+            True,
+            True,
+        ]
+        latest_entry = history[-1]
+        assert latest_entry is not None
+        assert latest_entry.mask is not None
+        assert isinstance(smoothed.mask, np.ndarray)
+        np.testing.assert_array_equal(smoothed.mask, expected_latest)
+        smoothed.mask[:] = False
+        np.testing.assert_array_equal(latest_entry.mask, expected_latest)
