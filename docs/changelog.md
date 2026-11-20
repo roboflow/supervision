@@ -19,6 +19,8 @@ date_modified: 2026-11-18
 
 - `sv.ConfusionMatrix.plot(normalize=True)` now divides each row by its sum, so each ground-truth row shows how that class's targets were predicted and the diagonal is per-class recall, as in `sklearn.metrics.confusion_matrix(normalize="true")`. It used to divide by column sums, which did not match the `True` / `Predicted` axis labels: with 10 cats all found and 5 of 10 dogs predicted as cat, the plot showed cat -> cat 0.67 and dog -> dog 1.00 instead of 1.00 and 0.50. Normalized plots now show different numbers. ([#2954](https://github.com/roboflow/supervision/pull/2954))
 
+- Added `sv.DetectionDataset.empty` and `sv.DetectionDataset.add` to build a detection dataset image by image, for example from model predictions for semi-automatic annotation, before exporting it with `as_yolo`, `as_coco` or `as_pascal_voc`. `add` stores the image path and a copy of the annotation, validates class ids like the constructor, and raises `ValueError` for duplicate image paths or datasets holding in-memory images. ([#2868](https://github.com/roboflow/supervision/pull/2868))
+
 ### 0.32.0 <small>Nov 18, 2026</small>
 
 - **Zones**: `sv.PolygonZone` counts entries and exits per class and measures dwell time, and the zone annotators accept a `coord_transform`.
