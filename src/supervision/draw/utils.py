@@ -491,11 +491,14 @@ def draw_text(
         # OpenCV 5 writes glyph coverage into the alpha channel even for an opaque
         # color, so draw the colors and the coverage separately, and only on the
         # part of the scene the glyphs can reach.
-        margin = text_height + text_thickness + 2
-        x_min = max(text_origin[0] - margin, 0)
-        y_min = max(text_origin[1] - text_height - margin, 0)
-        x_max = min(text_origin[0] + text_width + margin, scene.shape[1])
-        y_max = min(text_origin[1] + margin, scene.shape[0])
+        # Negative scales can make both dimensions signed as the glyphs invert.
+        margin = abs(text_height) + text_thickness + 2
+        x_end = text_origin[0] + text_width
+        y_end = text_origin[1] - text_height
+        x_min = max(min(text_origin[0], x_end) - margin, 0)
+        y_min = max(min(text_origin[1], y_end) - margin, 0)
+        x_max = min(max(text_origin[0], x_end) + margin, scene.shape[1])
+        y_max = min(max(text_origin[1], y_end) + margin, scene.shape[0])
         if x_min >= x_max or y_min >= y_max:
             return scene
         region = scene[y_min:y_max, x_min:x_max]

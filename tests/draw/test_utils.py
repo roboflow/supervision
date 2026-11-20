@@ -460,6 +460,13 @@ _POLYGON = np.array([[5, 5], [40, 8], [35, 40], [8, 30]])
 _RECT = Rect(x=10, y=10, width=20, height=20)
 
 
+def _supports_negative_text_scale() -> bool:
+    """Detect whether the active backend renders negatively scaled text."""
+    scene = np.zeros((150, 300, 3), dtype=np.uint8)
+    cv2.putText(scene, "ABCDE", (200, 65), cv2.FONT_HERSHEY_SIMPLEX, -1.0, (0, 0, 255))
+    return bool(scene.any())
+
+
 class TestDrawOnBgraScene:
     """Verify the shape and text helpers on BGRA scenes."""
 
@@ -581,3 +588,19 @@ class TestDrawOnBgraScene:
         result = draw_text(scene, "a", Point(500, 500), Color.RED)
 
         np.testing.assert_array_equal(result, before)
+
+    @pytest.mark.skipif(
+        not _supports_negative_text_scale(),
+        reason="The active backend does not render negatively scaled text.",
+    )
+    def test_negative_scale_text_matches_bgr_on_opaque_scene(self) -> None:
+        """Negative-scale text remains visible on an opaque BGRA scene."""
+        bgr = np.zeros((150, 300, 3), dtype=np.uint8)
+        scene = np.dstack([bgr, np.full((150, 300), 255, dtype=np.uint8)])
+        expected = draw_text(bgr, "ABCDE", Point(150, 75), Color.RED, text_scale=-1.0)
+
+        result = draw_text(scene, "ABCDE", Point(150, 75), Color.RED, text_scale=-1.0)
+
+        assert expected.any()
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert (result[..., 3] == 255).all()
