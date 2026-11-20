@@ -114,6 +114,28 @@ class TestAnnotateNonContiguousScene:
         # then
         np.testing.assert_array_equal(parent.mask, mask_before)
 
+    @pytest.mark.parametrize(
+        "scene",
+        [
+            pytest.param(np.array(7), id="scalar"),
+            pytest.param(np.zeros(5, np.uint8), id="one-dim"),
+            pytest.param(np.zeros((2, 4, 4, 3), np.uint8)[:, :, ::-1], id="four-dim"),
+        ],
+    )
+    def test_non_image_array_is_returned_unchanged(
+        self, scene: npt.NDArray[np.generic]
+    ) -> None:
+        """Arrays that aren't 2D or 3D images reach the annotator as before."""
+        # given
+        before = scene.copy()
+
+        # when
+        result = sv.BoxAnnotator().annotate(scene, sv.Detections.empty())
+
+        # then
+        assert result is scene
+        np.testing.assert_array_equal(scene, before)
+
 
 class TestOpencvCanDrawInto:
     @pytest.mark.parametrize(

@@ -61,11 +61,13 @@ def _needs_contiguous_copy(scene: npt.NDArray[Any]) -> bool:
 
     Only OpenCV rejects these layouts; the NumPy backend draws into any view. Array
     subclasses such as masked arrays and read-only views keep the direct call,
-    because a plain copy written back would drop the subclass state or fail.
+    because a plain copy written back would drop the subclass state or fail. Arrays
+    that aren't 2D or 3D images also keep the direct call.
     """
     return (
         cv2._IS_CV2_AVAILABLE
         and type(scene) is np.ndarray
+        and scene.ndim in (2, 3)
         and scene.flags.writeable
         and not _opencv_can_draw_into(scene)
     )
@@ -80,8 +82,10 @@ def _opencv_can_draw_into(image: npt.NDArray[Any]) -> bool:
     flips, channel subsets and transposes break that and make OpenCV raise. Other
     dimensions return `False`.
     """
+    if image.ndim not in (2, 3):
+        return False
     row_stride = image.strides[0]
-    if image.ndim not in (2, 3) or row_stride <= 0 or row_stride % image.itemsize:
+    if row_stride <= 0 or row_stride % image.itemsize:
         return False
     channels = 1 if image.ndim == 2 else image.shape[2]
     if image.ndim == 3 and image.strides[2] != image.itemsize:
