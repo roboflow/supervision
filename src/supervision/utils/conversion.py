@@ -35,8 +35,7 @@ def ensure_cv2_image_for_class_method(
     @functools.wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> Any:
         if isinstance(scene, np.ndarray):
-            # A read-only view can't take the result back, so keep the old error.
-            if not scene.flags.writeable or _opencv_can_draw_into(scene):
+            if not _needs_contiguous_copy(scene):
                 return annotate_func(self, scene, *args, **kwargs)
             # Draw on a copy OpenCV accepts, then write it back to keep the
             # in-place contract for slices, flips and transposes.
@@ -57,15 +56,32 @@ def ensure_cv2_image_for_class_method(
     return cast(F, wrapper)
 
 
+def _needs_contiguous_copy(scene: npt.NDArray[Any]) -> bool:
+    """Check whether an annotator must draw on a copy of `scene` and write it back.
+
+    Only OpenCV rejects these layouts; the NumPy backend draws into any view. Array
+    subclasses such as masked arrays and read-only views keep the direct call,
+    because a plain copy written back would drop the subclass state or fail.
+    """
+    return (
+        cv2._IS_CV2_AVAILABLE
+        and type(scene) is np.ndarray
+        and scene.flags.writeable
+        and not _opencv_can_draw_into(scene)
+    )
+
+
 def _opencv_can_draw_into(image: npt.NDArray[Any]) -> bool:
     """Check whether OpenCV can draw into `image` without a copy.
 
-    OpenCV accepts rows at any positive spacing, so crops and row steps work, but
-    pixels and channels within a row must be adjacent and in order. Column steps,
+    OpenCV accepts rows at any positive spacing that is a whole number of elements,
+    so crops and row steps work, but pixels and channels within a row must be
+    adjacent and in order. Column steps,
     flips, channel subsets and transposes break that and make OpenCV raise. Other
     dimensions return `False`.
     """
-    if image.ndim not in (2, 3) or image.strides[0] <= 0:
+    row_stride = image.strides[0]
+    if image.ndim not in (2, 3) or row_stride <= 0 or row_stride % image.itemsize:
         return False
     channels = 1 if image.ndim == 2 else image.shape[2]
     if image.ndim == 3 and image.strides[2] != image.itemsize:
