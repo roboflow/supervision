@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections` and `CompactMask` now accept a 0-d integer NumPy array, such as `np.array(1)` or `np.asarray(detections.confidence.argmax())`, as a row index and select the same row as the equivalent `int`, as NumPy does. `sv.Detections` raised `ValueError: xyxy must be a 2D np.ndarray` or, with list `data`, `TypeError: iteration over a 0-d array`, and `CompactMask` raised the `TypeError`.
+- `sv.Detections` and `CompactMask` now accept a 0-d integer NumPy array, such as `np.array(1)` or `np.asarray(detections.confidence.argmax())`, as a row index and select the same row as the equivalent `int`, as NumPy does. `sv.Detections` raised `ValueError: xyxy must be a 2D np.ndarray` or, with list `data`, `TypeError: iteration over a 0-d array`, and `CompactMask` raised the `TypeError`. ([#3034](https://github.com/roboflow/supervision/pull/3034))
 
 - `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha. ([#2956](https://github.com/roboflow/supervision/pull/2956))
 
