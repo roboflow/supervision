@@ -226,6 +226,9 @@ def draw_rounded_rectangle(
     x1, y1, x2, y2 = rect.as_xyxy_int_tuple()
     width, height = x2 - x1, y2 - y1
     border_radius = min(border_radius, min(width, height) // 2)
+    color_value: tuple[int, ...] = color.as_bgr()
+    if scene.ndim == 3 and scene.shape[2] == 4:
+        color_value = (*color_value, 255)
 
     if border_radius <= 0:
         # square corners: a single fill rectangle (the common default), rather
@@ -234,7 +237,7 @@ def draw_rounded_rectangle(
             img=scene,
             pt1=(x1, y1),
             pt2=(x2, y2),
-            color=color.as_bgr(),
+            color=color_value,
             thickness=-1,
         )
         return scene
@@ -255,7 +258,7 @@ def draw_rounded_rectangle(
             img=scene,
             pt1=coordinates[0],
             pt2=coordinates[1],
-            color=color.as_bgr(),
+            color=color_value,
             thickness=-1,
         )
     for center in circle_centers:
@@ -263,7 +266,7 @@ def draw_rounded_rectangle(
             img=scene,
             center=center,
             radius=border_radius,
-            color=color.as_bgr(),
+            color=color_value,
             thickness=-1,
         )
     return scene
