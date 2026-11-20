@@ -2438,6 +2438,33 @@ class TestBgraOverlayAnnotators:
             result[..., :3].astype(int), expected.astype(int), atol=1
         )
         assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_heat_map_on_transparent_scene_preserves_overlay_color(self) -> None:
+        """A translucent heat map does not mix in hidden destination colors."""
+        scene = np.zeros((48, 48, 4), dtype=np.uint8)
+        scene[..., 0] = 255
+        detections = _create_detections(xyxy=[[8, 8, 24, 24]], class_id=[0])
+        annotator = HeatMapAnnotator(opacity=0.5, radius=4, kernel_size=None)
+
+        result = annotator.annotate(scene, detections)
+
+        np.testing.assert_array_equal(result[24, 16], [0, 0, 255, 128])
+
+    def test_translucent_icon_on_transparent_scene_preserves_color(
+        self, tmp_path: Path
+    ) -> None:
+        """A translucent icon keeps its straight color over a transparent scene."""
+        icon_path = tmp_path / "translucent.png"
+        Image.new("RGBA", (16, 16), (255, 0, 0, 128)).save(icon_path)
+        scene = np.zeros((48, 48, 4), dtype=np.uint8)
+        scene[..., 0] = 255
+        detections = _create_detections(xyxy=[[8, 8, 24, 24]], class_id=[0])
+        annotator = IconAnnotator(icon_resolution_wh=(16, 16))
+
+        result = annotator.annotate(scene, detections, icon_path=str(icon_path))
+
+        np.testing.assert_array_equal(result[8, 16], [0, 0, 255, 128])
 
     def test_icon_opaque_bgra_matches_bgr_scene(self, tmp_path: Path) -> None:
         """An icon drawn on an opaque BGRA scene has the BGR colors and stays opaque."""

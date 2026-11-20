@@ -16,6 +16,7 @@ from PIL import Image
 from supervision import _cv2 as cv2
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
+from supervision.draw.utils import _composite_over_bgra
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
 )
@@ -508,6 +509,12 @@ def _overlay_image(
     if overlay_crop.ndim == 3 and overlay_crop.shape[2] == 4:
         alpha = overlay_crop[:, :, 3]
         overlay_crop = overlay_crop[:, :, :3]
+    if roi.ndim == 3 and roi.shape[2] == 4 and alpha is not None:
+        alpha_f32 = alpha.astype(np.float32)[..., None] / 255.0
+        image[y_min:y_max, x_min:x_max] = _composite_over_bgra(
+            roi, overlay_crop, alpha_f32
+        )
+        return image
     overlay_crop = _match_overlay_to_scene_channels(overlay=overlay_crop, roi=roi)
 
     if alpha is not None:

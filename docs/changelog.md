@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.HeatMapAnnotator`, `sv.CropAnnotator` and `sv.IconAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising an OpenCV `Sizes of input arguments do not match` error or `ValueError: operands could not be broadcast together`. A BGR heat map, crop or icon is pasted with an opaque alpha, so an opaque scene gets the same colors as its BGR copy. ([#2958](https://github.com/roboflow/supervision/pull/2958))
+- `sv.HeatMapAnnotator`, `sv.CropAnnotator` and `sv.IconAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising a channel mismatch error. Overlays use straight-alpha compositing, and crop borders are opaque; colors on opaque scenes match their BGR counterparts within resize rounding. ([#2958](https://github.com/roboflow/supervision/pull/2958))
 
 - `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha. ([#2956](https://github.com/roboflow/supervision/pull/2956))
 
