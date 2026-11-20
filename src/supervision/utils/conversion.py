@@ -60,9 +60,9 @@ def _needs_contiguous_copy(scene: npt.NDArray[Any]) -> bool:
     """Check whether an annotator must draw on a copy of `scene` and write it back.
 
     Only OpenCV rejects these layouts; the NumPy backend draws into any view. Array
-    subclasses such as masked arrays and read-only views keep the direct call,
-    because a plain copy written back would drop the subclass state or fail. Arrays
-    that aren't 2D or 3D images also keep the direct call.
+    subclasses such as masked arrays and read-only views keep the direct call, because a
+    plain copy written back would drop the subclass state or fail. Arrays that aren't 2D
+    or 3D images also keep the direct call.
     """
     return (
         cv2._IS_CV2_AVAILABLE
@@ -76,11 +76,10 @@ def _needs_contiguous_copy(scene: npt.NDArray[Any]) -> bool:
 def _opencv_can_draw_into(image: npt.NDArray[Any]) -> bool:
     """Check whether OpenCV can draw into `image` without a copy.
 
-    OpenCV accepts rows at any positive spacing that is a whole number of elements,
-    so crops and row steps work, but pixels and channels within a row must be
-    adjacent and in order. Column steps,
-    flips, channel subsets and transposes break that and make OpenCV raise. Other
-    dimensions return `False`.
+    OpenCV accepts rows at any positive spacing that is a whole number of elements, so
+    crops and row steps work, but pixels and channels within a row must be adjacent and
+    in order. Column steps, flips, channel subsets and transposes break that and make
+    OpenCV raise. Other dimensions return `False`.
     """
     if image.ndim not in (2, 3):
         return False
