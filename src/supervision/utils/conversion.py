@@ -35,7 +35,15 @@ def ensure_cv2_image_for_class_method(
     @functools.wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> Any:
         if isinstance(scene, np.ndarray):
-            return annotate_func(self, scene, *args, **kwargs)
+            # A read-only view can't take the result back, so keep the old error.
+            if not scene.flags.writeable or _opencv_can_draw_into(scene):
+                return annotate_func(self, scene, *args, **kwargs)
+            # Draw on a copy OpenCV accepts, then write it back to keep the
+            # in-place contract for slices, flips and transposes.
+            scene[...] = annotate_func(
+                self, np.ascontiguousarray(scene), *args, **kwargs
+            )
+            return scene
 
         if isinstance(scene, Image.Image):
             scene_np = pillow_to_cv2(scene)
@@ -47,6 +55,22 @@ def ensure_cv2_image_for_class_method(
         raise TypeError(f"Unsupported image type: {type(scene)}")
 
     return cast(F, wrapper)
+
+
+def _opencv_can_draw_into(image: npt.NDArray[Any]) -> bool:
+    """Check whether OpenCV can draw into `image` without a copy.
+
+    OpenCV accepts rows at any positive spacing, so crops and row steps work, but
+    pixels and channels within a row must be adjacent and in order. Column steps,
+    flips, channel subsets and transposes break that and make OpenCV raise. Other
+    dimensions return `False`.
+    """
+    if image.ndim not in (2, 3) or image.strides[0] <= 0:
+        return False
+    channels = 1 if image.ndim == 2 else image.shape[2]
+    if image.ndim == 3 and image.strides[2] != image.itemsize:
+        return False
+    return bool(image.strides[1] == image.itemsize * channels)
 
 
 def _paste_annotated_pixels(
