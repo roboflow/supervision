@@ -1522,7 +1522,11 @@ class CompactMask:
 
             ```
         """
-        if isinstance(index, (int, np.integer)):
+        if isinstance(index, (int, np.integer)) or (
+            isinstance(index, np.ndarray)
+            and index.ndim == 0
+            and np.issubdtype(index.dtype, np.integer)
+        ):
             idx = int(index)
             img_h, img_w = self._image_shape
             result: npt.NDArray[np.bool_] = np.zeros((img_h, img_w), dtype=bool)
