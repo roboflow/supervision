@@ -17,6 +17,8 @@ date_modified: 2026-11-18
 
 - `sv.ConfusionMatrix.plot(normalize=True)` now divides each row by its sum, so each ground-truth row shows how that class's targets were predicted and the diagonal is per-class recall, as in `sklearn.metrics.confusion_matrix(normalize="true")`. It used to divide by column sums, which did not match the `True` / `Predicted` axis labels: with 10 cats all found and 5 of 10 dogs predicted as cat, the plot showed cat -> cat 0.67 and dog -> dog 1.00 instead of 1.00 and 0.50. Normalized plots now show different numbers. ([#2954](https://github.com/roboflow/supervision/pull/2954))
 
+- `sv.Detections.from_transformers` and `sv.KeyPoints.from_transformers` now accept `bfloat16` model outputs, as a model run in `bfloat16` returns them, instead of raising `TypeError: Got unsupported ScalarType BFloat16`. `Detections` returns `bfloat16` boxes and scores as `float32` and keeps other precisions unchanged; `KeyPoints` coordinates and confidences are `float32` for every input precision, as before. ([#2962](https://github.com/roboflow/supervision/pull/2962))
+
 ### 0.32.0 <small>Nov 18, 2026</small>
 
 - **Zones**: `sv.PolygonZone` counts entries and exits per class and measures dwell time, and the zone annotators accept a `coord_transform`.
