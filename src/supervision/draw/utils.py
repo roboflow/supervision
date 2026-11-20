@@ -69,13 +69,11 @@ def _color_for_canvas(
 def _color_for_scene(color: Color, scene: npt.NDArray[np.uint8]) -> tuple[int, ...]:
     """Return `color` as the value OpenCV should draw on `scene`.
 
-    OpenCV fills the alpha a BGR color lacks with 0, so whatever it draws on a BGRA
-    scene, shaped ``(H, W, 4)``, becomes transparent. Such a scene takes the color with
-    an opaque alpha instead.
+    Delegates to :func:`_color_for_canvas`: a BGRA scene, shaped ``(H, W, 4)``, takes
+    the color with an opaque alpha, because OpenCV fills the alpha a BGR color lacks
+    with 0 and would make whatever it draws transparent.
     """
-    if scene.ndim == 3 and scene.shape[2] == 4:
-        return (*color.as_bgr(), 255)
-    return color.as_bgr()
+    return _color_for_canvas(color.as_bgr(), scene)
 
 
 def _has_transparency(scene: npt.NDArray[np.uint8]) -> bool:
@@ -623,7 +621,8 @@ def _composite_coverage_over_bgra(
     """Composite drawn colors over a BGRA scene in place, by coverage times opacity.
 
     Only the bounding box of the covered pixels is composited, so pixels outside the
-    drawn shapes are left untouched.
+    drawn shapes are left untouched. Unlike `_fill_over_bgra`, colors may vary per
+    pixel and coverage may be fractional (anti-aliased edges).
 
     Args:
         scene: BGRA scene of shape `(H, W, 4)`, modified in place.
