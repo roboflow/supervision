@@ -13,8 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}
@@ -22,12 +21,17 @@ concurrency:
 
 jobs:
   refresh:
+    permissions:
+      contents: write
+      pull-requests: write
     name: Refresh docs stats
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 🌿 Name the monthly refresh branch
         id: branch
@@ -42,7 +46,7 @@ jobs:
       # needed. It creates the branch and PR on first run of a month and amends both on
       # any later run, rather than stacking duplicate PRs.
       - name: 🚀 Open refresh PR
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.branch.outputs.name }}
