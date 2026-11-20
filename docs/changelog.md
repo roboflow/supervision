@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.HeatMapAnnotator`, `sv.CropAnnotator` and `sv.IconAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising a channel mismatch error. Overlays use straight-alpha compositing, and crop borders are opaque; colors on opaque scenes match their BGR counterparts within resize rounding. ([#2958](https://github.com/roboflow/supervision/pull/2958))
+
 - `sv.draw_line`, `sv.draw_rectangle`, `sv.draw_filled_rectangle`, `sv.draw_rounded_rectangle`, `sv.draw_polygon`, `sv.draw_filled_polygon` and `sv.draw_text` now draw visibly on a BGRA scene, shaped `(H, W, 4)`, while keeping an opaque scene opaque. They passed OpenCV a BGR color, and OpenCV fills the missing alpha with 0, so the drawn pixels of an opaque scene became fully transparent. On a scene that is not opaque, a translucent fill and antialiased text are composited over the scene's alpha, so they keep their own color and may remain translucent. ([#2957](https://github.com/roboflow/supervision/pull/2957))
 
 - `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha. ([#2956](https://github.com/roboflow/supervision/pull/2956))

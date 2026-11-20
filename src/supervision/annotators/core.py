@@ -2701,9 +2701,14 @@ class HeatMapAnnotator(BaseAnnotator):
         hsv = np.full((*scene.shape[:2], 3), 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
         heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
+        mask2d = heat_mask > 0
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            alpha = np.full((*scene.shape[:2], 1), self.opacity, dtype=np.float32)
+            blended = _composite_over_bgra(scene, heat_bgr, alpha)
+            scene[mask2d] = blended[mask2d]
+            return scene
         # A grayscale scene takes the heat colors as their gray luminance.
         heat_overlay = _match_overlay_to_scene_channels(overlay=heat_bgr, roi=scene)
-        mask2d = heat_mask > 0
         # OpenCV drops a singleton channel axis; restore the scene's layout.
         blended = cv2.addWeighted(
             heat_overlay, self.opacity, scene, 1 - self.opacity, 0
@@ -3352,11 +3357,14 @@ class CropAnnotator(BaseAnnotator):
                 color_lookup=self.border_color_lookup,
                 custom_color_lookup=custom_color_lookup,
             )
+            border_color: tuple[int, ...] = color.as_bgr()
+            if scene.ndim == 3 and scene.shape[2] == 4:
+                border_color = (*border_color, 255)
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
-                color=color.as_bgr(),
+                color=border_color,
                 thickness=self.border_thickness,
             )
 
