@@ -45,6 +45,7 @@ from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     _color_for_canvas,
+    _composite_coverage_over_bgra,
     _composite_over_bgra,
     draw_polygon,
     draw_rounded_rectangle,
@@ -905,6 +906,20 @@ class ColorAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            # Boxes are drawn on a separate color layer and coverage mask so the
+            # scene's hidden colors under transparent pixels cannot tint them.
+            box_colors = np.zeros((*scene.shape[:2], 3), dtype=np.uint8)
+            coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+            for detection_idx, color in _iter_resolved_colors(
+                detections, self.color, self.color_lookup, custom_color_lookup
+            ):
+                x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+                cv2.rectangle(box_colors, (x1, y1), (x2, y2), color.as_bgr(), -1)
+                cv2.rectangle(coverage, (x1, y1), (x2, y2), 255, -1)
+            _composite_coverage_over_bgra(scene, box_colors, coverage, self.opacity)
+            return scene
+
         scene_with_boxes = scene.copy()
         for detection_idx, color in _iter_resolved_colors(
             detections, self.color, self.color_lookup, custom_color_lookup

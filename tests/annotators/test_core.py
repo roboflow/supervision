@@ -1045,6 +1045,18 @@ class TestBgraSceneAnnotators:
         assert result[20, 20, 3] == 128
         assert result[55, 70, 3] == 0
 
+    def test_translucent_boxes_ignore_hidden_scene_color(self) -> None:
+        """Translucent boxes over transparent green keep their own color."""
+        scene = np.zeros((60, 80, 4), dtype=np.uint8)
+        scene[..., 1] = 200
+
+        result = ColorAnnotator(color=Color.RED, opacity=0.5).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        np.testing.assert_array_equal(result[20, 20], (0, 0, 255, 128))
+        np.testing.assert_array_equal(result[55, 70], (0, 200, 0, 0))
+
     def test_label_background_is_opaque(self) -> None:
         """A label's background box is opaque on a transparent scene."""
         scene = np.zeros((60, 80, 4), dtype=np.uint8)

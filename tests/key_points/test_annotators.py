@@ -1224,3 +1224,32 @@ class TestBgraSceneKeyPointAnnotators:
         assert drawn.any()
         assert np.all(result[..., 3][drawn] > 0)
         assert np.all(result[..., 3][~drawn] == 0)
+
+    def test_translucent_ellipse_ignores_hidden_scene_color(self) -> None:
+        """A translucent ellipse over transparent green keeps its own red color."""
+        scene = np.zeros((80, 80, 4), dtype=np.uint8)
+        scene[..., 1] = 200
+        annotator = sv.VertexEllipseAreaAnnotator(
+            sigma=1.0, color=sv.Color.RED, opacity=0.5
+        )
+
+        result = annotator.annotate(scene, self._key_points())
+
+        np.testing.assert_array_equal(result[20, 20], (0, 0, 255, 128))
+        np.testing.assert_array_equal(result[0, 79], (0, 200, 0, 0))
+
+    def test_ellipse_keeps_its_color_at_every_covered_pixel(self) -> None:
+        """Every covered pixel, including anti-aliased edges, has the ellipse color."""
+        scene = np.zeros((80, 80, 4), dtype=np.uint8)
+        annotator = sv.VertexEllipseAreaAnnotator(
+            sigma=1.0, color=sv.Color.RED, opacity=1.0
+        )
+
+        result = annotator.annotate(scene, self._key_points())
+
+        covered = result[..., 3] > 0
+        assert covered.any()
+        np.testing.assert_array_equal(
+            result[..., :3][covered],
+            np.tile(sv.Color.RED.as_bgr(), (covered.sum(), 1)),
+        )

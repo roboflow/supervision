@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- Annotators and draw helpers that draw with OpenCV, including the key point and line zone annotators, now make their pixels opaque on BGRA scenes, such as a PNG read with `cv2.IMREAD_UNCHANGED`. They wrote only the B, G and R channels and left alpha at `0`, so boxes, labels, masks and the like were invisible on transparent pixels. Translucent annotators scale the alpha by their `opacity`. ([#3033](https://github.com/roboflow/supervision/pull/3033))
+- Annotators and draw helpers that draw with OpenCV, including the key point and line zone annotators, now make their pixels opaque on BGRA scenes, such as a PNG read with `cv2.IMREAD_UNCHANGED`. They wrote only the B, G and R channels and left alpha at `0`, so boxes, labels, masks and the like were invisible on transparent pixels. Translucent fills, from `sv.ColorAnnotator`, `sv.VertexEllipseAreaAnnotator`, `draw_filled_rectangle` and `draw_filled_polygon`, set the alpha to their coverage times `opacity` and keep their own color instead of blending with the hidden color of transparent pixels. ([#3033](https://github.com/roboflow/supervision/pull/3033))
 
 - `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha. ([#2956](https://github.com/roboflow/supervision/pull/2956))
 

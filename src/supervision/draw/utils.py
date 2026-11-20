@@ -190,6 +190,16 @@ def draw_filled_rectangle(
             _color_for_canvas(color.as_bgr(), scene),
             -1,
         )
+    elif scene.ndim == 3 and scene.shape[2] == 4:
+        coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+        cv2.rectangle(
+            coverage,
+            rect.top_left.as_xy_int_tuple(),
+            rect.bottom_right.as_xy_int_tuple(),
+            255,
+            -1,
+        )
+        _composite_coverage_over_bgra(scene, color.as_bgr(), coverage, opacity)
     else:
         scene_with_annotations = scene.copy()
         cv2.rectangle(
@@ -359,6 +369,10 @@ def draw_filled_polygon(
     """
     if opacity == 1:
         cv2.fillPoly(scene, [polygon], color=_color_for_canvas(color.as_bgr(), scene))
+    elif scene.ndim == 3 and scene.shape[2] == 4:
+        coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+        cv2.fillPoly(coverage, [polygon], color=255)
+        _composite_coverage_over_bgra(scene, color.as_bgr(), coverage, opacity)
     else:
         scene_with_annotations = scene.copy()
         cv2.fillPoly(
@@ -506,6 +520,41 @@ def _composite_over_bgra(
         npt.NDArray[np.uint8],
         cv2.convertScaleAbs(np.dstack([colors, output_alpha * 255.0])),
     )
+
+
+def _composite_coverage_over_bgra(
+    scene: npt.NDArray[np.uint8],
+    colors: npt.NDArray[np.uint8] | npt.NDArray[np.float32] | tuple[int, int, int],
+    coverage: npt.NDArray[np.uint8] | npt.NDArray[np.float32],
+    opacity: float,
+) -> npt.NDArray[np.uint8]:
+    """Composite drawn colors over a BGRA scene in place, by coverage times opacity.
+
+    Only the bounding box of the covered pixels is composited, so pixels outside the
+    drawn shapes are left untouched.
+
+    Args:
+        scene: BGRA scene of shape `(H, W, 4)`, modified in place.
+        colors: BGR colors of shape `(H, W, 3)`, or one BGR color for every pixel.
+        coverage: Shape coverage of shape `(H, W)`, in `[0, 255]` for `uint8` or
+            `[0, 1]` for floats.
+        opacity: Opacity applied on top of the coverage, in `[0, 1]`.
+
+    Returns:
+        The composited scene.
+    """
+    rows = np.flatnonzero(coverage.any(axis=1))
+    if rows.size == 0:
+        return scene
+    cols = np.flatnonzero(coverage.any(axis=0))
+    region = (slice(rows[0], rows[-1] + 1), slice(cols[0], cols[-1] + 1))
+    scale = opacity / 255.0 if coverage.dtype == np.uint8 else opacity
+    alpha = coverage[region][..., None].astype(np.float32) * scale
+    overlay = np.asarray(colors)
+    if overlay.ndim == 3:
+        overlay = overlay[region]
+    scene[region] = _composite_over_bgra(scene[region], overlay, alpha)
+    return scene
 
 
 def draw_image(

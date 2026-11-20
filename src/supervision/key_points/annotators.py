@@ -14,7 +14,11 @@ from supervision.annotators.utils import (
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import _color_for_canvas, draw_rounded_rectangle
+from supervision.draw.utils import (
+    _color_for_canvas,
+    _composite_coverage_over_bgra,
+    draw_rounded_rectangle,
+)
 from supervision.geometry.core import Rect
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT
@@ -629,6 +633,8 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
         """
         if len(key_points) == 0:
             return scene
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            return self._annotate_bgra(scene, key_points)
 
         overlay = scene.copy()
         for level in self._iter_ellipse_params(key_points):
@@ -647,6 +653,56 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
         cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
+
+    def _annotate_bgra(
+        self, scene: npt.NDArray[np.uint8], key_points: KeyPoints
+    ) -> npt.NDArray[np.uint8]:
+        """Composite the filled ellipses over a BGRA scene by coverage and opacity.
+
+        Each anti-aliased ellipse is rendered into its own coverage mask and layered
+        over the earlier ones in premultiplied color, so neither the scene's hidden
+        colors nor transparent black at the edges tint the result.
+        """
+        height, width = scene.shape[:2]
+        premultiplied = np.zeros((height, width, 3), dtype=np.float32)
+        coverage = np.zeros((height, width, 1), dtype=np.float32)
+        for level in self._iter_ellipse_params(key_points):
+            for center, axis_lengths, angle, _sigma, color in level:
+                # One pixel of margin keeps the anti-aliased edge inside the region.
+                reach = max(axis_lengths) + 1
+                x0, y0 = max(center[0] - reach, 0), max(center[1] - reach, 0)
+                x1 = min(center[0] + reach + 1, width)
+                y1 = min(center[1] + reach + 1, height)
+                if x0 >= x1 or y0 >= y1:
+                    continue
+                mask = np.zeros((y1 - y0, x1 - x0), dtype=np.uint8)
+                cv2.ellipse(
+                    img=mask,
+                    center=(center[0] - x0, center[1] - y0),
+                    axes=axis_lengths,
+                    angle=angle,
+                    startAngle=0,
+                    endAngle=360,
+                    color=255,
+                    thickness=-1,
+                    lineType=cv2.LINE_AA,
+                )
+                weight = mask[..., None].astype(np.float32) / 255.0
+                region = (slice(y0, y1), slice(x0, x1))
+                premultiplied[region] = premultiplied[region] * (
+                    1 - weight
+                ) + weight * np.array(color.as_bgr(), dtype=np.float32)
+                coverage[region] = coverage[region] * (1 - weight) + weight
+
+        colors = np.divide(
+            premultiplied,
+            coverage,
+            out=np.zeros_like(premultiplied),
+            where=np.broadcast_to(coverage > 0, premultiplied.shape),
+        )
+        return _composite_coverage_over_bgra(
+            scene, colors, coverage[..., 0], self.opacity
+        )
 
 
 class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):

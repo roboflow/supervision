@@ -541,3 +541,35 @@ class TestDrawOnBgraScene:
 
         assert result[10, 10, 3] == 128
         assert result[0, 0, 3] == 0
+
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_filled_rectangle(
+                    scene, Rect(2, 2, 15, 15), Color.RED, opacity=0.5
+                ),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(
+                    scene,
+                    np.array([[2, 2], [17, 2], [17, 17], [2, 17]]),
+                    Color.RED,
+                    opacity=0.5,
+                ),
+                id="filled-polygon",
+            ),
+        ],
+    )
+    def test_translucent_fill_ignores_hidden_scene_color(
+        self, draw: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """A translucent fill over transparent green keeps its own red color."""
+        scene = np.zeros((20, 20, 4), dtype=np.uint8)
+        scene[..., 1] = 200
+
+        result = draw(scene)
+
+        np.testing.assert_array_equal(result[10, 10], (0, 0, 255, 128))
+        np.testing.assert_array_equal(result[0, 0], (0, 200, 0, 0))
