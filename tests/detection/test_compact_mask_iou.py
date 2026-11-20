@@ -496,3 +496,29 @@ class TestCompactMaskIouRandom:
             atol=1e-9,
             err_msg=f"Tight bbox IoU mismatch for seed={seed}",
         )
+
+    @pytest.mark.parametrize(
+        "overlap_metric",
+        [
+            pytest.param(OverlapMetric.IOU, id="iou"),
+            pytest.param(OverlapMetric.IOS, id="ios"),
+        ],
+    )
+    def test_self_iou_matches_cross_iou_including_empty_masks(
+        self, overlap_metric: OverlapMetric
+    ) -> None:
+        """Self-IoU matches cross-IoU bit-for-bit across empty and overlapping masks."""
+        img_h, img_w = 40, 50
+        masks = np.zeros((4, img_h, img_w), dtype=bool)
+        masks[0, 5:15, 5:15] = True
+        masks[1, 10:20, 10:20] = True
+        masks[3, 30:35, 35:45] = True
+        cm_a = CompactMask._from_dense_tight(masks, (img_h, img_w))
+        cm_b = CompactMask._from_dense_tight(masks.copy(), (img_h, img_w))
+
+        self_result = compact_mask_iou_batch(cm_a, cm_a, overlap_metric=overlap_metric)
+        cross_result = compact_mask_iou_batch(cm_a, cm_b, overlap_metric=overlap_metric)
+
+        np.testing.assert_array_equal(self_result, cross_result)
+        assert self_result[2, 2] == 0.0
+        assert self_result[0, 0] == pytest.approx(1.0)

@@ -975,6 +975,60 @@ class CompactMask:
         return cls(rles, crop_shapes, offsets, image_shape)
 
     @classmethod
+    def _from_dense_tight(
+        cls,
+        masks: npt.NDArray[np.bool_],
+        image_shape: tuple[int, int],
+    ) -> CompactMask:
+        """Create a lossless CompactMask cropped tightly to each mask's foreground.
+
+        Scans each mask's actual True pixels to derive tight inclusive crop bounds
+        instead of relying on declared detection boxes or tiling the full image.
+        All foreground pixels are preserved while keeping downstream crop decodes
+        O(object_area) rather than O(image_area).
+        """
+        img_h, img_w = image_shape
+        num_masks = len(masks)
+        if num_masks == 0:
+            return cls(
+                [],
+                np.empty((0, 2), dtype=np.int32),
+                np.empty((0, 2), dtype=np.int32),
+                image_shape,
+            )
+
+        rles: list[npt.NDArray[np.int32]] = []
+        crop_shapes_list: list[tuple[int, int]] = []
+        offsets_list: list[tuple[int, int]] = []
+        empty_rle = np.array([1], dtype=np.int32)
+
+        for mask_idx in range(num_masks):
+            mask = masks[mask_idx]
+            row_any = mask.any(axis=1)
+            if not row_any.any():
+                rles.append(empty_rle.copy())
+                crop_shapes_list.append((1, 1))
+                offsets_list.append((0, 0))
+                continue
+            y1 = int(row_any.argmax())
+            y2 = img_h - 1 - int(row_any[::-1].argmax())
+            band = mask[y1 : y2 + 1]
+            col_any = band.any(axis=0)
+            x1 = int(col_any.argmax())
+            x2 = img_w - 1 - int(col_any[::-1].argmax())
+            crop = band[:, x1 : x2 + 1]
+            rles.append(_mask_to_rle_counts(crop))
+            crop_shapes_list.append((y2 - y1 + 1, x2 - x1 + 1))
+            offsets_list.append((x1, y1))
+
+        return cls(
+            rles,
+            np.array(crop_shapes_list, dtype=np.int32),
+            np.array(offsets_list, dtype=np.int32),
+            image_shape,
+        )
+
+    @classmethod
     def from_coco_rle(
         cls,
         rles: Sequence[Mapping[str, Any]],

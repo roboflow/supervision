@@ -2588,29 +2588,37 @@ class Detections:
         array_index = cast(
             slice | list[int] | npt.NDArray[np.integer | np.bool_], index
         )
+        # Slice indexing returns a view in NumPy and needs `.copy()` to guarantee
+        # independence from `self`; fancy/boolean indexing already returns a fresh
+        # owning array, so skipping the extra `.copy()` halves peak memory.
+        needs_copy = isinstance(array_index, slice)
+
+        def _own(arr: npt.NDArray[Any]) -> npt.NDArray[Any]:
+            return arr.copy() if (needs_copy or arr.base is not None) else arr
+
         data = {
-            key: value.copy() if isinstance(value, np.ndarray) else list(value)
+            key: _own(value) if isinstance(value, np.ndarray) else list(value)
             for key, value in get_data_item(self.data, array_index).items()
         }
         if isinstance(self.mask, CompactMask):
             mask = self.mask[cast(Any, array_index)]
         elif self.mask is not None:
-            mask = self.mask[cast(Any, array_index)].copy()
+            mask = _own(self.mask[cast(Any, array_index)])
         else:
             mask = None
         return Detections(
-            xyxy=self.xyxy[array_index].copy(),
+            xyxy=_own(self.xyxy[array_index]),
             mask=mask,
             confidence=(
-                self.confidence[array_index].copy()
+                _own(self.confidence[array_index])
                 if self.confidence is not None
                 else None
             ),
             class_id=(
-                self.class_id[array_index].copy() if self.class_id is not None else None
+                _own(self.class_id[array_index]) if self.class_id is not None else None
             ),
             tracker_id=(
-                self.tracker_id[array_index].copy()
+                _own(self.tracker_id[array_index])
                 if self.tracker_id is not None
                 else None
             ),
@@ -2919,17 +2927,10 @@ class Detections:
         if self.mask is None or isinstance(self.mask, CompactMask):
             return self
         image_shape = (int(self.mask.shape[1]), int(self.mask.shape[2]))
-        full_image_xyxy = np.tile(
-            np.array(
-                [[0, 0, image_shape[1] - 1, image_shape[0] - 1]], dtype=np.float64
-            ),
-            (len(self), 1),
-        )
         new = self.__class__(
             xyxy=self.xyxy,
-            mask=CompactMask.from_dense(
+            mask=CompactMask._from_dense_tight(
                 masks=self.mask,
-                xyxy=full_image_xyxy,
                 image_shape=image_shape,
             ),
             confidence=self.confidence,
