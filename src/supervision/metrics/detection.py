@@ -1434,7 +1434,10 @@ class ConfusionMatrix:
             title: Title of the plot.
             classes: List of classes to be displayed on the plot.
                 If not provided, all classes will be displayed.
-            normalize: If True, normalize the confusion matrix.
+            normalize: If True, divide each row by its sum. Ground-truth class
+                rows show the share of each class's targets in each predicted
+                column, with per-class recall on the diagonal. The FP row shows
+                the distribution of unmatched predictions across classes.
             fig_size: Size of the plot.
 
         Returns:
@@ -1448,7 +1451,7 @@ class ConfusionMatrix:
 
         if normalize:
             eps = 1e-8
-            array = array / (array.sum(0).reshape(1, -1) + eps)
+            array = array / (array.sum(1).reshape(-1, 1) + eps)
 
         array[array < 0.005] = np.nan
 
