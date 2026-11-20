@@ -9,6 +9,10 @@ date_modified: 2026-11-18
 
 - `sv.VideoInfo.from_video_path` now reports the real frame rate of a browser-recorded WebM (`MediaRecorder`) instead of `1000.0`, and a frame count to match, so `sv.process_video` keeps the source's duration instead of writing a video that plays about 33x too fast. A rate above 240 fps is checked against the timestamps of the first frames and replaced when they disagree by more than 2x; videos with a plausible rate are read from metadata alone. Without OpenCV, the PyAV backend uses frame count over container duration when the stream has no average rate. ([#3007](https://github.com/roboflow/supervision/pull/3007))
 
+- `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha. ([#2956](https://github.com/roboflow/supervision/pull/2956))
+
+- `sv.ConfusionMatrix.plot(normalize=True)` now divides each row by its sum, so each ground-truth row shows how that class's targets were predicted and the diagonal is per-class recall, as in `sklearn.metrics.confusion_matrix(normalize="true")`. It used to divide by column sums, which did not match the `True` / `Predicted` axis labels: with 10 cats all found and 5 of 10 dogs predicted as cat, the plot showed cat -> cat 0.67 and dog -> dog 1.00 instead of 1.00 and 0.50. Normalized plots now show different numbers. ([#2954](https://github.com/roboflow/supervision/pull/2954))
+
 ### 0.32.0 <small>Nov 18, 2026</small>
 
 - **Zones**: `sv.PolygonZone` counts entries and exits per class and measures dwell time, and the zone annotators accept a `coord_transform`.
