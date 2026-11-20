@@ -978,6 +978,96 @@ class TestSingleChannelMaskAnnotators:
         assert result.getpixel((2, 2)) == 50
 
 
+class TestBgraSceneAnnotators:
+    """Verify OpenCV-drawn annotators on transparent BGRA scenes."""
+
+    @staticmethod
+    def _detections() -> Detections:
+        """Return one tracked, scored mask detection inside a 60x80 scene."""
+        mask = np.zeros((1, 60, 80), dtype=bool)
+        mask[0, 10:45, 10:50] = True
+        return Detections(
+            xyxy=np.array([[10, 10, 50, 45]], dtype=np.float32),
+            mask=mask,
+            class_id=np.array([0]),
+            confidence=np.array([0.5]),
+            tracker_id=np.array([1]),
+            data={
+                ORIENTED_BOX_COORDINATES: np.array(
+                    [[[10, 10], [50, 10], [50, 45], [10, 45]]], dtype=np.float32
+                )
+            },
+        )
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(BoxAnnotator(), id="box"),
+            pytest.param(BoxCornerAnnotator(), id="box-corner"),
+            pytest.param(CircleAnnotator(), id="circle"),
+            pytest.param(ColorAnnotator(opacity=1.0), id="color"),
+            pytest.param(DotAnnotator(), id="dot"),
+            pytest.param(EllipseAnnotator(), id="ellipse"),
+            pytest.param(MaskAnnotator(opacity=1.0), id="mask"),
+            pytest.param(OrientedBoxAnnotator(), id="oriented-box"),
+            pytest.param(
+                PercentageBarAnnotator(border_color=Color.WHITE), id="percentage-bar"
+            ),
+            pytest.param(PolygonAnnotator(), id="polygon"),
+            pytest.param(RoundBoxAnnotator(), id="round-box"),
+            pytest.param(TriangleAnnotator(), id="triangle"),
+        ],
+    )
+    def test_drawn_pixels_are_opaque(self, annotator: BaseAnnotator) -> None:
+        """Pixels drawn on a transparent scene match a BGR scene and are opaque."""
+        detections = self._detections()
+        expected_bgr = annotator.annotate(
+            scene=np.zeros((60, 80, 3), dtype=np.uint8), detections=detections
+        )
+        drawn = np.any(expected_bgr != 0, axis=-1)
+
+        result = annotator.annotate(
+            scene=np.zeros((60, 80, 4), dtype=np.uint8), detections=detections
+        )
+
+        np.testing.assert_array_equal(result[..., :3], expected_bgr)
+        assert drawn.any()
+        np.testing.assert_array_equal(result[..., 3], np.where(drawn, 255, 0))
+
+    def test_opacity_scales_drawn_alpha(self) -> None:
+        """A translucent annotator makes its pixels equally translucent."""
+        scene = np.zeros((60, 80, 4), dtype=np.uint8)
+
+        result = ColorAnnotator(opacity=0.5).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        assert result[20, 20, 3] == 128
+        assert result[55, 70, 3] == 0
+
+    def test_translucent_boxes_ignore_hidden_scene_color(self) -> None:
+        """Translucent boxes over transparent green keep their own color."""
+        scene = np.zeros((60, 80, 4), dtype=np.uint8)
+        scene[..., 1] = 200
+
+        result = ColorAnnotator(color=Color.RED, opacity=0.5).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        np.testing.assert_array_equal(result[20, 20], (0, 0, 255, 128))
+        np.testing.assert_array_equal(result[55, 70], (0, 200, 0, 0))
+
+    def test_label_background_is_opaque(self) -> None:
+        """A label's background box is opaque on a transparent scene."""
+        scene = np.zeros((60, 80, 4), dtype=np.uint8)
+
+        result = LabelAnnotator(text_padding=4).annotate(
+            scene=scene, detections=self._detections(), labels=["a"]
+        )
+
+        assert result[6, 12, 3] == 255
+
+
 class TestBgraMaskAnnotators:
     """Verify mask-painting annotators on BGRA scenes."""
 
