@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionsSmoother` now uses the first detection for each confirmed tracker ID per frame. Repeated IDs previously consumed multiple history slots and distorted the smoothed box and confidence.
+- `sv.DetectionsSmoother` now uses the first detection for each confirmed tracker ID per frame. Repeated IDs previously consumed multiple history slots and distorted the smoothed box and confidence. ([#3035](https://github.com/roboflow/supervision/pull/3035))
 
 - `sv.DetectionDataset.from_yolo`, `from_coco` and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with `Invalid YOLO annotation file`, and a JSON file failed with `Unexpected UTF-8 BOM`. `read_txt_file` and `save_text_file` now use UTF-8 on every platform, like the JSON and YAML readers. ([#2959](https://github.com/roboflow/supervision/pull/2959))
 
