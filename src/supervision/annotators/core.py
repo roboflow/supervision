@@ -2644,9 +2644,8 @@ class TraceAnnotator(BaseAnnotator):
 def _heatmap_hsv_to_bgr_lut() -> npt.NDArray[np.uint8]:
     """Return a 256-entry exact BGR lookup table for HSV(h, 255, 255).
 
-    Uses the active `cv2.cvtColor` once on a 256-pixel strip so HeatMapAnnotator
-    matches OpenCV and fallback backends bit-for-bit without full-frame HSV->BGR
-    conversions.
+    Uses the active `cv2.cvtColor` once on a 256-pixel strip so HeatMapAnnotator matches
+    OpenCV and fallback backends bit-for-bit without full-frame HSV->BGR conversions.
     """
     hsv_strip = np.full((1, 256, 3), 255, dtype=np.uint8)
     hsv_strip[0, :, 0] = np.arange(256, dtype=np.uint8)
