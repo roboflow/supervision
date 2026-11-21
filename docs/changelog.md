@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-11-18
+date_modified: 2026-11-21
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- Asset MD5 verification now reads bounded chunks instead of loading the complete file into memory, reducing peak Python allocations when checking cached videos. Hash comparison and download behavior are unchanged. ([#3031](https://github.com/roboflow/supervision/pull/3031))
 
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 
