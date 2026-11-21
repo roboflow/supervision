@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-11-20
+date_modified: 2026-11-21
 ---
 
 # Changelog
@@ -8,6 +8,14 @@ date_modified: 2026-11-20
 ### Unreleased <small>upcoming</small>
 
 - Asset MD5 verification now reads bounded chunks instead of loading the complete file into memory, reducing peak Python allocations when checking cached videos. Hash comparison and download behavior are unchanged. ([#3031](https://github.com/roboflow/supervision/pull/3031))
+
+- `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
+
+- `sv.DetectionDataset.from_yolo`, `from_coco` and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with `Invalid YOLO annotation file`, and a JSON file failed with `Unexpected UTF-8 BOM`. `read_txt_file` and `save_text_file` now use UTF-8 on every platform, like the JSON and YAML readers. ([#2959](https://github.com/roboflow/supervision/pull/2959))
+
+- `sv.HeatMapAnnotator`, `sv.CropAnnotator` and `sv.IconAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising a channel mismatch error. Overlays use straight-alpha compositing, and crop borders are opaque; colors on opaque scenes match their BGR counterparts within resize rounding. ([#2958](https://github.com/roboflow/supervision/pull/2958))
+
+- `sv.draw_line`, `sv.draw_rectangle`, `sv.draw_filled_rectangle`, `sv.draw_rounded_rectangle`, `sv.draw_polygon`, `sv.draw_filled_polygon` and `sv.draw_text` now draw visibly on a BGRA scene, shaped `(H, W, 4)`, while keeping an opaque scene opaque. They passed OpenCV a BGR color, and OpenCV fills the missing alpha with 0, so the drawn pixels of an opaque scene became fully transparent. On a scene that is not opaque, a translucent fill and antialiased text are composited over the scene's alpha, so they keep their own color and may remain translucent. ([#2957](https://github.com/roboflow/supervision/pull/2957))
 
 - `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha. ([#2956](https://github.com/roboflow/supervision/pull/2956))
 
