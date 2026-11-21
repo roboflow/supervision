@@ -87,12 +87,12 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
         mask = mask[top:bottom, left:right]
 
         if mask.shape != orig_shape:
-            # `cv2.resize` interpolates the float proto mask, so threshold at 0.5
-            # (matching Ultralytics' own semantics) instead of casting every
-            # nonzero interpolated value to True, which would dilate the mask.
+            # Interpolate binary uint8 masks in float so resize cannot round
+            # fractional pixels before the strict threshold.
+            if mask.dtype == np.uint8:
+                mask = mask.astype(np.float32)
             mask = cv2.resize(mask, (orig_shape[1], orig_shape[0])) > 0.5
-        # else: slice-crop (no interpolation) preserves the binary 0/1 float values
-        # produced by Ultralytics; the final np.asarray(..., dtype=bool) is equivalent.
+        # At the original resolution, the existing binary mask needs no resize.
 
         mask_maps.append(mask)
 
