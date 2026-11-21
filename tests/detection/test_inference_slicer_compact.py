@@ -242,6 +242,34 @@ class TestInferenceSlicerCompactMasks:
         assert isinstance(compact.mask, CompactMask)
         np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
 
+    def test_compact_masks_use_tight_crop_shapes(self) -> None:
+        """InferenceSlicer stores tight foreground crops instead of full tiles."""
+        image = np.zeros((120, 120, 3), dtype=np.uint8)
+
+        def callback(tile: np.ndarray) -> Detections:
+            """Return one small mask inside the tile."""
+            h, w = tile.shape[:2]
+            masks = np.zeros((1, h, w), dtype=bool)
+            masks[0, 10:22, 15:30] = True
+            return Detections(
+                xyxy=np.array([[15, 10, 30, 22]], dtype=np.float32),
+                mask=masks,
+                confidence=np.array([0.9], dtype=np.float32),
+                class_id=np.array([0]),
+            )
+
+        result = sv.InferenceSlicer(
+            callback=callback,
+            slice_wh=120,
+            overlap_wh=0,
+            overlap_filter=sv.OverlapFilter.NONE,
+            compact_masks=True,
+        )(image)
+
+        assert isinstance(result.mask, CompactMask)
+        assert result.mask.offsets.tolist() == [[15, 10]]
+        assert result.mask._crop_shapes.tolist() == [[12, 15]]
+
     def test_nms_with_overlapping_tiles_uses_rle_iou(self) -> None:
         """With overlapping tiles, NMS must suppress duplicates using RLE IoU."""
         image = np.zeros((300, 300, 3), dtype=np.uint8)
