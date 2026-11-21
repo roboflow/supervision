@@ -3481,3 +3481,76 @@ class TestTraceAnnotatorPendingTracks:
         )
 
         assert tuple(scene[50, 60]) == Color.BLUE.as_bgr()
+
+
+class TestAnnotatorRoiAndStripOptimizations:
+    """Tests covering ROI blending, strip halo, trace caching, and heatmap LUT."""
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    def test_halo_annotator_spans_multiple_strips_with_empty_middle(
+        self, channels: int
+    ) -> None:
+        """HaloAnnotator draws top and bottom strips and skips empty middle rows."""
+        scene = np.full((160, 80, channels), 100, dtype=np.uint8)
+        if channels == 4:
+            scene[:, :, 3] = 255
+        masks = np.zeros((2, 160, 80), dtype=bool)
+        masks[0, 10:25, 10:25] = True
+        masks[1, 130:145, 50:65] = True
+        detections = Detections(
+            xyxy=np.array([[10, 10, 25, 25], [50, 130, 65, 145]], dtype=np.float32),
+            mask=masks,
+            class_id=np.array([0, 1]),
+        )
+
+        result = HaloAnnotator(kernel_size=5).annotate(
+            scene=scene.copy(), detections=detections
+        )
+
+        assert np.array_equal(result[10:25, 10:25], scene[10:25, 10:25])
+        assert not np.array_equal(result[7:28, 7:28], scene[7:28, 7:28])
+        assert not np.array_equal(result[127:148, 47:68], scene[127:148, 47:68])
+        assert np.array_equal(result[64:96, :], scene[64:96, :])
+
+    def test_trace_annotator_smooth_spline_cache_updates_as_track_moves(self) -> None:
+        """TraceAnnotator smooth mode skips mask copies and updates spline caches."""
+        scene = np.zeros((120, 120, 3), dtype=np.uint8)
+        annotator = TraceAnnotator(trace_length=10, smooth=True)
+        for step in range(4):
+            x = 10 + step * 20
+            y = 20 + (step % 2) * 30
+            mask = np.zeros((1, 120, 120), dtype=bool)
+            mask[0, y : y + 10, x : x + 10] = True
+            det = Detections(
+                xyxy=np.array([[x, y, x + 10, y + 10]], dtype=np.float32),
+                mask=mask,
+                class_id=np.array([0]),
+                tracker_id=np.array([1]),
+            )
+            annotated = annotator.annotate(scene=scene.copy(), detections=det)
+
+        assert np.any(annotated)
+        assert len(annotator.trace.get(tracker_id=1)) == 4
+
+    def test_heatmap_annotator_lut_matches_cvtcolor_for_all_hues(self) -> None:
+        """Cached 256-entry HSV-to-BGR LUT matches cv2.cvtColor for every hue."""
+        from supervision.annotators.core import _heatmap_hsv_to_bgr_lut
+
+        hsv = np.full((1, 256, 3), 255, dtype=np.uint8)
+        hsv[0, :, 0] = np.arange(256, dtype=np.uint8)
+        expected = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0]
+
+        actual = _heatmap_hsv_to_bgr_lut()
+
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_heatmap_annotator_skips_offscreen_anchors_cleanly(self) -> None:
+        """Anchors completely outside the frame leave the scene untouched."""
+        scene = np.full((40, 40, 3), 50, dtype=np.uint8)
+        detections = _create_detections(xyxy=[[500, 500, 520, 520]])
+
+        result = HeatMapAnnotator(radius=10).annotate(
+            scene=scene.copy(), detections=detections
+        )
+
+        assert np.array_equal(result, scene)

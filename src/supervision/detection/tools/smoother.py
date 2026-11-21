@@ -1,8 +1,10 @@
 import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
@@ -185,8 +187,17 @@ class DetectionsSmoother:
         # boxes, so they skip the history and are returned unchanged.
         unconfirmed = tracker_ids < 0
         for detection_idx in np.flatnonzero(~unconfirmed):
-            tracker_id = int(tracker_ids[detection_idx])
-            self.tracks[tracker_id].append(detections.select(int(detection_idx)))
+            idx = int(detection_idx)
+            tracker_id = int(tracker_ids[idx])
+            track = self.tracks[tracker_id]
+            # Older history frames only contribute xyxy/confidence/OBB corners;
+            # release stale masks on superseded entries so each track retains at
+            # most one mask instead of `length` full-frame masks.
+            for older in reversed(track):
+                if older is not None:
+                    older.mask = None
+                    break
+            track.append(detections.select(idx))
 
         active_ids = set(tracker_ids[~unconfirmed].tolist())
         self._age_tracks(active_ids=active_ids)
@@ -228,6 +239,64 @@ class DetectionsSmoother:
             if all(d is None for d in self.tracks[track_id]):
                 del self.tracks[track_id]
 
+    def _build_smoothed_track(
+        self, track_id: int, *, copy_mask: bool
+    ) -> Detections | None:
+        """Build a smoothed single-track Detections without redundant deep copies."""
+        track = self.tracks.get(track_id, None)
+        if track is None:
+            return None
+
+        valid: list[Detections] = [d for d in track if d is not None]
+        if len(valid) == 0:
+            return None
+
+        latest = valid[-1]
+        xyxy: npt.NDArray[Any] = np.mean(
+            np.stack([d.xyxy for d in valid], axis=0), axis=0
+        )
+        # Average confidence only over frames that carry it; frames with
+        # confidence=None contribute nothing to the mean. Retain None when
+        # no frame in the window carries confidence.
+        confidences = [d.confidence for d in valid if d.confidence is not None]
+        confidence = np.mean(np.array(confidences), axis=0) if confidences else None
+
+        data = {
+            key: value.copy() if isinstance(value, np.ndarray) else deepcopy(value)
+            for key, value in latest.data.items()
+        }
+        corner_sets = [
+            np.asarray(d.data[ORIENTED_BOX_COORDINATES])
+            for d in valid
+            if ORIENTED_BOX_COORDINATES in d.data
+        ]
+        if len(corner_sets) == len(valid) and len({c.shape for c in corner_sets}) == 1:
+            reference = corner_sets[0]
+            aligned = [
+                _align_oriented_corners(corners, reference) for corners in corner_sets
+            ]
+            smoothed_corners = np.mean(np.stack(aligned, axis=0), axis=0)
+            data[ORIENTED_BOX_COORDINATES] = smoothed_corners
+            xyxy = xyxyxyxy_to_xyxy(smoothed_corners)
+        else:
+            data.pop(ORIENTED_BOX_COORDINATES, None)
+
+        mask = latest.mask
+        if copy_mask and isinstance(mask, np.ndarray):
+            mask = mask.copy()
+
+        return Detections(
+            xyxy=xyxy,
+            mask=mask,
+            confidence=confidence,
+            class_id=latest.class_id.copy() if latest.class_id is not None else None,
+            tracker_id=(
+                latest.tracker_id.copy() if latest.tracker_id is not None else None
+            ),
+            data=data,
+            metadata=deepcopy(latest.metadata),
+        )
+
     def get_track(self, track_id: int) -> Detections | None:
         """Return the smoothed :class:`~supervision.detection.core.Detections` for a
         single track.
@@ -250,43 +319,7 @@ class DetectionsSmoother:
             track, or `None` if the track is unknown or all frames in its window
             are empty.
         """
-        track = self.tracks.get(track_id, None)
-        if track is None:
-            return None
-
-        valid: list[Detections] = [d for d in track if d is not None]
-        if len(valid) == 0:
-            return None
-
-        # Build on the newest frame: for a track active in the current frame that is
-        # the current detection, so its class and data are up to date, and every
-        # emitted track carries the same frame's metadata, which `Detections.merge`
-        # requires to agree.
-        ret = deepcopy(valid[-1])
-        ret.xyxy = np.mean(np.stack([d.xyxy for d in valid], axis=0), axis=0)
-        # Average confidence only over frames that carry it; frames with
-        # confidence=None contribute nothing to the mean. Retain None when
-        # no frame in the window carries confidence.
-        confidences = [d.confidence for d in valid if d.confidence is not None]
-        ret.confidence = np.mean(np.array(confidences), axis=0) if confidences else None
-
-        corner_sets = [
-            np.asarray(d.data[ORIENTED_BOX_COORDINATES])
-            for d in valid
-            if ORIENTED_BOX_COORDINATES in d.data
-        ]
-        if len(corner_sets) == len(valid) and len({c.shape for c in corner_sets}) == 1:
-            reference = corner_sets[0]
-            aligned = [
-                _align_oriented_corners(corners, reference) for corners in corner_sets
-            ]
-            smoothed_corners = np.mean(np.stack(aligned, axis=0), axis=0)
-            ret.data[ORIENTED_BOX_COORDINATES] = smoothed_corners
-            ret.xyxy = xyxyxyxy_to_xyxy(smoothed_corners)
-        else:
-            ret.data.pop(ORIENTED_BOX_COORDINATES, None)
-
-        return ret
+        return self._build_smoothed_track(track_id, copy_mask=True)
 
     def get_smoothed_detections(self, track_ids: set[int] | None = None) -> Detections:
         """Return the smoothed detections for the requested active tracks.
@@ -313,7 +346,9 @@ class DetectionsSmoother:
         for track_id in self.tracks:
             if track_ids is not None and track_id not in track_ids:
                 continue
-            track = self.get_track(track_id)
+            # `Detections.merge` copies mask buffers into the merged array, so
+            # avoid an extra per-track mask copy here.
+            track = self._build_smoothed_track(track_id, copy_mask=False)
             if track is not None:
                 tracked_detections.append(track)
 
