@@ -1472,12 +1472,13 @@ class CompactMask:
     @overload
     def __getitem__(
         self,
-        index: slice
-        | list[int]
-        | list[bool]
-        | npt.NDArray[np.int_]
-        | npt.NDArray[np.bool_],
+        index: slice | list[int] | list[bool] | npt.NDArray[np.bool_],
     ) -> CompactMask: ...
+
+    @overload
+    def __getitem__(
+        self, index: npt.NDArray[np.int_]
+    ) -> npt.NDArray[np.bool_] | CompactMask: ...
 
     def __getitem__(
         self,
@@ -1493,17 +1494,19 @@ class CompactMask:
     ) -> npt.NDArray[np.bool_] | CompactMask:
         """Index into the mask collection.
 
-        * ``int`` → dense ``(H, W)`` bool array (for annotators, iterators).
-        * ``slice | list | ndarray`` → new
+        * ``int`` or 0-d integer ``ndarray`` → dense ``(H, W)`` bool array (for
+          annotators, iterators).
+        * ``slice | list | ndarray`` with at least one dimension → new
           :class:`~supervision.detection.compact_mask.CompactMask` (for filtering).
 
         Args:
-            index: An integer returns a dense ``(H, W)`` mask.  Any other
-                supported index type returns a new
+            index: An integer or 0-d integer array returns a dense ``(H, W)``
+                mask.  Any other supported index type returns a new
                 :class:`~supervision.detection.compact_mask.CompactMask`.
 
         Returns:
-            Dense ``(H, W)`` ``np.ndarray`` for integer index, or a new
+            Dense ``(H, W)`` ``np.ndarray`` for an integer or 0-d integer array
+            index, or a new
             :class:`~supervision.detection.compact_mask.CompactMask` for all
             other index types.
 
