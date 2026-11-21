@@ -15,7 +15,7 @@ disappear from the rendered documentation.
 from __future__ import annotations
 
 from abc import abstractmethod
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeVar, cast
 
@@ -96,11 +96,59 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
         """Wrap computed scores in the metric-specific result dataclass."""
         raise NotImplementedError
 
+    @staticmethod
+    def _compact_if_dense_mask(detections: Detections) -> Detections:
+        """Convert dense bool masks to tight CompactMask on a shallow copy."""
+        if (
+            detections.mask is None
+            or not isinstance(detections.mask, np.ndarray)
+            or detections.mask.dtype != np.bool_
+            or len(detections) == 0
+        ):
+            return detections
+        from supervision.detection.utils.converters import mask_to_xyxy
+
+        dense = detections.mask
+        image_shape = (int(dense.shape[1]), int(dense.shape[2]))
+        tight_xyxy = mask_to_xyxy(dense)
+        compact = CompactMask.from_dense(dense, tight_xyxy, image_shape=image_shape)
+        shallow = copy(detections)
+        shallow.mask = compact
+        return shallow
+
+    def _compute_all_sizes(self) -> tuple[_ResultT, _ResultT, _ResultT, _ResultT]:
+        """Run ANY/SMALL/MEDIUM/LARGE passes while caching per-image IoU matrices."""
+        iou_cache: list[npt.NDArray[Any] | None] = [None] * len(self._predictions_list)
+        all_res = self._compute(
+            self._predictions_list, self._targets_list, iou_cache=iou_cache
+        )
+        small_res = self._compute(
+            self._predictions_list,
+            self._targets_list,
+            ObjectSizeCategory.SMALL,
+            iou_cache=iou_cache,
+        )
+        medium_res = self._compute(
+            self._predictions_list,
+            self._targets_list,
+            ObjectSizeCategory.MEDIUM,
+            iou_cache=iou_cache,
+        )
+        large_res = self._compute(
+            self._predictions_list,
+            self._targets_list,
+            ObjectSizeCategory.LARGE,
+            iou_cache=iou_cache,
+        )
+        return all_res, small_res, medium_res, large_res
+
     def _compute(
         self,
         predictions_list: list[Detections],
         targets_list: list[Detections],
         size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
+        *,
+        iou_cache: list[npt.NDArray[Any] | None] | None = None,
     ) -> _ResultT:
         """Build per-image stats tuples and delegate to class-level computation.
 
@@ -114,9 +162,9 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
         iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
-        for predictions, targets in zip(predictions_list, targets_list):
-            prediction_contents = self._detections_content(predictions)
-            target_contents = self._detections_content(targets)
+        for img_idx, (predictions, targets) in enumerate(
+            zip(predictions_list, targets_list)
+        ):
             prediction_size_mask = np.ones(len(predictions), dtype=bool)
             target_size_mask = np.ones(len(targets), dtype=bool)
             if size_category != ObjectSizeCategory.ANY:
@@ -198,27 +246,37 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                     prediction_confidence = np.asarray(
                         predictions.confidence, dtype=np.float32
                     )
-                    if self._metric_target == MetricTarget.BOXES:
-                        # BOXES target never yields CompactMask; narrow for mypy.
-                        iou = box_iou_batch(
-                            cast(npt.NDArray[np.number], target_contents),
-                            cast(npt.NDArray[np.number], prediction_contents),
-                        )
-                    elif self._metric_target == MetricTarget.MASKS:
-                        iou = mask_iou_batch(target_contents, prediction_contents)
-                    elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-                        # OBB target never yields CompactMask; narrow for mypy.
-                        # The float32 cast matches `box_iou_batch`: the thresholds
-                        # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
-                        # a float64 IoU exactly on one of them would fall below it.
-                        iou = oriented_box_iou_batch(
-                            cast(npt.NDArray[np.number], target_contents),
-                            cast(npt.NDArray[np.number], prediction_contents),
-                        ).astype(np.float32)
+                    cached_iou = iou_cache[img_idx] if iou_cache is not None else None
+                    if cached_iou is not None:
+                        iou = cached_iou
                     else:
-                        raise ValueError(
-                            "Unsupported metric target for IoU calculation"
-                        )
+                        prediction_contents = self._detections_content(predictions)
+                        target_contents = self._detections_content(targets)
+                        if self._metric_target == MetricTarget.BOXES:
+                            # BOXES target never yields CompactMask; narrow for mypy.
+                            iou = box_iou_batch(
+                                cast(npt.NDArray[np.number], target_contents),
+                                cast(npt.NDArray[np.number], prediction_contents),
+                            )
+                        elif self._metric_target == MetricTarget.MASKS:
+                            iou = mask_iou_batch(target_contents, prediction_contents)
+                        elif (
+                            self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES
+                        ):
+                            # OBB target never yields CompactMask; narrow for mypy.
+                            # The float32 cast matches `box_iou_batch`: the thresholds
+                            # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
+                            # a float64 IoU exactly on one of them would fall below it.
+                            iou = oriented_box_iou_batch(
+                                cast(npt.NDArray[np.number], target_contents),
+                                cast(npt.NDArray[np.number], prediction_contents),
+                            ).astype(np.float32)
+                        else:
+                            raise ValueError(
+                                "Unsupported metric target for IoU calculation"
+                            )
+                        if iou_cache is not None:
+                            iou_cache[img_idx] = iou
 
                     # None keeps the matcher on its single-round fast path
                     # when no size bucket is scored.

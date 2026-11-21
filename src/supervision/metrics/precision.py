@@ -25,7 +25,6 @@ from supervision.metrics.core import (
     PlotDetails,
     _append_object_size_plot_details,
 )
-from supervision.metrics.utils.object_size import ObjectSizeCategory
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -126,6 +125,10 @@ class Precision(_ConfusionMatrixMetric["PrecisionResult"]):
                 f" targets ({len(targets)}) during the update must be the same."
             )
 
+        if self._metric_target == MetricTarget.MASKS:
+            predictions = [self._compact_if_dense_mask(p) for p in predictions]
+            targets = [self._compact_if_dense_mask(t) for t in targets]
+
         self._predictions_list.extend(predictions)
         self._targets_list.extend(targets)
 
@@ -138,16 +141,10 @@ class Precision(_ConfusionMatrixMetric["PrecisionResult"]):
         Returns:
             The precision metric result.
         """
-        result = self._compute(self._predictions_list, self._targets_list)
-        result.small_objects = self._compute(
-            self._predictions_list, self._targets_list, ObjectSizeCategory.SMALL
-        )
-        result.medium_objects = self._compute(
-            self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
-        )
-        result.large_objects = self._compute(
-            self._predictions_list, self._targets_list, ObjectSizeCategory.LARGE
-        )
+        result, small, medium, large = self._compute_all_sizes()
+        result.small_objects = small
+        result.medium_objects = medium
+        result.large_objects = large
 
         return result
 
