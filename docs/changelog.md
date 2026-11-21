@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.MaskAnnotator`, `sv.ColorAnnotator`, `sv.HaloAnnotator`, `sv.HeatMapAnnotator`, `sv.TraceAnnotator`, and `sv.DetectionsSmoother` now restrict mask painting and blending to tight bounding ROIs or non-empty horizontal strips, cache the 256-entry HSV-to-BGR heatmap lookup table and per-track smooth splines, skip unused mask copies in `TraceAnnotator`, and release superseded historical masks in `DetectionsSmoother`. ([#3039](https://github.com/roboflow/supervision/pull/3039))
+
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 
 - `sv.DetectionDataset.from_yolo`, `from_coco` and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with `Invalid YOLO annotation file`, and a JSON file failed with `Unexpected UTF-8 BOM`. `read_txt_file` and `save_text_file` now use UTF-8 on every platform, like the JSON and YAML readers. ([#2959](https://github.com/roboflow/supervision/pull/2959))
