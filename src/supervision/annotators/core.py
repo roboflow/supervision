@@ -43,7 +43,12 @@ from supervision.detection.utils.converters import (
 from supervision.detection.utils.masks import _masks_to_roi
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
+from supervision.draw.utils import (
+    _composite_over_bgra,
+    draw_polygon,
+    draw_rounded_rectangle,
+    draw_text,
+)
 from supervision.geometry.core import Point, Position, Rect
 from supervision.utils.conversion import (
     ensure_cv2_image_for_class_method,
@@ -495,10 +500,13 @@ def _color_for_canvas(
 
     A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
     channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
-    polygons other annotators draw on the same scene.
+    polygons other annotators draw on the same scene. A BGRA canvas takes the color with
+    an opaque alpha, as :func:`~supervision.draw.utils.draw_image` does.
     """
     if canvas.ndim == 2 or canvas.shape[2] == 1:
         return color_bgr[:1]
+    if canvas.shape[2] == 4:
+        return (*color_bgr, 255)
     return color_bgr
 
 
@@ -714,16 +722,23 @@ class MaskAnnotator(BaseAnnotator):
         x1, y1, x2, y2 = roi
         scene_roi = scene[y1:y2, x1:x2]
         colored_mask = np.array(scene_roi, copy=True, dtype=np.uint8)
-        _paint_masks_by_area(
+        is_bgra = scene.ndim == 3 and scene.shape[2] == 4
+        mask_union = _paint_masks_by_area(
             colored_mask,
             detections,
             self.color,
             effective_lookup,
+            collect_union=is_bgra,
             canvas_origin=(x1, y1),
         )
-        tmp = cv2.addWeighted(
-            colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
-        )
+        if is_bgra:
+            assert mask_union is not None
+            alpha = mask_union[..., np.newaxis].astype(np.float32) * self.opacity
+            tmp = _composite_over_bgra(scene_roi, colored_mask[..., :3], alpha)
+        else:
+            tmp = cv2.addWeighted(
+                colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
+            )
         # OpenCV drops a singleton channel axis; restore it before assignment.
         scene_roi[:] = tmp.reshape(scene_roi.shape)
         return scene
@@ -1032,6 +1047,15 @@ class HaloAnnotator(BaseAnnotator):
             0,
             255,
         ).astype(np.uint8)
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            # Preserve existing opaque-scene rounding while compositing translucent
+            # pixels using their destination alpha.
+            translucent = scene[..., 3] < 255
+            composited = _composite_over_bgra(
+                scene, colored_mask[..., :3], alpha[..., np.newaxis]
+            )
+            blended_scene[translucent] = composited[translucent]
+            blended_scene[..., 3][~translucent] = 255
         np.copyto(scene, blended_scene)
         return scene
 
@@ -2677,9 +2701,14 @@ class HeatMapAnnotator(BaseAnnotator):
         hsv = np.full((*scene.shape[:2], 3), 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
         heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
+        mask2d = heat_mask > 0
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            alpha = np.full((*scene.shape[:2], 1), self.opacity, dtype=np.float32)
+            blended = _composite_over_bgra(scene, heat_bgr, alpha)
+            scene[mask2d] = blended[mask2d]
+            return scene
         # A grayscale scene takes the heat colors as their gray luminance.
         heat_overlay = _match_overlay_to_scene_channels(overlay=heat_bgr, roi=scene)
-        mask2d = heat_mask > 0
         # OpenCV drops a singleton channel axis; restore the scene's layout.
         blended = cv2.addWeighted(
             heat_overlay, self.opacity, scene, 1 - self.opacity, 0
@@ -3328,11 +3357,14 @@ class CropAnnotator(BaseAnnotator):
                 color_lookup=self.border_color_lookup,
                 custom_color_lookup=custom_color_lookup,
             )
+            border_color: tuple[int, ...] = color.as_bgr()
+            if scene.ndim == 3 and scene.shape[2] == 4:
+                border_color = (*border_color, 255)
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
-                color=color.as_bgr(),
+                color=border_color,
                 thickness=self.border_thickness,
             )
 
@@ -3455,9 +3487,13 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             scene, _color_for_canvas(self.color.as_bgr(), scene), dtype=np.uint8
         )
 
-        cv2.addWeighted(
-            scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
-        )
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            alpha = np.full((*scene.shape[:2], 1), self.opacity, dtype=np.float32)
+            colored_mask = _composite_over_bgra(scene, colored_mask[..., :3], alpha)
+        else:
+            cv2.addWeighted(
+                scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
+            )
 
         if detections.mask is None or self.force_box:
             image_height, image_width = scene.shape[:2]
@@ -3600,15 +3636,26 @@ class ComparisonAnnotator:
         color_layer[mask_1] = _color_for_canvas(self.color_1.as_bgr(), scene)
         color_layer[mask_2] = _color_for_canvas(self.color_2.as_bgr(), scene)
 
-        scene[mask_overlap] = (1 - self.opacity) * scene[
-            mask_overlap
-        ] + self.opacity * color_layer[mask_overlap]
-        scene[mask_1] = (1 - self.opacity) * scene[mask_1] + self.opacity * color_layer[
-            mask_1
-        ]
-        scene[mask_2] = (1 - self.opacity) * scene[mask_2] + self.opacity * color_layer[
-            mask_2
-        ]
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            union = mask_overlap | mask_1 | mask_2
+            alpha = union[..., np.newaxis].astype(np.float32) * self.opacity
+            blended = _composite_over_bgra(scene, color_layer[..., :3], alpha)
+            # Match the original integer truncation for fully opaque scenes.
+            opaque = union & (scene[..., 3] == 255)
+            blended[opaque, :3] = (1 - self.opacity) * scene[
+                opaque, :3
+            ] + self.opacity * color_layer[opaque, :3]
+            scene[:] = blended
+        else:
+            scene[mask_overlap] = (1 - self.opacity) * scene[
+                mask_overlap
+            ] + self.opacity * color_layer[mask_overlap]
+            scene[mask_1] = (1 - self.opacity) * scene[
+                mask_1
+            ] + self.opacity * color_layer[mask_1]
+            scene[mask_2] = (1 - self.opacity) * scene[
+                mask_2
+            ] + self.opacity * color_layer[mask_2]
 
         self._draw_labels(scene)
 
@@ -3751,12 +3798,19 @@ class ComparisonAnnotator:
                 border_radius=marker_corner_radius,
             )
 
+            # The legend background is opaque; draw text in BGR so antialiasing
+            # cannot replace its alpha with the three-channel OpenCV default.
+            text_scene = scene
+            if scene.ndim == 3 and scene.shape[2] == 4:
+                text_scene = scene[..., :3].copy()
             draw_text(
-                scene,
+                text_scene,
                 text,
                 text_anchor=Point(x=center_x + marker_size, y=center_y),
                 text_scale=text_scale,
                 text_thickness=self.text_thickness,
             )
+            if text_scene is not scene:
+                scene[..., :3] = text_scene
 
             x0 += width + gap
