@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.VideoInfo.from_video_path` now reports the real frame rate of a browser-recorded WebM (`MediaRecorder`) instead of `1000.0`, and a frame count to match, so `sv.process_video` keeps the source's duration instead of writing a video that plays about 33x too fast. A rate above 240 fps is checked against the timestamps of the first frames and replaced when they disagree by more than 2x; videos with a plausible rate are read from metadata alone. Without OpenCV, the PyAV backend uses frame count over container duration when the stream has no average rate. ([#3007](https://github.com/roboflow/supervision/pull/3007))
+
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 
 - `sv.DetectionDataset.from_yolo`, `from_coco` and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with `Invalid YOLO annotation file`, and a JSON file failed with `Unexpected UTF-8 BOM`. `read_txt_file` and `save_text_file` now use UTF-8 on every platform, like the JSON and YAML readers. ([#2959](https://github.com/roboflow/supervision/pull/2959))
