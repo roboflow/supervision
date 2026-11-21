@@ -983,8 +983,8 @@ class CompactMask:
         """Create a lossless CompactMask cropped tightly to each mask's foreground.
 
         Scans each mask's actual True pixels to derive tight inclusive crop bounds
-        instead of relying on declared detection boxes or tiling the full image.
-        All foreground pixels are preserved while keeping downstream crop decodes
+        instead of relying on declared detection boxes or tiling the full image. All
+        foreground pixels are preserved while keeping downstream crop decodes
         O(object_area) rather than O(image_area).
         """
         img_h, img_w = image_shape
