@@ -38,10 +38,10 @@ def ensure_cv2_image_for_class_method(
             if not _needs_contiguous_copy(scene):
                 return annotate_func(self, scene, *args, **kwargs)
             # Draw on a copy OpenCV accepts, then write it back to keep the
-            # in-place contract for slices, flips and transposes.
-            scene[...] = annotate_func(
-                self, np.ascontiguousarray(scene), *args, **kwargs
-            )
+            # in-place contract for slices, flips and transposes. `copy()` always
+            # makes positive strides; `np.ascontiguousarray` returns a one-pixel
+            # wide flip unchanged because NumPy already treats it as contiguous.
+            scene[...] = annotate_func(self, scene.copy(), *args, **kwargs)
             return scene
 
         if isinstance(scene, Image.Image):

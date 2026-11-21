@@ -5,6 +5,7 @@ import numpy.typing as npt
 import pytest
 
 import supervision as sv
+from supervision._cv2 import _IS_CV2_AVAILABLE
 from supervision.annotators.base import BaseAnnotator
 from supervision.utils.conversion import _opencv_can_draw_into
 
@@ -86,6 +87,23 @@ class TestAnnotateNonContiguousScene:
         assert result is view
         np.testing.assert_array_equal(parent, expected_parent)
 
+    def test_flipped_one_pixel_wide_image_is_annotated(self) -> None:
+        """A flipped one-pixel-wide image, which NumPy calls contiguous, is drawn."""
+        # given
+        parent = np.zeros((8, 1, 3), dtype=np.uint8)
+        view = parent[:, ::-1]
+        detections = sv.Detections(
+            xyxy=np.array([[0.0, 2.0, 0.0, 5.0]]), class_id=np.array([0])
+        )
+        expected = sv.BoxAnnotator().annotate(parent.copy(), detections)
+
+        # when
+        result = sv.BoxAnnotator().annotate(view, detections)
+
+        # then
+        assert result is view
+        np.testing.assert_array_equal(parent, expected)
+
     def test_read_only_view_is_left_unchanged(self) -> None:
         """A read-only view is passed through and never written to."""
         # given
@@ -93,9 +111,14 @@ class TestAnnotateNonContiguousScene:
         parent.setflags(write=False)
         view = parent[:, ::-1]
         before = parent.copy()
+        expected_error: type[Exception] = ValueError
+        if _IS_CV2_AVAILABLE:
+            import cv2
+
+            expected_error = cv2.error
 
         # when
-        with pytest.raises(Exception):  # noqa: PT011  # backend-specific error
+        with pytest.raises(expected_error):
             sv.BoxAnnotator().annotate(view, _detections_for(view))
 
         # then
