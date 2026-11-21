@@ -160,9 +160,9 @@ def _uint8_add_weighted_lut(
 ) -> npt.NDArray[np.uint8]:
     """Build a bit-exact 256x256 lookup table for uint8 `addWeighted`.
 
-    Evaluates the exact OpenCV float32 FMA emulation over all 65,536 uint8
-    pairs once per `(alpha, beta, gamma)` weight tuple so full-frame blends
-    reduce to indexed lookups without allocating float64 frame temporaries.
+    Evaluates the exact OpenCV float32 FMA emulation over all 65,536 uint8 pairs once
+    per `(alpha, beta, gamma)` weight tuple so full-frame blends reduce to indexed
+    lookups without allocating float64 frame temporaries.
     """
     values = np.arange(256, dtype=np.uint8)
     src1_grid = np.broadcast_to(values[:, np.newaxis], (256, 256))
