@@ -9,7 +9,7 @@ date_modified: 2026-11-18
 
 - **Semantic segmentation**: a class made of several separate patches can load as one detection per patch.
 
-    - `sv.Detections.from_semantic_segmentation` accepts `split_components=True` to return one detection per 8-connected patch of each class, instead of one detection over every pixel of the class. Each patch has its own mask, tight box and mean `confidence`, and keeps the name of its class, so a `water` class in flood imagery gives one box and area per flooded area. Entries are ordered by class id, then top to bottom and left to right. The default `False` keeps one detection per class.
+    - `sv.Detections.from_semantic_segmentation` accepts `split_components=True` to return one detection per 8-connected patch of each class, instead of one detection over every pixel of the class. Each patch has its own mask, tight box and mean `confidence`, and keeps the name of its class, so a `water` class in flood imagery gives one box and area per flooded area. Entries are ordered by class id, then top to bottom and left to right. The default `False` keeps one detection per class. ([#3032](https://github.com/roboflow/supervision/pull/3032))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
