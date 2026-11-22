@@ -255,6 +255,34 @@ def test_fallback_add_weighted_uint8_lut_matches_reference_across_strips(
     np.testing.assert_array_equal(actual, expected)
 
 
+@pytest.mark.parametrize("dtype", [np.uint8, np.float32])
+def test_fallback_add_weighted_handles_shifted_overlapping_dst(
+    dtype: type[np.generic],
+) -> None:
+    """Shifted overlapping dst views do not corrupt later strip reads."""
+    base = np.arange(131, dtype=dtype).reshape(131, 1)
+    expected = base[:-1].copy()
+    dst_view = base[1:]
+
+    actual = _add_weighted(base[:-1], 1.0, base[:-1], 0.0, 0.0, dst=dst_view)
+
+    assert actual is dst_view
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_add_weighted_exact_inplace_dst_preserves_values() -> None:
+    """Exact in-place multi-strip dst blends match out-of-place output."""
+    rng = np.random.default_rng(20261121)
+    src1 = rng.integers(0, 256, size=(140, 32, 3), dtype=np.uint8)
+    src2 = rng.integers(0, 256, size=(140, 32, 3), dtype=np.uint8)
+    expected = _add_weighted(src1.copy(), 0.4, src2, 0.6, 0.0)
+
+    actual = _add_weighted(src1, 0.4, src2, 0.6, 0.0, dst=src1)
+
+    assert actual is src1
+    np.testing.assert_array_equal(actual, expected)
+
+
 def _round_exactly_to_float32(exact: Fraction) -> np.float32:
     """Round an exact rational to the nearest float32, ties to even."""
     guess = np.float32(float(exact))

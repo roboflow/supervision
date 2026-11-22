@@ -176,6 +176,26 @@ def _uint8_add_weighted_lut(
     )
 
 
+def _snapshot_if_aliased(
+    src: npt.NDArray[Any], target: npt.NDArray[Any]
+) -> npt.NDArray[Any]:
+    """Copy ``src`` when ``target`` overlaps it at a different offset or layout.
+
+    Exact in-place blends (identical data pointer, shape, strides, and dtype)
+    stay zero-copy because each horizontal strip reads and writes disjoint rows.
+    """
+    if not np.shares_memory(src, target):
+        return src
+    if (
+        src.__array_interface__["data"][0] == target.__array_interface__["data"][0]
+        and src.shape == target.shape
+        and src.strides == target.strides
+        and src.dtype == target.dtype
+    ):
+        return src
+    return src.copy()
+
+
 def _add_weighted(
     src1: npt.NDArray[Any],
     alpha: float,
@@ -198,6 +218,11 @@ def _add_weighted(
     if src1.size == 0:
         return target
 
+    use_strips = src1.ndim >= 2 and src1.shape[0] > _ADD_WEIGHTED_STRIP_ROWS
+    if use_strips and dst is not None:
+        src1 = _snapshot_if_aliased(src1, target)
+        src2 = _snapshot_if_aliased(src2, target)
+
     if (
         src1.dtype == np.uint8
         and src2.dtype == np.uint8
@@ -210,7 +235,7 @@ def _add_weighted(
             float(np.float32(beta)),
             float(np.float32(gamma)),
         )
-        if src1.ndim >= 2 and src1.shape[0] > _ADD_WEIGHTED_STRIP_ROWS:
+        if use_strips:
             for start in range(0, src1.shape[0], _ADD_WEIGHTED_STRIP_ROWS):
                 stop = min(start + _ADD_WEIGHTED_STRIP_ROWS, src1.shape[0])
                 target[start:stop] = lut[src1[start:stop], src2[start:stop]]
@@ -219,7 +244,7 @@ def _add_weighted(
         return target
 
     use_float32_blend = src1.dtype in _FLOAT32_BLEND_DTYPES
-    if src1.ndim >= 2 and src1.shape[0] > _ADD_WEIGHTED_STRIP_ROWS:
+    if use_strips:
         for start in range(0, src1.shape[0], _ADD_WEIGHTED_STRIP_ROWS):
             stop = min(start + _ADD_WEIGHTED_STRIP_ROWS, src1.shape[0])
             s1 = src1[start:stop]
