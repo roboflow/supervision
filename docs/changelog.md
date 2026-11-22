@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- supervision now requires Pillow 10.4 or newer. `pillow>=9.4` let Pillow 9.4 to 10.3 install, where Pillow-scene features fail: `sv.RichLabelAnnotator` raised `UnicodeEncodeError` on a non-Latin label such as Hebrew or Chinese without the `rtl` extra (before Pillow 10.1), annotators drew nothing on a 16-bit (`I;16`) Pillow scene (before 10.4), annotating a palette (`P`, `PA`) scene changed pixels outside the drawing (before 10.1), and `sv.IconAnnotator` rejected a 16-bit grayscale icon (before 10.3). ([#3045](https://github.com/roboflow/supervision/pull/3045))
+
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 
 - `sv.DetectionDataset.from_yolo`, `from_coco` and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with `Invalid YOLO annotation file`, and a JSON file failed with `Unexpected UTF-8 BOM`. `read_txt_file` and `save_text_file` now use UTF-8 on every platform, like the JSON and YAML readers. ([#2959](https://github.com/roboflow/supervision/pull/2959))
