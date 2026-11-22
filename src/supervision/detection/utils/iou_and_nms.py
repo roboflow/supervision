@@ -993,40 +993,44 @@ def compact_mask_iou_batch(
     if is_self:
         diag_nonempty = np.flatnonzero(areas_a > 0)
         result[diag_nonempty, diag_nonempty] = 1.0
-        rows, cols = np.nonzero(np.triu(bbox_overlap, k=1))
         crops: dict[int, npt.NDArray[np.bool_]] = {}
-        for idx_a, idx_b in zip(rows.tolist(), cols.tolist()):
-            crop_a = crops.get(idx_a)
+        for idx_a in range(n1 - 1):
+            matching_b = np.flatnonzero(bbox_overlap[idx_a, idx_a + 1 :])
+            if len(matching_b) == 0:
+                crops.pop(idx_a, None)
+                continue
+            crop_a = crops.pop(idx_a, None)
             if crop_a is None:
                 crop_a = masks_true.crop(idx_a)
-                crops[idx_a] = crop_a
-            crop_b = crops.get(idx_b)
-            if crop_b is None:
-                crop_b = masks_true.crop(idx_b)
-                crops[idx_b] = crop_b
-
-            lx1 = int(ix1[idx_a, idx_b])
-            ly1 = int(iy1[idx_a, idx_b])
-            lx2 = int(ix2[idx_a, idx_b]) + 1
-            ly2 = int(iy2[idx_a, idx_b]) + 1
-
             ox_a, oy_a = int(x1a[idx_a]), int(y1a[idx_a])
-            sub_a = crop_a[ly1 - oy_a : ly2 - oy_a, lx1 - ox_a : lx2 - ox_a]
-            ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
-            sub_b = crop_b[ly1 - oy_b : ly2 - oy_b, lx1 - ox_b : lx2 - ox_b]
-
-            inter = count_dtype(np.count_nonzero(sub_a & sub_b))
-            if inter == 0:
-                continue
             area_a_i = count_dtype(areas_a[idx_a])
-            area_b_j = count_dtype(areas_b[idx_b])
-            if use_iou:
-                denom = area_a_i + area_b_j - inter
-            else:
-                denom = area_a_i if area_a_i < area_b_j else area_b_j
-            val = float(inter / denom) if denom > 0 else 0.0
-            result[idx_a, idx_b] = val
-            result[idx_b, idx_a] = val
+            for raw_offset in matching_b:
+                idx_b = idx_a + 1 + int(raw_offset)
+                crop_b = crops.get(idx_b)
+                if crop_b is None:
+                    crop_b = masks_true.crop(idx_b)
+                    crops[idx_b] = crop_b
+
+                lx1 = int(ix1[idx_a, idx_b])
+                ly1 = int(iy1[idx_a, idx_b])
+                lx2 = int(ix2[idx_a, idx_b]) + 1
+                ly2 = int(iy2[idx_a, idx_b]) + 1
+
+                sub_a = crop_a[ly1 - oy_a : ly2 - oy_a, lx1 - ox_a : lx2 - ox_a]
+                ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
+                sub_b = crop_b[ly1 - oy_b : ly2 - oy_b, lx1 - ox_b : lx2 - ox_b]
+
+                inter = count_dtype(np.count_nonzero(sub_a & sub_b))
+                if inter == 0:
+                    continue
+                area_b_j = count_dtype(areas_b[idx_b])
+                if use_iou:
+                    denom = area_a_i + area_b_j - inter
+                else:
+                    denom = area_a_i if area_a_i < area_b_j else area_b_j
+                val = float(inter / denom) if denom > 0 else 0.0
+                result[idx_a, idx_b] = val
+                result[idx_b, idx_a] = val
         return result
 
     # Process row-by-row so each `masks_true` crop is decoded once and released
@@ -1039,7 +1043,8 @@ def compact_mask_iou_batch(
         crop_a = masks_true.crop(idx_a)
         ox_a, oy_a = int(x1a[idx_a]), int(y1a[idx_a])
         area_a_i = count_dtype(areas_a[idx_a])
-        for idx_b in matching_b.tolist():
+        for raw_b in matching_b:
+            idx_b = int(raw_b)
             crop_b = crops_b.get(idx_b)
             if crop_b is None:
                 crop_b = masks_detection.crop(idx_b)

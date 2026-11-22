@@ -133,6 +133,33 @@ class TestFiltering:
         assert source.xyxy[0, 0] == 1.0
         assert source_scores.tolist() == [10, 20, 30, 40]
 
+    @pytest.mark.parametrize(
+        "selector",
+        [
+            pytest.param(np.array([True, False]), id="bool-mask"),
+            pytest.param(np.array([0]), id="int-array"),
+            pytest.param(slice(0, 1), id="slice"),
+        ],
+    )
+    def test_select_copies_zero_dimensional_data_arrays(
+        self, selector: np.ndarray | slice
+    ) -> None:
+        """Mutating a 0-D data array on a selection leaves the source unchanged."""
+        source = Detections(
+            xyxy=np.array([[0, 0, 4, 4], [5, 5, 9, 9]], dtype=np.float32),
+            data={"tag": np.array("orig")},
+        )
+        subset = source[selector]
+        assert isinstance(subset, Detections)
+        subset_tag = subset.data["tag"]
+        assert isinstance(subset_tag, np.ndarray)
+
+        subset_tag[...] = "edit"
+
+        source_tag = source.data["tag"]
+        assert isinstance(source_tag, np.ndarray)
+        assert source_tag.item() == "orig"
+
 
 class TestIteration:
     """Tests for iterating over Detections with a CompactMask.

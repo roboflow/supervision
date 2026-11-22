@@ -2594,7 +2594,12 @@ class Detections:
         needs_copy = isinstance(array_index, slice)
 
         def _own(arr: npt.NDArray[Any]) -> npt.NDArray[Any]:
-            return arr.copy() if (needs_copy or arr.base is not None) else arr
+            """Return an owning copy when slicing, viewing, or forwarding 0-D data."""
+            return (
+                arr.copy()
+                if (needs_copy or arr.ndim == 0 or arr.base is not None)
+                else arr
+            )
 
         data = {
             key: _own(value) if isinstance(value, np.ndarray) else list(value)

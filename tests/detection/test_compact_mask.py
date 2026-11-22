@@ -2328,3 +2328,15 @@ class TestFromDenseTight:
         assert compact.mask.offsets.tolist() == [[8, 4], [30, 20]]
         assert compact.mask._crop_shapes.tolist() == [[6, 6], [5, 6]]
         np.testing.assert_array_equal(compact.mask.to_dense(), masks)
+
+    def test_clips_padded_masks_before_computing_tight_bounds(self) -> None:
+        """Padded callback masks larger than image_shape keep in-canvas foreground."""
+        padded = np.zeros((1, 16, 14), dtype=bool)
+        padded[0, 6:9, 3:7] = True
+        padded[0, 14, 13] = True
+
+        cm = CompactMask._from_dense_tight(padded, (12, 12))
+
+        assert cm.offsets.tolist() == [[3, 6]]
+        assert cm._crop_shapes.tolist() == [[3, 4]]
+        np.testing.assert_array_equal(cm.to_dense(), padded[:, :12, :12])
