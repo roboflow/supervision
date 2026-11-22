@@ -1006,7 +1006,7 @@ class CompactMask:
             # Clip padded masks to the requested canvas before scanning bounds.
             mask = masks[mask_idx, :img_h, :img_w]
             scan_h, scan_w = mask.shape
-            row_any = mask.any(axis=1)
+            row_any = np.asarray(mask.any(axis=1))
             if not row_any.any():
                 rles.append(empty_rle.copy())
                 crop_shapes_list.append((1, 1))
@@ -1015,7 +1015,7 @@ class CompactMask:
             y1 = int(row_any.argmax())
             y2 = scan_h - 1 - int(row_any[::-1].argmax())
             band = mask[y1 : y2 + 1]
-            col_any = band.any(axis=0)
+            col_any = np.asarray(band.any(axis=0))
             x1 = int(col_any.argmax())
             x2 = scan_w - 1 - int(col_any[::-1].argmax())
             crop = band[:, x1 : x2 + 1]
