@@ -897,3 +897,48 @@ class TestDetectionsSmootherUnconfirmedTracks:
         np.testing.assert_array_equal(smoothed.mask, expected_latest)
         smoothed.mask[:] = False
         np.testing.assert_array_equal(latest_entry.mask, expected_latest)
+
+    def test_smoother_deep_copies_object_dtype_data_arrays(self) -> None:
+        """Mutating nested mutable elements in object-dtype data isolates history."""
+        smoother = DetectionsSmoother(length=3)
+        payload = np.empty(1, dtype=object)
+        payload[0] = ["initial"]
+        det = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            tracker_id=np.array([1]),
+            data={"tags": payload},
+        )
+
+        smoothed = smoother.update_with_detections(det)
+        smoothed_tags = smoothed.data["tags"]
+        assert isinstance(smoothed_tags, np.ndarray)
+        smoothed_tags[0].append("mutated")
+
+        again = smoother.get_track(1)
+        assert again is not None
+        again_tags = again.data["tags"]
+        assert isinstance(again_tags, np.ndarray)
+        assert again_tags[0] == ["initial"]
+
+    def test_get_track_copies_compact_mask_independently(self) -> None:
+        """Mutating a CompactMask returned by get_track leaves history intact."""
+        from supervision.detection.compact_mask import CompactMask
+
+        smoother = DetectionsSmoother(length=3)
+        dense = np.zeros((1, 16, 16), dtype=bool)
+        dense[0, 2:6, 3:7] = True
+        xyxy = np.array([[3, 2, 6, 5]], dtype=np.float32)
+        compact = CompactMask.from_dense(dense, xyxy, (16, 16))
+        smoother.update_with_detections(
+            Detections(xyxy=xyxy, mask=compact, tracker_id=np.array([1]))
+        )
+
+        first = smoother.get_track(1)
+        assert first is not None
+        assert isinstance(first.mask, CompactMask)
+        first.mask.offsets[:] = 99
+
+        second = smoother.get_track(1)
+        assert second is not None
+        assert isinstance(second.mask, CompactMask)
+        assert second.mask.offsets.tolist() == [[3, 2]]

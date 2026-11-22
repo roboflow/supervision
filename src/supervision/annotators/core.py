@@ -2430,6 +2430,9 @@ class TraceAnnotator(BaseAnnotator):
             ```
         """
         self.trace.reset()
+        spline_cache = getattr(self, "_spline_cache", None)
+        if spline_cache is not None:
+            spline_cache.clear()
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2530,6 +2533,12 @@ class TraceAnnotator(BaseAnnotator):
         # reappears after a longer gap.
         if len(detections) == 0:
             self.trace.put(detections)
+            spline_cache = getattr(self, "_spline_cache", None)
+            if spline_cache:
+                active_ids = set(self.trace.tracker_id.tolist())
+                for stale_id in list(spline_cache):
+                    if stale_id not in active_ids:
+                        del spline_cache[stale_id]
             return scene
 
         if detections.tracker_id is None:
@@ -2549,12 +2558,22 @@ class TraceAnnotator(BaseAnnotator):
             custom_color_lookup = custom_color_lookup[is_confirmed]
 
         # Avoid slicing/copying dense masks that TraceAnnotator does not read
-        # (only CENTER_OF_MASS anchors inspect `detections.mask`).
+        # (only CENTER_OF_MASS anchors inspect `detections.mask`), while preserving
+        # oriented-box coordinates so OBB anchors stay consistent with pending tracks.
         if is_confirmed.all():
             filtered_detections = detections
         elif self.trace.anchor == Position.CENTER_OF_MASS:
             filtered_detections = detections[is_confirmed]  # type: ignore
         else:
+            confirmed_data: dict[str, npt.NDArray[Any] | list[Any]] = {}
+            if ORIENTED_BOX_COORDINATES in detections.data:
+                obb_raw = detections.data[ORIENTED_BOX_COORDINATES]
+                if isinstance(obb_raw, np.ndarray):
+                    confirmed_data[ORIENTED_BOX_COORDINATES] = obb_raw[is_confirmed]
+                else:
+                    confirmed_data[ORIENTED_BOX_COORDINATES] = [
+                        item for item, keep in zip(obb_raw, is_confirmed) if keep
+                    ]
             filtered_detections = Detections(
                 xyxy=detections.xyxy[is_confirmed],
                 mask=None,
@@ -2569,6 +2588,7 @@ class TraceAnnotator(BaseAnnotator):
                     else None
                 ),
                 tracker_id=detections.tracker_id[is_confirmed],
+                data=confirmed_data,
             )
 
         self.trace.put(filtered_detections)
@@ -2578,6 +2598,11 @@ class TraceAnnotator(BaseAnnotator):
             if spline_cache is None:
                 spline_cache = {}
                 self._spline_cache = spline_cache
+            elif spline_cache:
+                active_ids = set(self.trace.tracker_id.tolist())
+                for stale_id in list(spline_cache):
+                    if stale_id not in active_ids:
+                        del spline_cache[stale_id]
 
         for detection_idx in range(len(filtered_detections)):
             tracker_id_val = filtered_detections.tracker_id[detection_idx]  # type: ignore
@@ -2640,17 +2665,34 @@ class TraceAnnotator(BaseAnnotator):
         return scene
 
 
-@lru_cache(maxsize=1)
-def _heatmap_hsv_to_bgr_lut() -> npt.NDArray[np.uint8]:
-    """Return a 256-entry exact BGR lookup table for HSV(h, 255, 255).
+# OpenCV's x86-64 wheels (and the NumPy fallback) convert 8-bit HSV in 32-pixel
+# vector blocks per row and handle trailing columns with scalar rounding.
+_HEATMAP_HSV_VECTOR_BLOCK = 32
 
-    Uses the active `cv2.cvtColor` once on a 256-pixel strip so HeatMapAnnotator matches
-    OpenCV and fallback backends bit-for-bit without full-frame HSV->BGR conversions.
+
+@lru_cache(maxsize=1)
+def _heatmap_hsv_to_bgr_luts() -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
+    """Return cached 256-entry BGR lookup tables for HSV(h, 255, 255).
+
+    Returns `(block_lut, tail_lut)` built via the active `cv2.cvtColor` on a
+    `(1, 256, 3)` vector-aligned strip and a `(256, 1, 3)` scalar-tail column,
+    preserving bit-for-bit parity with full-frame conversion on both block-aligned
+    and trailing columns across OpenCV and fallback backends.
     """
-    hsv_strip = np.full((1, 256, 3), 255, dtype=np.uint8)
-    hsv_strip[0, :, 0] = np.arange(256, dtype=np.uint8)
-    bgr_strip = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv_strip, cv2.COLOR_HSV2BGR))
-    return cast(npt.NDArray[np.uint8], bgr_strip[0])
+    hues = np.arange(256, dtype=np.uint8)
+    hsv_block = np.full((1, 256, 3), 255, dtype=np.uint8)
+    hsv_block[0, :, 0] = hues
+    block_lut = cast(
+        npt.NDArray[np.uint8],
+        cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv_block, cv2.COLOR_HSV2BGR))[0],
+    )
+    hsv_tail = np.full((256, 1, 3), 255, dtype=np.uint8)
+    hsv_tail[:, 0, 0] = hues
+    tail_lut = cast(
+        npt.NDArray[np.uint8],
+        cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv_tail, cv2.COLOR_HSV2BGR))[:, 0],
+    )
+    return block_lut, tail_lut
 
 
 class HeatMapAnnotator(BaseAnnotator):
@@ -2804,8 +2846,8 @@ class HeatMapAnnotator(BaseAnnotator):
                 self.heat_mask[ry1:ry2, rx1:rx2] += mask_roi
 
         heat_mask = self.heat_mask
-        max_val = float(heat_mask.max())
-        if max_val <= 0.0:
+        max_val = heat_mask.max()
+        if max_val <= 0:
             return scene
 
         mask2d = heat_mask > 0
@@ -2816,8 +2858,10 @@ class HeatMapAnnotator(BaseAnnotator):
         hx1 = int(col_any.argmax())
         hx2 = width - int(col_any[::-1].argmax())
 
-        hue_scale = (self.low_hue - self.top_hue) / max_val
-        heat_hue = (self.low_hue - heat_mask * hue_scale).astype(np.uint8)
+        # Keep float32 division before multiplication to preserve exact hue rounding.
+        heat_hue = (
+            self.low_hue - heat_mask / max_val * (self.low_hue - self.top_hue)
+        ).astype(np.uint8)
         if self.kernel_size is not None:
             heat_hue = cast(
                 npt.NDArray[np.uint8],
@@ -2825,9 +2869,14 @@ class HeatMapAnnotator(BaseAnnotator):
             )
 
         # Colorize and blend only the tight bounding ROI of nonzero heat via the
-        # cached 256-entry HSV(h, 255, 255) -> BGR table.
-        lut = _heatmap_hsv_to_bgr_lut()
-        heat_bgr_roi = lut[heat_hue[hy1:hy2, hx1:hx2]]
+        # layout-aware 256-entry HSV(h, 255, 255) -> BGR tables (block + row tail).
+        block_lut, tail_lut = _heatmap_hsv_to_bgr_luts()
+        heat_hue_roi = heat_hue[hy1:hy2, hx1:hx2]
+        heat_bgr_roi = block_lut[heat_hue_roi]
+        tail_start = width - (width % _HEATMAP_HSV_VECTOR_BLOCK)
+        if hx2 > tail_start and not np.array_equal(block_lut, tail_lut):
+            local_tail = max(0, tail_start - hx1)
+            heat_bgr_roi[:, local_tail:] = tail_lut[heat_hue_roi[:, local_tail:]]
         scene_roi: npt.NDArray[np.uint8] = scene[hy1:hy2, hx1:hx2]
         mask2d_roi = mask2d[hy1:hy2, hx1:hx2]
 

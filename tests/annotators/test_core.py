@@ -3533,16 +3533,111 @@ class TestAnnotatorRoiAndStripOptimizations:
         assert len(annotator.trace.get(tracker_id=1)) == 4
 
     def test_heatmap_annotator_lut_matches_cvtcolor_for_all_hues(self) -> None:
-        """Cached 256-entry HSV-to-BGR LUT matches cv2.cvtColor for every hue."""
-        from supervision.annotators.core import _heatmap_hsv_to_bgr_lut
+        """Cached block and tail HSV-to-BGR LUTs match cv2.cvtColor for every hue."""
+        from supervision.annotators.core import _heatmap_hsv_to_bgr_luts
 
-        hsv = np.full((1, 256, 3), 255, dtype=np.uint8)
-        hsv[0, :, 0] = np.arange(256, dtype=np.uint8)
-        expected = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0]
+        hues = np.arange(256, dtype=np.uint8)
+        hsv_block = np.full((1, 256, 3), 255, dtype=np.uint8)
+        hsv_block[0, :, 0] = hues
+        expected_block = cv2.cvtColor(hsv_block, cv2.COLOR_HSV2BGR)[0]
+        hsv_tail = np.full((256, 1, 3), 255, dtype=np.uint8)
+        hsv_tail[:, 0, 0] = hues
+        expected_tail = cv2.cvtColor(hsv_tail, cv2.COLOR_HSV2BGR)[:, 0]
 
-        actual = _heatmap_hsv_to_bgr_lut()
+        actual_block, actual_tail = _heatmap_hsv_to_bgr_luts()
 
-        np.testing.assert_array_equal(actual, expected)
+        np.testing.assert_array_equal(actual_block, expected_block)
+        np.testing.assert_array_equal(actual_tail, expected_tail)
+
+    def test_heatmap_exact_hue_and_non_block_width_parity(self) -> None:
+        """Preserve float32 hue rounding (153/225) and trailing-column HSV parity."""
+        width, height = 33, 6
+        scene = np.full((height, width, 3), 20, dtype=np.uint8)
+        annotator = HeatMapAnnotator(opacity=1.0, kernel_size=None)
+        heat = np.zeros((height, width), dtype=np.float32)
+        heat[2, 5] = 153.0
+        heat[2, 32] = 223.2  # maps to hue 1 on column 32 (scalar tail)
+        heat[4, 10] = 225.0
+        annotator.heat_mask = heat.copy()
+
+        expected_hue = (125 - heat / heat.max() * 125).astype(np.uint8)
+        hsv = np.full((height, width, 3), 255, dtype=np.uint8)
+        hsv[..., 0] = expected_hue
+        expected_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        expected_scene = scene.copy()
+        expected_scene[heat > 0] = expected_bgr[heat > 0]
+
+        result = annotator.annotate(scene=scene.copy(), detections=Detections.empty())
+
+        assert expected_hue[2, 5] == 40
+        np.testing.assert_array_equal(result, expected_scene)
+
+    def test_trace_annotator_preserves_obb_anchors_with_pending_tracks(self) -> None:
+        """Confirmed tracks keep oriented-box anchors when pending tracks coexist."""
+        from supervision.config import ORIENTED_BOX_COORDINATES
+
+        obb_corners = np.array(
+            [
+                [[0, 0], [10, 0], [10, 10], [0, 10]],
+                [[50, 20], [90, 40], [70, 80], [30, 60]],
+            ],
+            dtype=np.float32,
+        )
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [30, 20, 90, 80]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+            tracker_id=np.array([-1, 7]),
+            data={ORIENTED_BOX_COORDINATES: obb_corners},
+        )
+        confirmed_only = Detections(
+            xyxy=np.array([[30, 20, 90, 80]], dtype=np.float32),
+            class_id=np.array([0]),
+            tracker_id=np.array([7]),
+            data={ORIENTED_BOX_COORDINATES: obb_corners[1:2]},
+        )
+        mixed_annotator = TraceAnnotator(position=Position.TOP_LEFT)
+        clean_annotator = TraceAnnotator(position=Position.TOP_LEFT)
+
+        mixed_annotator.annotate(
+            scene=np.zeros((100, 100, 3), dtype=np.uint8), detections=detections
+        )
+        clean_annotator.annotate(
+            scene=np.zeros((100, 100, 3), dtype=np.uint8), detections=confirmed_only
+        )
+
+        np.testing.assert_array_equal(
+            mixed_annotator.trace.get(tracker_id=7),
+            clean_annotator.trace.get(tracker_id=7),
+        )
+
+    def test_trace_annotator_evicts_pruned_spline_cache_and_clears_on_reset(
+        self,
+    ) -> None:
+        """Smooth spline cache drops pruned tracks and clears on reset()."""
+        scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        annotator = TraceAnnotator(trace_length=2, smooth=True)
+        det = Detections(
+            xyxy=np.array([[10, 10, 20, 20]], dtype=np.float32),
+            class_id=np.array([0]),
+            tracker_id=np.array([42]),
+        )
+        annotator.annotate(scene=scene.copy(), detections=det)
+        cache = getattr(annotator, "_spline_cache", {})
+        assert 42 in cache
+
+        other = Detections(
+            xyxy=np.array([[30, 30, 40, 40]], dtype=np.float32),
+            class_id=np.array([0]),
+            tracker_id=np.array([99]),
+        )
+        for _ in range(3):
+            annotator.annotate(scene=scene.copy(), detections=other)
+        assert len(annotator.trace.get(tracker_id=42)) == 0
+        assert 42 not in cache
+        assert 99 in cache
+
+        annotator.reset()
+        assert len(cache) == 0
 
     def test_heatmap_annotator_skips_offscreen_anchors_cleanly(self) -> None:
         """Anchors completely outside the frame leave the scene untouched."""

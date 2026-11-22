@@ -262,7 +262,11 @@ class DetectionsSmoother:
         confidence = np.mean(np.array(confidences), axis=0) if confidences else None
 
         data = {
-            key: value.copy() if isinstance(value, np.ndarray) else deepcopy(value)
+            key: (
+                value.copy()
+                if isinstance(value, np.ndarray) and value.dtype != object
+                else deepcopy(value)
+            )
             for key, value in latest.data.items()
         }
         corner_sets = [
@@ -282,8 +286,8 @@ class DetectionsSmoother:
             data.pop(ORIENTED_BOX_COORDINATES, None)
 
         mask = latest.mask
-        if copy_mask and isinstance(mask, np.ndarray):
-            mask = mask.copy()
+        if copy_mask and mask is not None:
+            mask = mask.copy() if isinstance(mask, np.ndarray) else deepcopy(mask)
 
         return Detections(
             xyxy=xyxy,
