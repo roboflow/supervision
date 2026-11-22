@@ -2533,12 +2533,14 @@ class TraceAnnotator(BaseAnnotator):
         # reappears after a longer gap.
         if len(detections) == 0:
             self.trace.put(detections)
-            spline_cache = getattr(self, "_spline_cache", None)
-            if spline_cache:
+            existing_cache: dict[int, tuple[bytes, npt.NDArray[np.int32]]] | None = (
+                getattr(self, "_spline_cache", None)
+            )
+            if existing_cache:
                 active_ids = set(self.trace.tracker_id.tolist())
-                for stale_id in list(spline_cache):
+                for stale_id in list(existing_cache):
                     if stale_id not in active_ids:
-                        del spline_cache[stale_id]
+                        del existing_cache[stale_id]
             return scene
 
         if detections.tracker_id is None:
@@ -2682,16 +2684,12 @@ def _heatmap_hsv_to_bgr_luts() -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.ui
     hues = np.arange(256, dtype=np.uint8)
     hsv_block = np.full((1, 256, 3), 255, dtype=np.uint8)
     hsv_block[0, :, 0] = hues
-    block_lut = cast(
-        npt.NDArray[np.uint8],
-        cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv_block, cv2.COLOR_HSV2BGR))[0],
-    )
+    block_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv_block, cv2.COLOR_HSV2BGR))
+    block_lut = cast(npt.NDArray[np.uint8], block_bgr[0])
     hsv_tail = np.full((256, 1, 3), 255, dtype=np.uint8)
     hsv_tail[:, 0, 0] = hues
-    tail_lut = cast(
-        npt.NDArray[np.uint8],
-        cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv_tail, cv2.COLOR_HSV2BGR))[:, 0],
-    )
+    tail_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv_tail, cv2.COLOR_HSV2BGR))
+    tail_lut: npt.NDArray[np.uint8] = tail_bgr[:, 0]
     return block_lut, tail_lut
 
 
