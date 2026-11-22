@@ -1,5 +1,6 @@
 import base64
 import io
+import tracemalloc
 import warnings
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
@@ -3656,6 +3657,22 @@ class TestDetectionsFromSemanticSegmentation:
         )
 
         assert len(detections) == 0
+
+    def test_split_components_compact_masks_never_hold_every_dense_mask(self) -> None:
+        """Compact output builds one patch at a time, not a dense mask per patch."""
+        label_map = np.zeros((1500, 1500), dtype=np.uint8)
+        label_map[::8, ::8][:15, :20] = 1
+        dense_masks_bytes = 300 * label_map.size
+        tracemalloc.start()
+
+        detections = Detections.from_semantic_segmentation(
+            label_map, split_components=True, compact_masks=True
+        )
+        peak_bytes = tracemalloc.get_traced_memory()[1]
+        tracemalloc.stop()
+
+        assert len(detections) == 300
+        assert peak_bytes < dense_masks_bytes // 3
 
     def test_names_classes_from_integer_keys(self) -> None:
         """An integer-keyed `id2label` names classes like a text-keyed `class_map`.

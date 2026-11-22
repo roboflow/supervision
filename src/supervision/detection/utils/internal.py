@@ -2,6 +2,7 @@ import base64
 import binascii
 import io
 import logging
+from collections.abc import Iterator
 from itertools import chain
 from typing import Any, Literal, cast, overload
 
@@ -707,39 +708,44 @@ def decode_semantic_label_map(
 
 def _split_class_regions(
     class_mask: npt.NDArray[np.bool_], split_components: bool
-) -> list[tuple[list[int], npt.NDArray[np.bool_]]]:
-    """Return the ``(xyxy, mask)`` regions one class contributes to a semantic map.
+) -> Iterator[tuple[list[int], npt.NDArray[np.bool_]]]:
+    """Yield the ``(xyxy, mask)`` regions one class contributes to a semantic map.
 
     Without ``split_components`` the whole class is one region. With it, each
     8-connected patch is its own region, ordered top to bottom and then left to
-    right by the top-left corner of its box.
+    right by the top-left corner of its box. Regions are produced one at a time, so
+    a caller that encodes each mask before asking for the next holds one full-size
+    mask at a time, not one per patch.
 
     Args:
         class_mask: Boolean ``(H, W)`` mask of every pixel of one class; not empty.
         split_components: Split the class into its connected patches.
 
-    Returns:
+    Yields:
         One ``(xyxy, mask)`` pair per region, with an integer pixel box.
     """
     if not split_components:
         rows = np.flatnonzero(class_mask.any(axis=1))
         cols = np.flatnonzero(class_mask.any(axis=0))
-        return [
-            ([int(cols[0]), int(rows[0]), int(cols[-1]), int(rows[-1])], class_mask)
-        ]
+        yield [int(cols[0]), int(rows[0]), int(cols[-1]), int(rows[-1])], class_mask
+        return
 
     count, labels, stats, _ = cv2.connectedComponentsWithStats(
         class_mask.astype(np.uint8), connectivity=8
     )
-    regions: list[tuple[list[int], npt.NDArray[np.bool_]]] = []
     # Label 0 is the background of the class mask; stats columns are
-    # left, top, width, height, area.
-    for label in range(1, count):
+    # left, top, width, height, area. Sorting the labels, not the masks, fixes the
+    # order before any full-size mask exists.
+    for label in sorted(
+        range(1, count), key=lambda each: (stats[each, 1], stats[each, 0])
+    ):
         left, top, width, height = (int(value) for value in stats[label, :4])
-        box = [left, top, left + width - 1, top + height - 1]
-        regions.append((box, labels == label))
-    regions.sort(key=lambda region: (region[0][1], region[0][0]))
-    return regions
+        mask = np.zeros(class_mask.shape, dtype=bool)
+        # Comparing only the patch's box avoids scanning the whole label image once
+        # per patch.
+        crop = (slice(top, top + height), slice(left, left + width))
+        mask[crop] = labels[crop] == label
+        yield [left, top, left + width - 1, top + height - 1], mask
 
 
 def process_semantic_segmentation(
