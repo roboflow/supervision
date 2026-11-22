@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- Added `sv.LabelMapAnnotator`, which colours a dense `(H, W)` class-id map, such as a semantic segmentation model's output, over an image through one colour lookup table, so it needs one array the size of the image instead of one mask per class. Class `i` takes palette colour `i`, as in `sv.MaskAnnotator`. Id `0` is left unpainted by default (`background_id=None` paints it), negative ids are ignore labels, and it raises `ValueError` for a map that is not a 2-D integer array of the scene's size.
+- Added `sv.LabelMapAnnotator`, which colours a dense `(H, W)` class-id map, such as a semantic segmentation model's output, over an image through one colour lookup table, so it needs one array the size of the image instead of one mask per class. Class `i` takes palette colour `i`, as in `sv.MaskAnnotator`. Id `0` is left unpainted by default (`background_id=None` paints it), negative ids are ignore labels, and it raises `ValueError` for a map that is not a 2-D integer array of the scene's size. ([#3047](https://github.com/roboflow/supervision/pull/3047))
 
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 
