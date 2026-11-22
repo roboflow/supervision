@@ -181,8 +181,8 @@ def _snapshot_if_aliased(
 ) -> npt.NDArray[Any]:
     """Copy ``src`` when ``target`` overlaps it at a different offset or layout.
 
-    Exact in-place blends (identical data pointer, shape, strides, and dtype)
-    stay zero-copy because each horizontal strip reads and writes disjoint rows.
+    Exact in-place blends (identical data pointer, shape, strides, and dtype) stay zero-
+    copy because each horizontal strip reads and writes disjoint rows.
     """
     if not np.shares_memory(src, target):
         return src
