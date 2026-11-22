@@ -2674,10 +2674,10 @@ _HEATMAP_HSV_VECTOR_BLOCK = 32
 def _heatmap_hsv_to_bgr_luts() -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
     """Return cached 256-entry BGR lookup tables for HSV(h, 255, 255).
 
-    Returns `(block_lut, tail_lut)` built via the active `cv2.cvtColor` on a
-    `(1, 256, 3)` vector-aligned strip and a `(256, 1, 3)` scalar-tail column,
-    preserving bit-for-bit parity with full-frame conversion on both block-aligned
-    and trailing columns across OpenCV and fallback backends.
+    Returns `(block_lut, tail_lut)` built via the active `cv2.cvtColor` on a `(1, 256,
+    3)` vector-aligned strip and a `(256, 1, 3)` scalar-tail column, preserving bit-for-
+    bit parity with full-frame conversion on both block-aligned and trailing columns
+    across OpenCV and fallback backends.
     """
     hues = np.arange(256, dtype=np.uint8)
     hsv_block = np.full((1, 256, 3), 255, dtype=np.uint8)
