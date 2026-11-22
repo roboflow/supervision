@@ -7,7 +7,7 @@ date_modified: 2026-11-21
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_ultralytics` now resizes binary uint8 masks in floating point before applying the 0.5 threshold, avoiding extra foreground pixels along mask edges.
+- `sv.Detections.from_ultralytics` now resizes binary uint8 masks in floating point before applying the 0.5 threshold, avoiding extra foreground pixels along mask edges. ([#3041](https://github.com/roboflow/supervision/pull/3041))
 
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 
