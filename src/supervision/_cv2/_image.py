@@ -193,7 +193,7 @@ def _snapshot_if_aliased(
         and src.dtype == target.dtype
     ):
         return src
-    return src.copy()
+    return cast(npt.NDArray[Any], src.copy())
 
 
 def _add_weighted(
