@@ -124,12 +124,9 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
         """Compute the pairwise target-by-prediction IoU matrix for one image."""
         if self._metric_target == MetricTarget.BOXES:
             # BOXES target never yields CompactMask; narrow for mypy.
-            return cast(
-                npt.NDArray[np.float32],
-                box_iou_batch(
-                    cast(npt.NDArray[np.number], target_contents),
-                    cast(npt.NDArray[np.number], prediction_contents),
-                ),
+            return box_iou_batch(
+                cast(npt.NDArray[np.number], target_contents),
+                cast(npt.NDArray[np.number], prediction_contents),
             )
         if self._metric_target == MetricTarget.MASKS:
             return cast(
