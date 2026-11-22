@@ -417,182 +417,169 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
         return self
 
-    def compute(self) -> MeanAverageRecallResult:
-        """Calculate the Mean Average Recall metric based on the stored predictions and
-        ground-truth, at different IoU thresholds and maximum detection counts.
-
-        Returns:
-            The Mean Average Recall metric result.
-        """
-        base_targets = [
-            self._drop_ignored_targets(targets) for targets in self._targets_list
-        ]
-        # Cache per-image IoU matrices once across the ANY/SMALL/MEDIUM/LARGE
-        # passes so expensive OBB and mask IoUs are not recomputed 4x.
-        iou_cache: list[npt.NDArray[Any] | None] = [None] * len(self._predictions_list)
-        result = self._compute(
-            self._predictions_list,
-            base_targets,
-            iou_cache=iou_cache,
-            already_dropped_ignored=True,
-        )
-        result.small_objects = self._compute(
-            self._predictions_list,
-            base_targets,
-            ObjectSizeCategory.SMALL,
-            iou_cache=iou_cache,
-            already_dropped_ignored=True,
-        )
-        result.medium_objects = self._compute(
-            self._predictions_list,
-            base_targets,
-            ObjectSizeCategory.MEDIUM,
-            iou_cache=iou_cache,
-            already_dropped_ignored=True,
-        )
-        result.large_objects = self._compute(
-            self._predictions_list,
-            base_targets,
-            ObjectSizeCategory.LARGE,
-            iou_cache=iou_cache,
-            already_dropped_ignored=True,
-        )
-
-        return result
-
-    def _compute(
+    def _compute_iou_matrix(
         self,
-        predictions_list: list[Detections],
-        targets_list: list[Detections],
-        size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
-        *,
-        iou_cache: list[npt.NDArray[Any] | None] | None = None,
-        already_dropped_ignored: bool = False,
-    ) -> MeanAverageRecallResult:
-        # COCO treats crowd and `ignore`-flagged targets as ignore regions: they
-        # are never counted as misses, and a prediction on one is not a hit.
-        if not already_dropped_ignored:
-            targets_list = [
-                self._drop_ignored_targets(targets) for targets in targets_list
-            ]
+        target_contents: npt.NDArray[Any] | CompactMask,
+        prediction_contents: npt.NDArray[Any] | CompactMask,
+    ) -> npt.NDArray[np.float32]:
+        """Compute the pairwise target-by-prediction IoU matrix for one image."""
+        if self._metric_target == MetricTarget.BOXES:
+            # BOXES target never yields CompactMask; narrow for mypy.
+            return cast(
+                npt.NDArray[np.float32],
+                box_iou_batch(
+                    cast(npt.NDArray[np.number], target_contents),
+                    cast(npt.NDArray[np.number], prediction_contents),
+                ),
+            )
+        if self._metric_target == MetricTarget.MASKS:
+            return cast(
+                npt.NDArray[np.float32],
+                mask_iou_batch(target_contents, prediction_contents),
+            )
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            # OBB target never yields CompactMask; narrow for mypy.
+            # The float32 cast matches `box_iou_batch`: the thresholds
+            # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
+            # a float64 IoU exactly on one of them would fall below it.
+            return oriented_box_iou_batch(
+                cast(npt.NDArray[np.number], target_contents),
+                cast(npt.NDArray[np.number], prediction_contents),
+            ).astype(np.float32)
+        raise ValueError("Unsupported metric target for IoU calculation")
 
-        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
-        stats: list[Any] = []
+    def _collect_image_stats(
+        self,
+        predictions: Detections,
+        base_targets: Detections,
+        size_categories: tuple[ObjectSizeCategory, ...],
+        iou_thresholds: npt.NDArray[np.float32],
+        stats_by_size: dict[ObjectSizeCategory, list[Any]],
+    ) -> None:
+        """Validate one image, compute its IoU once, and collect stats per size bucket.
 
-        for img_idx, (predictions, base_targets) in enumerate(
-            zip(predictions_list, targets_list)
-        ):
-            size_mask: npt.NDArray[np.bool_] | None = None
-            if size_category != ObjectSizeCategory.ANY and len(base_targets) > 0:
-                size_mask = self._size_bucket_mask(base_targets, size_category)
-                num_targets = int(np.count_nonzero(size_mask))
-            else:
-                num_targets = len(base_targets)
+        Processes all requested size buckets per image so each image's IoU matrix is
+        released before advancing, keeping memory O(1 image) rather than O(dataset).
+        """
+        # Always validate target/prediction contents before empty-side branches so
+        # maskless detections under `MetricTarget.MASKS` still raise on background,
+        # ignored-only, or prediction-free images.
+        prediction_contents = self._detections_content(predictions)
+        base_target_contents = self._detections_content(base_targets)
 
-            if num_targets > 0:
-                if predictions.class_id is None or base_targets.class_id is None:
-                    raise ValueError(
-                        "MeanAverageRecall metric requires `class_id` on both "
-                        "predictions and targets."
-                    )
-                target_class_ids = np.asarray(base_targets.class_id, dtype=np.int32)
-                if size_mask is not None:
-                    target_class_ids = target_class_ids[size_mask]
-                if len(predictions) == 0:
-                    if len(target_class_ids) == 0:
-                        continue
-                    stats.append(
-                        (
-                            np.zeros(
-                                (0, iou_thresholds.size, self.max_detections.size),
-                                dtype=bool,
-                            ),
-                            np.zeros((0, iou_thresholds.size), dtype=bool),
-                            np.zeros((0,), dtype=int),
-                            np.zeros((0,), dtype=int),
-                            target_class_ids,
-                        )
-                    )
+        if len(base_targets) == 0:
+            return
 
-                else:
-                    if predictions.confidence is None:
-                        raise ValueError(
-                            "MeanAverageRecall metric requires `confidence` on "
-                            "predictions."
-                        )
-                    prediction_class_ids = np.asarray(
-                        predictions.class_id, dtype=np.int32
-                    )
-                    prediction_confidence = np.asarray(
-                        predictions.confidence, dtype=np.float32
-                    )
-                    cached_iou = iou_cache[img_idx] if iou_cache is not None else None
-                    if cached_iou is not None:
-                        iou = (
-                            cached_iou[size_mask]
-                            if size_mask is not None
-                            else cached_iou
-                        )
-                    else:
-                        prediction_contents = self._detections_content(predictions)
-                        base_target_contents = self._detections_content(base_targets)
-                        if self._metric_target == MetricTarget.BOXES:
-                            # BOXES target never yields CompactMask; narrow for mypy.
-                            full_iou = box_iou_batch(
-                                cast(npt.NDArray[np.number], base_target_contents),
-                                cast(npt.NDArray[np.number], prediction_contents),
-                            )
-                        elif self._metric_target == MetricTarget.MASKS:
-                            full_iou = mask_iou_batch(
-                                base_target_contents, prediction_contents
-                            )
-                        elif (
-                            self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES
-                        ):
-                            # OBB target never yields CompactMask; narrow for mypy.
-                            # The float32 cast matches `box_iou_batch`: the thresholds
-                            # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
-                            # a float64 IoU exactly on one of them would fall below it.
-                            full_iou = oriented_box_iou_batch(
-                                cast(npt.NDArray[np.number], base_target_contents),
-                                cast(npt.NDArray[np.number], prediction_contents),
-                            ).astype(np.float32)
-                        else:
-                            raise ValueError(
-                                "Unsupported metric target for IoU calculation"
-                            )
-                        if iou_cache is not None:
-                            iou_cache[img_idx] = full_iou
-                        iou = full_iou[size_mask] if size_mask is not None else full_iou
+        if predictions.class_id is None or base_targets.class_id is None:
+            raise ValueError(
+                "MeanAverageRecall metric requires `class_id` on both "
+                "predictions and targets."
+            )
+        base_target_class_ids = np.asarray(base_targets.class_id, dtype=np.int32)
 
-                    # A stable sort keeps tied scores in input order, as COCO's
-                    # mergesort does, so equal-score boxes cross the K cutoff alike.
-                    sorted_indices = np.argsort(-prediction_confidence, kind="stable")
-                    sorted_class_ids = prediction_class_ids[sorted_indices]
-                    # COCO applies the detection limit to each (image, class) pair,
-                    # so every prediction is ranked among its own class only.
-                    class_ranks = self._rank_within_class(sorted_class_ids)
-                    matches = self._match_top_predictions(
-                        sorted_class_ids,
-                        class_ranks,
+        needs_size = any(cat != ObjectSizeCategory.ANY for cat in size_categories)
+        target_areas = (
+            get_detection_areas(base_targets, self._metric_target)
+            if needs_size
+            else None
+        )
+        small_area, medium_area = SIZE_THRESHOLDS
+        max_all_area = 1e5**2
+
+        def _mask_for_size(
+            size_category: ObjectSizeCategory,
+        ) -> npt.NDArray[np.bool_] | None:
+            """Return inclusive COCO target size mask for ``size_category``."""
+            if size_category == ObjectSizeCategory.ANY:
+                return None
+            assert target_areas is not None
+            if size_category == ObjectSizeCategory.SMALL:
+                return (target_areas >= 0) & (target_areas <= small_area)
+            if size_category == ObjectSizeCategory.MEDIUM:
+                return (target_areas >= small_area) & (target_areas <= medium_area)
+            if size_category == ObjectSizeCategory.LARGE:
+                return (target_areas >= medium_area) & (target_areas <= max_all_area)
+            raise ValueError(f"Invalid size category: {size_category}")
+
+        if len(predictions) == 0:
+            for size_category in size_categories:
+                size_mask = _mask_for_size(size_category)
+                target_class_ids = (
+                    base_target_class_ids[size_mask]
+                    if size_mask is not None
+                    else base_target_class_ids
+                )
+                if len(target_class_ids) == 0:
+                    continue
+                stats_by_size[size_category].append(
+                    (
+                        np.zeros(
+                            (0, iou_thresholds.size, self.max_detections.size),
+                            dtype=bool,
+                        ),
+                        np.zeros((0, iou_thresholds.size), dtype=bool),
+                        np.zeros((0,), dtype=int),
+                        np.zeros((0,), dtype=int),
                         target_class_ids,
-                        iou[:, sorted_indices],
-                        iou_thresholds,
                     )
-                    ignored_matches = np.zeros(
-                        (len(sorted_indices), iou_thresholds.size), dtype=bool
-                    )
+                )
+            return
 
-                    stats.append(
-                        (
-                            matches,
-                            ignored_matches,
-                            class_ranks,
-                            sorted_class_ids,
-                            target_class_ids,
-                        )
-                    )
+        if predictions.confidence is None:
+            raise ValueError(
+                "MeanAverageRecall metric requires `confidence` on predictions."
+            )
+        prediction_class_ids = np.asarray(predictions.class_id, dtype=np.int32)
+        prediction_confidence = np.asarray(predictions.confidence, dtype=np.float32)
 
+        # Sort predictions and compute pairwise IoU once for all size buckets.
+        full_iou = self._compute_iou_matrix(base_target_contents, prediction_contents)
+        # A stable sort keeps tied scores in input order, as COCO's
+        # mergesort does, so equal-score boxes cross the K cutoff alike.
+        sorted_indices = np.argsort(-prediction_confidence, kind="stable")
+        sorted_class_ids = prediction_class_ids[sorted_indices]
+        # COCO applies the detection limit to each (image, class) pair,
+        # so every prediction is ranked among its own class only.
+        class_ranks = self._rank_within_class(sorted_class_ids)
+        sorted_iou = full_iou[:, sorted_indices]
+        ignored_matches = np.zeros(
+            (len(sorted_indices), iou_thresholds.size), dtype=bool
+        )
+
+        for size_category in size_categories:
+            size_mask = _mask_for_size(size_category)
+            if size_mask is not None:
+                if not np.any(size_mask):
+                    continue
+                target_class_ids = base_target_class_ids[size_mask]
+                bucket_iou = sorted_iou[size_mask]
+            else:
+                target_class_ids = base_target_class_ids
+                bucket_iou = sorted_iou
+
+            matches = self._match_top_predictions(
+                sorted_class_ids,
+                class_ranks,
+                target_class_ids,
+                bucket_iou,
+                iou_thresholds,
+            )
+            stats_by_size[size_category].append(
+                (
+                    matches,
+                    ignored_matches,
+                    class_ranks,
+                    sorted_class_ids,
+                    target_class_ids,
+                )
+            )
+
+    def _finalize_result(
+        self,
+        stats: list[Any],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> MeanAverageRecallResult:
+        """Aggregate collected per-image stats into a MeanAverageRecallResult."""
         if not stats:
             max_detection_count = self.max_detections.shape[0]
             return MeanAverageRecallResult(
@@ -625,6 +612,65 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             medium_objects=None,
             large_objects=None,
         )
+
+    def compute(self) -> MeanAverageRecallResult:
+        """Calculate the Mean Average Recall metric based on the stored predictions and
+        ground-truth, at different IoU thresholds and maximum detection counts.
+
+        Returns:
+            The Mean Average Recall metric result.
+        """
+        categories = (
+            ObjectSizeCategory.ANY,
+            ObjectSizeCategory.SMALL,
+            ObjectSizeCategory.MEDIUM,
+            ObjectSizeCategory.LARGE,
+        )
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
+        stats_by_size: dict[ObjectSizeCategory, list[Any]] = {
+            cat: [] for cat in categories
+        }
+        # Compute all 4 size buckets per image and release each IoU matrix
+        # immediately before advancing to keep memory O(1 image).
+        for predictions, targets in zip(self._predictions_list, self._targets_list):
+            base_targets = self._drop_ignored_targets(targets)
+            self._collect_image_stats(
+                predictions, base_targets, categories, iou_thresholds, stats_by_size
+            )
+
+        result = self._finalize_result(
+            stats_by_size[ObjectSizeCategory.ANY], iou_thresholds
+        )
+        result.small_objects = self._finalize_result(
+            stats_by_size[ObjectSizeCategory.SMALL], iou_thresholds
+        )
+        result.medium_objects = self._finalize_result(
+            stats_by_size[ObjectSizeCategory.MEDIUM], iou_thresholds
+        )
+        result.large_objects = self._finalize_result(
+            stats_by_size[ObjectSizeCategory.LARGE], iou_thresholds
+        )
+        return result
+
+    def _compute(
+        self,
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
+        size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
+    ) -> MeanAverageRecallResult:
+        """Compute MeanAverageRecall for a single size category."""
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
+        stats_by_size: dict[ObjectSizeCategory, list[Any]] = {size_category: []}
+        for predictions, targets in zip(predictions_list, targets_list):
+            base_targets = self._drop_ignored_targets(targets)
+            self._collect_image_stats(
+                predictions,
+                base_targets,
+                (size_category,),
+                iou_thresholds,
+                stats_by_size,
+            )
+        return self._finalize_result(stats_by_size[size_category], iou_thresholds)
 
     @staticmethod
     def _rank_within_class(

@@ -116,224 +116,213 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
         shallow.mask = compact
         return shallow
 
-    def _compute_all_sizes(self) -> tuple[_ResultT, _ResultT, _ResultT, _ResultT]:
-        """Run ANY/SMALL/MEDIUM/LARGE passes while caching per-image IoU matrices."""
-        iou_cache: list[npt.NDArray[Any] | None] = [None] * len(self._predictions_list)
-        all_res = self._compute(
-            self._predictions_list, self._targets_list, iou_cache=iou_cache
-        )
-        small_res = self._compute(
-            self._predictions_list,
-            self._targets_list,
-            ObjectSizeCategory.SMALL,
-            iou_cache=iou_cache,
-        )
-        medium_res = self._compute(
-            self._predictions_list,
-            self._targets_list,
-            ObjectSizeCategory.MEDIUM,
-            iou_cache=iou_cache,
-        )
-        large_res = self._compute(
-            self._predictions_list,
-            self._targets_list,
-            ObjectSizeCategory.LARGE,
-            iou_cache=iou_cache,
-        )
-        return all_res, small_res, medium_res, large_res
-
-    def _compute(
+    def _compute_iou_matrix(
         self,
-        predictions_list: list[Detections],
-        targets_list: list[Detections],
-        size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
-        *,
-        iou_cache: list[npt.NDArray[Any] | None] | None = None,
-    ) -> _ResultT:
-        """Build per-image stats tuples and delegate to class-level computation.
+        target_contents: npt.NDArray[Any] | CompactMask,
+        prediction_contents: npt.NDArray[Any] | CompactMask,
+    ) -> npt.NDArray[np.float32]:
+        """Compute the pairwise target-by-prediction IoU matrix for one image."""
+        if self._metric_target == MetricTarget.BOXES:
+            # BOXES target never yields CompactMask; narrow for mypy.
+            return cast(
+                npt.NDArray[np.float32],
+                box_iou_batch(
+                    cast(npt.NDArray[np.number], target_contents),
+                    cast(npt.NDArray[np.number], prediction_contents),
+                ),
+            )
+        if self._metric_target == MetricTarget.MASKS:
+            return cast(
+                npt.NDArray[np.float32],
+                mask_iou_batch(target_contents, prediction_contents),
+            )
+        if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            # OBB target never yields CompactMask; narrow for mypy.
+            # The float32 cast matches `box_iou_batch`: the thresholds
+            # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
+            # a float64 IoU exactly on one of them would fall below it.
+            return oriented_box_iou_batch(
+                cast(npt.NDArray[np.number], target_contents),
+                cast(npt.NDArray[np.number], prediction_contents),
+            ).astype(np.float32)
+        raise ValueError("Unsupported metric target for IoU calculation")
 
-        Each stats tuple is
-        ``(matches, ignored_matches, confidence, class_ids, true_class_ids)``:
-        - Both empty: skip (no information).
-        - Targets empty, predictions present: all predictions are FPs; true_class_ids
-          is ``zeros((0,))``.
-        - Targets present: IoU matching produces ``matches`` array.
+    def _collect_image_stats(
+        self,
+        predictions: Detections,
+        targets: Detections,
+        size_categories: tuple[ObjectSizeCategory, ...],
+        iou_thresholds: npt.NDArray[np.float32],
+        stats_by_size: dict[ObjectSizeCategory, list[Any]],
+    ) -> None:
+        """Validate one image, compute its IoU at most once, and append per-size stats.
+
+        Computing all requested size buckets per image lets the IoU matrix be released
+        immediately before advancing, keeping memory O(1 image) rather than O(dataset).
         """
-        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
-        stats: list[Any] = []
+        # Always validate target/prediction contents before empty-side branches so
+        # maskless detections under `MetricTarget.MASKS` still raise on background
+        # or prediction-free images.
+        prediction_contents = self._detections_content(predictions)
+        target_contents = self._detections_content(targets)
 
-        for img_idx, (predictions, targets) in enumerate(
-            zip(predictions_list, targets_list)
-        ):
-            prediction_size_mask = np.ones(len(predictions), dtype=bool)
-            target_size_mask = np.ones(len(targets), dtype=bool)
-            if size_category != ObjectSizeCategory.ANY:
-                if len(predictions) > 0:
-                    prediction_size_mask = (
-                        get_detection_size_category(predictions, self._metric_target)
-                        == size_category.value
-                    )
-                if len(targets) > 0:
-                    target_size_mask = (
-                        get_detection_size_category(targets, self._metric_target)
-                        == size_category.value
-                    )
+        needs_size = any(cat != ObjectSizeCategory.ANY for cat in size_categories)
+        pred_categories = (
+            get_detection_size_category(predictions, self._metric_target)
+            if needs_size and len(predictions) > 0
+            else None
+        )
+        target_categories = (
+            get_detection_size_category(targets, self._metric_target)
+            if needs_size and len(targets) > 0
+            else None
+        )
 
-            if len(targets) == 0 and len(predictions) > 0:
-                # Only predictions are present (e.g. a background image); every
-                # prediction is a false positive. Their classes are still tracked so
-                # that `matched_classes` agrees across the three metrics.
-                if predictions.class_id is None or predictions.confidence is None:
-                    raise ValueError(
-                        f"{self._metric_name} metric requires `class_id` and "
-                        "`confidence` on predictions."
-                    )
-                prediction_class_ids = np.asarray(predictions.class_id, dtype=np.int32)[
-                    prediction_size_mask
-                ]
-                prediction_confidence = np.asarray(
-                    predictions.confidence, dtype=np.float32
-                )[prediction_size_mask]
-                if len(prediction_class_ids) == 0:
+        if len(targets) == 0 and len(predictions) > 0:
+            # Only predictions are present (e.g. a background image); every
+            # prediction is a false positive. Their classes are still tracked so
+            # that `matched_classes` agrees across the three metrics.
+            if predictions.class_id is None or predictions.confidence is None:
+                raise ValueError(
+                    f"{self._metric_name} metric requires `class_id` and "
+                    "`confidence` on predictions."
+                )
+            base_pred_classes = np.asarray(predictions.class_id, dtype=np.int32)
+            base_pred_conf = np.asarray(predictions.confidence, dtype=np.float32)
+            for size_category in size_categories:
+                if size_category == ObjectSizeCategory.ANY:
+                    pred_classes = base_pred_classes
+                    pred_conf = base_pred_conf
+                else:
+                    assert pred_categories is not None
+                    mask = pred_categories == size_category.value
+                    pred_classes = base_pred_classes[mask]
+                    pred_conf = base_pred_conf[mask]
+                if len(pred_classes) == 0:
                     continue
-                stats.append(
+                stats_by_size[size_category].append(
                     (
                         np.zeros(
-                            (len(prediction_class_ids), iou_thresholds.size),
-                            dtype=np.bool_,
+                            (len(pred_classes), iou_thresholds.size), dtype=np.bool_
                         ),
                         np.zeros(
-                            (len(prediction_class_ids), iou_thresholds.size),
-                            dtype=np.bool_,
+                            (len(pred_classes), iou_thresholds.size), dtype=np.bool_
                         ),
-                        prediction_confidence,
-                        prediction_class_ids,
+                        pred_conf,
+                        pred_classes,
                         np.zeros((0,), dtype=np.int32),
                     )
                 )
-            elif len(targets) > 0:
-                if predictions.class_id is None or targets.class_id is None:
-                    raise ValueError(
-                        f"{self._metric_name} metric requires `class_id` on both "
-                        "predictions and targets."
-                    )
-                if len(predictions) == 0:
-                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)[
-                        target_size_mask
-                    ]
-                    if len(target_class_ids) == 0:
-                        continue
-                    stats.append(
-                        (
-                            np.zeros((0, iou_thresholds.size), dtype=bool),
-                            np.zeros((0, iou_thresholds.size), dtype=bool),
-                            np.zeros((0,), dtype=np.float32),
-                            np.zeros((0,), dtype=int),
-                            target_class_ids,
-                        )
-                    )
+            return
 
+        if len(targets) == 0:
+            return
+
+        if predictions.class_id is None or targets.class_id is None:
+            raise ValueError(
+                f"{self._metric_name} metric requires `class_id` on both "
+                "predictions and targets."
+            )
+        base_target_classes = np.asarray(targets.class_id, dtype=np.int32)
+        if len(predictions) == 0:
+            for size_category in size_categories:
+                if size_category == ObjectSizeCategory.ANY:
+                    target_classes = base_target_classes
                 else:
-                    if predictions.confidence is None:
-                        raise ValueError(
-                            f"{self._metric_name} metric requires `confidence` on "
-                            "predictions."
-                        )
-                    prediction_class_ids = np.asarray(
-                        predictions.class_id, dtype=np.int32
+                    assert target_categories is not None
+                    target_classes = base_target_classes[
+                        target_categories == size_category.value
+                    ]
+                if len(target_classes) == 0:
+                    continue
+                stats_by_size[size_category].append(
+                    (
+                        np.zeros((0, iou_thresholds.size), dtype=bool),
+                        np.zeros((0, iou_thresholds.size), dtype=bool),
+                        np.zeros((0,), dtype=np.float32),
+                        np.zeros((0,), dtype=int),
+                        target_classes,
                     )
-                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
-                    prediction_confidence = np.asarray(
-                        predictions.confidence, dtype=np.float32
-                    )
-                    cached_iou = iou_cache[img_idx] if iou_cache is not None else None
-                    if cached_iou is not None:
-                        iou = cached_iou
-                    else:
-                        prediction_contents = self._detections_content(predictions)
-                        target_contents = self._detections_content(targets)
-                        if self._metric_target == MetricTarget.BOXES:
-                            # BOXES target never yields CompactMask; narrow for mypy.
-                            iou = box_iou_batch(
-                                cast(npt.NDArray[np.number], target_contents),
-                                cast(npt.NDArray[np.number], prediction_contents),
-                            )
-                        elif self._metric_target == MetricTarget.MASKS:
-                            iou = mask_iou_batch(target_contents, prediction_contents)
-                        elif (
-                            self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES
-                        ):
-                            # OBB target never yields CompactMask; narrow for mypy.
-                            # The float32 cast matches `box_iou_batch`: the thresholds
-                            # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
-                            # a float64 IoU exactly on one of them would fall below it.
-                            iou = oriented_box_iou_batch(
-                                cast(npt.NDArray[np.number], target_contents),
-                                cast(npt.NDArray[np.number], prediction_contents),
-                            ).astype(np.float32)
-                        else:
-                            raise ValueError(
-                                "Unsupported metric target for IoU calculation"
-                            )
-                        if iou_cache is not None:
-                            iou_cache[img_idx] = iou
+                )
+            return
 
-                    # None keeps the matcher on its single-round fast path
-                    # when no size bucket is scored.
-                    target_scored_mask = (
-                        target_size_mask
-                        if size_category != ObjectSizeCategory.ANY
-                        else None
-                    )
-                    matches, matched_target_indices = (
-                        _match_detection_batch_with_target_indices(
-                            prediction_class_ids,
-                            target_class_ids,
-                            iou,
-                            iou_thresholds,
-                            target_scored_mask=target_scored_mask,
-                        )
-                    )
-                    ignored_matches = np.zeros_like(matches, dtype=bool)
-                    if size_category != ObjectSizeCategory.ANY:
-                        valid_target_match = matched_target_indices >= 0
-                        matched_scored_target = np.zeros_like(matches, dtype=bool)
-                        if np.any(valid_target_match):
-                            matched_scored_target[valid_target_match] = (
-                                target_size_mask[
-                                    matched_target_indices[valid_target_match]
-                                ]
-                            )
-                        prediction_scored = (
-                            prediction_size_mask[:, None] | matched_scored_target
-                        )
-                        ignored_matches = ~prediction_scored | (
-                            valid_target_match & ~matched_scored_target
-                        )
-                        prediction_keep = np.any(~ignored_matches, axis=1)
-                        matches = (
-                            matches[prediction_keep]
-                            & matched_scored_target[prediction_keep]
-                        )
-                        ignored_matches = ignored_matches[prediction_keep]
-                        prediction_confidence = prediction_confidence[prediction_keep]
-                        prediction_class_ids = prediction_class_ids[prediction_keep]
-                        target_class_ids = target_class_ids[target_size_mask]
-                        if (
-                            len(prediction_class_ids) == 0
-                            and len(target_class_ids) == 0
-                        ):
-                            continue
-                    stats.append(
-                        (
-                            matches,
-                            ignored_matches,
-                            prediction_confidence,
-                            prediction_class_ids,
-                            target_class_ids,
-                        )
-                    )
+        if predictions.confidence is None:
+            raise ValueError(
+                f"{self._metric_name} metric requires `confidence` on predictions."
+            )
+        base_pred_classes = np.asarray(predictions.class_id, dtype=np.int32)
+        base_pred_conf = np.asarray(predictions.confidence, dtype=np.float32)
+        iou = self._compute_iou_matrix(target_contents, prediction_contents)
 
+        for size_category in size_categories:
+            if size_category == ObjectSizeCategory.ANY:
+                matches, _ = _match_detection_batch_with_target_indices(
+                    base_pred_classes,
+                    base_target_classes,
+                    iou,
+                    iou_thresholds,
+                    target_scored_mask=None,
+                )
+                stats_by_size[size_category].append(
+                    (
+                        matches,
+                        np.zeros_like(matches, dtype=bool),
+                        base_pred_conf,
+                        base_pred_classes,
+                        base_target_classes,
+                    )
+                )
+                continue
+
+            assert pred_categories is not None
+            assert target_categories is not None
+            prediction_size_mask = pred_categories == size_category.value
+            target_size_mask = target_categories == size_category.value
+            matches, matched_target_indices = (
+                _match_detection_batch_with_target_indices(
+                    base_pred_classes,
+                    base_target_classes,
+                    iou,
+                    iou_thresholds,
+                    target_scored_mask=target_size_mask,
+                )
+            )
+            valid_target_match = matched_target_indices >= 0
+            matched_scored_target = np.zeros_like(matches, dtype=bool)
+            if np.any(valid_target_match):
+                matched_scored_target[valid_target_match] = target_size_mask[
+                    matched_target_indices[valid_target_match]
+                ]
+            prediction_scored = prediction_size_mask[:, None] | matched_scored_target
+            ignored_matches = ~prediction_scored | (
+                valid_target_match & ~matched_scored_target
+            )
+            prediction_keep = np.any(~ignored_matches, axis=1)
+            filtered_matches = (
+                matches[prediction_keep] & matched_scored_target[prediction_keep]
+            )
+            filtered_ignored = ignored_matches[prediction_keep]
+            filtered_conf = base_pred_conf[prediction_keep]
+            filtered_pred_classes = base_pred_classes[prediction_keep]
+            filtered_target_classes = base_target_classes[target_size_mask]
+            if len(filtered_pred_classes) == 0 and len(filtered_target_classes) == 0:
+                continue
+            stats_by_size[size_category].append(
+                (
+                    filtered_matches,
+                    filtered_ignored,
+                    filtered_conf,
+                    filtered_pred_classes,
+                    filtered_target_classes,
+                )
+            )
+
+    def _finalize_result(
+        self,
+        stats: list[Any],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> _ResultT:
+        """Aggregate collected per-image stats into a final metric result."""
         if not stats:
             return self._build_result(
                 scores=np.zeros(iou_thresholds.shape[0]),
@@ -341,18 +330,66 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                 iou_thresholds=iou_thresholds,
                 matched_classes=np.array([], dtype=int),
             )
-
         concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
         scores, per_class_scores, unique_classes = self._compute_scores_for_classes(
             *concatenated_stats
         )
-
         return self._build_result(
             scores=scores,
             per_class_scores=per_class_scores,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
         )
+
+    def _compute_all_sizes(self) -> tuple[_ResultT, _ResultT, _ResultT, _ResultT]:
+        """Compute ANY/SMALL/MEDIUM/LARGE in one pass, releasing each IoU per image."""
+        categories = (
+            ObjectSizeCategory.ANY,
+            ObjectSizeCategory.SMALL,
+            ObjectSizeCategory.MEDIUM,
+            ObjectSizeCategory.LARGE,
+        )
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
+        stats_by_size: dict[ObjectSizeCategory, list[Any]] = {
+            cat: [] for cat in categories
+        }
+        for predictions, targets in zip(self._predictions_list, self._targets_list):
+            self._collect_image_stats(
+                predictions, targets, categories, iou_thresholds, stats_by_size
+            )
+        return (
+            self._finalize_result(
+                stats_by_size[ObjectSizeCategory.ANY], iou_thresholds
+            ),
+            self._finalize_result(
+                stats_by_size[ObjectSizeCategory.SMALL], iou_thresholds
+            ),
+            self._finalize_result(
+                stats_by_size[ObjectSizeCategory.MEDIUM], iou_thresholds
+            ),
+            self._finalize_result(
+                stats_by_size[ObjectSizeCategory.LARGE], iou_thresholds
+            ),
+        )
+
+    def _compute(
+        self,
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
+        size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
+    ) -> _ResultT:
+        """Build per-image stats tuples and delegate to class-level computation."""
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
+        stats_by_size: dict[ObjectSizeCategory, list[Any]] = {size_category: []}
+        for predictions, targets in zip(predictions_list, targets_list):
+            self._collect_image_stats(
+                predictions,
+                targets,
+                (size_category,),
+                iou_thresholds,
+                stats_by_size,
+            )
+        return self._finalize_result(stats_by_size[size_category], iou_thresholds)
 
     def _compute_scores_for_classes(
         self,

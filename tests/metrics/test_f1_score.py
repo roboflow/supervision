@@ -619,3 +619,27 @@ class TestComputeF1:
         assert result.small_objects.f1_50 == pytest.approx(1.0)
         assert result.medium_objects.f1_50 == pytest.approx(1.0)
         assert result.large_objects.f1_50 == pytest.approx(1.0)
+
+    def test_mask_target_raises_on_maskless_empty_side_cases(self) -> None:
+        """MetricTarget.MASKS rejects maskless predictions or targets on empty sides."""
+        maskless_preds = Detections(
+            xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0], dtype=np.int32),
+            data={"area": np.array([400.0], dtype=np.float32)},
+        )
+        maskless_targets = Detections(
+            xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+            class_id=np.array([0], dtype=np.int32),
+            data={"area": np.array([400.0], dtype=np.float32)},
+        )
+
+        with pytest.raises(ValueError, match="masks"):
+            F1Score(metric_target=MetricTarget.MASKS).update(
+                maskless_preds, Detections.empty()
+            ).compute()
+
+        with pytest.raises(ValueError, match="masks"):
+            F1Score(metric_target=MetricTarget.MASKS).update(
+                Detections.empty(), maskless_targets
+            ).compute()

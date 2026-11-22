@@ -1203,3 +1203,37 @@ class TestMeanAverageRecallCocoSizeBuckets:
         assert result.small_objects.mAR_at_100 == pytest.approx(1.0)
         assert result.medium_objects.mAR_at_100 == pytest.approx(1.0)
         assert result.large_objects.mAR_at_100 == pytest.approx(1.0)
+
+    def test_mask_target_raises_on_maskless_background_or_empty_preds(self) -> None:
+        """MetricTarget.MASKS rejects maskless inputs even on background/empty sides."""
+        maskless_preds = Detections(
+            xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0], dtype=np.int32),
+            data={"area": np.array([400.0], dtype=np.float32)},
+        )
+        ignored_target = Detections(
+            xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+            class_id=np.array([0], dtype=np.int32),
+            data={ISCROWD_DATA_FIELD: np.array([1])},
+        )
+        maskless_targets = Detections(
+            xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+            class_id=np.array([0], dtype=np.int32),
+            data={"area": np.array([400.0], dtype=np.float32)},
+        )
+
+        with pytest.raises(ValueError, match="masks"):
+            MeanAverageRecall(metric_target=MetricTarget.MASKS).update(
+                maskless_preds, Detections.empty()
+            ).compute()
+
+        with pytest.raises(ValueError, match="masks"):
+            MeanAverageRecall(metric_target=MetricTarget.MASKS).update(
+                maskless_preds, ignored_target
+            ).compute()
+
+        with pytest.raises(ValueError, match="masks"):
+            MeanAverageRecall(metric_target=MetricTarget.MASKS).update(
+                Detections.empty(), maskless_targets
+            ).compute()
