@@ -61,7 +61,10 @@ from supervision.utils.image import (
     letterbox_image,
     scale_image,
 )
-from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
+from supervision.utils.internal import (
+    _DEPRECATION_WARNING_STREAM,
+    _deprecation_template,
+)
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -72,7 +75,7 @@ logger = _get_logger(__name__)
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+    **_deprecation_template(_DETECTION_COLOR_HELPER_DEPRECATION),
 )
 def resolve_color(
     color: Color | ColorPalette,
