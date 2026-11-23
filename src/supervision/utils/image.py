@@ -540,16 +540,20 @@ def tint_image(
 
     Args:
         image: The image to tint. Accepts BGR arrays of shape ``(H, W, 3)``,
-            BGRA arrays of shape ``(H, W, 4)``, grayscale arrays of shape
+            uint8 BGRA arrays of shape ``(H, W, 4)``, grayscale arrays of shape
             ``(H, W)`` or ``(H, W, 1)``, or a PIL ``Image``.
         color: Overlay tint color. Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
         opacity: Blend ratio between overlay and image (0.0-1.0).
-            Defaults to `0.5`.
+            Defaults to `0.5`. For BGRA arrays, this is the tint's alpha;
+            the alpha component of `color` is ignored.
 
     Returns:
         Tinted image matching input
             type. The input image is left unchanged. A grayscale input comes back
             as a BGR array (or an RGB ``Image``), since the tint has a color.
+            A BGRA input is composited using straight alpha, so transparent
+            pixels become visible in proportion to `opacity` and opaque pixels
+            match their BGR counterparts within rounding.
 
     Raises:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
@@ -579,11 +583,11 @@ def tint_image(
     if _is_single_channel(image):
         # A three-channel overlay cannot be blended into a single-channel image.
         image = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
-    fill_value: tuple[int, ...] = color.as_bgr()
     if image.ndim == 3 and image.shape[2] == 4:
-        # An opaque tint, so a BGRA image keeps the alpha it has where it is opaque.
-        fill_value = (*fill_value, 255)
-    overlay = np.full_like(image, fill_value=fill_value, dtype=image.dtype)
+        overlay = np.full_like(image[..., :3], fill_value=color.as_bgr())
+        alpha = np.full((*image.shape[:2], 1), opacity, dtype=np.float32)
+        return _composite_over_bgra(image, overlay, alpha)
+    overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
     # No `dst`: let the blend allocate its own buffer. Passing `image` there wrote
     # the tint back into the caller's array for a NumPy input, while a Pillow input
     # was shielded by the ndarray conversion the decorator makes.

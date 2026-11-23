@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.tint_image` now tints BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (3,) into shape (H,W,4)`. The colors match the tint of the BGR copy, and opaque pixels stay opaque. ([#2961](https://github.com/roboflow/supervision/pull/2961))
+- `sv.tint_image` now tints uint8 BGRA arrays, shaped `(H, W, 4)`, instead of raising a broadcast error. It composites the tint with straight alpha: transparent pixels become visible in proportion to `opacity`, opaque pixels remain opaque and match the BGR result within rounding, and `Color.a` is ignored. ([#2961](https://github.com/roboflow/supervision/pull/2961))
 
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 

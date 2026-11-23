@@ -545,20 +545,35 @@ def test_tint_image_accepts_grayscale_array() -> None:
     np.testing.assert_array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
 
 
-def test_tint_image_accepts_bgra_array() -> None:
-    """A BGRA array is tinted like its BGR copy and stays opaque where it was."""
+@pytest.mark.parametrize(
+    ("pixel", "opacity", "expected"),
+    [
+        pytest.param((0, 0, 0, 0), 0.25, (40, 100, 200, 64), id="transparent-black"),
+        pytest.param(
+            (255, 20, 90, 0), 0.25, (40, 100, 200, 64), id="transparent-hidden-color"
+        ),
+        pytest.param((20, 60, 100, 128), 0.25, (28, 76, 140, 160), id="translucent"),
+        pytest.param((20, 60, 100, 255), 0.25, (25, 70, 125, 255), id="opaque"),
+        pytest.param((20, 60, 100, 0), 0.0, (20, 60, 100, 0), id="zero-opacity"),
+        pytest.param((20, 60, 100, 128), 1.0, (40, 100, 200, 255), id="full-opacity"),
+    ],
+)
+def test_tint_image_accepts_bgra_array(
+    pixel: tuple[int, ...], opacity: float, expected: tuple[int, ...]
+) -> None:
+    """Tint BGRA pixels using their alpha and preserve the input."""
     # given
-    image = np.zeros((2, 2, 4), dtype=np.uint8)
-    image[..., 3] = [[255, 255], [0, 0]]
+    image = np.array([[pixel]], dtype=np.uint8)
+    original = image.copy()
 
     # when
-    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+    result = tint_image(
+        image=image, color=Color(r=200, g=100, b=40, a=17), opacity=opacity
+    )
 
     # then
-    np.testing.assert_array_equal(
-        result[..., :3], np.full((2, 2, 3), 128, dtype=np.uint8)
-    )
-    np.testing.assert_array_equal(result[..., 3], [[255, 255], [128, 128]])
+    np.testing.assert_array_equal(result, np.array([[expected]], dtype=np.uint8))
+    np.testing.assert_array_equal(image, original)
 
 
 @pytest.mark.parametrize(
