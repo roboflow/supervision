@@ -83,9 +83,7 @@ image = sv.pillow_to_cv2(pil_image)
     label_map = np.load("<LABEL_MAP_NPY_PATH>")  # (H, W) integer class ids
     names = {0: "background", 1: "road", 2: "sky"}
 
-    detections = sv.Detections.from_semantic_segmentation(
-        label_map, class_map=names
-    )
+    detections = sv.Detections.from_semantic_segmentation(label_map, class_map=names)
     ```
 
 ## Choose What Counts as Background
