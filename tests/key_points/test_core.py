@@ -2049,15 +2049,39 @@ class TestFromTransformers:
         np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
         np.testing.assert_array_equal(key_points.class_id, [0])
 
+    def test_pose_result_accepts_numpy_arrays(self) -> None:
+        """Preserve support for NumPy pose coordinates and scores."""
+        results = [
+            {
+                "keypoints": np.array([[10.0, 20.0], [30.0, 40.0]]),
+                "scores": np.array([0.5, 0.25]),
+            }
+        ]
+
+        key_points = KeyPoints.from_transformers(results)
+
+        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_array_equal(key_points.keypoint_confidence, [[0.5, 0.25]])
+
     @pytest.mark.parametrize("dtype_name", ["bfloat16", "float16", "float32"])
-    def test_pose_result_accepts_tensor_precisions(self, dtype_name: str) -> None:
+    @pytest.mark.parametrize("requires_grad", [False, True])
+    def test_pose_result_accepts_tensor_precisions(
+        self, dtype_name: str, requires_grad: bool
+    ) -> None:
         """Half-precision pose outputs load, with bfloat16 widened to float32."""
         torch = pytest.importorskip("torch")
         dtype = getattr(torch, dtype_name)
         results = [
             {
-                "keypoints": torch.tensor([[10.0, 20.0], [30.0, 40.0]], dtype=dtype),
-                "scores": torch.tensor([0.5, 0.25], dtype=dtype),
+                "keypoints": torch.tensor(
+                    [[10.0, 20.0], [30.0, 40.0]],
+                    dtype=dtype,
+                    requires_grad=requires_grad,
+                ),
+                "scores": torch.tensor(
+                    [0.5, 0.25], dtype=dtype, requires_grad=requires_grad
+                ),
             }
         ]
 
