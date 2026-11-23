@@ -104,7 +104,7 @@ detections = sv.Detections.from_semantic_segmentation(
 )
 ```
 
-`from_transformers` and `from_ultralytics` keep every class. Check what id `0` means for your model before comparing results across models: a model with a background class numbers every other class one higher than a model without one.
+`from_transformers` keeps every class, including id `0`. For multiclass models, `from_ultralytics` keeps IDs listed in `Results.names` and skips unnamed IDs. For single-class models, it keeps only foreground map value `1`, drops background value `0`, and reports foreground as detection class id `0`. Check each model's class-name mapping before comparing results rather than assuming a fixed offset between class ids.
 
 ## Read the Confidence
 
