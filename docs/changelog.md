@@ -9,6 +9,8 @@ date_modified: 2026-11-18
 
 - On Windows, images whose path has characters outside ASCII, such as an accented, Cyrillic or CJK folder name, can now be read and written. OpenCV reads such a path in the ANSI code page, so `sv.DetectionDataset` raised `ValueError: Could not read image from path` when its images were loaded, and `as_yolo`, `as_coco`, `as_pascal_voc` and `sv.ImageSink` failed to save or wrote a file with a garbled name. ([#2963](https://github.com/roboflow/supervision/pull/2963))
 
+- `sv.tint_image` now tints uint8 BGRA arrays, shaped `(H, W, 4)`, instead of raising a broadcast error. It composites the tint with straight alpha: transparent pixels become visible in proportion to `opacity`, opaque pixels remain opaque and match the BGR result within rounding, and `Color.a` is ignored. ([#2961](https://github.com/roboflow/supervision/pull/2961))
+
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 
 - `sv.DetectionDataset.from_yolo`, `from_coco` and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with `Invalid YOLO annotation file`, and a JSON file failed with `Unexpected UTF-8 BOM`. `read_txt_file` and `save_text_file` now use UTF-8 on every platform, like the JSON and YAML readers. ([#2959](https://github.com/roboflow/supervision/pull/2959))
@@ -20,6 +22,8 @@ date_modified: 2026-11-18
 - `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha. ([#2956](https://github.com/roboflow/supervision/pull/2956))
 
 - `sv.ConfusionMatrix.plot(normalize=True)` now divides each row by its sum, so each ground-truth row shows how that class's targets were predicted and the diagonal is per-class recall, as in `sklearn.metrics.confusion_matrix(normalize="true")`. It used to divide by column sums, which did not match the `True` / `Predicted` axis labels: with 10 cats all found and 5 of 10 dogs predicted as cat, the plot showed cat -> cat 0.67 and dog -> dog 1.00 instead of 1.00 and 0.50. Normalized plots now show different numbers. ([#2954](https://github.com/roboflow/supervision/pull/2954))
+
+- `sv.Detections.from_transformers` and `sv.KeyPoints.from_transformers` now accept `bfloat16` model outputs, as a model run in `bfloat16` returns them, instead of raising `TypeError: Got unsupported ScalarType BFloat16`. Both adapters detach gradient-tracked tensors before conversion. `Detections` returns `bfloat16` boxes and scores as `float32` and keeps other precisions unchanged; `KeyPoints` coordinates and confidences are `float32` for every input precision, as before. ([#2962](https://github.com/roboflow/supervision/pull/2962))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
