@@ -129,6 +129,21 @@ The Supervision library provides convenient functions to load datasets in variou
     # 800, 100, 100
     ```
 
+    For segmentation datasets, pass `compact_masks=True` to keep masks as [`sv.CompactMask`](https://supervision.roboflow.com/latest/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) instead of dense NumPy arrays:
+
+    ```python
+    ds_train = sv.DetectionDataset.from_yolo(
+        images_directory_path=f"{dataset.location}/train/images",
+        annotations_directory_path=f"{dataset.location}/train/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
+        compact_masks=True,
+    )
+    ```
+
+    Compact loading is lossless: the masks decode to exactly the pixels of the dense loader. Retained memory is roughly the size of each object's run-length encoding inside its rounded vertex bounds, rather than a full `(N, H, W)` array per image, so the saving depends on mask size and complexity. Each polygon is encoded before the next one is drawn, so the temporary memory used while loading stays bounded by a few frame-sized buffers, however many objects an image has. Images remain lazily loaded, as before. Use `detections.mask.to_dense()` only when a consumer requires a NumPy stack; that allocates full-size masks again.
+
+    The option does not generate masks for box-only datasets unless `force_masks=True` is also set. Empty annotations still have `mask=None`, and OBB annotations never generate masks. The default `compact_masks=False` keeps the existing dense representation.
+
 === "Pascal VOC"
 
     We can do so using the [`sv.DetectionDataset.from_pascal_voc`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc) to load annotations in [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format.

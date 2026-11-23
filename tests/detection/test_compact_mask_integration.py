@@ -150,7 +150,7 @@ class TestMerge:
     Covers three scenarios:
     - All-compact merge: result is a CompactMask.
     - Mixed compact + dense: dense inputs are converted; result is a CompactMask.
-    - Inner pair merge (merge_inner_detection_object_pair): used during NMS-like
+    - Inner pair merge (_merge_detection_group): used during NMS-like
       operations, each input must contain exactly one detection.
     """
 
@@ -197,7 +197,7 @@ class TestMerge:
         assert merged.mask.image_shape == (h, w)
 
     def test_inner_pair_with_compact(self) -> None:
-        from supervision.detection.core import merge_inner_detection_object_pair
+        from supervision.detection.core import _merge_detection_group
 
         h, w = 20, 20
         masks_a = np.zeros((1, h, w), dtype=bool)
@@ -223,7 +223,7 @@ class TestMerge:
         )
 
         with DoesNotRaise():
-            result = merge_inner_detection_object_pair(det_a, det_b)
+            result = _merge_detection_group([det_a, det_b])
         assert len(result) == 1
 
 
