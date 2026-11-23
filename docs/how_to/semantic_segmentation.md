@@ -90,6 +90,8 @@ image = sv.pillow_to_cv2(pil_image)
 
 [from_semantic_segmentation][supervision.detection.core.Detections.from_semantic_segmentation] leaves out class id `0` by default, because models served by Roboflow Inference use it for background. [from_inference][supervision.detection.core.Detections.from_inference] uses the same default.
 
+The following examples use `label_map` and `names` from the **Class map** tab above.
+
 ```python
 # keep every class, for a model whose id 0 is a real class such as `wall`
 detections = sv.Detections.from_semantic_segmentation(
@@ -138,7 +140,7 @@ coverage = detections.area / (image.shape[0] * image.shape[1])
 
 ## Keep Memory Low with Compact Masks
 
-A dense mask array holds one `(H, W)` boolean frame per class. On a large image with many classes, pass `compact_masks=True` to get a [CompactMask][supervision.detection.compact_mask.CompactMask] instead, built one class at a time. It decodes to the same pixels as the dense array; see [Use Compact Masks](use_compact_masks.md).
+A dense mask array holds one `(H, W)` boolean frame per class. On a large image with many classes, pass `compact_masks=True` to get a [CompactMask][supervision.detection.compact_mask.CompactMask] instead, built one class at a time. It decodes to the same pixels as the dense array; see [Use Compact Masks](use_compact_masks.md). This example also uses `label_map` and `names` from the **Class map** tab above.
 
 ```python
 detections = sv.Detections.from_semantic_segmentation(
