@@ -3146,6 +3146,12 @@ class Detections:
         oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
         oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
+        Merged axis-aligned boxes use the common dtype of their coordinates.
+        A real-floating common dtype is retained, widened to at least float32;
+        every other common dtype produces float32 unions. Singleton groups keep
+        their original coordinates and dtype;
+        stacking groups follows NumPy's common dtype promotion.
+
         Compact masks remain compressed while forming candidate and output unions;
         no full-image mask stack is allocated for merging. Overlap evaluation still
         decodes overlapping mask crops.
@@ -3405,7 +3411,9 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     highest-confidence detection is the
     "winner" whose class_id, tracker_id, and data fields are preserved. Box
     extents are widened before subtraction to keep confidence weights finite
-    and avoid integer wraparound.
+    and avoid integer wraparound. Multi-member axis-aligned unions retain the
+    common floating coordinate dtype, widened to at least float32; other
+    coordinate dtypes retain float32 output. Singleton groups are unchanged.
 
     Args:
         detections: List of Detections, each containing exactly one object.
@@ -3470,7 +3478,12 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         xyxy = xyxyxyxy_to_xyxy(merged_corners[np.newaxis])
         data = {**winner.data, ORIENTED_BOX_COORDINATES: merged_corners[np.newaxis]}
     else:
-        # AABB path: union bounding box across all group members
+        # AABB path: retain floating-point precision, widening to at least float32.
+        output_dtype = (
+            np.promote_types(all_xyxy.dtype, np.float32)
+            if np.issubdtype(all_xyxy.dtype, np.floating)
+            else np.dtype(np.float32)
+        )
         xyxy = np.array(
             [
                 [
@@ -3480,7 +3493,7 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
                     all_xyxy[:, 3].max(),
                 ]
             ],
-            dtype=np.float32,
+            dtype=output_dtype,
         )
         data = winner.data
 
