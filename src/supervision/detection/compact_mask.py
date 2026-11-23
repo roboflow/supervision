@@ -33,6 +33,8 @@ from supervision.detection.utils.converters import (
     _delta_decode,
     _mask_to_rle_counts,
     _rle_counts_to_mask,
+    polygon_to_mask,
+    polygon_to_xyxy,
 )
 
 #: Foreground runs summed per ``np.add.reduceat`` call in ``CompactMask.area``.
@@ -2018,3 +2020,51 @@ class CompactMask:
         new_crop_shapes = np.column_stack((new_crop_hs, new_crop_ws)).astype(np.int32)
         new_offsets = np.column_stack((new_x1s, new_y1s)).astype(np.int32)
         return CompactMask(new_rles, new_crop_shapes, new_offsets, new_image_shape)
+
+
+def _polygon_to_compact_mask(
+    vertices: npt.NDArray[np.number], resolution_wh: tuple[int, int]
+) -> CompactMask:
+    """Rasterize one polygon and encode only its rounded vertex bounds.
+
+    The vertices are rounded to whole pixels and the polygon is rasterized on the
+    full frame with :func:`~supervision.detection.utils.converters.polygon_to_mask`,
+    which keeps the clipping and boundary pixels of the dense loaders on every
+    drawing backend. Every filled pixel lies within the rounded vertex bounds, so
+    encoding only that crop is lossless. No reference to the frame survives the call.
+
+    Args:
+        vertices: Polygon vertices of shape ``(N, 2)`` in pixel coordinates, possibly
+            sub-pixel floats.
+        resolution_wh: Image width and height in pixels.
+
+    Returns:
+        A :class:`~supervision.detection.compact_mask.CompactMask` holding one mask of
+        shape ``(1, height, width)``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _polygon_to_compact_mask
+        >>> vertices = np.array([[2.4, 1.6], [6.6, 1.6], [6.6, 5.4], [2.4, 5.4]])
+        >>> mask = _polygon_to_compact_mask(vertices, resolution_wh=(10, 8))
+        >>> mask.shape
+        (1, 8, 10)
+        >>> mask.bbox_xyxy.tolist()
+        [[2, 2, 7, 5]]
+
+        ```
+    """
+    width, height = resolution_wh
+    polygon = np.round(vertices).astype(np.int32)
+    # The raster holds only 0 and 1, so a bool view is exact and skips a second
+    # frame-sized copy.
+    mask = polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh).view(np.bool_)
+    # Round before deriving the crop: truncating the floating-point bounds would
+    # drop foreground pixels at the right or bottom polygon edge.
+    bounds = polygon_to_xyxy(polygon)
+    return CompactMask.from_dense(
+        masks=mask[np.newaxis, ...],
+        xyxy=bounds[np.newaxis, :],
+        image_shape=(height, width),
+    )

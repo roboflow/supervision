@@ -10,7 +10,7 @@ AREA_DATA_FIELD: str = "area"
 XYXY_DATA_FIELD: str = "xyxy"
 #: Key for raw per-keypoint visibility flags in ``KeyPoints.data``.
 #:
-#: Value layout: ``np.ndarray`` of shape ``(N, K)``, dtype ``float32``, holding the
+#: Value layout: ``np.ndarray`` of shape ``(N, K)``, dtype ``float64``, holding the
 #: third value of each YOLO pose keypoint as read, finite and non-negative. It is
 #: usually the YOLO / COCO ternary flag — ``0`` not labelled, ``1`` labelled but
 #: not visible, ``2`` labelled and visible — while labels written from model
