@@ -11,10 +11,17 @@ from typing import Literal
 
 import numpy as np
 import pytest
-from sklearn.metrics import f1_score, precision_score, recall_score
+from matplotlib import pyplot as plt
+from sklearn.metrics import (
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+)
 
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod
+from supervision.metrics.detection import ConfusionMatrix
 from supervision.metrics.f1_score import F1Score
 from supervision.metrics.precision import Precision
 from supervision.metrics.recall import Recall
@@ -284,3 +291,49 @@ class TestEmptyInput:
         actual = getattr(result, metric_spec.per_class_attribute)
         np.testing.assert_array_equal(result.matched_classes, np.array([]))
         assert actual.shape == (0, result.iou_thresholds.size)
+
+
+def _confusion_matrix_and_labels(
+    case: ParityCase,
+) -> tuple[ConfusionMatrix, list[int]]:
+    """Build a parity case's confusion matrix and the matching sklearn label order."""
+    predictions, targets = _build_detection_batches(case)
+    num_classes = max(case.sklearn_labels) + 1
+    result = ConfusionMatrix.from_detections(
+        predictions=predictions,
+        targets=targets,
+        classes=[str(class_id) for class_id in range(num_classes)],
+    )
+    return result, [*range(num_classes), BACKGROUND_CLASS_ID]
+
+
+@pytest.mark.parametrize(
+    "case", [pytest.param(case, id=case.name) for case in PARITY_CASES]
+)
+class TestConfusionMatrixParity:
+    """Compare confusion matrix counts and normalized plots with scikit-learn."""
+
+    def test_counts_match_sklearn(self, case: ParityCase) -> None:
+        """Raw counts equal sklearn's matrix with background as FN column / FP row."""
+        result, labels = _confusion_matrix_and_labels(case)
+
+        expected = confusion_matrix(
+            case.sklearn_y_true, case.sklearn_y_pred, labels=labels
+        )
+        np.testing.assert_array_equal(result.matrix, expected)
+
+    def test_normalized_plot_matches_sklearn_normalize_true(
+        self, case: ParityCase
+    ) -> None:
+        """Normalized plot cells equal sklearn's per-true-class normalization."""
+        result, labels = _confusion_matrix_and_labels(case)
+        expected = confusion_matrix(
+            case.sklearn_y_true, case.sklearn_y_pred, labels=labels, normalize="true"
+        )
+        expected[expected < 0.005] = np.nan
+
+        fig = result.plot(normalize=True)
+        plotted = np.asarray(fig.axes[0].images[0].get_array().filled(np.nan))
+
+        np.testing.assert_allclose(plotted, expected, atol=1e-6)
+        plt.close(fig)
