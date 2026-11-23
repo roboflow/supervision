@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.with_nmm` retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32, other coordinate dtypes retain float32 unions, and singleton groups are unchanged.
+- `sv.Detections.with_nmm` retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32, other coordinate dtypes retain float32 unions, and singleton groups are unchanged. ([#3053](https://github.com/roboflow/supervision/pull/3053))
 
 - `sv.RichLabelAnnotator` now annotates BGRA arrays, shaped `(H, W, 4)`, instead of raising `ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)`. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. ([#2960](https://github.com/roboflow/supervision/pull/2960))
 
