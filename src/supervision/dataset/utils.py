@@ -713,10 +713,10 @@ def save_dataset_images(
 def _train_split_index(length: int, train_ratio: float) -> int:
     """Returns how many of `length` items belong to the train part.
 
-    The ratio is read as the decimal the caller wrote (`0.7`, not the nearest
-    binary float, which is just below it) and multiplied exactly, so
+    The evaluated ratio's decimal representation is multiplied exactly, so
     `90 * 0.7` gives `63` instead of the `62` that floating-point multiplication
-    floors to. The result is rounded down, as before.
+    floors to. The previous floating-point result is retained when it is larger,
+    preserving computed ratios such as `1 / 3` for three items.
 
     Args:
         length: The number of items to split.
@@ -735,7 +735,7 @@ def _train_split_index(length: int, train_ratio: float) -> int:
         decimal = str(train_ratio)
     else:
         decimal = str(float(train_ratio))
-    return int(Fraction(decimal) * length)
+    return max(int(length * train_ratio), int(Fraction(decimal) * length))
 
 
 def train_test_split(

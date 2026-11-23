@@ -761,6 +761,20 @@ class TestTrainTestSplitExactRatio:
     """train_test_split() keeps every item a decimal ratio exactly accounts for."""
 
     @pytest.mark.parametrize(
+        ("train_ratio", "expected_train_size"),
+        [
+            pytest.param(1 / 3, 1, id="one-third"),
+            pytest.param(2 / 3, 2, id="two-thirds"),
+        ],
+    )
+    def test_computed_ratio_preserves_previous_split_size(
+        self, train_ratio: float, expected_train_size: int
+    ) -> None:
+        """Computed thirds retain the training size from float multiplication."""
+        train, test = train_test_split(list(range(3)), train_ratio, shuffle=False)
+        assert (len(train), len(test)) == (expected_train_size, 3 - expected_train_size)
+
+    @pytest.mark.parametrize(
         ("length", "train_ratio", "expected_train_size"),
         [
             (90, 0.7, 63),
