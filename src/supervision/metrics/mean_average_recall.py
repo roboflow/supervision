@@ -284,10 +284,11 @@ class MeanAverageRecallResult(MetricResult):
 
         for bar in bars:
             y_value = bar.get_height()
+            label = "N/A" if y_value == -1 else f"{y_value:.2f}"
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
-                y_value + 0.02,
-                f"{y_value:.2f}",
+                max(y_value, 0) + 0.02,
+                label,
                 ha="center",
                 va="bottom",
             )
