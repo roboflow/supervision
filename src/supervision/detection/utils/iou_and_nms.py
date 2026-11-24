@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from enum import Enum
 from fractions import Fraction
 from typing import Any, cast
@@ -989,6 +989,27 @@ def compact_mask_iou_batch(
     pixel_count = masks_true.image_shape[0] * masks_true.image_shape[1]
     count_dtype = np.float32 if pixel_count <= 2**24 else np.float64
 
+    for idx_a, idx_b, pixel_overlap in _compact_mask_intersections(
+        masks_true, masks_detection
+    ):
+        inter = count_dtype(pixel_overlap)
+        area_a_i = count_dtype(areas_a[idx_a])
+        area_b_j = count_dtype(areas_b[idx_b])
+
+        if overlap_metric == OverlapMetric.IOU:
+            union = area_a_i + area_b_j - inter
+            result[idx_a, idx_b] = inter / union if union > 0 else 0.0
+        elif overlap_metric == OverlapMetric.IOS:
+            small = min(area_a_i, area_b_j)
+            result[idx_a, idx_b] = inter / small if small > 0 else 0.0
+
+    return result
+
+
+def _compact_mask_intersections(
+    masks_true: CompactMask, masks_detection: CompactMask
+) -> Iterator[tuple[int, int, int]]:
+    """Yield mask indexes and exact intersection counts for overlapping crops."""
     # Inclusive per-mask bounding boxes obtained from public accessors.
     # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
     bboxes_a: npt.NDArray[np.int32] = masks_true.bbox_xyxy.astype(np.int32)
@@ -1033,18 +1054,7 @@ def compact_mask_iou_batch(
         ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
         sub_b = crops_b[idx_b][ly1 - oy_b : ly2 - oy_b + 1, lx1 - ox_b : lx2 - ox_b + 1]
 
-        inter = count_dtype(np.logical_and(sub_a, sub_b).sum())
-        area_a_i = count_dtype(areas_a[idx_a])
-        area_b_j = count_dtype(areas_b[idx_b])
-
-        if overlap_metric == OverlapMetric.IOU:
-            union = area_a_i + area_b_j - inter
-            result[idx_a, idx_b] = inter / union if union > 0 else 0.0
-        elif overlap_metric == OverlapMetric.IOS:
-            small = min(area_a_i, area_b_j)
-            result[idx_a, idx_b] = inter / small if small > 0 else 0.0
-
-    return result
+        yield idx_a, idx_b, int(np.count_nonzero(sub_a & sub_b))
 
 
 def _mask_iou_batch_split(
