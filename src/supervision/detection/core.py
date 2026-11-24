@@ -3166,9 +3166,9 @@ class Detections:
 
         Merged axis-aligned boxes use the common dtype of their coordinates.
         A real-floating common dtype is retained, widened to at least float32;
-        every other common dtype produces float32 unions. Singleton groups keep
-        their original coordinates and dtype;
-        stacking groups follows NumPy's common dtype promotion.
+        every other common dtype produces float32 unions. Singleton groups are
+        unchanged before stacking; the final array follows NumPy's common dtype
+        promotion, which can round integer coordinates when promoted to float.
 
         Compact masks remain compressed while forming candidate and output unions;
         no full-image mask stack is allocated for merging. Overlap evaluation still

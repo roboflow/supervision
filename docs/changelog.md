@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.with_nmm` retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32, other coordinate dtypes retain float32 unions, and singleton groups are unchanged. ([#3053](https://github.com/roboflow/supervision/pull/3053))
+- `sv.Detections.with_nmm` retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32, other coordinate dtypes retain float32 unions. Singleton groups are unchanged before stacking, but final dtype promotion can round integer coordinates. ([#3053](https://github.com/roboflow/supervision/pull/3053))
 
 - Mask mean average precision now evaluates compact masks by their crops instead of expanding them to full-image arrays, including when only predictions or only targets use compact masks. COCO matching and crowd handling are unchanged. ([#3000](https://github.com/roboflow/supervision/pull/3000))
 
