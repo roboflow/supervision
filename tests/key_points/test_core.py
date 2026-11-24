@@ -378,7 +378,7 @@ KEY_POINTS = _create_key_points(
                 class_id=[0],
             ),
             DoesNotRaise(),
-        ),  # kp[kp.confidence > 0.5] — single-object canonical use case
+        ),  # kp[kp.keypoint_confidence > 0.5] — single-object canonical use case
     ],
 )
 def test_key_points_getitem(key_points, index, expected_result, exception):
@@ -2049,6 +2049,49 @@ class TestFromTransformers:
         np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
         np.testing.assert_array_equal(key_points.class_id, [0])
 
+    def test_pose_result_accepts_numpy_arrays(self) -> None:
+        """Preserve support for NumPy pose coordinates and scores."""
+        results = [
+            {
+                "keypoints": np.array([[10.0, 20.0], [30.0, 40.0]]),
+                "scores": np.array([0.5, 0.25]),
+            }
+        ]
+
+        key_points = KeyPoints.from_transformers(results)
+
+        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_array_equal(key_points.keypoint_confidence, [[0.5, 0.25]])
+
+    @pytest.mark.parametrize("dtype_name", ["bfloat16", "float16", "float32"])
+    @pytest.mark.parametrize("requires_grad", [False, True])
+    def test_pose_result_accepts_tensor_precisions(
+        self, dtype_name: str, requires_grad: bool
+    ) -> None:
+        """Half-precision pose outputs load, with bfloat16 widened to float32."""
+        torch = pytest.importorskip("torch")
+        dtype = getattr(torch, dtype_name)
+        results = [
+            {
+                "keypoints": torch.tensor(
+                    [[10.0, 20.0], [30.0, 40.0]],
+                    dtype=dtype,
+                    requires_grad=requires_grad,
+                ),
+                "scores": torch.tensor(
+                    [0.5, 0.25], dtype=dtype, requires_grad=requires_grad
+                ),
+            }
+        ]
+
+        key_points = KeyPoints.from_transformers(results)
+
+        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_array_equal(key_points.keypoint_confidence, [[0.5, 0.25]])
+        np.testing.assert_array_equal(key_points.class_id, [0])
+
     def test_multiple_poses_are_stacked_with_one_shared_class_id(self) -> None:
         """Several poses stack into one `(N, K, 2)` array, all with class ID `0`."""
         results = [
@@ -2268,45 +2311,8 @@ def test_from_mediapipe_unknown_result_type_raises() -> None:
         KeyPoints.from_mediapipe(object(), resolution_wh=(100, 100))
 
 
-class TestDeprecatedConfidenceConstructor:
-    """Tests for backward-compatible `confidence=` kwarg in KeyPoints()."""
-
-    def test_constructor_accepts_and_warns_on_deprecated_confidence_kwarg(self):
-        """Deprecated confidence= warns and maps value to keypoint_confidence."""
-        from supervision.utils.internal import SupervisionWarnings
-
-        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
-        confidence = np.array([[0.9, 0.8]], dtype=np.float32)
-
-        with pytest.warns(SupervisionWarnings, match="deprecated since"):
-            key_points = KeyPoints(xy=xy, confidence=confidence)
-
-        np.testing.assert_array_equal(key_points.keypoint_confidence, confidence)
-        assert key_points.xy is xy
-
-    @pytest.mark.parametrize(
-        "kwargs",
-        [
-            pytest.param(
-                {"confidence": None, "keypoint_confidence": None},
-                id="confidence-first",
-            ),
-            pytest.param(
-                {"keypoint_confidence": None, "confidence": None},
-                id="keypoint-confidence-first",
-            ),
-        ],
-    )
-    def test_constructor_rejects_both_confidence_and_keypoint_confidence(
-        self, kwargs: dict
-    ):
-        """ValueError raised regardless of kwarg order when both are passed."""
-        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
-        confidence_arr = np.array([[0.9, 0.8]], dtype=np.float32)
-        actual_kwargs = {k: confidence_arr for k in kwargs}
-
-        with pytest.raises(ValueError, match="Cannot pass both"):
-            KeyPoints(xy=xy, **actual_kwargs)
+class TestKeyPointsConstructor:
+    """Tests for the `KeyPoints()` constructor."""
 
     def test_constructor_normal_keypoint_confidence_path(self):
         """Normal keypoint_confidence= path works and emits no deprecation warning."""
@@ -2322,18 +2328,6 @@ class TestDeprecatedConfidenceConstructor:
         np.testing.assert_array_equal(kp.keypoint_confidence, kp_conf)
         assert kp.data == {}
 
-    def test_constructor_confidence_none_does_not_warn(self):
-        """Explicit confidence=None is silently ignored — no warning emitted."""
-        import warnings
-
-        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            kp = KeyPoints(xy=xy, confidence=None)
-
-        assert kp.keypoint_confidence is None
-
     def test_constructor_data_none_defaults_to_empty_dict(self):
         """Explicit data=None normalizes to empty dict, not None."""
         xy = np.array([[[1.0, 2.0]]], dtype=np.float32)
@@ -2347,10 +2341,7 @@ class TestDeprecatedConfidenceConstructor:
         import inspect
 
         field_names = {f.name for f in dataclasses.fields(KeyPoints)}
-        init_params = set(inspect.signature(KeyPoints.__init__).parameters) - {
-            "self",
-            "confidence",
-        }
+        init_params = set(inspect.signature(KeyPoints.__init__).parameters) - {"self"}
         assert field_names == init_params, (
             f"Field/init drift: {field_names.symmetric_difference(init_params)}"
         )
@@ -2955,3 +2946,43 @@ class TestFromMediapipeHandedness:
 
         assert key_points.class_id is None
         assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
+
+
+class TestKeyPointsRemovedConfidence:
+    """The `confidence` name removed in `0.32.0` cannot be silently re-created."""
+
+    @staticmethod
+    def _key_points() -> KeyPoints:
+        """Build one two-keypoint skeleton with keypoint confidence of `0.9`."""
+        return KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32),
+            keypoint_confidence=np.full((1, 2), 0.9, dtype=np.float32),
+        )
+
+    def test_assignment_raises_migration_error(self) -> None:
+        """Assigning `confidence` fails, pointing at `keypoint_confidence`."""
+        key_points = self._key_points()
+
+        with pytest.raises(AttributeError, match="keypoint_confidence"):
+            key_points.confidence = np.full((1, 2), 0.1, dtype=np.float32)
+
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_allclose(key_points.keypoint_confidence, 0.9)
+        assert "confidence" not in vars(key_points)
+
+    def test_read_stays_missing_attribute(self) -> None:
+        """Reading `confidence` still reports a missing attribute."""
+        key_points = self._key_points()
+
+        has_confidence = hasattr(key_points, "confidence")
+
+        assert has_confidence is False
+
+    def test_keypoint_confidence_stays_assignable(self) -> None:
+        """The guard leaves assignment of the replacement field untouched."""
+        key_points = self._key_points()
+        updated = np.full((1, 2), 0.1, dtype=np.float32)
+
+        key_points.keypoint_confidence = updated
+
+        assert key_points.keypoint_confidence is updated

@@ -18,6 +18,7 @@ from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     check_no_basename_collisions,
 )
+from supervision.detection.compact_mask import CompactMask, _polygon_to_compact_mask
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import _DetectionDataType
 from supervision.detection.utils.boxes import _sort_box_corners
@@ -126,6 +127,27 @@ def _polygons_to_masks(
             for polygon in polygons
         ],
         dtype=bool,
+    )
+
+
+def _polygons_to_compact_masks(
+    polygons: Sequence[npt.NDArray[np.number]], resolution_wh: tuple[int, int]
+) -> CompactMask:
+    """Encode nonempty polygons individually, retaining only crop-scoped RLE.
+
+    The result is lossless: it decodes to the pixels of
+    :func:`~supervision.dataset.formats.yolo._polygons_to_masks`. Each polygon is
+    rasterized full-frame and encoded by
+    :func:`~supervision.detection.compact_mask._polygon_to_compact_mask` before the
+    next one is drawn, so the temporary memory stays bounded by a few frame-sized
+    buffers whatever the number of polygons, and a dense ``(N, H, W)`` stack is never
+    constructed.
+    """
+    return CompactMask.merge(
+        [
+            _polygon_to_compact_mask(vertices=vertices, resolution_wh=resolution_wh)
+            for vertices in polygons
+        ]
     )
 
 
@@ -423,6 +445,8 @@ def yolo_annotations_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
     is_obb: bool = False,
+    *,
+    compact_masks: bool = False,
 ) -> Detections:
     """Convert YOLO annotation lines into
     :class:`~supervision.detection.core.Detections`.
@@ -438,11 +462,36 @@ def yolo_annotations_to_detections(
     :func:`~supervision.dataset.formats.yolo.load_yolo_annotations` drops them
     before calling this function.
 
+    Args:
+        lines: YOLO annotation rows for one image.
+        resolution_wh: Image width and height in pixels.
+        with_masks: Whether to rasterize polygons and boxes into masks.
+        is_obb: Whether to parse oriented bounding boxes.
+        compact_masks: When `True` and `with_masks=True`, encode each mask as
+            :class:`~supervision.detection.compact_mask.CompactMask` instead of
+            retaining a dense NumPy stack. Has no effect when masks are disabled.
+
+    Returns:
+        Parsed detections with dense masks by default, compact masks on request,
+        or no masks when disabled or `lines` is empty.
+
     Raises:
         ValueError: If a line has fewer than five tokens, or is not nine tokens
             with ``is_obb=True``; or if a class id is not a whole number, a box
             value is not finite, a box has a negative width or height, or a
             coordinate token is not numeric.
+
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.yolo import yolo_annotations_to_detections
+        >>> detections = yolo_annotations_to_detections(
+        ...     ["0 0.1 0.1 0.2 0.1 0.2 0.2"], (100, 80),
+        ...     with_masks=True, compact_masks=True,
+        ... )
+        >>> detections.mask.shape
+        (1, 80, 100)
+
+        ```
     """
     if len(lines) == 0:
         return Detections.empty()
@@ -494,7 +543,13 @@ def yolo_annotations_to_detections(
         polygon * np.array(resolution_wh, dtype=np.float32)
         for polygon in relative_polygon_list
     ]
-    mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
+    mask: npt.NDArray[np.bool_] | CompactMask
+    if compact_masks:
+        mask = _polygons_to_compact_masks(
+            polygons=polygons, resolution_wh=resolution_wh
+        )
+    else:
+        mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
     return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
 
 
@@ -505,6 +560,8 @@ def load_yolo_annotations(
     force_masks: bool = False,
     is_obb: bool = False,
     show_progress: bool = False,
+    *,
+    compact_masks: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """Loads YOLO annotations and returns class names, images, and their corresponding
     detections.
@@ -526,13 +583,16 @@ def load_yolo_annotations(
             OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
             where pairs of [x, y] are box corners.
         show_progress: If True, display a progress bar during loading.
+        compact_masks: If True, store generated masks as
+            :class:`~supervision.detection.compact_mask.CompactMask` instead of
+            dense NumPy arrays. Does not enable mask generation for box-only or
+            OBB annotations. Each mask is rasterized full-frame before encoding.
 
     Returns:
-        A tuple containing a list of class names, a dictionary with
-            image names as keys and images as values, and a dictionary
-            with image names as keys and corresponding Detections instances as values.
-            Each `class_id` indexes the list of class names, so a `names` dict
-            such as `{1: cat, 2: dog}` loads label id `1` as class `0`.
+        A tuple containing class names, image file paths, and a dictionary mapping
+        image paths to :class:`~supervision.detection.core.Detections` instances.
+            Each `class_id` indexes the class names, so a `names` dict such as
+            `{1: cat, 2: dog}` loads label id `1` as class `0`.
 
     Raises:
         ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
@@ -541,6 +601,18 @@ def load_yolo_annotations(
             `kpt_shape: null` included. Also if an annotation file contains an
             invalid line or a class id that `names` does not declare; the
             message names the offending file.
+
+    Example:
+        ```python
+        from supervision.dataset.formats.yolo import load_yolo_annotations
+
+        classes, image_paths, annotations = load_yolo_annotations(
+            images_directory_path="dataset/images",
+            annotations_directory_path="dataset/labels",
+            data_yaml_path="dataset/data.yaml",
+            compact_masks=True,
+        )
+        ```
     """
     if is_obb and force_masks:
         warnings.warn(
@@ -593,6 +665,7 @@ def load_yolo_annotations(
                 resolution_wh=resolution_wh,
                 with_masks=with_masks,
                 is_obb=is_obb,
+                compact_masks=compact_masks,
             )
             if annotation.class_id is not None:
                 # data.yaml may declare ids such as {1: cat, 2: dog}; `classes`
@@ -903,6 +976,26 @@ def save_yolo_annotations(
 
 
 def save_data_yaml(data_yaml_path: str, classes: list[str]) -> None:
+    """Save class names and class count to a YOLO dataset YAML metadata file.
+
+    Creates parent directories automatically if they do not exist, and writes
+    a dictionary containing ``nc`` (number of classes) and ``names`` (list of class
+    names).
+
+    Args:
+        data_yaml_path: Target filesystem path for the output YAML file.
+        classes: List of class names ordered by class ID.
+
+    Example:
+        ```python
+        import supervision as sv
+
+        sv.dataset.formats.yolo.save_data_yaml(
+            data_yaml_path="dataset/data.yaml",
+            classes=["dog", "cat"],
+        )
+        ```
+    """
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)

@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 import numpy as np
@@ -16,6 +17,7 @@ from supervision.dataset.formats.yolo_pose import (
     _extract_kpt_shape,
     key_points_to_yolo_pose_annotations,
     load_yolo_pose_annotations,
+    save_yolo_pose_annotations,
     yolo_pose_annotations_to_key_points,
 )
 from supervision.key_points.core import KeyPoints
@@ -413,6 +415,42 @@ class TestLoadYoloPoseAnnotations:
         unlabelled = next(path for path in image_paths if path.endswith("b.png"))
         assert len(loaded[unlabelled]) == 0
 
+    @pytest.mark.parametrize(
+        "argument", ["images_directory_path", "annotations_directory_path"]
+    )
+    def test_rejects_a_missing_directory(self, tmp_path: Path, argument: str) -> None:
+        """A mistyped directory fails instead of loading unlabelled or no images."""
+        images, annotations, data_yaml = _write_dataset(
+            root=tmp_path,
+            label_lines={"a": ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1"]},
+            data_yaml="nc: 1\nnames: ['person']\nkpt_shape: [2, 3]\n",
+        )
+        paths: dict[str, Any] = {
+            "images_directory_path": images,
+            "annotations_directory_path": annotations,
+            "data_yaml_path": data_yaml,
+        }
+        missing = str(tmp_path / "missing")
+        paths[argument] = missing
+
+        with pytest.raises(FileNotFoundError, match=re.escape(f"'{missing}'")):
+            load_yolo_pose_annotations(**paths)
+
+    def test_rejects_a_file_given_as_a_directory(self, tmp_path: Path) -> None:
+        """A labels path naming a file rather than a directory fails."""
+        images, _, data_yaml = _write_dataset(
+            root=tmp_path,
+            label_lines={"a": ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1"]},
+            data_yaml="nc: 1\nnames: ['person']\nkpt_shape: [2, 3]\n",
+        )
+
+        with pytest.raises(NotADirectoryError, match="annotations_directory_path"):
+            load_yolo_pose_annotations(
+                images_directory_path=images,
+                annotations_directory_path=data_yaml,
+                data_yaml_path=data_yaml,
+            )
+
     def test_invalid_line_names_its_file(self, tmp_path: Path) -> None:
         """One bad label among many stays traceable to the file holding it."""
         images, annotations, data_yaml = _write_dataset(
@@ -501,6 +539,7 @@ class TestYoloPoseRoundTrip:
             data_yaml_path=str(out / "data.yaml"),
         )
 
+        assert next(iter(dataset.annotations.values())).xy.dtype == np.dtype(np.float64)
         assert (out / "labels" / "a.txt").read_text() == f"{line}\n"
 
     def test_round_trip_rounds_to_six_significant_digits(self) -> None:
@@ -518,6 +557,53 @@ class TestYoloPoseRoundTrip:
         )
 
         assert result == ["0 0.5 0.5 0.4 0.6 0.123457 0.3 2 0.5 0.5 1 0.75 0.7 0"]
+
+    @pytest.mark.parametrize(
+        ("line", "value_dim", "expected"),
+        [
+            pytest.param(
+                "0 0.5 0.5 0.4 0.6 0.867320506 0.3",
+                2,
+                "0 0.5 0.5 0.4 0.6 0.867321 0.3",
+                id="x-coordinate-without-visibility",
+            ),
+            pytest.param(
+                "0 0.5 0.5 0.4 0.6 0.25 0.867320506 2",
+                3,
+                "0 0.5 0.5 0.4 0.6 0.25 0.867321 2",
+                id="y-coordinate",
+            ),
+            pytest.param(
+                "0 0.5 0.5 0.4 0.6 0.25 0.3 0.867320506",
+                3,
+                "0 0.5 0.5 0.4 0.6 0.25 0.3 0.867321",
+                id="fractional-visibility",
+            ),
+        ],
+    )
+    def test_round_trip_rounds_once_when_writing(
+        self, line: str, value_dim: int, expected: str
+    ) -> None:
+        """A keypoint value longer than six digits is rounded once, when written.
+
+        Held as float32 in between, 0.867320506 lands below the rounding tie and is
+        written as 0.86732 instead of 0.867321.
+        """
+        key_points = yolo_pose_annotations_to_key_points(
+            lines=[line],
+            resolution_wh=(640, 480),
+            keypoint_count=1,
+            value_dim=value_dim,
+        )
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(480, 640, 3),
+            keypoint_count=1,
+            value_dim=value_dim,
+        )
+
+        assert result == [expected]
 
     def test_round_trip_keeps_a_small_box_width(self) -> None:
         """A narrow box is written back with its six significant digits intact.
@@ -679,7 +765,7 @@ class TestYoloPoseKeyPointValidation:
         np.testing.assert_array_equal(result.visible, [[True, False]])
         np.testing.assert_array_equal(
             result.data[KEYPOINT_VISIBILITY_DATA_FIELD],
-            np.array([[0.83, 0.0]], dtype=np.float32),
+            np.array([[0.83, 0.0]], dtype=np.float64),
         )
 
     def test_fractional_confidence_round_trips(self) -> None:
@@ -796,6 +882,53 @@ class TestKeyPointsToYoloPoseBoxHandling:
 
         assert result == ["0 0.5 0.5 0.5 0.6 0.25 0.3 0.5 0.7"]
 
+    def test_keeps_a_representable_center_finite_at_the_float_limit(self) -> None:
+        """The corner sum overflows here, but the box center does not."""
+        key_points = KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32),
+            class_id=np.array([0]),
+            data={XYXY_DATA_FIELD: np.array([[1e308, 0.0, 1.1e308, 2.0]])},
+        )
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(10, 20, 3),
+            keypoint_count=2,
+            value_dim=2,
+        )
+
+        assert float(result[0].split()[1]) == pytest.approx(5.25e306)
+
+    @pytest.mark.parametrize(
+        "key_points",
+        [
+            pytest.param(
+                KeyPoints(
+                    xy=np.zeros((1, 2, 2), dtype=np.float32),
+                    class_id=np.array([0]),
+                    data={XYXY_DATA_FIELD: np.array([[-1e308, 0.0, 1e308, 2.0]])},
+                ),
+                id="stored-box",
+            ),
+            pytest.param(
+                KeyPoints(
+                    xy=np.array([[[-1e308, 0.0], [1e308, 2.0]]], dtype=np.float64),
+                    class_id=np.array([0]),
+                ),
+                id="box-derived-from-keypoints",
+            ),
+        ],
+    )
+    def test_rejects_a_box_whose_extent_overflows(self, key_points: KeyPoints) -> None:
+        """A width beyond float64 would be written as `inf`, so it is refused."""
+        with pytest.raises(ValueError, match="overflows float64"):
+            key_points_to_yolo_pose_annotations(
+                key_points=key_points,
+                image_shape=(10, 20, 3),
+                keypoint_count=2,
+                value_dim=2,
+            )
+
     def test_derived_box_keeps_occluded_keypoints(self) -> None:
         """A keypoint flagged 1 is labelled, so the box still bounds it."""
         key_points = yolo_pose_annotations_to_key_points(
@@ -890,6 +1023,89 @@ class TestKeyPointsToYoloPoseBoxHandling:
                 value_dim=3,
             )
 
+    @pytest.mark.parametrize(
+        ("data", "match"),
+        [
+            pytest.param(
+                {KEYPOINT_VISIBILITY_DATA_FIELD: np.array([2.0])},
+                r"data\['keypoint_visibility'\] of shape \(1,\)",
+                id="one-dimensional-visibility",
+            ),
+            pytest.param(
+                {KEYPOINT_VISIBILITY_DATA_FIELD: np.array([[2.0, np.nan]])},
+                r"non-finite values in data\['keypoint_visibility'\]",
+                id="nan-visibility",
+            ),
+            pytest.param(
+                {KEYPOINT_VISIBILITY_DATA_FIELD: np.array([[2.0, -1.0]])},
+                r"negative values in data\['keypoint_visibility'\]",
+                id="negative-visibility",
+            ),
+            pytest.param(
+                {XYXY_DATA_FIELD: np.array([10.0])},
+                r"data\['xyxy'\] of shape \(1,\)",
+                id="one-dimensional-box",
+            ),
+            pytest.param(
+                {XYXY_DATA_FIELD: np.array([[np.nan, 0.0, 10.0, 10.0]])},
+                r"non-finite values in data\['xyxy'\]",
+                id="nan-box",
+            ),
+        ],
+    )
+    def test_rejects_metadata_the_loader_would_refuse(
+        self, data: dict[str, Any], match: str
+    ) -> None:
+        """A malformed box or visibility field fails instead of writing a bad label."""
+        key_points = KeyPoints(
+            xy=np.array([[[50.0, 30.0], [100.0, 70.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data=data,
+        )
+
+        with pytest.raises(ValueError, match=match):
+            key_points_to_yolo_pose_annotations(
+                key_points=key_points,
+                image_shape=(100, 200, 3),
+                keypoint_count=2,
+                value_dim=3,
+            )
+
+
+class TestSaveYoloPoseAnnotations:
+    """Tests for writing the label files of a keypoint dataset."""
+
+    def test_writes_no_label_when_a_later_annotation_is_malformed(
+        self, tmp_path: Path
+    ) -> None:
+        """Every annotation is checked before the first label file is written."""
+        image_paths = []
+        for name in ("a.png", "b.png"):
+            Image.new("RGB", (200, 100)).save(tmp_path / name)
+            image_paths.append(str(tmp_path / name))
+        good = KeyPoints(
+            xy=np.array([[[50.0, 30.0]]], dtype=np.float32), class_id=np.array([0])
+        )
+        malformed = KeyPoints(
+            xy=np.array([[[50.0, 30.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={KEYPOINT_VISIBILITY_DATA_FIELD: np.array([2.0])},
+        )
+        dataset = KeyPointsDataset(
+            classes=["person"],
+            images=image_paths,
+            annotations={image_paths[0]: good, image_paths[1]: malformed},
+            keypoint_count=1,
+        )
+        labels = tmp_path / "labels"
+
+        with pytest.raises(ValueError, match=re.escape("b.png")):
+            save_yolo_pose_annotations(
+                dataset=dataset, annotations_directory_path=str(labels)
+            )
+
+        assert not labels.exists()
+
 
 class TestFlipIdx:
     """Tests for reading and writing the `flip_idx` keypoint permutation."""
@@ -958,6 +1174,7 @@ class TestFlipIdx:
         )
         images_directory = tmp_path / "images"
         images_directory.mkdir()
+        (tmp_path / "labels").mkdir()
         data_yaml_path = tmp_path / "data.yaml"
 
         dataset.as_yolo(data_yaml_path=str(data_yaml_path))
@@ -970,3 +1187,29 @@ class TestFlipIdx:
         assert yaml.safe_load(data_yaml_path.read_text())["flip_idx"] == [1, 0]
         assert reloaded.keypoint_count == 2
         assert reloaded.flip_idx == [1, 0]
+
+
+def test_save_pose_data_yaml_creates_parents_and_content(tmp_path: Path) -> None:
+    """Verify save_pose_data_yaml creates directories and writes metadata."""
+    from supervision.dataset.formats.yolo_pose import save_pose_data_yaml
+    from supervision.utils.file import read_yaml_file
+
+    yaml_path = tmp_path / "deeply" / "nested" / "pose_data.yaml"
+    classes = ["athlete"]
+
+    save_pose_data_yaml(
+        data_yaml_path=str(yaml_path),
+        classes=classes,
+        keypoint_count=3,
+        value_dim=3,
+        flip_idx=[0, 2, 1],
+    )
+
+    assert yaml_path.is_file()
+    data = read_yaml_file(str(yaml_path))
+    assert data == {
+        "nc": 1,
+        "names": ["athlete"],
+        "kpt_shape": [3, 3],
+        "flip_idx": [0, 2, 1],
+    }
