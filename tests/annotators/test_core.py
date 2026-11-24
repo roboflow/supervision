@@ -2005,6 +2005,41 @@ class TestRichLabelAnnotator:
         assert result.shape == shape
         assert 200 in result
 
+    def test_array_bgra_scene_matches_color_scene_and_stays_opaque(self) -> None:
+        """An opaque BGRA array gets the BGR labels in place and keeps its alpha."""
+        bgr = np.arange(100 * 100 * 3, dtype=np.uint8).reshape(100, 100, 3)
+        scene = np.dstack([bgr, np.full((100, 100), 255, dtype=np.uint8)])
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        annotator = RichLabelAnnotator()
+        expected = annotator.annotate(
+            scene=bgr.copy(), detections=detections, labels=["a"]
+        )
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=["a"])
+
+        assert result is scene
+        assert result.shape == (100, 100, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        np.testing.assert_array_equal(result[..., 3], 255)
+
+    def test_array_bgra_scene_draws_opaque_label_on_transparent_scene(self) -> None:
+        """Label pixels on a transparent BGRA array become opaque; the rest stays."""
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        color = Color(r=10, g=20, b=200)
+
+        result = RichLabelAnnotator(color=color).annotate(
+            scene=scene, detections=detections, labels=["a"]
+        )
+
+        drawn = result[..., 3] > 0
+        assert drawn.any()
+        assert not drawn.all()
+        np.testing.assert_array_equal(result[..., 3][drawn], 255)
+        np.testing.assert_array_equal(result[..., :3][~drawn], 0)
+        assert [color.b, color.g, color.r, 255] in result.reshape(-1, 4).tolist()
+
     def test_array_bgra_scene_matches_bgr_scene(self) -> None:
         """A BGRA array gets the label colors of its BGR copy and keeps its alpha."""
         detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
