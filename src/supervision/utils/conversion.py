@@ -337,6 +337,10 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     if image.mode != "RGB":
         values = np.asarray(image.convert("RGB"))
 
+    if values.size == 0:
+        # OpenCV rejects empty arrays; keep the BGR layout and writable result.
+        return cast(npt.NDArray[np.uint8], values[..., ::-1].copy())
+
     scene = cv2.cvtColor(values, cv2.COLOR_RGB2BGR)
     # cvtColor already returns uint8 here, so astype is a no-op other than the
     # full-image copy it forces; copy=False keeps the dtype guard without it.

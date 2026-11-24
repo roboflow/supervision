@@ -918,6 +918,26 @@ class TestCropImageEmptyResult:
     @pytest.mark.parametrize(
         ("xyxy", "expected_size"),
         [
+            pytest.param((10, 10, 30, 10), (10, 0), id="zero-height"),
+            pytest.param((10, 10, 10, 30), (0, 5), id="zero-width"),
+        ],
+    )
+    def test_empty_pillow_crop_can_be_cropped_again(
+        self, mode: str, xyxy: tuple[int, int, int, int], expected_size: tuple[int, int]
+    ) -> None:
+        """An empty Pillow crop remains valid input to another crop."""
+        image = Image.new(mode, (60, 40))
+        empty = crop_image(image=image, xyxy=xyxy)
+
+        cropped = crop_image(image=empty, xyxy=(0, 0, 10, 5))
+
+        assert isinstance(cropped, Image.Image)
+        assert cropped.size == expected_size
+
+    @pytest.mark.parametrize("mode", ["RGB", "RGBA", "P", "L"])
+    @pytest.mark.parametrize(
+        ("xyxy", "expected_size"),
+        [
             pytest.param((-30, -30, -5, -5), (0, 0), id="outside-top-left"),
             pytest.param((70, 50, 90, 60), (0, 0), id="outside-bottom-right"),
             pytest.param((5, 5, 5, 5), (0, 0), id="zero-area"),
