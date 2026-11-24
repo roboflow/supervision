@@ -2132,6 +2132,15 @@ def _make_mask_container(masks: np.ndarray, xyxy: np.ndarray, compact: bool) -> 
 class TestGetAnchorsCenterOfMassEmptyMask:
     """`get_anchors_coordinates(CENTER_OF_MASS)` for detections with empty masks."""
 
+    def test_empty_mask_preserves_large_box_center(self) -> None:
+        """A uint64 box center above the signed integer range remains representable."""
+        xyxy = np.array([[2**63, 0, 2**63 + 2**20, 2]], dtype=np.uint64)
+        detections = Detections(xyxy=xyxy, mask=np.zeros((1, 5, 5), dtype=bool))
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[float(2**63 + 2**19), 1.0]])
+
     @pytest.mark.parametrize("compact", [False, True])
     def test_empty_mask_anchored_at_box_center(self, compact: bool) -> None:
         """A single empty mask is anchored at its box center, not at (0, 0)."""
@@ -2169,11 +2178,11 @@ class TestGetAnchorsCenterOfMassEmptyMask:
 
         anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
 
-        np.testing.assert_array_equal(anchors, [[24, 14], [50, 35], [52, 41]])
+        np.testing.assert_array_equal(anchors, [[24.5, 14.5], [50, 35], [52.5, 41.5]])
 
     @pytest.mark.parametrize("compact", [False, True])
-    def test_anchors_keep_integer_dtype(self, compact: bool) -> None:
-        """The fallback keeps the integer dtype of the mask centroids."""
+    def test_empty_mask_anchors_use_floating_dtype(self, compact: bool) -> None:
+        """A batch with empty masks uses floats to preserve box centers."""
         masks = _make_masks_with_one_empty()
         detections = Detections(
             xyxy=_EMPTY_MASK_XYXY,
@@ -2182,7 +2191,7 @@ class TestGetAnchorsCenterOfMassEmptyMask:
 
         anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
 
-        assert np.issubdtype(anchors.dtype, np.integer)
+        assert np.issubdtype(anchors.dtype, np.floating)
 
     def test_non_empty_masks_match_centroid_helper(self) -> None:
         """Without empty masks the result is exactly the centroid helper output."""
