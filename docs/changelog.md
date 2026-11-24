@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.KeyPoints.from_inference` takes a `num_keypoints` argument, as `sv.KeyPoints.from_transformers` does, to keep trailing key points that every object in a result lost. Inference leaves out key points scored below `keypoint_confidence`, so the key point axis ended at the largest index any object kept: a frame whose people all lost their ankles loaded with 15 COCO key points instead of 17, `sv.EdgeAnnotator` found no skeleton and drew nothing, and `sv.KeyPoints.merge` refused to combine it with full frames. Pass the skeleton size, for example `num_keypoints=17`, to zero-fill the missing slots. Without it the result is unchanged. ([#3064](https://github.com/roboflow/supervision/pull/3064))
+
 - Mask mean average precision now evaluates compact masks by their crops instead of expanding them to full-image arrays, including when only predictions or only targets use compact masks. COCO matching and crowd handling are unchanged. ([#3000](https://github.com/roboflow/supervision/pull/3000))
 
 - `sv.match_detections` with `iou_threshold=0` no longer matches detections that do not overlap. A pair with an IoU of exactly 0 satisfied `IoU >= 0`, so boxes far apart were reported as matched; a match now needs a positive overlap. Results for thresholds above 0 are unchanged. ([#2992](https://github.com/roboflow/supervision/pull/2992))
