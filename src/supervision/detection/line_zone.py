@@ -207,6 +207,11 @@ class LineZone:
         Frames without tracker IDs are skipped for counting but age existing
         crossing history like empty frames.
 
+        When a confirmed `tracker_id` appears more than once in a frame, only
+        its first detection is considered. Later copies have `False` entries in
+        both returned arrays, even if the first detection is outside the line
+        limits, straddles the line, or has a non-finite mapped anchor.
+
         Args:
             detections: A Detections object for which to update the counts.
             coord_transform: Optional per-frame camera motion. Anchors are mapped
