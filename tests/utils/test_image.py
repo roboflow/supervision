@@ -315,6 +315,34 @@ def test_resize_image_keeps_at_least_one_pixel_per_axis(
 
 
 class TestResizeImageKeepAspectRatio:
+    @pytest.mark.parametrize("dtype", [np.uint8, np.int16])
+    @pytest.mark.parametrize(
+        ("image_hw", "expected_hw"),
+        [
+            pytest.param((200, 400), (60, 120), id="landscape"),
+            pytest.param((400, 200), (120, 60), id="portrait"),
+        ],
+    )
+    def test_numpy_integer_resolution_does_not_overflow(
+        self, dtype: Any, image_hw: tuple[int, int], expected_hw: tuple[int, int]
+    ) -> None:
+        """NumPy integer target dimensions fit the image like Python integers."""
+        image = np.zeros((*image_hw, 3), dtype=np.uint8)
+        resolution = (dtype(120), dtype(120))
+
+        result = resize_image(image, resolution, keep_aspect_ratio=True)
+
+        assert result.shape == (*expected_hw, 3)
+
+    def test_numpy_integer_resolution_without_aspect_ratio(self) -> None:
+        """A NumPy integer target also works without aspect-ratio fitting."""
+        image = np.zeros((10, 20, 3), dtype=np.uint8)
+        resolution = (np.uint8(120), np.uint8(100))
+
+        result = resize_image(image, resolution)
+
+        assert result.shape == (100, 120, 3)
+
     @pytest.mark.parametrize(
         ("image_hw", "resolution_wh", "expected_hw"),
         [
@@ -474,6 +502,18 @@ def test_letterbox_image_for_pillow_image() -> None:
 
 
 class TestLetterboxImage:
+    def test_numpy_integer_resolution_preserves_fitted_image(self) -> None:
+        """Letterboxing a landscape image keeps its expected central region."""
+        image = np.full((100, 200, 3), 255, dtype=np.uint8)
+        resolution = (np.uint8(120), np.uint8(120))
+
+        result = letterbox_image(image, resolution)
+
+        assert result.shape == (120, 120, 3)
+        assert np.all(result[30:90] == 255)
+        assert np.all(result[:30] == 0)
+        assert np.all(result[90:] == 0)
+
     def test_keeps_source_pixels_when_width_already_fits(self) -> None:
         """A 640x427 image letterboxed to 640x640 is padded, not resampled."""
         # given
@@ -543,6 +583,37 @@ def test_tint_image_accepts_grayscale_array() -> None:
 
     # then
     np.testing.assert_array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    ("pixel", "opacity", "expected"),
+    [
+        pytest.param((0, 0, 0, 0), 0.25, (40, 100, 200, 64), id="transparent-black"),
+        pytest.param(
+            (255, 20, 90, 0), 0.25, (40, 100, 200, 64), id="transparent-hidden-color"
+        ),
+        pytest.param((20, 60, 100, 128), 0.25, (28, 76, 140, 160), id="translucent"),
+        pytest.param((20, 60, 100, 255), 0.25, (25, 70, 125, 255), id="opaque"),
+        pytest.param((20, 60, 100, 0), 0.0, (20, 60, 100, 0), id="zero-opacity"),
+        pytest.param((20, 60, 100, 128), 1.0, (40, 100, 200, 255), id="full-opacity"),
+    ],
+)
+def test_tint_image_accepts_bgra_array(
+    pixel: tuple[int, ...], opacity: float, expected: tuple[int, ...]
+) -> None:
+    """Tint BGRA pixels using their alpha and preserve the input."""
+    # given
+    image = np.array([[pixel]], dtype=np.uint8)
+    original = image.copy()
+
+    # when
+    result = tint_image(
+        image=image, color=Color(r=200, g=100, b=40, a=17), opacity=opacity
+    )
+
+    # then
+    np.testing.assert_array_equal(result, np.array([[expected]], dtype=np.uint8))
+    np.testing.assert_array_equal(image, original)
 
 
 @pytest.mark.parametrize(
