@@ -117,10 +117,10 @@ jobs:
 
       - name: 📡 Inject tracking carrier (utm.js) into published trees
         run: |
-          # mkdocs.yml's extra_javascript now loads utm.js immediately before
-          # javascripts/segment.js on every build, ahead of Segment's 2026-09-30
-          # retirement, but that only reaches latest/ and develop/ on their next
-          # rebuild — a numbered version tree is never rebuilt at all (see header).
+          # mkdocs.yml's extra_javascript loads utm.js on every build (right before
+          # javascripts/segment.js until Segment's 2026-09-30 retirement), but that
+          # only reaches latest/ and develop/ on their next rebuild — a numbered
+          # version tree is never rebuilt at all (see header).
           # No third-party dependencies needed, unlike the banner step above.
           python3 \
             "$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_tracking_carrier.py" .
