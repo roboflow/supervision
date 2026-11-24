@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- Mask mean average precision now evaluates compact masks by their crops instead of expanding them to full-image arrays, including when only predictions or only targets use compact masks. COCO matching and crowd handling are unchanged. ([#3000](https://github.com/roboflow/supervision/pull/3000))
+
 - `sv.match_detections` with `iou_threshold=0` no longer matches detections that do not overlap. A pair with an IoU of exactly 0 satisfied `IoU >= 0`, so boxes far apart were reported as matched; a match now needs a positive overlap. Results for thresholds above 0 are unchanged. ([#2992](https://github.com/roboflow/supervision/pull/2992))
 
 - The `plot` methods of `sv.metrics` results and `plot_aggregate_metric_results` now leave the user's Matplotlib font family unchanged. They drew in monospace by setting `plt.rcParams["font.family"]` globally and then set it to `"sans-serif"`, so a family the user had configured, such as `"serif"`, was replaced for every later figure. The monospace font is now applied only while the plot is drawn. ([#2991](https://github.com/roboflow/supervision/pull/2991))
