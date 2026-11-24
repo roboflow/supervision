@@ -459,6 +459,17 @@ class TestDetectionDatasetAdd:
             np.array(["person", "dog"]),
         )
 
+    def test_add_without_class_id_stores_no_class_name(self) -> None:
+        """An annotation without class ids is stored with its boxes but no names."""
+        dataset = DetectionDataset.empty(classes=["dog", "person"])
+
+        dataset.add("img1.png", _create_detections(xyxy=[[0, 0, 10, 10]]))
+
+        stored = dataset.annotations["img1.png"]
+        assert stored.class_id is None
+        assert CLASS_NAME_DATA_FIELD not in stored.data
+        np.testing.assert_array_equal(stored.xyxy, np.array([[0, 0, 10, 10]]))
+
     def test_add_does_not_mutate_input_annotation(self) -> None:
         """Adding class_name metadata must not mutate caller-owned Detections."""
         annotation = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
@@ -484,13 +495,24 @@ class TestDetectionDatasetAdd:
         dataset = DetectionDataset(
             classes=["dog"],
             images=["img1.png"],
-            annotations={"img1.png": Detections.empty()},
+            annotations={
+                "img1.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+            },
+        )
+        expected = DetectionDataset(
+            classes=["dog"],
+            images=["img1.png"],
+            annotations={
+                "img1.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+            },
         )
 
         with pytest.raises(ValueError, match="already in the dataset"):
-            dataset.add("img1.png", Detections.empty())
+            dataset.add(
+                "img1.png", _create_detections(xyxy=[[5, 5, 20, 20]], class_id=[0])
+            )
 
-        assert dataset.image_paths == ["img1.png"]
+        assert dataset == expected
 
     @pytest.mark.parametrize(
         ("annotation", "match"),
@@ -533,13 +555,25 @@ class TestDetectionDatasetAdd:
             dataset = DetectionDataset(
                 classes=["dog"],
                 images={"img1.png": _create_image(fill_value=1)},
-                annotations={"img1.png": Detections.empty()},
+                annotations={
+                    "img1.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+                },
             )
 
         with pytest.raises(ValueError, match="in-memory images"):
-            dataset.add("img2.png", Detections.empty())
+            dataset.add(
+                "img2.png", _create_detections(xyxy=[[5, 5, 20, 20]], class_id=[0])
+            )
 
+        assert dataset.classes == ["dog"]
         assert dataset.image_paths == ["img1.png"]
+        assert dataset.annotations == {
+            "img1.png": _create_detections(
+                xyxy=[[0, 0, 10, 10]],
+                class_id=[0],
+                data={CLASS_NAME_DATA_FIELD: np.array(["dog"])},
+            )
+        }
 
     def test_added_images_export_and_reload_as_yolo(self, tmp_path: Path) -> None:
         """Images added from disk export to YOLO and load back with their boxes."""
@@ -581,6 +615,29 @@ class TestDetectionDatasetAdd:
             np.testing.assert_array_equal(
                 reloaded_annotation.class_id, expected.class_id
             )
+
+    def test_merge_combines_added_dataset_with_other_dataset(self) -> None:
+        """An empty-then-added dataset merges with another, remapping class ids."""
+        added = DetectionDataset.empty(classes=["dog"])
+        added.add("a.png", _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]))
+        other = DetectionDataset(
+            classes=["cat"],
+            images=["b.png"],
+            annotations={
+                "b.png": _create_detections(xyxy=[[5, 5, 15, 15]], class_id=[0])
+            },
+        )
+
+        merged = DetectionDataset.merge([added, other])
+
+        assert merged == DetectionDataset(
+            classes=["cat", "dog"],
+            images=["a.png", "b.png"],
+            annotations={
+                "a.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+                "b.png": _create_detections(xyxy=[[5, 5, 15, 15]], class_id=[0]),
+            },
+        )
 
 
 class TestDetectionDatasetInMemoryImages:
