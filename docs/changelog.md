@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.process_video(preserve_audio=True)` preserves audio delayed relative to the source video instead of moving it to the start of the output. Audio starting after a shortened output is omitted. ([#2988](https://github.com/roboflow/supervision/pull/2988))
+
 - `sv.DetectionDataset.from_yolo` and `sv.KeyPointsDataset.from_yolo` map each label's class id to the name `data.yaml` declares for it when `names` is a dict whose keys start above `0` or skip values, such as `{1: cat, 2: dog}`, instead of silently loading labels under the wrong class. Loaded class ids index `classes`; annotation-only and YAML-only exports retain the source IDs, while exports writing both use normalized IDs. Undeclared label IDs and duplicate numeric class IDs raise `ValueError`. ([#2985](https://github.com/roboflow/supervision/pull/2985))
 
 - Fixed `Detections.from_ncnn` to accept Python integer and float rectangle coordinates alongside NumPy scalars without raising `AttributeError`. ([#2982](https://github.com/roboflow/supervision/pull/2982))
