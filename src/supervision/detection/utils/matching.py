@@ -144,8 +144,8 @@ def match_detections(
     at most one detection from ``detections_b``, and vice versa. It does not
     compute a globally optimal assignment. Pairs below ``iou_threshold`` are
     never matched, nor are pairs that do not overlap (IoU of 0), so
-    ``iou_threshold=0`` pairs any overlapping detections. By default a pair
-    also requires equal ``class_id``
+    any overlapping pair meets the IoU requirement at ``iou_threshold=0``.
+    By default a pair also requires equal ``class_id``
     values. ``confidence`` is ignored; callers that want metric-style score
     ordering should sort their detections first.
 
