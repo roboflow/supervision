@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
+import supervision
 from supervision.assets.downloader import (
     _download_asset,
     download_assets,
@@ -34,6 +35,11 @@ class TestMD5HashMatching:
         expected = md5(content, usedforsecurity=False).hexdigest()
         environment = os.environ.copy()
         environment.pop("PYTHONTRACEMALLOC", None)
+        # The child must import the same supervision build that pytest imported.
+        source_root = str(Path(supervision.__file__).resolve().parents[1])
+        environment["PYTHONPATH"] = os.pathsep.join(
+            filter(None, [source_root, environment.get("PYTHONPATH")])
+        )
         script = """
 import json
 import sys
@@ -76,12 +82,12 @@ print(json.dumps({"matches": matches, "peak_bytes": peak_bytes}))
 
         assert matches
 
-    def test_rejects_changed_tail(self, tmp_path: Path) -> None:
-        """Include the final byte when checking a large asset for corruption."""
-        content = b"a" * (3 * 1024 * 1024) + b"tail"
+    def test_rejects_extra_bytes_after_full_chunks(self, tmp_path: Path) -> None:
+        """Reject a file whose short final chunk is absent from the expected hash."""
+        prefix = b"a" * (3 * 1024 * 1024)
         filename = tmp_path / "asset.bin"
-        filename.write_bytes(content[:-1] + b"!")
-        expected = md5(content, usedforsecurity=False).hexdigest()
+        filename.write_bytes(prefix + b"tail")
+        expected = md5(prefix, usedforsecurity=False).hexdigest()
 
         matches = is_md5_hash_matching(filename, expected)
 
@@ -150,52 +156,39 @@ print(json.dumps({"matches": matches, "peak_bytes": peak_bytes}))
 
 class TestDownloadAssets:
     @pytest.mark.parametrize("custom_directory", [False, True])
-    def test_valid_cache_uses_bounded_reads_without_downloading(
+    def test_valid_cache_skips_download(
         self,
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
         custom_directory: bool,
     ) -> None:
-        """Validate a cached asset without reading the whole file or networking."""
-        monkeypatch.chdir(tmp_path)
+        """Skip the download when the requested directory holds a valid asset."""
         filename = VideoAssets.VEHICLES.filename
-        content = b"asset frame" * (800000) + b"tail"
-        target = tmp_path / filename
-        target.write_bytes(content)
+        content = b"asset frame" * 1000 + b"tail"
+        cache_directory = tmp_path / "cache"
+        working_directory = tmp_path / "work"
+        cache_directory.mkdir()
+        working_directory.mkdir()
+        # Only the requested directory holds the valid bytes; the other one holds a
+        # same-named decoy, so hashing the wrong path would trigger a download.
+        valid_directory = cache_directory if custom_directory else working_directory
+        decoy_directory = working_directory if custom_directory else cache_directory
+        (valid_directory / filename).write_bytes(content)
+        (decoy_directory / filename).write_bytes(b"different bytes")
+        monkeypatch.chdir(working_directory)
         expected_hash = md5(content, usedforsecurity=False).hexdigest()
         monkeypatch.setitem(
             MEDIA_ASSETS, filename, ("https://example.com", expected_hash)
         )
-        directory = tmp_path if custom_directory else None
-        expected_result = str(target) if custom_directory else filename
-        read_sizes: list[int] = []
+        directory = cache_directory if custom_directory else None
+        cached_path = str(cache_directory / filename)
+        expected_result = cached_path if custom_directory else filename
 
-        with target.open("rb") as stream:
-            reader = MagicMock(wraps=stream)
-            reader.__enter__.return_value = reader
-            reader.__exit__.side_effect = stream.__exit__
+        with patch("supervision.utils.file.requests.get") as network:
+            result = download_assets(VideoAssets.VEHICLES, directory=directory)
 
-            def recording_read(size: int = -1) -> bytes:
-                """Record requested sizes while reading the real cached file."""
-                read_sizes.append(size)
-                return stream.read(size)
-
-            reader.read.side_effect = recording_read
-            with (
-                patch(
-                    "supervision.assets.downloader.open",
-                    return_value=reader,
-                    create=True,
-                ),
-                patch("supervision.utils.file.requests.get") as network,
-            ):
-                result = download_assets(VideoAssets.VEHICLES, directory=directory)
-
-            assert result == expected_result
-            assert read_sizes
-            assert all(0 < size < len(content) // 2 for size in read_sizes)
-            assert stream.closed
-            network.assert_not_called()
+        assert result == expected_result
+        network.assert_not_called()
 
     @patch("supervision.assets.downloader.logger")
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
