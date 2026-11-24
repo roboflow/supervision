@@ -9,6 +9,8 @@ date_modified: 2026-11-18
 
 - `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` now skips an item whose `box_2d` cannot be converted to four finite coordinates or becomes non-finite when scaled, and keeps the valid detections from the same response. Float-convertible strings and booleans are accepted. ([#3005](https://github.com/roboflow/supervision/pull/3005))
 
+- `sv.Detections.from_vlm(sv.VLM.DEEPSEEK_VL_2, ...)` now raises `ValueError` for a non-positive `resolution_wh` instead of returning mirrored or all-zero boxes. ([#3003](https://github.com/roboflow/supervision/pull/3003))
+
 - Mask mean average precision now evaluates compact masks by their crops instead of expanding them to full-image arrays, including when only predictions or only targets use compact masks. COCO matching and crowd handling are unchanged. ([#3000](https://github.com/roboflow/supervision/pull/3000))
 
 - `sv.match_detections` with `iou_threshold=0` no longer matches detections that do not overlap. A pair with an IoU of exactly 0 satisfied `IoU >= 0`, so boxes far apart were reported as matched; a match now needs a positive overlap. Results for thresholds above 0 are unchanged. ([#2992](https://github.com/roboflow/supervision/pull/2992))
