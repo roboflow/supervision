@@ -16,6 +16,7 @@ from PIL import Image
 from supervision import _cv2 as cv2
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
+from supervision.draw.utils import _composite_over_bgra
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
 )
@@ -296,7 +297,8 @@ def resize_image(
 
     Args:
         image: The image to resize.
-        resolution_wh: Target resolution as `(width, height)`.
+        resolution_wh: Target resolution as `(width, height)`. Dimensions may be
+            Python integers or NumPy integer scalars.
         keep_aspect_ratio: Flag to maintain original aspect ratio.
             Defaults to `False`.
 
@@ -343,9 +345,16 @@ def resize_image(
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
+    target_width, target_height = resolution_wh
+    # NumPy integer scalars otherwise keep their narrow dtype during the aspect
+    # ratio products, which can overflow even for ordinary image dimensions.
+    if isinstance(target_width, np.integer):
+        target_width = int(target_width)
+    if isinstance(target_height, np.integer):
+        target_height = int(target_height)
+
     if keep_aspect_ratio:
         height_old, width_old = image.shape[:2]
-        target_width, target_height = resolution_wh
         # Compare and scale with integer products, not float ratios. A ratio such as
         # 640 / 427 is inexact, so `640 / (640 / 427)` gives 426.99999999999994 and
         # `int()` dropped a pixel from a fitted axis whose exact size is whole.
@@ -359,7 +368,7 @@ def resize_image(
             height_new = target_height
             width_new = max(1, int(target_height * width_old // height_old))
     else:
-        width_new, height_new = resolution_wh
+        width_new, height_new = target_width, target_height
 
     resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
     return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
@@ -444,8 +453,14 @@ def _match_overlay_to_scene_channels(
     A grayscale scene, shaped ``(H, W)`` or ``(H, W, 1)``, takes a BGR overlay, such as
     an icon, as its gray luminance. A grayscale overlay is reshaped to the scene's
     layout, because ``cv2.resize`` drops the channel axis of a crop taken from an ``(H,
-    W, 1)`` scene.
+    W, 1)`` scene. A BGRA scene, shaped ``(H, W, 4)``, takes a BGR overlay with an
+    opaque alpha, as :func:`~supervision.draw.utils.draw_image` does.
     """
+    if roi.ndim == 3 and roi.shape[2] == 4 and overlay.ndim == 3:
+        if overlay.shape[2] == 3:
+            opaque = np.full((*overlay.shape[:2], 1), 255, dtype=np.uint8)
+            return np.concatenate((overlay, opaque), axis=2)
+        return overlay
     if roi.ndim == 3 and roi.shape[2] != 1:
         return overlay
     if overlay.ndim == 3 and overlay.shape[2] == 3:
@@ -502,6 +517,12 @@ def _overlay_image(
     if overlay_crop.ndim == 3 and overlay_crop.shape[2] == 4:
         alpha = overlay_crop[:, :, 3]
         overlay_crop = overlay_crop[:, :, :3]
+    if roi.ndim == 3 and roi.shape[2] == 4 and alpha is not None:
+        alpha_f32 = alpha.astype(np.float32)[..., None] / 255.0
+        image[y_min:y_max, x_min:x_max] = _composite_over_bgra(
+            roi, overlay_crop, alpha_f32
+        )
+        return image
     overlay_crop = _match_overlay_to_scene_channels(overlay=overlay_crop, roi=roi)
 
     if alpha is not None:
@@ -527,16 +548,20 @@ def tint_image(
 
     Args:
         image: The image to tint. Accepts BGR arrays of shape ``(H, W, 3)``,
-            grayscale arrays of shape ``(H, W)`` or ``(H, W, 1)``, or a PIL
-            ``Image``.
+            uint8 BGRA arrays of shape ``(H, W, 4)``, grayscale arrays of shape
+            ``(H, W)`` or ``(H, W, 1)``, or a PIL ``Image``.
         color: Overlay tint color. Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
         opacity: Blend ratio between overlay and image (0.0-1.0).
-            Defaults to `0.5`.
+            Defaults to `0.5`. For BGRA arrays, this is the tint's alpha;
+            the alpha component of `color` is ignored.
 
     Returns:
         Tinted image matching input
             type. The input image is left unchanged. A grayscale input comes back
             as a BGR array (or an RGB ``Image``), since the tint has a color.
+            A BGRA input is composited using straight alpha, so transparent
+            pixels become visible in proportion to `opacity` and opaque pixels
+            match their BGR counterparts within rounding.
 
     Raises:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
@@ -566,6 +591,10 @@ def tint_image(
     if _is_single_channel(image):
         # A three-channel overlay cannot be blended into a single-channel image.
         image = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
+    if image.ndim == 3 and image.shape[2] == 4:
+        overlay = np.full_like(image[..., :3], fill_value=color.as_bgr())
+        alpha = np.full((*image.shape[:2], 1), opacity, dtype=np.float32)
+        return _composite_over_bgra(image, overlay, alpha)
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
     # No `dst`: let the blend allocate its own buffer. Passing `image` there wrote
     # the tint back into the caller's array for a NumPy input, while a Pillow input
