@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.32.0.dev"
+version = "0.32.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
 keywords = [
@@ -53,7 +53,7 @@ dependencies = [
   "matplotlib>=3.6",
   "numpy>=1.21.2",
   "pillow>=9.4",
-  "pydeprecate>=0.9,<0.15",
+  "pydeprecate>=0.9,<0.16",
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",
@@ -110,6 +110,10 @@ build = [
 mediapipe-reference = [
   "mediapipe>=0.10.35,<0.11; python_version<'3.13'",
 ]
+# The OpenCV range the `supervision._cv2` fallbacks are compared against in CI. Widen the
+# cap in a PR that also adapts the fallbacks to the new release.
+opencv-python = [ "opencv-python>=5,<5.1" ]
+opencv-python-headless = [ "opencv-python-headless>=5,<5.1" ]
 torch = [ "torch>=2" ]
 
 [tool.setuptools]
@@ -118,6 +122,15 @@ packages.find.include = [ "supervision*" ]
 include-package-data = false
 package-data.supervision = [ "py.typed" ]
 # exclude = [ "docs*", "tests*", "examples*" ]
+
+[tool.uv]
+# Both wheels provide the `cv2` module, so a single environment may hold only one.
+conflicts = [
+  [
+    { group = "opencv-python" },
+    { group = "opencv-python-headless" },
+  ],
+]
 
 [tool.ruff]
 target-version = "py310"

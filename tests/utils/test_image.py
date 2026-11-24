@@ -586,6 +586,37 @@ def test_tint_image_accepts_grayscale_array() -> None:
 
 
 @pytest.mark.parametrize(
+    ("pixel", "opacity", "expected"),
+    [
+        pytest.param((0, 0, 0, 0), 0.25, (40, 100, 200, 64), id="transparent-black"),
+        pytest.param(
+            (255, 20, 90, 0), 0.25, (40, 100, 200, 64), id="transparent-hidden-color"
+        ),
+        pytest.param((20, 60, 100, 128), 0.25, (28, 76, 140, 160), id="translucent"),
+        pytest.param((20, 60, 100, 255), 0.25, (25, 70, 125, 255), id="opaque"),
+        pytest.param((20, 60, 100, 0), 0.0, (20, 60, 100, 0), id="zero-opacity"),
+        pytest.param((20, 60, 100, 128), 1.0, (40, 100, 200, 255), id="full-opacity"),
+    ],
+)
+def test_tint_image_accepts_bgra_array(
+    pixel: tuple[int, ...], opacity: float, expected: tuple[int, ...]
+) -> None:
+    """Tint BGRA pixels using their alpha and preserve the input."""
+    # given
+    image = np.array([[pixel]], dtype=np.uint8)
+    original = image.copy()
+
+    # when
+    result = tint_image(
+        image=image, color=Color(r=200, g=100, b=40, a=17), opacity=opacity
+    )
+
+    # then
+    np.testing.assert_array_equal(result, np.array([[expected]], dtype=np.uint8))
+    np.testing.assert_array_equal(image, original)
+
+
+@pytest.mark.parametrize(
     "image",
     [
         pytest.param(Image.new("L", (2, 2), color=0), id="L-image"),

@@ -189,4 +189,5 @@ tasks/
 
 output/
 notebooks/
+!docs/notebooks/
 releases/

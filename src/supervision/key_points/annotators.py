@@ -7,17 +7,79 @@ import numpy.typing as npt
 
 from supervision import _cv2 as cv2
 from supervision.annotators.core import _color_for_canvas
+from supervision.annotators.utils import (
+    ColorLookup,
+    _get_color_by_index,
+    _resolve_color_idx,
+)
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
-from supervision.draw.color import Color
+from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_rounded_rectangle
 from supervision.geometry.core import Rect
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
+from supervision.utils.internal import warn_deprecated
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+#: Color lookups keypoint annotators can resolve; ``KeyPoints`` carry no ``tracker_id``.
+_SUPPORTED_KEYPOINT_COLOR_LOOKUPS: frozenset[ColorLookup] = frozenset(
+    {ColorLookup.INDEX, ColorLookup.CLASS, ColorLookup.KEYPOINT}
+)
+
+
+def _validate_keypoint_color_lookup(color_lookup: ColorLookup) -> ColorLookup:
+    """Reject color lookups that keypoint annotators can never resolve.
+
+    Runs at construction for every color type, so a plain
+    :class:`~supervision.draw.color.Color` fails the same way as a
+    :class:`~supervision.draw.color.ColorPalette`. Data-dependent checks, such
+    as ``CLASS`` without ``class_id``, stay at annotate time.
+
+    Args:
+        color_lookup: The requested color lookup strategy.
+
+    Returns:
+        The validated color lookup, unchanged.
+
+    Raises:
+        ValueError: If ``color_lookup`` is not ``INDEX``, ``CLASS`` or
+            ``KEYPOINT``.
+    """
+    if color_lookup not in _SUPPORTED_KEYPOINT_COLOR_LOOKUPS:
+        raise ValueError(
+            f"color_lookup={color_lookup} is not supported for keypoint "
+            "annotators; supported lookups: INDEX, CLASS, KEYPOINT. "
+            "KeyPoints carry no tracker_id."
+        )
+    return color_lookup
+
+
+def _resolve_keypoint_color(
+    color: Color | ColorPalette,
+    color_lookup: ColorLookup,
+    key_points: KeyPoints,
+    instance_idx: int,
+    keypoint_idx: int = 0,
+) -> Color:
+    """Resolve a single color for a keypoint annotation.
+
+    Fast path: when *color* is a plain ``Color``, returns it directly.
+    """
+    if isinstance(color, Color):
+        return color
+
+    idx = _resolve_color_idx(
+        instance_idx=instance_idx,
+        color_lookup=color_lookup,
+        count=len(key_points),
+        class_id=key_points.class_id,
+        keypoint_idx=keypoint_idx,
+    )
+    return _get_color_by_index(color=color, idx=idx)
 
 
 def _validate_edge_indices(edge: tuple[int, int], vertex_count: int) -> tuple[int, int]:
@@ -62,16 +124,29 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
     def __init__(
         self,
-        color: Color = Color.ROBOFLOW,
+        color: Color | ColorPalette = Color.ROBOFLOW,
         radius: int = 4,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
     ) -> None:
         """
         Args:
-            color: The color to use for annotating key points.
-            radius: The radius of the circles used to represent the key points.
+            color: The :class:`~supervision.draw.color.Color` or
+                :class:`~supervision.draw.color.ColorPalette` to use for
+                annotating key points.
+            radius: Radius of the drawn key point circles.
+            color_lookup: :class:`~supervision.annotators.utils.ColorLookup`
+                strategy for mapping palette colors to key points. Options are
+                ``INDEX`` (per-skeleton index), ``CLASS`` (per ``class_id``),
+                and ``KEYPOINT`` (per keypoint index within each skeleton).
+
+        Raises:
+            ValueError: If ``color_lookup`` is ``TRACK``;
+                :class:`~supervision.key_points.core.KeyPoints` carry no
+                ``tracker_id``.
         """
         self.color = color
         self.radius = radius
+        self.color_lookup = _validate_keypoint_color_lookup(color_lookup)
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
@@ -112,6 +187,27 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             >>> result = annotator.annotate(image.copy(), key_points)
 
             ```
+
+            Per-keypoint palette example:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ... )
+            >>> annotator = sv.VertexAnnotator(
+            ...     color=sv.ColorPalette.DEFAULT,
+            ...     radius=10,
+            ...     color_lookup=sv.ColorLookup.KEYPOINT,
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
+
+            ```
         """
         if len(key_points) == 0:
             return scene
@@ -125,11 +221,18 @@ class VertexAnnotator(BaseKeyPointAnnotator):
                     and not key_points.visible[detection_index, point_index]
                 ):
                     continue
+                color = _resolve_keypoint_color(
+                    color=self.color,
+                    color_lookup=self.color_lookup,
+                    key_points=key_points,
+                    instance_idx=detection_index,
+                    keypoint_idx=point_index,
+                )
                 cv2.circle(
                     img=scene,
                     center=(int(x), int(y)),
                     radius=self.radius,
-                    color=self.color.as_bgr(),
+                    color=color.as_bgr(),
                     thickness=-1,
                 )
 
@@ -145,26 +248,40 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
     def __init__(
         self,
-        color: Color = Color.ROBOFLOW,
+        color: Color | ColorPalette = Color.ROBOFLOW,
         thickness: int = 2,
         edges: (
             Sequence[tuple[int, int]] | dict[int, Sequence[tuple[int, int]]] | None
         ) = None,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
     ) -> None:
         """
         Args:
-            color: The color to use for the edges.
-            thickness: The thickness of the edges.
+            color: The :class:`~supervision.draw.color.Color` or
+                :class:`~supervision.draw.color.ColorPalette` to use for
+                annotating edges.
+            thickness: Thickness of the edge lines.
             edges: The edges to draw. If set to ``None``, will attempt to
                 auto-detect the skeleton by vertex count. A
                 ``Sequence[tuple[int, int]]`` applies a single skeleton to
                 every instance. A ``dict[int, Sequence[tuple[int, int]]]``
                 maps ``class_id`` to skeleton edges, enabling correct
                 rendering for datasets with multiple skeleton types.
+            color_lookup: :class:`~supervision.annotators.utils.ColorLookup`
+                strategy for mapping palette colors to edges. Options are
+                ``INDEX`` (per-skeleton index), ``CLASS`` (per ``class_id``),
+                and ``KEYPOINT`` (per keypoint index; an edge inherits the
+                color of its first endpoint).
+
+        Raises:
+            ValueError: If ``color_lookup`` is ``TRACK``;
+                :class:`~supervision.key_points.core.KeyPoints` carry no
+                ``tracker_id``.
         """
         self.color = color
         self.thickness = thickness
         self.edges = edges
+        self.color_lookup = _validate_keypoint_color_lookup(color_lookup)
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
@@ -236,6 +353,28 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             >>> result = annotator.annotate(image.copy(), key_points)
 
             ```
+
+            Per-keypoint palette example:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ... )
+            >>> annotator = sv.EdgeAnnotator(
+            ...     color=sv.ColorPalette.DEFAULT,
+            ...     thickness=3,
+            ...     edges=[(1, 2), (1, 3)],
+            ...     color_lookup=sv.ColorLookup.KEYPOINT,
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
+
+            ```
         """
         if len(key_points) == 0:
             return scene
@@ -281,11 +420,18 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     ):
                         continue
 
+                color = _resolve_keypoint_color(
+                    color=self.color,
+                    color_lookup=self.color_lookup,
+                    key_points=key_points,
+                    instance_idx=detection_index,
+                    keypoint_idx=idx_a,
+                )
                 cv2.line(
                     img=scene,
                     pt1=(int(xy_a[0]), int(xy_a[1])),
                     pt2=(int(xy_b[0]), int(xy_b[1])),
-                    color=self.color.as_bgr(),
+                    color=color.as_bgr(),
                     thickness=self.thickness,
                 )
 
@@ -758,30 +904,61 @@ class VertexLabelAnnotator:
 
     def __init__(
         self,
-        color: Color | list[Color] = Color.ROBOFLOW,
-        text_color: Color | list[Color] = Color.WHITE,
+        color: Color | list[Color] | ColorPalette = Color.ROBOFLOW,
+        text_color: Color | list[Color] | ColorPalette = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
         border_radius: int = 0,
         smart_position: bool = False,
-    ):
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ) -> None:
         """
         Args:
-            color: The color to use for each keypoint label. If a list is
-                provided, the colors will be used in order for each keypoint.
-            text_color: The color to use for the labels. If a list is
-                provided, the colors will be used in order for each keypoint.
-            text_scale: The scale of the text.
-            text_thickness: The thickness of the text.
-            text_padding: The padding around the text.
-            border_radius: The radius of the rounded corners of the boxes.
-                Set to a high value to produce circles.
-            smart_position: Spread out the labels to avoid overlap.
+            color: The color to use for each keypoint label. A single
+                :class:`~supervision.draw.color.Color` applies uniformly. A
+                :class:`~supervision.draw.color.ColorPalette` selects colors
+                via the ``color_lookup`` strategy. Passing a ``list[Color]``
+                is **deprecated in** ``0.32.0`` (removed in ``0.35.0``); use a
+                :class:`~supervision.draw.color.ColorPalette` with
+                ``ColorLookup.KEYPOINT`` instead.
+            text_color: The color to use for the label text. Accepts the
+                same types as ``color``. Passing a ``list[Color]`` is
+                **deprecated in** ``0.32.0`` (removed in ``0.35.0``).
+            text_scale: Font scale for the text.
+            text_thickness: Thickness of the text characters.
+            text_padding: Padding around the text within its
+                background box.
+            border_radius: The radius to apply round edges. If the
+                selected value is higher than the lower dimension,
+                width or height, is clipped.
+            smart_position: Spread out the labels to avoid overlapping.
+            color_lookup: :class:`~supervision.annotators.utils.ColorLookup`
+                strategy for mapping palette colors to labels. Options are
+                ``INDEX`` (per-skeleton index), ``CLASS`` (per ``class_id``),
+                and ``KEYPOINT`` (per keypoint index within each skeleton).
+
+        Raises:
+            ValueError: If ``color_lookup`` is ``TRACK``;
+                :class:`~supervision.key_points.core.KeyPoints` carry no
+                ``tracker_id``.
         """
+        self.color_lookup = _validate_keypoint_color_lookup(color_lookup)
+        if isinstance(color, list):
+            warn_deprecated(
+                "Passing a list[Color] as 'color' to VertexLabelAnnotator "
+                "deprecated in `0.32.0`, removed in `0.35.0`. "
+                "Use 'ColorPalette' with 'ColorLookup.KEYPOINT'."
+            )
+        if isinstance(text_color, list):
+            warn_deprecated(
+                "Passing a list[Color] as 'text_color' to VertexLabelAnnotator "
+                "deprecated in `0.32.0`, removed in `0.35.0`. "
+                "Use 'ColorPalette' with 'ColorLookup.KEYPOINT'."
+            )
         self.border_radius: int = border_radius
-        self.color: Color | list[Color] = color
-        self.text_color: Color | list[Color] = text_color
+        self.color: Color | list[Color] | ColorPalette = color
+        self.text_color: Color | list[Color] | ColorPalette = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
@@ -877,12 +1054,38 @@ class VertexLabelAnnotator:
             ... )
 
             ```
+
+            Per-keypoint palette example:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ... )
+            >>> annotator = sv.VertexLabelAnnotator(
+            ...     color=sv.ColorPalette.DEFAULT,
+            ...     text_color=sv.Color.BLACK,
+            ...     color_lookup=sv.ColorLookup.KEYPOINT,
+            ... )
+            >>> result = annotator.annotate(
+            ...     scene=image.copy(),
+            ...     key_points=key_points,
+            ...     labels=["head", "L-foot", "R-foot"],
+            ... )
+
+            ```
         """
         font = cv2.FONT_HERSHEY_SIMPLEX
 
         skeletons_count, points_count, _ = key_points.xy.shape
         if skeletons_count == 0:
             return scene
+        self._validate_legacy_color_lists(points_count)
 
         all_anchors: list[tuple[int, int]] = []
         all_labels: list[str] = []
@@ -896,10 +1099,6 @@ class VertexLabelAnnotator:
                 int(key_points.class_id[i]) if key_points.class_id is not None else None
             )
             instance_labels = self._resolve_labels(labels, points_count, class_id)
-            instance_colors = self._resolve_color_list(self.color, points_count)
-            instance_text_colors = self._resolve_color_list(
-                self.text_color, points_count
-            )
 
             for j in range(points_count):
                 if not _has_finite_coordinates(xy[j]):
@@ -913,8 +1112,12 @@ class VertexLabelAnnotator:
                 anchor = (int(xy[j][0]), int(xy[j][1]))
                 all_anchors.append(anchor)
                 all_labels.append(instance_labels[j])
-                all_colors.append(instance_colors[j])
-                all_text_colors.append(instance_text_colors[j])
+                all_colors.append(
+                    self._resolve_label_color_legacy(self.color, key_points, i, j)
+                )
+                all_text_colors.append(
+                    self._resolve_label_color_legacy(self.text_color, key_points, i, j)
+                )
 
         if not all_anchors:
             return scene
@@ -1011,17 +1214,64 @@ class VertexLabelAnnotator:
             )
         return resolved
 
-    @staticmethod
-    def _resolve_color_list(
-        colors: Color | list[Color],
-        points_count: int,
-    ) -> list[Color]:
-        """Return a per-keypoint color list for a single instance."""
-        if isinstance(colors, list):
-            if len(colors) != points_count:
+    def _validate_legacy_color_lists(self, points_count: int) -> None:
+        """Check deprecated ``list[Color]`` inputs hold one color per keypoint.
+
+        Runs once per ``annotate()`` call, before any visibility filtering, so a
+        wrong-length list fails on every frame, not only when a point is drawn.
+        Covers both ``color`` and ``text_color``.
+
+        Args:
+            points_count: Number of keypoints per skeleton.
+
+        Raises:
+            ValueError: If a ``list[Color]`` length differs from ``points_count``.
+        """
+        for color_input in (self.color, self.text_color):
+            if isinstance(color_input, list) and len(color_input) != points_count:
                 raise ValueError(
-                    f"Number of colors ({len(colors)}) must match "
+                    f"Number of colors ({len(color_input)}) must match "
                     f"number of key points ({points_count})."
                 )
-            return colors
-        return [colors] * points_count
+
+    def _resolve_label_color_legacy(
+        self,
+        color_input: Color | list[Color] | ColorPalette,
+        key_points: KeyPoints,
+        instance_idx: int,
+        keypoint_idx: int,
+    ) -> Color:
+        """Backward-compatibility shim for resolving a label color.
+
+        Handles the deprecated ``list[Color]`` input type by indexing
+        directly into the list. For :class:`~supervision.draw.color.Color`
+        and :class:`~supervision.draw.color.ColorPalette` inputs, delegates to
+        :func:`~supervision.key_points.annotators._resolve_keypoint_color`.
+
+        .. deprecated:: 0.32.0
+            When ``list[Color]`` support is removed in ``0.35.0``, delete this
+            method and call ``_resolve_keypoint_color`` directly. The call
+            sites in ``annotate()`` should change from::
+
+                self._resolve_label_color_legacy(self.color, ...)
+
+            to::
+
+                _resolve_keypoint_color(
+                    color=self.color,
+                    color_lookup=self.color_lookup,
+                    key_points=key_points,
+                    instance_idx=i,
+                    keypoint_idx=keypoint_idx,
+                )
+        """
+        if isinstance(color_input, list):
+            # Length already checked once per annotate() call.
+            return color_input[keypoint_idx]
+        return _resolve_keypoint_color(
+            color=color_input,
+            color_lookup=self.color_lookup,
+            key_points=key_points,
+            instance_idx=instance_idx,
+            keypoint_idx=keypoint_idx,
+        )
