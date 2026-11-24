@@ -4528,6 +4528,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.DetectionDataset.from_yolo</code> and <code>sv.KeyPointsDataset.from_yolo</code> map each label's class id to the name <code>data.yaml</code> declares for it when <code>names</code> is a dict whose keys start above <code>0</code> or skip values, such as <code>{1: cat, 2: dog}</code>, instead of silently loading labels under the wrong class. Loaded class ids index <code>classes</code>; annotation-only and YAML-only exports retain the source IDs, while exports writing both use normalized IDs. Undeclared label IDs and duplicate numeric class IDs raise <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2985">#2985</a>)</p>
+</li>
+<li>
 <p>Fixed <code>Detections.from_ncnn</code> to accept Python integer and float rectangle coordinates alongside NumPy scalars without raising <code>AttributeError</code>. (<a href="https://github.com/roboflow/supervision/pull/2982">#2982</a>)</p>
 </li>
 <li>
@@ -4604,7 +4607,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </ul>
 </li>
 <li><strong>Key points</strong>: <code>sv.KeyPointsDataset</code> reads and writes YOLO pose datasets, and key point annotators take color palettes.<ul>
-<li>Added <code>sv.KeyPointsDataset</code>, the keypoint counterpart of <code>sv.DetectionDataset</code>: lazy image loading, indexing, iteration, <code>split</code>, <code>merge</code>, <code>from_yolo</code> and <code>as_yolo</code> for the YOLO pose format. Each image is annotated with <code>sv.KeyPoints</code> carrying the object box under <code>data['xyxy']</code>. For a <code>kpt_shape</code> of <code>[K, 3]</code>, <code>KeyPoints.visible</code> marks occluded and visible keypoints alike, so <code>sv.metrics.KeyPointMeanAveragePrecision</code> scores them as COCO does, and the raw flags are kept under <code>data['keypoint_visibility']</code>. Coordinates load as <code>float64</code>, so <code>from_yolo</code> then <code>as_yolo</code> rewrites each line unchanged. A missing images or labels directory raises <code>FileNotFoundError</code> instead of loading every image as a negative example, and <code>as_yolo</code> validates every annotation before writing any file. (<a href="https://github.com/roboflow/supervision/pull/2745">#2745</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
+<li>Added <code>sv.KeyPointsDataset</code>, the keypoint counterpart of <code>sv.DetectionDataset</code>: lazy image loading, indexing, iteration, <code>split</code>, <code>merge</code>, <code>from_yolo</code> and <code>as_yolo</code> for the YOLO pose format. Each image is annotated with <code>sv.KeyPoints</code> carrying the object box under <code>data['xyxy']</code>. For a <code>kpt_shape</code> of <code>[K, 3]</code>, <code>KeyPoints.visible</code> marks occluded and visible keypoints alike, so <code>sv.metrics.KeyPointMeanAveragePrecision</code> scores them as COCO does, and the raw flags are kept under <code>data['keypoint_visibility']</code>. Coordinates load as <code>float64</code>, so <code>from_yolo</code> then <code>as_yolo</code> retains label coordinates; class IDs may be normalized when writing a new YAML. A missing images or labels directory raises <code>FileNotFoundError</code> instead of loading every image as a negative example, and <code>as_yolo</code> validates every annotation before writing any file. (<a href="https://github.com/roboflow/supervision/pull/2745">#2745</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 <li><code>sv.VertexAnnotator</code>, <code>sv.EdgeAnnotator</code> and <code>sv.VertexLabelAnnotator</code> now accept a <code>sv.ColorPalette</code> and a <code>color_lookup</code> argument. <code>sv.ColorLookup.INDEX</code> and <code>sv.ColorLookup.CLASS</code> work as for detection annotators, and the new <code>sv.ColorLookup.KEYPOINT</code> colors each keypoint by its index within the skeleton. <code>sv.ColorLookup.TRACK</code> is not supported for keypoints and is rejected when the annotator is created. (<a href="https://github.com/roboflow/supervision/pull/2343">#2343</a>)</li>
 </ul>
 </li>
@@ -7022,7 +7025,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 13:46:09 UTC">November 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 14:02:10 UTC">November 24, 2026</span>
   </span>
 
     
@@ -7050,9 +7053,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/AhmetMert01" class="md-author" title="@AhmetMert01">
+        <a href="https://github.com/EnesSoydan" class="md-author" title="@EnesSoydan">
           
-          <img src="https://avatars.githubusercontent.com/u/190357674?v=4&size=72" alt="AhmetMert01">
+          <img src="https://avatars.githubusercontent.com/u/191651630?v=4&size=72" alt="EnesSoydan">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7060,21 +7063,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/AhmetMert01" class="md-author" title="@AhmetMert01">
+          
+          <img src="https://avatars.githubusercontent.com/u/190357674?v=4&size=72" alt="AhmetMert01">
+        </a>
+      
         <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
           <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
-        </a>
-      
-        <a href="https://github.com/avanish-garg" class="md-author" title="@avanish-garg">
-          
-          <img src="https://avatars.githubusercontent.com/u/146908506?v=4&size=72" alt="avanish-garg">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +32
+            +33
           </a>
         
       
