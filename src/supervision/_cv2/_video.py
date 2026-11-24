@@ -459,7 +459,7 @@ def _mux_audio(source_path: str, video_path: str) -> None:
             if (
                 video_duration is not None
                 and relative_seconds is not None
-                and relative_seconds > video_duration
+                and relative_seconds >= video_duration
             ):
                 break
             packet.pts = relative_pts

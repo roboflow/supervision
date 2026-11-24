@@ -49,16 +49,19 @@ def _write_video_with_audio(
     audio_first: bool = False,
     audio_delay: int = 0,
     video_start: int = 0,
+    audio_codec: str = "aac",
 ) -> None:
-    """Write a short video with AAC audio and optional stream timing offsets."""
+    """Write a short video with audio and optional stream timing offsets."""
     container = av.open(str(path), mode="w")
-    audio_stream = container.add_stream("aac", rate=8_000) if audio_first else None
+    audio_stream = (
+        container.add_stream(audio_codec, rate=8_000) if audio_first else None
+    )
     video_stream = container.add_stream("mpeg4", rate=fps)
     video_stream.width = 16
     video_stream.height = 16
     video_stream.pix_fmt = "yuv420p"
     if audio_stream is None:
-        audio_stream = container.add_stream("aac", rate=8_000)
+        audio_stream = container.add_stream(audio_codec, rate=8_000)
     audio_stream.layout = "mono"
     try:
         for value in range(frame_count):
@@ -567,3 +570,30 @@ def test_mux_audio_excludes_audio_starting_after_output(tmp_path: Path) -> None:
     with av.open(str(target_path)) as output:
         assert output.streams.video[0].frames == 2
         assert len(output.streams.audio) == 0
+
+
+def test_mux_audio_excludes_audio_starting_at_output_end(tmp_path: Path) -> None:
+    """Omit audio packets starting exactly when the processed video ends."""
+    source_path = tmp_path / "delayed.mkv"
+    target_path = tmp_path / "short.mkv"
+    _write_video_with_audio(
+        source_path, frame_count=10, audio_delay=1, audio_codec="pcm_s16le"
+    )
+    _write_video(target_path, list(range(5)))
+    with av.open(str(source_path)) as source:
+        audio = source.streams.audio[0]
+        assert float(audio.start_time * audio.time_base) == 1.0
+    with av.open(str(target_path)) as target:
+        video = target.streams.video[0]
+        video_end = max(
+            float((packet.pts + packet.duration) * packet.time_base)
+            for packet in target.demux(video)
+            if packet.pts is not None
+        )
+        assert video_end == 1.0
+
+    _mux_audio(str(source_path), str(target_path))
+
+    with av.open(str(target_path)) as output:
+        assert len(output.streams.audio) == 1
+        assert not any(packet.pts is not None for packet in output.demux(audio=0))
