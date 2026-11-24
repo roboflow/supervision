@@ -27,6 +27,8 @@ date_modified: 2026-11-18
 
 - `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). With the OpenCV backend, cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#2970](https://github.com/roboflow/supervision/pull/2970))
 
+- Added `sv.DetectionDataset.empty` and `sv.DetectionDataset.add` to build a detection dataset image by image, for example from model predictions for semi-automatic annotation, before exporting it with `as_yolo`, `as_coco` or `as_pascal_voc`. `add` stores the image path and a copy of the annotation, validates class ids like the constructor, and raises `ValueError` for duplicate image paths or datasets holding in-memory images. ([#2868](https://github.com/roboflow/supervision/pull/2868))
+
 ### 0.32.1 <small>Nov 24, 2026</small>
 
 - **BGRA scenes**: annotators, drawing helpers and image resizing handle `(H, W, 4)` arrays.
@@ -51,8 +53,6 @@ date_modified: 2026-11-18
     - On Windows, images whose path has characters outside ASCII, such as an accented, Cyrillic or CJK folder name, can now be read and written. OpenCV reads such a path in the ANSI code page, so `sv.DetectionDataset` raised `ValueError: Could not read image from path` when its images were loaded, and `as_yolo`, `as_coco`, `as_pascal_voc` and `sv.ImageSink` failed to save or wrote a file with a garbled name. When mapping succeeds, the file is mapped instead of loaded whole. If mapping fails, the fallback reads the whole file. ([#2963](https://github.com/roboflow/supervision/pull/2963), [#3058](https://github.com/roboflow/supervision/pull/3058))
 - **Models**: Transformers adapters accept `bfloat16` outputs.
     - `sv.Detections.from_transformers` and `sv.KeyPoints.from_transformers` now accept `bfloat16` model outputs, as a model run in `bfloat16` returns them, instead of raising `TypeError: Got unsupported ScalarType BFloat16`. Both adapters detach gradient-tracked tensors before conversion. `Detections` returns `bfloat16` boxes and scores as `float32` and keeps other precisions unchanged; `KeyPoints` coordinates and confidences are `float32` for every input precision, as before. ([#2962](https://github.com/roboflow/supervision/pull/2962))
-
-- Added `sv.DetectionDataset.empty` and `sv.DetectionDataset.add` to build a detection dataset image by image, for example from model predictions for semi-automatic annotation, before exporting it with `as_yolo`, `as_coco` or `as_pascal_voc`. `add` stores the image path and a copy of the annotation, validates class ids like the constructor, and raises `ValueError` for duplicate image paths or datasets holding in-memory images. ([#2868](https://github.com/roboflow/supervision/pull/2868))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
