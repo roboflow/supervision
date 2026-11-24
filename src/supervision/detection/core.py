@@ -2119,10 +2119,10 @@ class Detections:
             rect = ncnn_result.rect
             xywh.append(
                 [
-                    rect.x.astype(np.float32),
-                    rect.y.astype(np.float32),
-                    rect.w.astype(np.float32),
-                    rect.h.astype(np.float32),
+                    rect.x,
+                    rect.y,
+                    rect.w,
+                    rect.h,
                 ]
             )
 
@@ -2405,8 +2405,12 @@ class Detections:
            oriented bounding box corners (result lies on the actual rotated
            body).
         2. If ``anchor`` is ``Position.CENTER_OF_MASS``, the detection mask
-           centroid is returned regardless of OBB data presence. An empty batch
-           returns no anchors, with or without a mask.
+           centroid is returned regardless of OBB data presence. A detection
+           whose mask has no pixels has no centroid, so it is anchored at the
+           center of its ``xyxy`` box instead of the frame's top-left corner.
+           Across frames, that anchor can differ from the centroid the same
+           object has when its mask is not empty.
+           An empty batch returns no anchors, with or without a mask.
         3. Otherwise, the anchor is derived from the axis-aligned envelope
            (``xyxy``).
 
@@ -2421,7 +2425,8 @@ class Detections:
             returned as `float64`; a corner sum beyond `2**53` is rounded
             once to the nearest `float64`. Anchors that are corners keep the
             integer dtype of `xyxy`, and floating-point boxes keep their own
-            dtype.
+            dtype. For `CENTER_OF_MASS`, a batch containing an empty mask
+            returns floating-point coordinates so its box center is preserved.
 
         Raises:
             ValueError: If the provided `anchor` is not supported, or if `anchor` is
@@ -2489,7 +2494,20 @@ class Detections:
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
-            return calculate_masks_centroids(masks=self.mask)
+            centroids = calculate_masks_centroids(masks=self.mask)
+            # An empty mask has no centroid and the helper reports (0, 0), which is
+            # the frame's top-left corner. Anchor those detections at their box
+            # center instead, without truncating fractions or overflowing integers.
+            is_empty_mask = self.area == 0
+            if np.any(is_empty_mask):
+                box_centers = coordinates(
+                    _box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+                    _box_midpoint(xyxy[:, 1], xyxy[:, 3]),
+                )
+                centroids = np.where(
+                    is_empty_mask[:, np.newaxis], box_centers, centroids
+                )
+            return centroids
         elif anchor == Position.CENTER_LEFT:
             return coordinates(xyxy[:, 0], _box_midpoint(xyxy[:, 1], xyxy[:, 3]))
         elif anchor == Position.CENTER_RIGHT:

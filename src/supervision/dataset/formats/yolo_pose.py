@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -14,12 +14,15 @@ from supervision.config import (
 )
 from supervision.dataset.formats.yolo import (
     _YOLO_IMAGE_EXTENSIONS,
+    _class_ids_to_indices,
+    _extract_class_ids_from_data,
     _extract_class_names_from_data,
     _extract_pose_value_count_from_data,
     _image_name_to_annotation_name,
     _parse_class_id,
     _parse_relative_xyxy,
     _read_data_yaml,
+    _remap_yolo_export_lines,
 )
 from supervision.dataset.utils import (
     _image_file_resolution_wh,
@@ -311,7 +314,8 @@ def load_yolo_pose_annotations(
         NotADirectoryError: If the images or labels path names a file.
         ValueError: If data.yaml has no valid ``kpt_shape`` or ``names``, if
             ``flip_idx`` is not a permutation of the keypoint indices, or if a
-            label file holds an invalid line; the message names the file.
+            label file holds an invalid line or a class id that ``names`` does
+            not declare; the message names the file.
     """
     _require_directory(
         directory_path=images_directory_path, argument_name="images_directory_path"
@@ -327,6 +331,7 @@ def load_yolo_pose_annotations(
         data=data, file_path=data_yaml_path, keypoint_count=keypoint_count
     )
     classes = _extract_class_names_from_data(data=data, file_path=data_yaml_path)
+    class_ids = _extract_class_ids_from_data(data=data)
     image_paths = [
         str(path)
         for path in list_files_with_extensions(
@@ -350,12 +355,18 @@ def load_yolo_pose_annotations(
         resolution_wh = _image_file_resolution_wh(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
         try:
-            annotations[image_path] = yolo_pose_annotations_to_key_points(
+            key_points = yolo_pose_annotations_to_key_points(
                 lines=lines,
                 resolution_wh=resolution_wh,
                 keypoint_count=keypoint_count,
                 value_dim=value_dim,
             )
+            if key_points.class_id is not None:
+                # `classes` is indexed by position, not by the ids data.yaml declares.
+                key_points.class_id = _class_ids_to_indices(
+                    class_id=key_points.class_id, declared_class_ids=class_ids
+                )
+            annotations[image_path] = key_points
         except ValueError as error:
             # One bad label among thousands of files must be traceable to its file.
             raise ValueError(
@@ -745,6 +756,11 @@ def save_yolo_pose_annotations(
             ``data['xyxy']`` or ``data['keypoint_visibility']``; the message
             names the image.
     """
+    if not dataset._yolo_normalized_export:
+        # The dataset module imports this writer, so resolve the circular boundary here.
+        from supervision.dataset.core import _prepare_yolo_export
+
+        dataset = cast("KeyPointsDataset", _prepare_yolo_export(dataset))
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: _image_name_to_annotation_name(Path(image_path).name),
@@ -770,6 +786,9 @@ def save_yolo_pose_annotations(
             keypoint_count=dataset.keypoint_count,
             value_dim=dataset.value_dim,
         )
+        export_ids = getattr(dataset, "_yolo_export_class_ids", None)
+        if export_ids is not None:
+            lines = _remap_yolo_export_lines(lines, export_ids)
         save_text_file(
             lines=lines,
             file_path=os.path.join(annotations_directory_path, annotation_name),
