@@ -853,7 +853,11 @@ def create_predictions_with_class_iou_tests(
 
 
 def write_browser_recorded_webm(
-    path: str, frame_count: int = 60, audio_seconds: float = 0.0
+    path: str,
+    frame_count: int = 60,
+    audio_seconds: float = 0.0,
+    slow_after: int | None = None,
+    gap_after: int | None = None,
 ) -> None:
     """Write a ~30 fps VP8 WebM laid out like a browser `MediaRecorder` file.
 
@@ -883,6 +887,10 @@ def write_browser_recorded_webm(
             )
             jitter_ms = 5 if index % 3 == 1 else 0
             frame.pts = index * 33 + jitter_ms
+            if slow_after is not None and index >= slow_after:
+                frame.pts += (index - slow_after) * 66
+            if gap_after is not None and index >= gap_after:
+                frame.pts += 1000
             frame.time_base = Fraction(1, 1000)
             for packet in stream.encode(frame):
                 container.mux(packet)

@@ -47,6 +47,48 @@ def _measure_fps(video: cv2.VideoCapture) -> float | None:
     return (len(timestamps_ms) - 1) * 1000.0 / span_ms
 
 
+def _video_timing(video_path: str) -> tuple[float, int] | None:
+    """Measure average video frame rate and count from decoded frame timestamps."""
+    import av
+
+    try:
+        with av.open(video_path) as container:
+            count = 0
+            timestamp_count = 0
+            first_time = None
+            last_time = None
+            last_duration = 0.0
+            last_interval = 0.0
+            for frame in container.decode(video=0):
+                count += 1
+                if frame.time is not None:
+                    timestamp_count += 1
+                    if first_time is None:
+                        first_time = frame.time
+                    if last_time is not None:
+                        last_interval = frame.time - last_time
+                    last_time = frame.time
+                    last_duration = float(frame.duration * frame.time_base)
+    except (av.FFmpegError, OSError) as exc:
+        logger.warning("Could not measure video timing for %s: %s", video_path, exc)
+        return None
+    if (
+        timestamp_count != count
+        or timestamp_count < 2
+        or first_time is None
+        or last_time is None
+    ):
+        return None
+    span = last_time - first_time
+    if span <= 0:
+        return None
+    # Some containers omit the last frame duration; use its preceding interval as an
+    # estimate, which may be inaccurate when the final cadence changes abruptly.
+    if last_duration <= 0:
+        last_duration = last_interval if last_interval > 0 else span / (count - 1)
+    return count / (span + last_duration), count
+
+
 @dataclass
 class VideoInfo:
     """A class to store video information, including width, height, fps and total number
@@ -107,18 +149,18 @@ class VideoInfo:
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = float(video.get(cv2.CAP_PROP_FPS))
         total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        # A browser-recorded WebM has no frame rate in its header, and OpenCV then
-        # reports the container's 1 kHz timebase as the rate and derives the frame
-        # count from it. Only an implausible rate is checked against the frame
-        # timestamps, so ordinary videos are not decoded here. The reported
-        # duration stays right, so the count is scaled by the same factor as the
-        # rate.
+        # A browser WebM may expose its timebase as FPS; check a short sample before
+        # decoding the video to avoid changing or slowing ordinary and high-speed files.
         if fps > _MAX_PLAUSIBLE_FPS:
             measured_fps = _measure_fps(video)
             if measured_fps is not None and measured_fps * 2 < fps:
-                if total_frames > 0:
-                    total_frames = round(total_frames * measured_fps / fps)
-                fps = measured_fps
+                timing = _video_timing(video_path)
+                if timing is not None:
+                    fps, total_frames = timing
+                else:
+                    if total_frames > 0:
+                        total_frames = round(total_frames * measured_fps / fps)
+                    fps = measured_fps
         video.release()
         return VideoInfo(width, height, fps, total_frames)
 

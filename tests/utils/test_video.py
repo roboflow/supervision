@@ -18,6 +18,7 @@ from supervision.utils.video import (
     FPSMonitor,
     VideoInfo,
     VideoSink,
+    _video_timing,
     get_video_frames_generator,
     process_video,
 )
@@ -1342,6 +1343,45 @@ class TestVideoInfoFrameRate:
 
         assert video_info.fps == pytest.approx(30.3, rel=0.03)
         assert video_info.total_frames == pytest.approx(60, abs=2)
+
+    def test_variable_rate_preserves_duration_and_count(self, tmp_path: Path) -> None:
+        """Use the whole video timing when the recording cadence changes."""
+        source_path = str(tmp_path / "variable.webm")
+        target_path = str(tmp_path / "processed.mp4")
+        write_browser_recorded_webm(source_path, frame_count=152, slow_after=32)
+
+        video_info = VideoInfo.from_video_path(source_path)
+        process_video(source_path, target_path, callback=lambda frame, _: frame)
+        with av.open(target_path) as output:
+            frames = list(output.decode(video=0))
+            output_duration = len(frames) / float(output.streams.video[0].average_rate)
+
+        assert video_info.total_frames == 152
+        assert len(frames) == 152
+        assert output_duration == pytest.approx(12.9, abs=0.2)
+
+    def test_short_variable_rate_uses_last_frame_duration(self, tmp_path: Path) -> None:
+        """A long interval does not become the final frame's duration."""
+        source_path = str(tmp_path / "short-variable.webm")
+        write_browser_recorded_webm(source_path, frame_count=4, gap_after=2)
+
+        timing = _video_timing(source_path)
+
+        assert timing is not None
+        fps, count = timing
+        assert count == 4
+        assert count / fps == pytest.approx(1.132, abs=0.01)
+
+    def test_longer_audio_does_not_inflate_video_frame_count(
+        self, tmp_path: Path
+    ) -> None:
+        """Count video frames independently of a longer audio track."""
+        source_path = str(tmp_path / "audio.webm")
+        write_browser_recorded_webm(source_path, frame_count=60, audio_seconds=4)
+
+        video_info = VideoInfo.from_video_path(source_path)
+
+        assert video_info.total_frames == 60
 
     def test_keeps_high_frame_rate_confirmed_by_timestamps(
         self, tmp_path: Path

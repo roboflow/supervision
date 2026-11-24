@@ -360,6 +360,9 @@ class _VideoWriter:
             codec, pixel_format = _codec_details(fourcc)
             self._container = av.open(str(filename), mode="w")
             rate = Fraction(str(fps)).limit_denominator(100_000)
+            # MPEG-4 limits the time-base denominator, which is the rate numerator.
+            if codec == "mpeg4" and rate.numerator > 65_535 and fps <= 65_535:
+                rate = rate.limit_denominator(max(1, int(65_535 / fps)))
             self._stream = self._container.add_stream(codec, rate=rate)
             self._stream.width = self._width
             self._stream.height = self._height
