@@ -6,6 +6,9 @@ name: Docs/Build and Publish
 #   release published -> mike deploy <tag> only; does not move /latest/. When the tag
 #     is the newest stable release, its own tree is built banner-free and the
 #     previously-latest tag's already-published tree is patched back to archived.
+#
+# Every deploy also publishes .github/root-404.html as the gh-pages root 404.html, which
+# redirects version-less paths such as /how_to/track_objects/ to /latest/.
 
 on:
   push:
@@ -183,6 +186,12 @@ jobs:
           if git cat-file -e "$GITHUB_SHA:.github/root-index.html" 2>/dev/null; then
             git show "$GITHUB_SHA:.github/root-index.html" > /tmp/root-index.html
           fi
+          # Site-root 404: sends version-less paths such as /how_to/track_objects/ to
+          # /latest/. Optional for the same reason as root-index.html above.
+          rm -f /tmp/root-404.html
+          if git cat-file -e "$GITHUB_SHA:.github/root-404.html" 2>/dev/null; then
+            git show "$GITHUB_SHA:.github/root-404.html" > /tmp/root-404.html
+          fi
           if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
             version_dir="latest"
           else
@@ -197,6 +206,10 @@ jobs:
           if [[ -f /tmp/root-index.html ]]; then
             cp /tmp/root-index.html index.html
             files_to_add+=(index.html)
+          fi
+          if [[ -f /tmp/root-404.html ]]; then
+            cp /tmp/root-404.html 404.html
+            files_to_add+=(404.html)
           fi
           if [[ -n "$version_dir" && -f "$version_dir/sitemap.xml" ]]; then
             cp "$version_dir/sitemap.xml" sitemap.xml

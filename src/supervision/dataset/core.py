@@ -5,14 +5,15 @@ import os
 import shutil
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
@@ -21,6 +22,9 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (
     _load_coco_annotations,
     save_coco_annotations,
+)
+from supervision.dataset.formats.coco import (
+    load_coco_annotations as _load_coco_annotations_public,
 )
 from supervision.dataset.formats.createml import (
     load_createml_annotations,
@@ -35,11 +39,15 @@ from supervision.dataset.formats.pascal_voc import (
     save_pascal_voc_annotations,
 )
 from supervision.dataset.formats.yolo import (
+    _extract_class_ids_from_data,
+    _extract_class_names_from_data,
+    _read_data_yaml,
     load_yolo_annotations,
     save_data_yaml,
     save_yolo_annotations,
 )
 from supervision.dataset.formats.yolo_pose import (
+    _check_yolo_pose_export,
     load_yolo_pose_annotations,
     save_pose_data_yaml,
     save_yolo_pose_annotations,
@@ -56,12 +64,52 @@ from supervision.dataset.utils import (
 )
 from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
-from supervision.utils.internal import warn_deprecated
+from supervision.utils.file import save_yaml_file
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM, warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
 _IMAGE_FILE_EXTENSIONS = frozenset(
     {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 )
+
+#: Warning text for the copy of the COCO loader that this module exposed as a side
+#: effect of using it. The loader itself stays public in its own module.
+_COCO_LOADER_MODULE_DEPRECATION = (
+    "`%(source_name)s` imported from `supervision.dataset.core` is deprecated in "
+    "`%(deprecated_in)s` and will be removed in `%(remove_in)s`. Import it from "
+    "`supervision.dataset.formats.coco` instead."
+)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_load_coco_annotations_public,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_COCO_LOADER_MODULE_DEPRECATION,
+)
+def load_coco_annotations(
+    images_directory_path: str,
+    annotations_path: str,
+    force_masks: bool = False,
+    use_iscrowd: bool = True,
+    show_progress: bool = False,
+    *,
+    mask_rasterizer: Literal["supervision", "pycocotools"] | None = None,
+) -> tuple[list[str], list[str], dict[str, Detections]]:
+    """Deprecated: import `load_coco_annotations` from its own module.
+
+    Releases before `0.32.0` exposed this loader from this module, so the name stays
+    importable here until `0.35.0`.
+    """
+    return void(  # type: ignore[no-any-return]
+        images_directory_path,
+        annotations_path,
+        force_masks,
+        use_iscrowd,
+        show_progress,
+        mask_rasterizer=mask_rasterizer,
+    )
 
 
 def _validate_and_name_class_ids(
@@ -148,6 +196,98 @@ class BaseDataset(ABC):
         pass
 
 
+def _yolo_source_mapping(
+    data_before: dict[str, Any],
+    data_after: dict[str, Any],
+    classes: list[str],
+    path: str,
+) -> tuple[tuple[str, ...], tuple[int, ...]] | None:
+    """Retain a nonstandard source mapping only when the YAML stayed consistent."""
+    if data_before.get("names") != data_after.get("names"):
+        raise ValueError(f"YOLO class names changed while reading '{path}'.")
+    names = _extract_class_names_from_data(data_after, path)
+    if names != classes:
+        raise ValueError(f"YOLO class names changed while reading '{path}'.")
+    class_ids = _extract_class_ids_from_data(data_after)
+    if class_ids == list(range(len(classes))):
+        return None
+    return tuple(classes), tuple(class_ids)
+
+
+def _prepare_yolo_export(
+    dataset: DetectionDataset | KeyPointsDataset,
+) -> DetectionDataset | KeyPointsDataset:
+    """Prepare annotation-only export against the original YOLO class mapping."""
+    if dataset._yolo_mapping_ambiguous:
+        raise ValueError("Merged YOLO mappings differ; export a new data.yaml.")
+    mapping = dataset._yolo_source_mapping
+    if mapping is None:
+        return dataset
+    names, source_ids = mapping
+    if tuple(dataset.classes) != names:
+        raise ValueError("YOLO classes changed; export a new data.yaml.")
+    source_path = dataset._yolo_source_path
+    if source_path is not None and Path(source_path).exists():
+        source_data = _read_data_yaml(source_path)
+        current_names = _extract_class_names_from_data(source_data, source_path)
+        current_ids = _extract_class_ids_from_data(source_data)
+        if (tuple(current_names), tuple(current_ids)) != mapping:
+            raise ValueError(
+                "Source YOLO class mapping changed; export a new data.yaml."
+            )
+    for image_path, annotation in dataset.annotations.items():
+        ids = annotation.class_id
+        if ids is None:
+            continue
+        if not np.issubdtype(ids.dtype, np.integer) or np.any(
+            (ids < 0) | (ids >= len(source_ids))
+        ):
+            raise ValueError(f"Invalid class ids for YOLO export in '{image_path}'.")
+    export_dataset = copy(dataset)
+    export_dataset._yolo_export_class_ids = list(source_ids)
+    return export_dataset
+
+
+def _inherit_yolo_mapping(
+    merged: DetectionDataset | KeyPointsDataset,
+    datasets: Sequence[DetectionDataset] | Sequence[KeyPointsDataset],
+) -> None:
+    """Preserve compatible source mappings or require a fresh YAML after merging."""
+    mappings = [dataset._yolo_source_mapping for dataset in datasets]
+    if any(dataset._yolo_mapping_ambiguous for dataset in datasets):
+        merged._yolo_mapping_ambiguous = True
+    elif any(mapping is not None for mapping in mappings):
+        if (
+            all(mapping == mappings[0] for mapping in mappings)
+            and all(dataset.classes == merged.classes for dataset in datasets)
+            and all(
+                dataset._yolo_source_path == datasets[0]._yolo_source_path
+                for dataset in datasets
+            )
+        ):
+            merged._yolo_source_mapping = mappings[0]
+            merged._yolo_source_path = datasets[0]._yolo_source_path
+        else:
+            merged._yolo_mapping_ambiguous = True
+
+
+def _save_source_yolo_yaml(
+    dataset: DetectionDataset | KeyPointsDataset, data_yaml_path: str
+) -> None:
+    """Write source class IDs when labels are not being rewritten."""
+    mapping = dataset._yolo_source_mapping
+    if mapping is None:
+        raise ValueError("Source YOLO class mapping is unavailable.")
+    names, source_ids = mapping
+    data: dict[str, Any] = {"nc": len(names), "names": dict(zip(source_ids, names))}
+    if isinstance(dataset, KeyPointsDataset):
+        data["kpt_shape"] = [dataset.keypoint_count, dataset.value_dim]
+        if dataset.flip_idx is not None:
+            data["flip_idx"] = dataset.flip_idx
+    Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
+    save_yaml_file(data=data, file_path=data_yaml_path)
+
+
 class DetectionDataset(BaseDataset):
     """Contains information about a detection dataset.
 
@@ -175,6 +315,11 @@ class DetectionDataset(BaseDataset):
         annotations: dict[str, Detections],
     ) -> None:
         self.classes = classes
+        self._yolo_source_mapping: tuple[tuple[str, ...], tuple[int, ...]] | None = None
+        self._yolo_source_path: str | None = None
+        self._yolo_mapping_ambiguous = False
+        self._yolo_export_class_ids: list[int] | None = None
+        self._yolo_normalized_export = False
 
         if set(images) != set(annotations):
             raise ValueError(
@@ -324,6 +469,10 @@ class DetectionDataset(BaseDataset):
             images=test_paths,
             annotations=test_annotations,
         )
+        for subset in (train_dataset, test_dataset):
+            subset._yolo_source_mapping = self._yolo_source_mapping
+            subset._yolo_source_path = self._yolo_source_path
+            subset._yolo_mapping_ambiguous = self._yolo_mapping_ambiguous
         if self._images_in_memory:
             train_dataset._images_in_memory = {
                 path: self._images_in_memory[path] for path in train_paths
@@ -436,6 +585,7 @@ class DetectionDataset(BaseDataset):
         )
         if all_in_memory:
             merged_dataset._images_in_memory = images_in_memory
+        _inherit_yolo_mapping(merged_dataset, dataset_list)
         return merged_dataset
 
     def as_pascal_voc(
@@ -653,6 +803,7 @@ class DetectionDataset(BaseDataset):
             # ['dog', 'person']
             ```
         """
+        source_data = _read_data_yaml(file_path=data_yaml_path)
         classes, image_paths, annotations = load_yolo_annotations(
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path,
@@ -662,9 +813,17 @@ class DetectionDataset(BaseDataset):
             show_progress=show_progress,
             compact_masks=compact_masks,
         )
-        return DetectionDataset(
+        dataset = DetectionDataset(
             classes=classes, images=image_paths, annotations=annotations
         )
+        dataset._yolo_source_mapping = _yolo_source_mapping(
+            source_data,
+            _read_data_yaml(file_path=data_yaml_path),
+            classes,
+            data_yaml_path,
+        )
+        dataset._yolo_source_path = str(Path(data_yaml_path).resolve())
+        return dataset
 
     def as_yolo(
         self,
@@ -693,7 +852,12 @@ class DetectionDataset(BaseDataset):
                 annotations will not be saved.
             data_yaml_path: The path where the data.yaml
                 file should be saved.
-                If not provided, the file will not be saved.
+                If not provided, the file will not be saved. For a dataset loaded
+                from YOLO with non-contiguous class IDs, annotation-only export
+                keeps those IDs for use with the source YAML; YAML-only export
+                keeps the source IDs for existing labels. When both are written,
+                IDs are normalized. If class names have changed or merged source
+                mappings disagree, export both annotations and a new YAML.
             min_image_area_percentage: The minimum percentage of
                 detection area relative to
                 the image area for a detection to be included.
@@ -725,8 +889,15 @@ class DetectionDataset(BaseDataset):
             ValueError: If two image paths share the same basename (when
                 images_directory_path is set) or the same annotation
                 file name (when annotations_directory_path is set),
-                which would cause one output file to overwrite another.
+                which would cause one output file to overwrite another, or if
+                source class mapping cannot be safely reused without a new YAML.
         """
+        export_dataset = self
+        if (data_yaml_path is None) != (annotations_directory_path is None):
+            export_dataset = cast(DetectionDataset, _prepare_yolo_export(self))
+        elif data_yaml_path is not None:
+            export_dataset = copy(self)
+            export_dataset._yolo_normalized_export = True
         if is_obb and (
             min_image_area_percentage != 0.0
             or max_image_area_percentage != 1.0
@@ -763,7 +934,7 @@ class DetectionDataset(BaseDataset):
             )
         if annotations_directory_path is not None:
             save_yolo_annotations(
-                dataset=self,
+                dataset=export_dataset,
                 annotations_directory_path=annotations_directory_path,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
@@ -774,7 +945,10 @@ class DetectionDataset(BaseDataset):
                 merge_segments=merge_segments,
             )
         if data_yaml_path is not None:
-            save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
+            if annotations_directory_path is None and self._yolo_source_mapping:
+                _save_source_yolo_yaml(self, data_yaml_path)
+            else:
+                save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
 
     @classmethod
     def from_labelme(
@@ -1005,7 +1179,7 @@ class DetectionDataset(BaseDataset):
                 optional ``supervision[coco]`` extra for this mode; it is
                 required even when the file has no polygon segmentation.
                 ``None`` (default) behaves like ``"supervision"`` and warns
-                when the file contains polygon segmentation. RLE masks are
+                when a loaded image has a non-empty polygon part. RLE masks are
                 decoded identically in all modes.
 
         Returns:
@@ -1021,8 +1195,8 @@ class DetectionDataset(BaseDataset):
                 polygon segmentation.
 
         Warns:
-            SupervisionWarnings: When ``mask_rasterizer`` is omitted and the
-                annotation file contains polygon segmentation. Relying on the
+            SupervisionWarnings: When ``mask_rasterizer`` is omitted and a
+                loaded image has a non-empty polygon part. Relying on the
                 default is deprecated in ``0.32.0``.
 
         Note:
@@ -1197,8 +1371,10 @@ class KeyPointsDataset(BaseDataset):
     skeleton per object. Alongside the coordinates, the annotations carry the
     object box under ``data['xyxy']`` and, for a ``kpt_shape`` of ``[K, 3]``,
     the raw visibility values under ``data['keypoint_visibility']`` as
-    ``float32``: the ``0``/``1``/``2`` flags, or the keypoint confidence that
-    labels written from model output carry.
+    ``float64``: the ``0``/``1``/``2`` flags, or the keypoint confidence that
+    labels written from model output carry. Coordinates loaded by
+    :meth:`~supervision.dataset.core.KeyPointsDataset.from_yolo` are ``float64``
+    too, to reduce rounding during export.
 
     ``KeyPoints.visible`` marks every keypoint with a positive raw value: flag
     ``1`` (occluded) as well as flag ``2`` (visible), and any positive
@@ -1307,6 +1483,11 @@ class KeyPointsDataset(BaseDataset):
         # Plain ints: a NumPy scalar would be written to data.yaml as a tagged
         # object that the loader's safe YAML reader refuses.
         self.keypoint_count = int(keypoint_count)
+        self._yolo_source_mapping: tuple[tuple[str, ...], tuple[int, ...]] | None = None
+        self._yolo_source_path: str | None = None
+        self._yolo_mapping_ambiguous = False
+        self._yolo_export_class_ids: list[int] | None = None
+        self._yolo_normalized_export = False
         self.value_dim = int(value_dim)
         self.flip_idx = (
             None
@@ -1423,7 +1604,7 @@ class KeyPointsDataset(BaseDataset):
             random_state=random_state,
             shuffle=shuffle,
         )
-        return (
+        train_dataset, test_dataset = (
             KeyPointsDataset(
                 classes=self.classes,
                 images=train_paths,
@@ -1441,6 +1622,11 @@ class KeyPointsDataset(BaseDataset):
                 flip_idx=self.flip_idx,
             ),
         )
+        for subset in (train_dataset, test_dataset):
+            subset._yolo_source_mapping = self._yolo_source_mapping
+            subset._yolo_source_path = self._yolo_source_path
+            subset._yolo_mapping_ambiguous = self._yolo_mapping_ambiguous
+        return train_dataset, test_dataset
 
     @classmethod
     def merge(cls, dataset_list: list[KeyPointsDataset]) -> KeyPointsDataset:
@@ -1518,7 +1704,7 @@ class KeyPointsDataset(BaseDataset):
                     key_points=annotation,
                 )
 
-        return cls(
+        merged_dataset = cls(
             classes=classes,
             images=image_paths_unique,
             annotations=annotations,
@@ -1526,6 +1712,8 @@ class KeyPointsDataset(BaseDataset):
             value_dim=value_dims.pop(),
             flip_idx=dataset_list[0].flip_idx,
         )
+        _inherit_yolo_mapping(merged_dataset, dataset_list)
+        return merged_dataset
 
     @classmethod
     def from_yolo(
@@ -1553,6 +1741,10 @@ class KeyPointsDataset(BaseDataset):
             The loaded dataset.
 
         Raises:
+            FileNotFoundError: If the images or labels directory does not
+                exist; an image without a label file in an existing labels
+                directory still loads, with empty key points.
+            NotADirectoryError: If the images or labels path names a file.
             ValueError: If data.yaml declares no valid ``kpt_shape`` or an
                 invalid ``flip_idx``, or if a label file holds an invalid line;
                 the message names the file.
@@ -1568,6 +1760,7 @@ class KeyPointsDataset(BaseDataset):
             )
             ```
         """
+        source_data = _read_data_yaml(file_path=data_yaml_path)
         (
             classes,
             image_paths,
@@ -1581,7 +1774,7 @@ class KeyPointsDataset(BaseDataset):
             show_progress=show_progress,
         )
         keypoint_count, value_dim = kpt_shape
-        return cls(
+        dataset = cls(
             classes=classes,
             images=image_paths,
             annotations=annotations,
@@ -1589,6 +1782,14 @@ class KeyPointsDataset(BaseDataset):
             value_dim=value_dim,
             flip_idx=flip_idx,
         )
+        dataset._yolo_source_mapping = _yolo_source_mapping(
+            source_data,
+            _read_data_yaml(file_path=data_yaml_path),
+            classes,
+            data_yaml_path,
+        )
+        dataset._yolo_source_path = str(Path(data_yaml_path).resolve())
+        return dataset
 
     def as_yolo(
         self,
@@ -1616,13 +1817,20 @@ class KeyPointsDataset(BaseDataset):
             annotations_directory_path: Directory for the ``.txt`` labels;
                 skipped when ``None``.
             data_yaml_path: Path for the data.yaml file; skipped when ``None``.
+                Annotation-only and YAML-only exports retain sparse source IDs;
+                writing both normalizes them. If class names changed or merged
+                mappings differ, export both annotations and a new YAML.
             show_progress: If ``True``, display a progress bar while saving.
 
         Raises:
             ValueError: Before any file is written, if two images would share an
                 output file name, or if labels are requested and a non-empty
                 annotation, for instance one replaced after construction, carries
-                no ``class_id``.
+                missing, misaligned or invalid class IDs, non-finite planar
+                coordinates, or a ``data['xyxy']`` not of shape
+                ``(N, 4)`` or a ``data['keypoint_visibility']`` not of shape
+                ``(N, K)``, either holding a non-finite value, or a negative
+                visibility value.
 
         Examples:
             ```python
@@ -1635,6 +1843,12 @@ class KeyPointsDataset(BaseDataset):
             )
             ```
         """
+        export_dataset = self
+        if (data_yaml_path is None) != (annotations_directory_path is None):
+            export_dataset = cast(KeyPointsDataset, _prepare_yolo_export(self))
+        elif data_yaml_path is not None:
+            export_dataset = copy(self)
+            export_dataset._yolo_normalized_export = True
         # Pre-flight: validate output uniqueness before writing any file
         if images_directory_path:
             check_no_basename_collisions(
@@ -1652,6 +1866,9 @@ class KeyPointsDataset(BaseDataset):
             # `annotations` is a public dict, so an entry may have been replaced
             # since the constructor checked it.
             _check_key_points_carry_class_id(annotations=self.annotations)
+            # Checked here as well as by the label writer, because the images
+            # are written first.
+            _check_yolo_pose_export(dataset=self)
 
         if images_directory_path is not None:
             save_dataset_images(
@@ -1661,18 +1878,21 @@ class KeyPointsDataset(BaseDataset):
             )
         if annotations_directory_path is not None:
             save_yolo_pose_annotations(
-                dataset=self,
+                dataset=export_dataset,
                 annotations_directory_path=annotations_directory_path,
                 show_progress=show_progress,
             )
         if data_yaml_path is not None:
-            save_pose_data_yaml(
-                data_yaml_path=data_yaml_path,
-                classes=self.classes,
-                keypoint_count=self.keypoint_count,
-                value_dim=self.value_dim,
-                flip_idx=self.flip_idx,
-            )
+            if annotations_directory_path is None and self._yolo_source_mapping:
+                _save_source_yolo_yaml(self, data_yaml_path)
+            else:
+                save_pose_data_yaml(
+                    data_yaml_path=data_yaml_path,
+                    classes=self.classes,
+                    keypoint_count=self.keypoint_count,
+                    value_dim=self.value_dim,
+                    flip_idx=self.flip_idx,
+                )
 
 
 @dataclass

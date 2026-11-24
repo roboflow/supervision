@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from unittest.mock import MagicMock, patch
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, MetricResult, MetricTarget
 from supervision.metrics.f1_score import F1ScoreResult
+from supervision.metrics.keypoint_mean_average_precision import (
+    KeyPointMeanAveragePrecisionResult,
+)
 from supervision.metrics.mean_average_precision import MeanAveragePrecisionResult
 from supervision.metrics.mean_average_recall import MeanAverageRecallResult
 from supervision.metrics.precision import PrecisionResult
@@ -77,6 +82,20 @@ def _make_map_result(
         small_objects=None,
         medium_objects=None,
         large_objects=None,
+    )
+
+
+def _make_keypoint_map_result(
+    map50: float = 0.85, map75: float = 0.65
+) -> KeyPointMeanAveragePrecisionResult:
+    """Build a minimal KeyPointMeanAveragePrecisionResult for testing."""
+    scores = np.array([map50, 0.0, 0.0, 0.0, 0.0, map75, 0.0, 0.0, 0.0, 0.0])
+    return KeyPointMeanAveragePrecisionResult(
+        is_class_agnostic=False,
+        mAP_scores=scores,
+        ap_per_class=np.zeros((1, 10)),
+        oks_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float64),
+        matched_classes=np.array([0], dtype=np.int32),
     )
 
 
@@ -202,6 +221,92 @@ class TestAggregateMetricResults:
 class TestPlotAggregateMetricResults:
     """Tests for the plot_aggregate_metric_results function."""
 
+    @patch("matplotlib.pyplot.show", autospec=True)
+    def test_mar_plot_distinguishes_unavailable_from_zero(
+        self, mock_show: MagicMock
+    ) -> None:
+        """The standalone plot labels undefined recall distinctly from zero."""
+        result = _make_mar_result(mar1=-1.0, mar10=0.0, mar100=0.5)
+
+        result.plot()
+
+        ax = plt.gcf().axes[0]
+        assert [text.get_text() for text in ax.texts] == ["N/A", "0.00", "0.50"]
+        assert ax.texts[0].get_position()[1] >= ax.get_ylim()[0]
+        mock_show.assert_called_once()
+        plt.close(plt.gcf())
+
+    def test_aggregate_plot_distinguishes_unavailable_size_buckets(self) -> None:
+        """The comparison plot labels an empty bucket for each model."""
+        first = _make_mar_result(mar1=0.0, mar10=0.5, mar100=1.0)
+        second = _make_mar_result(mar1=0.0, mar10=0.5, mar100=1.0)
+        first.small_objects = _make_mar_result(mar1=-1.0, mar10=-1.0, mar100=-1.0)
+        second.small_objects = _make_mar_result(mar1=-1.0, mar10=-1.0, mar100=-1.0)
+
+        plot_aggregate_metric_results([first, second], include_object_sizes=True)
+
+        ax = plt.gcf().axes[0]
+        assert [text.get_text() for text in ax.texts] == [
+            "0.00",
+            "0.50",
+            "1.00",
+            "N/A",
+            "N/A",
+            "N/A",
+            "0.00",
+            "0.50",
+            "1.00",
+            "N/A",
+            "N/A",
+            "N/A",
+        ]
+        assert ax.texts[3].get_position()[1] >= ax.get_ylim()[0]
+        plt.close(plt.gcf())
+
+    @pytest.mark.parametrize(
+        "plot",
+        [
+            pytest.param(lambda result: result.plot(), id="standalone"),
+            pytest.param(
+                lambda result: plot_aggregate_metric_results([result]),
+                id="comparison",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "make_result",
+        [
+            pytest.param(_make_map_result, id="map"),
+            pytest.param(_make_keypoint_map_result, id="keypoint-map"),
+        ],
+    )
+    @patch("matplotlib.pyplot.show", autospec=True)
+    def test_map_plot_labels_unavailable_score_inside_axis(
+        self,
+        mock_show: MagicMock,
+        make_result: Callable[..., MetricResult],
+        plot: Callable[[MetricResult], None],
+    ) -> None:
+        """Both mAP plots label an undefined score N/A inside the score axis."""
+        result = make_result(map50=-1.0, map75=0.0)
+
+        plot(result)
+
+        ax = plt.gcf().axes[0]
+        assert [text.get_text() for text in ax.texts] == ["0.00", "N/A", "0.00"]
+        assert ax.texts[1].get_position()[1] >= ax.get_ylim()[0]
+        plt.close(plt.gcf())
+
+    def test_aggregate_plot_preserves_other_negative_labels(self) -> None:
+        """The comparison plot preserves negative values for other metrics."""
+        result = _make_f1_result(f1_50=-0.5, f1_75=0.0)
+
+        plot_aggregate_metric_results([result])
+
+        ax = plt.gcf().axes[0]
+        assert [text.get_text() for text in ax.texts] == ["-0.50", "0.00"]
+        plt.close(plt.gcf())
+
     def test_empty_list_raises(self) -> None:
         """Empty input raises ValueError."""
         with pytest.raises(ValueError, match="must not be empty"):
@@ -235,6 +340,22 @@ class TestPlotAggregateMetricResults:
         r2 = _make_f1_result(f1_50=0.9, f1_75=0.7)
         plot_aggregate_metric_results([r1, r2], model_names=["YOLO", "DETR"], show=True)
         mock_show.assert_called_once()
+
+    def test_plot_keeps_user_font_family(self) -> None:
+        """Plotting leaves the font family the user configured in rcParams."""
+        from matplotlib import pyplot as plt
+
+        results: list[MetricResult] = [
+            _make_f1_result(),
+            _make_f1_result(f1_50=0.9, f1_75=0.7),
+        ]
+
+        with plt.rc_context({"font.family": "serif"}):
+            plot_aggregate_metric_results(results)
+            font_family = plt.rcParams["font.family"]
+        plt.close("all")
+
+        assert font_family == ["serif"]
 
     def test_label_mismatch_raises(self) -> None:
         """Results with different object-size populations raise ValueError."""
