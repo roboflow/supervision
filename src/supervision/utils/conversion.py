@@ -238,15 +238,12 @@ def ensure_pil_image_for_class_method(
             )
             scene_pil = cv2_to_pillow(canvas)
             annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
-            annotated: npt.NDArray[np.uint8]
             if canvas.ndim == 3 and canvas.shape[2] == 4:
-                # `pillow_to_cv2` drops alpha like `cv2.imread`; a BGRA scene was
-                # annotated as RGBA, so it is read back with its alpha channel.
-                rgba = np.asarray(annotated_pil.convert("RGBA"))
-                annotated = rgba[:, :, [2, 1, 0, 3]]
+                # `pillow_to_cv2` returns BGR, which a BGRA scene cannot take back.
+                annotated_rgba = np.asarray(annotated_pil.convert("RGBA"))
+                np.copyto(canvas, annotated_rgba[..., [2, 1, 0, 3]])
             else:
-                annotated = pillow_to_cv2(annotated_pil)
-            np.copyto(canvas, annotated)
+                np.copyto(canvas, pillow_to_cv2(annotated_pil))
             return scene
 
         if isinstance(scene, Image.Image):
@@ -340,6 +337,10 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     if image.mode != "RGB":
         values = np.asarray(image.convert("RGB"))
 
+    if values.size == 0:
+        # OpenCV rejects empty arrays; keep the BGR layout and writable result.
+        return cast(npt.NDArray[np.uint8], values[..., ::-1].copy())
+
     scene = cv2.cvtColor(values, cv2.COLOR_RGB2BGR)
     # cvtColor already returns uint8 here, so astype is a no-op other than the
     # full-image copy it forces; copy=False keeps the dtype guard without it.
@@ -379,8 +380,9 @@ def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     if image.ndim == 2:
         return Image.fromarray(np.ascontiguousarray(image))
     if image.ndim == 3 and image.shape[2] == 3:
-        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        return Image.fromarray(rgb_image)
+        # Reversing the channels also handles an empty crop, which
+        # `cv2.cvtColor` rejects.
+        return Image.fromarray(np.ascontiguousarray(image[..., ::-1]))
     if image.ndim == 3 and image.shape[2] == 4:
         return Image.fromarray(np.ascontiguousarray(image[..., [2, 1, 0, 3]]))
     raise ValueError(f"Expected shape (H,W), (H,W,3), or (H,W,4), got {image.shape}.")
