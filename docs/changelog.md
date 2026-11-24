@@ -5,13 +5,11 @@ date_modified: 2026-11-18
 
 # Changelog
 
-### Unreleased <small>upcoming</small>
+### 0.32.1 <small>Nov 24, 2026</small>
 
 - `sv.DetectionDataset.split`, `sv.ClassificationDataset.split` and `sv.KeyPointsDataset.split` now keep the training image that floating-point rounding dropped when `split_ratio` times the number of images is a whole number. For example, 90 images at `split_ratio=0.7` gave 62 train and 28 test images instead of 63 and 27. The split uses the larger of the previous floating-point result and the exact product of the evaluated ratio's decimal representation. ([#2969](https://github.com/roboflow/supervision/pull/2969))
 
 - `sv.xyxy_to_xcycarh` now computes centers and dimensions of integer boxes without overflowing the input dtype, avoiding incorrect centers and aspect ratios for boxes spanning integer limits. ([#2966](https://github.com/roboflow/supervision/pull/2966))
-
-- `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#2455](https://github.com/roboflow/supervision/pull/2455)).
 
 - On Windows, images whose path has characters outside ASCII, such as an accented, Cyrillic or CJK folder name, can now be read and written. OpenCV reads such a path in the ANSI code page, so `sv.DetectionDataset` raised `ValueError: Could not read image from path` when its images were loaded, and `as_yolo`, `as_coco`, `as_pascal_voc` and `sv.ImageSink` failed to save or wrote a file with a garbled name. ([#2963](https://github.com/roboflow/supervision/pull/2963))
 
@@ -27,7 +25,7 @@ date_modified: 2026-11-18
 
 - `sv.metrics.MeanAverageRecall` now returns `-1` scores when there are no targets to recall, for the whole run or for an empty small, medium or large size bucket, as `sv.metrics.MeanAveragePrecision` and `pycocotools` AR do. It returned `0.0`, so a size bucket without objects looked like a model that found none of them. Code that aggregates mAR scores across runs or size buckets should skip negative values, as with mAP. Recall and comparison plots label undefined values `N/A`. ([#2965](https://github.com/roboflow/supervision/pull/2965))
 
-- `sv.draw_line`, `sv.draw_rectangle`, `sv.draw_filled_rectangle`, `sv.draw_rounded_rectangle`, `sv.draw_polygon`, `sv.draw_filled_polygon` and `sv.draw_text` now draw visibly on a BGRA scene, shaped `(H, W, 4)`, while keeping an opaque scene opaque. They passed OpenCV a BGR color, and OpenCV fills the missing alpha with 0, so the drawn pixels of an opaque scene became fully transparent. On a scene that is not opaque, a translucent fill and antialiased text are composited over the scene's alpha, so they keep their own color and may remain translucent. ([#2957](https://github.com/roboflow/supervision/pull/2957))
+- `sv.draw_line`, `sv.draw_rectangle`, `sv.draw_filled_rectangle`, `supervision.draw.utils.draw_rounded_rectangle`, `sv.draw_polygon`, `sv.draw_filled_polygon` and `sv.draw_text` now draw visibly on a BGRA scene, shaped `(H, W, 4)`, while keeping an opaque scene opaque. They passed OpenCV a BGR color, and OpenCV fills the missing alpha with 0, so the drawn pixels of an opaque scene became fully transparent. On a scene that is not opaque, a translucent fill and antialiased text are composited over the scene's alpha, so they keep their own color and may remain translucent. ([#2957](https://github.com/roboflow/supervision/pull/2957))
 
 - `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha. ([#2956](https://github.com/roboflow/supervision/pull/2956))
 
