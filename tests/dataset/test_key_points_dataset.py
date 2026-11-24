@@ -5,7 +5,11 @@ import numpy as np
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.config import (
+    CLASS_NAME_DATA_FIELD,
+    KEYPOINT_VISIBILITY_DATA_FIELD,
+    XYXY_DATA_FIELD,
+)
 from supervision.dataset.core import KeyPointsDataset
 from supervision.key_points.core import KeyPoints
 
@@ -485,6 +489,119 @@ class TestKeyPointsDatasetExport:
             dataset.as_yolo(
                 images_directory_path=str(output / "images"),
                 annotations_directory_path=str(output / "labels"),
+            )
+
+        assert not output.exists()
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            pytest.param(
+                {KEYPOINT_VISIBILITY_DATA_FIELD: np.array([2.0])},
+                id="one-dimensional-visibility",
+            ),
+            pytest.param(
+                {XYXY_DATA_FIELD: np.array([[np.nan, 0.0, 2.0, 2.0]])},
+                id="nan-box",
+            ),
+            pytest.param(
+                {XYXY_DATA_FIELD: np.array([[-1e308, 0.0, 1e308, 2.0]])},
+                id="overflowing-box-extent",
+            ),
+        ],
+    )
+    def test_rejects_malformed_metadata_before_writing(
+        self, tmp_path: Path, data: dict[str, Any]
+    ) -> None:
+        """Box or visibility data the loader would refuse fails with nothing written."""
+        image_paths = []
+        for name in ("a.png", "b.png"):
+            Image.new("RGB", (20, 10)).save(tmp_path / name)
+            image_paths.append(str(tmp_path / name))
+        dataset = _dataset(image_paths)
+        dataset.annotations[image_paths[1]] = KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32),
+            class_id=np.array([0]),
+            data=data,
+        )
+        output = tmp_path / "out"
+
+        with pytest.raises(ValueError, match=r"b\.png"):
+            dataset.as_yolo(
+                images_directory_path=str(output / "images"),
+                annotations_directory_path=str(output / "labels"),
+            )
+
+        assert not output.exists()
+
+    def test_rejects_a_replaced_visible_array_before_writing(
+        self, tmp_path: Path
+    ) -> None:
+        """A `visible` array that no longer matches the skeletons fails up front."""
+        image_paths = []
+        for name in ("a.png", "b.png"):
+            Image.new("RGB", (20, 10)).save(tmp_path / name)
+            image_paths.append(str(tmp_path / name))
+        dataset = _dataset(image_paths)
+        replacement = KeyPoints(
+            xy=np.zeros((1, 2, 2), dtype=np.float32), class_id=np.array([0])
+        )
+        replacement.visible = np.empty((0, 2), dtype=bool)
+        dataset.annotations[image_paths[1]] = replacement
+        output = tmp_path / "out"
+
+        with pytest.raises(ValueError, match=r"b\.png.*visible"):
+            dataset.as_yolo(
+                images_directory_path=str(output / "images"),
+                annotations_directory_path=str(output / "labels"),
+            )
+
+        assert not output.exists()
+
+    @pytest.mark.parametrize(
+        ("coordinates", "class_id", "error"),
+        [
+            pytest.param([np.nan, 2.0], np.array([0]), "coordinates", id="nan-x"),
+            pytest.param([1.0, np.inf], np.array([0]), "coordinates", id="infinite-y"),
+            pytest.param(
+                [1.0, 2.0], np.array([0.9]), "class_id", id="fractional-class"
+            ),
+            pytest.param([1.0, 2.0], np.array([1]), "class_id", id="unknown-class"),
+            pytest.param([1.0, 2.0], np.array([-1]), "class_id", id="negative-class"),
+            pytest.param(
+                [1.0, 2.0],
+                np.array([np.timedelta64(0, "ms")]),
+                "class_id",
+                id="duration-is-not-a-class",
+            ),
+            pytest.param(
+                [1.0, 2.0], np.empty(0, dtype=int), "class_id", id="missing-class-row"
+            ),
+        ],
+    )
+    def test_rejects_invalid_pose_rows_before_writing(
+        self, tmp_path: Path, coordinates: list[float], class_id: Any, error: str
+    ) -> None:
+        """A bad second annotation leaves all requested outputs untouched."""
+        first_image = tmp_path / "a.png"
+        second_image = tmp_path / "b.png"
+        Image.new("RGB", (20, 10)).save(first_image)
+        Image.new("RGB", (20, 10)).save(second_image)
+        dataset = _dataset([str(first_image), str(second_image)])
+        replacement = KeyPoints(
+            xy=np.array([[coordinates, [4.0, 5.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={XYXY_DATA_FIELD: np.array([[0.0, 0.0, 10.0, 8.0]])},
+        )
+        replacement.class_id = class_id
+        dataset.annotations[str(second_image)] = replacement
+        output = tmp_path / "out"
+
+        with pytest.raises(ValueError, match=rf"b\.png.*{error}"):
+            dataset.as_yolo(
+                images_directory_path=str(output / "images"),
+                annotations_directory_path=str(output / "labels"),
+                data_yaml_path=str(output / "data.yaml"),
             )
 
         assert not output.exists()

@@ -362,6 +362,10 @@ class Detections:
         Returns:
             A new Detections object.
 
+        Raises:
+            ValueError: If a semantic segmentation result's `semantic_mask` is not a
+                single-channel integer `(H, W)` class map.
+
         Example:
             ```python
             from supervision import _cv2 as cv2
@@ -940,12 +944,14 @@ class Detections:
                 or an object, from which `segmentation_mask`, `class_map` and
                 `confidence_mask` are read. Also accepts the per-pixel class ids
                 alone, as a base64 PNG string without a data-URI prefix or an
-                `(H, W)` integer array or tensor. Class IDs must fit in `int64`.
+                `(H, W)` integer array or tensor. A one-bit PNG holds class IDs
+                `0` and `1`. Class IDs must fit in `int64`.
             class_map: Maps a class id, as an integer or as text, to its name, for
                 example `{"1": "road"}`. A class missing from it is named by its id.
                 Overrides the one inside `segmentation_result`.
             confidence_mask: Optional per-pixel 8-bit confidence with the same
-                shape as the class ids, in the same formats and in the range 0-255.
+                shape as the class ids, in the same formats except a one-bit PNG,
+                and in the range 0-255.
                 When available,
                 `confidence` is each class's mean over its pixels divided by
                 255; otherwise `confidence` is `None`. Overrides the one inside
@@ -959,7 +965,8 @@ class Detections:
         Returns:
             A Detections object with one entry per remaining class id.
                 `detections.data["class_name"]` is always present, empty when
-                no class remains.
+                no class remains. An empty result keeps a zero-length `mask` of
+                the requested kind, and `confidence` follows the rule above.
 
         Raises:
             ValueError: If the input is a list or holds no map, a map is not valid
@@ -988,10 +995,6 @@ class Detections:
             background_id=background_id,
             compact_masks=compact_masks,
         )
-        if masks is None:
-            empty_detection = cls.empty()
-            empty_detection.data = data
-            return empty_detection
         return cls(
             xyxy=xyxy, confidence=confidence, class_id=class_id, mask=masks, data=data
         )
@@ -2116,10 +2119,10 @@ class Detections:
             rect = ncnn_result.rect
             xywh.append(
                 [
-                    rect.x.astype(np.float32),
-                    rect.y.astype(np.float32),
-                    rect.w.astype(np.float32),
-                    rect.h.astype(np.float32),
+                    rect.x,
+                    rect.y,
+                    rect.w,
+                    rect.h,
                 ]
             )
 
@@ -2402,8 +2405,12 @@ class Detections:
            oriented bounding box corners (result lies on the actual rotated
            body).
         2. If ``anchor`` is ``Position.CENTER_OF_MASS``, the detection mask
-           centroid is returned regardless of OBB data presence. An empty batch
-           returns no anchors, with or without a mask.
+           centroid is returned regardless of OBB data presence. A detection
+           whose mask has no pixels has no centroid, so it is anchored at the
+           center of its ``xyxy`` box instead of the frame's top-left corner.
+           Across frames, that anchor can differ from the centroid the same
+           object has when its mask is not empty.
+           An empty batch returns no anchors, with or without a mask.
         3. Otherwise, the anchor is derived from the axis-aligned envelope
            (``xyxy``).
 
@@ -2418,7 +2425,8 @@ class Detections:
             returned as `float64`; a corner sum beyond `2**53` is rounded
             once to the nearest `float64`. Anchors that are corners keep the
             integer dtype of `xyxy`, and floating-point boxes keep their own
-            dtype.
+            dtype. For `CENTER_OF_MASS`, a batch containing an empty mask
+            returns floating-point coordinates so its box center is preserved.
 
         Raises:
             ValueError: If the provided `anchor` is not supported, or if `anchor` is
@@ -2486,7 +2494,20 @@ class Detections:
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
-            return calculate_masks_centroids(masks=self.mask)
+            centroids = calculate_masks_centroids(masks=self.mask)
+            # An empty mask has no centroid and the helper reports (0, 0), which is
+            # the frame's top-left corner. Anchor those detections at their box
+            # center instead, without truncating fractions or overflowing integers.
+            is_empty_mask = self.area == 0
+            if np.any(is_empty_mask):
+                box_centers = coordinates(
+                    _box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+                    _box_midpoint(xyxy[:, 1], xyxy[:, 3]),
+                )
+                centroids = np.where(
+                    is_empty_mask[:, np.newaxis], box_centers, centroids
+                )
+            return centroids
         elif anchor == Position.CENTER_LEFT:
             return coordinates(xyxy[:, 0], _box_midpoint(xyxy[:, 1], xyxy[:, 3]))
         elif anchor == Position.CENTER_RIGHT:

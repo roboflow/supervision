@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 
 from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
@@ -29,17 +30,47 @@ from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_areas,
 )
+from supervision.metrics.utils.object_size import (
+    get_detection_size_category as _get_detection_size_category,
+)
 from supervision.metrics.utils.utils import ensure_pandas_installed
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
 
 if TYPE_CHECKING:
     import pandas as pd
+
+#: Warning text for the copy of the size-category helper that this module exposed as
+#: a side effect of using it. The helper itself stays public in its own module.
+_SIZE_CATEGORY_MODULE_DEPRECATION = (
+    "`%(source_name)s` imported from `supervision.metrics.mean_average_recall` is "
+    "deprecated in `%(deprecated_in)s` and will be removed in `%(remove_in)s`. "
+    "Import it from `supervision.metrics.utils.object_size` instead."
+)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_get_detection_size_category,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_SIZE_CATEGORY_MODULE_DEPRECATION,
+)
+def get_detection_size_category(
+    detections: Detections, metric_target: MetricTarget = MetricTarget.BOXES
+) -> npt.NDArray[np.int_]:
+    """Deprecated: import `get_detection_size_category` from its own module.
+
+    Releases before `0.32.0` exposed this helper from this module, so the name stays
+    importable here until `0.35.0`.
+    """
+    return void(detections, metric_target)  # type: ignore[no-any-return]
 
 
 @dataclass
 class MeanAverageRecallResult(MetricResult):
     """The results of the Mean Average Recall metric calculation.
 
-    Defaults to `0` if no detections or targets were provided.
+    Returns `-1` sentinel scores when no targets are present.
 
     Attributes:
         metric_target: the type of data used for the metric -
@@ -128,7 +159,7 @@ class MeanAverageRecallResult(MetricResult):
             Medium objects:
               MeanAverageRecallResult:
               Metric target:  MetricTarget.BOXES
-              mAR @ 1:    0.0000
+              mAR @ 1:    -1.0000
               ...
 
             ```
@@ -253,10 +284,11 @@ class MeanAverageRecallResult(MetricResult):
 
         for bar in bars:
             y_value = bar.get_height()
+            label = "N/A" if y_value == -1 else f"{y_value:.2f}"
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
-                y_value + 0.02,
-                f"{y_value:.2f}",
+                max(y_value, 0) + 0.02,
+                label,
                 ha="center",
                 va="bottom",
             )
@@ -496,7 +528,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             max_detection_count = self.max_detections.shape[0]
             return MeanAverageRecallResult(
                 metric_target=self._metric_target,
-                recall_scores=np.zeros(max_detection_count),
+                recall_scores=np.full(max_detection_count, -1.0),
                 recall_per_class=np.zeros(
                     (max_detection_count, 0, iou_thresholds.shape[0])
                 ),
@@ -656,7 +688,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             max_detection_count = self.max_detections.shape[0]
             num_thresholds = matches.shape[1]
             return (
-                np.zeros(max_detection_count, dtype=np.float64),
+                np.full(max_detection_count, -1.0, dtype=np.float64),
                 np.zeros((max_detection_count, 0, num_thresholds), dtype=np.float64),
                 unique_classes,
             )

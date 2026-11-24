@@ -10,8 +10,18 @@ import numpy.typing as npt
 
 
 def _to_numpy(value: Any) -> npt.NDArray[Any]:
-    """Return a NumPy property directly or convert a tensor through the CPU."""
-    return value if isinstance(value, np.ndarray) else value.cpu().numpy()
+    """Return a NumPy property directly or convert a tensor through the CPU.
+
+    A `bfloat16` tensor has no NumPy dtype, so it is widened to `float32` first; every
+    other dtype keeps its own precision.
+    """
+    if isinstance(value, np.ndarray):
+        return value
+    tensor = value.cpu()
+    if str(getattr(tensor, "dtype", None)) == "torch.bfloat16":
+        tensor = tensor.float()
+    result: npt.NDArray[Any] = tensor.numpy()
+    return result
 
 
 class SupervisionWarnings(Warning):
@@ -55,6 +65,16 @@ def warn_deprecated(message: str) -> None:
         message: The message to display when the function is called.
     """
     warnings.warn(message, category=SupervisionWarnings, stacklevel=2)
+
+
+#: Warning stream for the ``stream`` argument of pydeprecate's ``deprecated``
+#: decorator. pydeprecate emits ``FutureWarning`` by default, which the
+#: ``SUPERVISION_DEPRECATION_WARNING`` filter above does not cover; routing decorated
+#: deprecations through :class:`~supervision.utils.internal.SupervisionWarnings` lets
+#: that setting silence them like :func:`~supervision.utils.internal.warn_deprecated`.
+_DEPRECATION_WARNING_STREAM = functools.partial(
+    warnings.warn, category=SupervisionWarnings
+)
 
 
 def deprecated_parameter(
