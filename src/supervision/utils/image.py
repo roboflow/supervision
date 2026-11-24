@@ -242,9 +242,12 @@ def _resize_linear(
         npt.NDArray[Any], cv2.resize(image, size_wh, interpolation=cv2.INTER_LINEAR)
     )
     is_bgra = image.dtype == np.uint8 and image.ndim == 3 and image.shape[2] == 4
-    if not is_bgra or image[..., 3].min() == image[..., 3].max():
-        # Uniform alpha weights every color equally, so premultiplying cannot
-        # change the interpolation and the plain resize is kept bit for bit.
+    if (
+        not is_bgra
+        or size_wh == (image.shape[1], image.shape[0])
+        or image[..., 3].min() == image[..., 3].max()
+    ):
+        # Identity and uniform-alpha resizes preserve the plain result exactly.
         return resized
     alpha = image[..., 3:].astype(np.float32) / 255.0
     premultiplied = np.dstack([image[..., :3].astype(np.float32) * alpha, alpha])
@@ -252,16 +255,26 @@ def _resize_linear(
         premultiplied, size_wh, interpolation=cv2.INTER_LINEAR
     )
     resized_alpha = resized_premultiplied[..., 3:]
-    # Dividing by the interpolated alpha restores straight colors; where nothing is
-    # visible there is no color to restore, so the plain resize is kept.
-    colors = np.divide(
+    output_alpha = np.clip(np.rint(resized_alpha * 255.0), 0, 255).astype(np.uint8)
+    # Restore straight colors in place, retaining the plain RGB wherever the
+    # quantized output is transparent. This avoids another full float image.
+    visible = output_alpha[..., 0] > 0
+    np.divide(
         resized_premultiplied[..., :3],
         resized_alpha,
-        out=resized[..., :3].astype(np.float32),
-        where=np.broadcast_to(resized_alpha > 0, resized[..., :3].shape),
+        out=resized_premultiplied[..., :3],
+        where=visible[..., np.newaxis],
     )
-    straight = np.dstack([colors, resized_alpha * 255.0])
-    return cast(npt.NDArray[Any], np.clip(np.rint(straight), 0, 255).astype(np.uint8))
+    np.rint(resized_premultiplied[..., :3], out=resized_premultiplied[..., :3])
+    np.clip(resized_premultiplied[..., :3], 0, 255, out=resized_premultiplied[..., :3])
+    np.copyto(
+        resized[..., :3],
+        resized_premultiplied[..., :3],
+        where=visible[..., np.newaxis],
+        casting="unsafe",
+    )
+    resized[..., 3:] = output_alpha
+    return resized
 
 
 @ensure_cv2_image_for_standalone_function

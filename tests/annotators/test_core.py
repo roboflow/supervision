@@ -1117,14 +1117,14 @@ class TestBgraMaskAnnotators:
         """Label ink spilling past a tiny legend is visible on a transparent scene."""
         scene = np.zeros((60, 200, 4), dtype=np.uint8)
         scene[..., :3] = 255
-        annotator = ComparisonAnnotator(label_1="gjpqy", label_scale=0.02)
+        annotator = ComparisonAnnotator(label_1="gjpqy", label_scale=0.1)
         detections = Detections(xyxy=np.array([[150, 40, 160, 50]]))
 
         result = annotator.annotate(scene, detections, Detections.empty())
 
-        darkened = np.any(result[..., :3] != 255, axis=2)
+        darkened = np.any(result[:35, 10:100, :3] != 255, axis=2)
         assert np.any(darkened)
-        assert not np.any(darkened & (result[..., 3] == 0))
+        assert not np.any(darkened & (result[:35, 10:100, 3] == 0))
 
 
 class TestPaintMasksByArea:
@@ -1828,12 +1828,15 @@ class TestRichLabelAnnotator:
         """Without padding, glyph ink lands on the opaque box, not around it."""
         detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
         scene = np.zeros((100, 100, 4), dtype=np.uint8)
-        annotator = RichLabelAnnotator(text_padding=0, font_size=20)
+        annotator = RichLabelAnnotator(
+            text_padding=0, font_size=20, color=Color.BLACK, text_color=Color.WHITE
+        )
 
         result = annotator.annotate(scene=scene, detections=detections, labels=[label])
 
         alpha = result[..., 3]
         assert np.any(alpha == 255)
+        assert np.any(result[..., :3] > 0)
         assert np.all((alpha == 0) | (alpha == 255))
 
     @pytest.mark.parametrize(

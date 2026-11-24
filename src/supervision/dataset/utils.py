@@ -741,7 +741,7 @@ def _train_split_index(length: int, train_ratio: float) -> int:
     # NumPy 2 multiplies in the scalar's own dtype, so `4095 * np.float16(0.5)`
     # rounds 4095 up to 4096 and `70000 * np.float16(0.5)` overflows. Its decimal,
     # not its float64 widening, keeps `np.float16(0.7)` from reading as 0.70019.
-    if isinstance(train_ratio, np.generic):
+    if isinstance(train_ratio, np.generic) and train_ratio.dtype.itemsize <= 8:
         train_ratio = float(decimal)
     return max(int(length * train_ratio), int(Fraction(decimal) * length))
 

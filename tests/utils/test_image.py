@@ -12,7 +12,7 @@ import requests
 from PIL import Image, ImageChops
 
 from supervision import _cv2 as cv2
-from supervision._cv2._image import _imdecode
+from supervision._cv2._image import _imdecode, _resize
 from supervision.draw.color import Color
 from supervision.utils.image import (
     ImageSink,
@@ -557,6 +557,32 @@ class TestLetterboxImage:
 
 
 class TestResizeTranslucentBgraImage:
+    def test_fallback_float_resize_keeps_rows_across_blocks(self) -> None:
+        """A float resize preserves each row across the block boundary."""
+        image = np.arange(600 * 512 * 4, dtype=np.float32).reshape(600, 512, 4)
+
+        result = _resize(image, (512, 600))
+
+        np.testing.assert_array_equal(result, image)
+
+    def test_zero_alpha_output_keeps_plain_resized_color(self) -> None:
+        """Pixels whose alpha rounds to zero retain their plain-resized color."""
+        image = np.array([[(0, 0, 255, 0), (0, 255, 0, 1)]], dtype=np.uint8)
+        plain = cv2.resize(image, (4, 2), interpolation=cv2.INTER_LINEAR)
+
+        result = resize_image(image, (4, 2))
+
+        transparent = result[..., 3] == 0
+        np.testing.assert_array_equal(result[transparent, :3], plain[transparent, :3])
+
+    def test_identity_resize_preserves_all_pixels(self) -> None:
+        """A same-size resize preserves even colors under transparent pixels."""
+        image = np.array([[(10, 20, 30, 0), (40, 50, 60, 1)]], dtype=np.uint8)
+
+        result = resize_image(image, (2, 1))
+
+        np.testing.assert_array_equal(result, image)
+
     @pytest.mark.parametrize(
         "resize",
         [

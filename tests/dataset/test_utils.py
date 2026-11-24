@@ -760,6 +760,25 @@ class TestTrainTestSplitRatioValidation:
 class TestTrainTestSplitExactRatio:
     """train_test_split() keeps every item a decimal ratio exactly accounts for."""
 
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+        reason="longdouble has no extra precision on this platform",
+    )
+    @pytest.mark.parametrize(
+        "ratio",
+        [
+            pytest.param(np.nextafter(np.longdouble(1), np.longdouble(0)), id="scalar"),
+            pytest.param(
+                np.array(np.nextafter(np.longdouble(1), np.longdouble(0))), id="array"
+            ),
+        ],
+    )
+    def test_extended_precision_ratio_preserves_test_item(self, ratio: float) -> None:
+        """A wide ratio just below one leaves an item in the test split."""
+        train, test = train_test_split([0, 1], train_ratio=ratio, shuffle=False)
+
+        assert (train, test) == ([0], [1])
+
     @pytest.mark.parametrize(
         ("train_ratio", "expected_train_size"),
         [
