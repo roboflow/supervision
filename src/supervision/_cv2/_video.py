@@ -436,7 +436,7 @@ def _best_effort_cleanup(action: Callable[[], None], description: str) -> None:
 
 
 def _mux_audio(source_path: str, video_path: str) -> None:
-    """Remux the source's first audio stream into the processed video with PyAV."""
+    """Remux audio relative to the source video start, preserving its delay."""
     source_container: Any = None
     video_container: Any = None
     output_container: Any = None
@@ -483,9 +483,16 @@ def _mux_audio(source_path: str, video_path: str) -> None:
                 if packet_seconds is not None:
                     video_duration = max(video_duration or 0.0, packet_seconds)
 
-        # Rebase audio independently and stop at the processed video duration, matching
-        # ffmpeg's `-shortest` behavior without requiring a system executable.
+        # The processed video starts at zero. Use the source video origin for audio
+        # too, converting its time base, rather than erasing the audio's delay.
         audio_base: int | None = None
+        if source_container.streams.video:
+            source_video = source_container.streams.video[0]
+            audio_base = round(
+                (source_video.start_time or 0)
+                * source_video.time_base
+                / source_audio.time_base
+            )
         for packet in source_container.demux(source_audio):
             if packet.pts is None and packet.dts is None:
                 continue
@@ -498,7 +505,7 @@ def _mux_audio(source_path: str, video_path: str) -> None:
             if (
                 video_duration is not None
                 and relative_seconds is not None
-                and relative_seconds > video_duration
+                and relative_seconds >= video_duration
             ):
                 break
             packet.pts = relative_pts
