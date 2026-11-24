@@ -1,3 +1,4 @@
 opencv-python>=4.8
 pandas>=2
 rich>=13
+vision-synth

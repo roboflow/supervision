@@ -11,7 +11,6 @@ from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
 from PIL import Image
 
 from supervision.detection.utils.boxes import _sort_box_corners, denormalize_boxes
@@ -172,15 +171,6 @@ def _validate_vlm_parameters(
             raise ValueError(f"Argument {arg} is not allowed for {vlm.name}")
 
     return vlm
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_vlm_parameters,
-    deprecated_in="0.29.0",
-    remove_in="0.32.0",
-)
-def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
-    return void(vlm, result, kwargs)  # type: ignore[no-any-return]
 
 
 def _filter_by_classes(
