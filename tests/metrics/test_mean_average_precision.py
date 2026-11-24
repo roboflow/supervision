@@ -7,9 +7,15 @@ import pytest
 from PIL import Image
 
 import supervision.metrics.mean_average_precision as mean_average_precision
-from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import (
+    AREA_DATA_FIELD,
+    ISCROWD_DATA_FIELD,
+    ORIENTED_BOX_COORDINATES,
+)
 from supervision.dataset.core import DetectionDataset
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.utils.converters import mask_to_xyxy
 from supervision.metrics.core import MetricTarget
 from supervision.metrics.mean_average_precision import (
     COCOEvaluator,
@@ -1111,6 +1117,95 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
         result = metric.update([predictions], [targets]).compute()
 
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
+
+
+class TestMeanAveragePrecisionCompactMasks:
+    @pytest.mark.parametrize(
+        ("compact_targets", "compact_predictions"),
+        [
+            pytest.param(True, True, id="both-compact"),
+            pytest.param(True, False, id="compact-targets"),
+            pytest.param(False, True, id="compact-predictions"),
+        ],
+    )
+    def test_keeps_mask_scores_without_densifying(
+        self,
+        compact_targets: bool,
+        compact_predictions: bool,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Match dense threshold and crowd scores using compact mask crops."""
+        target_masks = np.zeros((2, 64, 128), dtype=bool)
+        target_masks[0, 5:10, 5:25] = True
+        target_masks[1, 20:50, 20:80] = True
+        pred_masks = np.zeros((2, 64, 128), dtype=bool)
+        pred_masks[0, 25:30, 25:40] = True
+        pred_masks[1, 5:10, 5:18] = True  # Exactly 0.65 IoU.
+        targets = Detections(
+            xyxy=mask_to_xyxy(target_masks),
+            mask=target_masks,
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        predictions = Detections(
+            xyxy=mask_to_xyxy(pred_masks),
+            mask=pred_masks,
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+        )
+        dense = (
+            MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+        if compact_targets:
+            targets.mask = CompactMask.from_dense(
+                target_masks, targets.xyxy, image_shape=(64, 128)
+            )
+        if compact_predictions:
+            predictions.mask = CompactMask.from_dense(
+                pred_masks, predictions.xyxy, image_shape=(64, 128)
+            )
+
+        def reject_densification(*args: object, **kwargs: object) -> None:
+            """Fail if evaluation expands a compact mask to the full image."""
+            pytest.fail("CompactMask.to_dense() was called during mAP evaluation")
+
+        monkeypatch.setattr(CompactMask, "to_dense", reject_densification)
+        result = (
+            MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        np.testing.assert_array_equal(result.mAP_scores, dense.mAP_scores)
+        assert result.mAP_scores[3] == pytest.approx(1.0)
+        assert result.mAP_scores[4] == 0.0
+
+    def test_overlapping_crops_with_disjoint_pixels_do_not_match(self) -> None:
+        """Identical crop boxes can still have zero foreground overlap."""
+        target_mask = (np.indices((8, 8)).sum(axis=0) % 2 == 0)[np.newaxis]
+        prediction_mask = ~target_mask
+        boxes = np.array([[0, 0, 7, 7]])
+        targets = Detections(
+            xyxy=boxes,
+            mask=CompactMask.from_dense(target_mask, boxes, (8, 8)),
+            class_id=np.array([0]),
+        )
+        predictions = Detections(
+            xyxy=boxes,
+            mask=CompactMask.from_dense(prediction_mask, boxes, (8, 8)),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+
+        result = (
+            MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        assert result.map50_95 == 0.0
 
 
 def _boxes_with_corners(
