@@ -2051,8 +2051,6 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             )
 
             box_xyxy = label_property[:4].astype(int)
-            text_left = label_property[4]
-            text_top = label_property[5]
 
             # Draw the rounded rectangle background
             draw.rounded_rectangle(
@@ -2064,41 +2062,38 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
             # Draw each line of text
             wrapped_lines = wrap_text(labels[idx], self.max_line_length)
-            x_position = box_xyxy[0] + self.text_padding - text_left
-            y_position = box_xyxy[1] + self.text_padding - text_top
+            # The box is sized from each line's measured ink, so each line is placed
+            # by its own bounds too. A shared "Tg" origin put a low glyph, such as a
+            # period, below a tightly padded box.
+            ink_top = box_xyxy[1] + self.text_padding
 
             for line in wrapped_lines:
+                left, top, right, bottom = self._text_bbox(draw, line)
                 khatt = self._rtl_engine(draw, line)
                 if khatt is not None:
-                    # Right-aligned in the box, with its ink top where Pillow's
-                    # lines start. Oversized boxes extend beyond the frame, so
-                    # align shaped RTL text to the visible right edge instead.
-                    _left, top, right, _bottom = self._text_bbox(draw, line)
+                    # Right-aligned in the box. Oversized boxes extend beyond the
+                    # frame, so align shaped RTL text to the visible right edge
+                    # instead.
                     right_edge = box_xyxy[2]
                     if self.smart_position and box_xyxy[2] - box_xyxy[0] > scene.width:
                         right_edge = min(right_edge, scene.width)
                     khatt.draw_text(
                         scene,
-                        (
-                            right_edge - self.text_padding - right,
-                            y_position + text_top - top,
-                        ),
+                        (right_edge - self.text_padding - right, ink_top - top),
                         line,
                         fill=text_color.as_rgb(),
                         **self._rtl_options(),
                     )
                 else:
                     draw.text(
-                        xy=(x_position, y_position),
+                        xy=(box_xyxy[0] + self.text_padding - left, ink_top - top),
                         text=line,
                         font=self.font,
                         fill=_pillow_fill(text_color, scene.mode),
                     )
 
                 # Move to the next line position
-                _left, top, _right, bottom = self._text_bbox(draw, line)
-                line_height = bottom - top
-                y_position += line_height + self.text_padding
+                ink_top += bottom - top + self.text_padding
 
     @staticmethod
     def _load_font(
@@ -3798,19 +3793,12 @@ class ComparisonAnnotator:
                 border_radius=marker_corner_radius,
             )
 
-            # The legend background is opaque; draw text in BGR so antialiasing
-            # cannot replace its alpha with the three-channel OpenCV default.
-            text_scene = scene
-            if scene.ndim == 3 and scene.shape[2] == 4:
-                text_scene = scene[..., :3].copy()
             draw_text(
-                text_scene,
+                scene,
                 text,
                 text_anchor=Point(x=center_x + marker_size, y=center_y),
                 text_scale=text_scale,
                 text_thickness=self.text_thickness,
             )
-            if text_scene is not scene:
-                scene[..., :3] = text_scene
 
             x0 += width + gap
