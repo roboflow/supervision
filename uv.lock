@@ -3078,8 +3078,8 @@ name = "opencv-python-headless"
 version = "5.0.0.93"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-11-supervision-opencv-python-headless') or (extra == 'group-11-supervision-opencv-python' and extra == 'group-11-supervision-opencv-python-headless')" },
-    { name = "numpy", version = "2.3.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-11-supervision-opencv-python-headless') or (extra == 'group-11-supervision-opencv-python' and extra == 'group-11-supervision-opencv-python-headless')" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' or extra == 'group-11-supervision-opencv-python') and extra == 'group-11-supervision-opencv-python-headless'" },
+    { name = "numpy", version = "2.3.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' or extra == 'group-11-supervision-opencv-python') and extra == 'group-11-supervision-opencv-python-headless'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1d/99/76b7c80252aa83c1af16393454aafd125a0287101afe8deb0a6821af0e30/opencv_python_headless-5.0.0.93.tar.gz", hash = "sha256:b82f9831daab90b725c7c1ee1b36cb5732c367096ac76d119e64e14eb70d5f3c", size = 81817738, upload-time = "2026-07-02T07:01:06.039Z" }
 wheels = [
@@ -4636,7 +4636,7 @@ wheels = [
 
 [[package]]
 name = "supervision"
-version = "0.32.0"
+version = "0.32.1"
 source = { editable = "." }
 dependencies = [
     { name = "av", version = "17.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
