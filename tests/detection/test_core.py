@@ -2089,6 +2089,23 @@ class TestDetectionsWithSoftNms:
         assert result.xyxy.dtype == dtype
         np.testing.assert_array_equal(result.xyxy, boxes_large)
 
+    def test_float32_boxes_and_scores_with_int64_class_id_keep_float64_decay_precision(
+        self,
+    ) -> None:
+        """Float32 boxes/scores with int64 class_id retain float64 decay precision."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9, 0.01], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=np.int64),
+        )
+
+        result = detections.with_soft_nms(sigma=0.01, score_threshold=0)
+
+        assert len(result) == 2
+        assert result.confidence is not None
+        assert result.confidence.dtype == np.float64
+        assert result.confidence[1] > 0.0
+
 
 class TestDetectionsWithNMS:
     """NMS behaviour tests for 64-bit integer coordinates."""
@@ -3090,6 +3107,11 @@ class TestDetectionsWithNMM:
         assert result.confidence is not None
         assert expected.confidence is not None
         np.testing.assert_allclose(result.confidence, expected.confidence)
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(
+            result.xyxy,
+            np.array([[origin, origin, origin + 11, origin + 11]], dtype=dtype),
+        )
 
     @pytest.mark.parametrize(
         ("dtype", "origin"),
@@ -3120,6 +3142,8 @@ class TestDetectionsWithNMM:
         assert len(result) == 1
         assert result.confidence is not None
         np.testing.assert_allclose(result.confidence, [0.8])
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(result.xyxy, boxes[:1])
 
     def test_multi_origin_int64_clusters_merge_separately(self) -> None:
         """Clusters at negative and positive large int64 origins merge separately."""
@@ -3143,6 +3167,14 @@ class TestDetectionsWithNMM:
         result = detections.with_nmm(threshold=0.5)
 
         assert len(result) == 2
+        assert result.xyxy.dtype == np.int64
+        np.testing.assert_array_equal(
+            result.xyxy,
+            np.array(
+                [[neg, 0, neg + 11, 11], [pos, 0, pos + 11, 11]],
+                dtype=np.int64,
+            ),
+        )
 
     @pytest.mark.parametrize(
         "dtype",
@@ -3176,6 +3208,44 @@ class TestDetectionsWithNMM:
         result = detections.with_nmm(threshold=0.5)
 
         assert len(result) == 2
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(result.xyxy, boxes)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [pytest.param(np.int64, id="int64"), pytest.param(np.uint64, id="uint64")],
+    )
+    def test_merged_pair_and_singleton_at_large_origin_preserve_integer_xyxy(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Merged pairs and disjoint singletons both keep exact 64-bit integer xyxy."""
+        origin = 2**60
+        boxes = np.array(
+            [
+                [origin, origin, origin + 10, origin + 10],
+                [origin + 1, origin + 1, origin + 11, origin + 11],
+                [origin + 100, origin + 100, origin + 110, origin + 110],
+            ],
+            dtype=dtype,
+        )
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.7, 0.5], dtype=np.float32),
+            class_id=np.array([0, 0, 0], dtype=int),
+        )
+
+        result = detections.with_nmm(threshold=0.5)
+
+        expected_xyxy = np.array(
+            [
+                [origin, origin, origin + 11, origin + 11],
+                [origin + 100, origin + 100, origin + 110, origin + 110],
+            ],
+            dtype=dtype,
+        )
+        assert len(result) == 2
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(result.xyxy, expected_xyxy)
 
     @pytest.mark.parametrize(
         "dtype",

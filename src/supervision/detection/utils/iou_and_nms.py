@@ -242,6 +242,21 @@ def box_iou_batch(
     )
 
 
+_FLOAT64_EXACT_INT_LIMIT = 1 << 53
+
+
+def _has_coordinates_beyond_float64_exact_int(boxes: npt.NDArray[np.number]) -> bool:
+    """Return True if a 64-bit integer array exceeds float64's exact integer range."""
+    if not np.issubdtype(boxes.dtype, np.integer) or boxes.dtype.itemsize < 8:
+        return False
+    if np.issubdtype(boxes.dtype, np.unsignedinteger):
+        return int(boxes.max()) > _FLOAT64_EXACT_INT_LIMIT
+    return (
+        int(boxes.min()) < -_FLOAT64_EXACT_INT_LIMIT
+        or int(boxes.max()) > _FLOAT64_EXACT_INT_LIMIT
+    )
+
+
 def _large_integer_box_areas(
     boxes_true: npt.NDArray[np.number],
     boxes_detection: npt.NDArray[np.number],
@@ -315,7 +330,10 @@ def _box_overlap_float64(
     if (
         np.issubdtype(boxes_true.dtype, np.integer)
         and np.issubdtype(boxes_detection.dtype, np.integer)
-        and (boxes_true.dtype.itemsize >= 8 or boxes_detection.dtype.itemsize >= 8)
+        and (
+            _has_coordinates_beyond_float64_exact_int(boxes_true)
+            or _has_coordinates_beyond_float64_exact_int(boxes_detection)
+        )
     ):
         area_inter, area_true, area_det = _large_integer_box_areas(
             boxes_true, boxes_detection
@@ -1596,8 +1614,16 @@ def _box_soft_non_max_suppression_from_arrays(
     sort_index, sorted_categories = _sort_for_nms(scores, categories)
     sorted_boxes = boxes[sort_index]
     ious = box_iou_batch(sorted_boxes, sorted_boxes, overlap_metric)
+    score_dtype = (
+        np.result_type(boxes.dtype, scores.dtype)
+        if categories is None
+        else np.result_type(boxes.dtype, scores.dtype, categories.dtype)
+    )
     decayed = _soft_nms_decay_from_iou_matrix(
-        ious, sorted_categories, scores[sort_index], sigma
+        ious,
+        sorted_categories,
+        scores[sort_index].astype(score_dtype, copy=False),
+        sigma,
     )
     result_scores: npt.NDArray[np.floating] = decayed[sort_index.argsort()]
     return result_scores

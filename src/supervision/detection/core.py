@@ -3481,6 +3481,9 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         data = {**winner.data, ORIENTED_BOX_COORDINATES: merged_corners[np.newaxis]}
     else:
         # AABB path: union bounding box across all group members
+        union_dtype: npt.DTypeLike = (
+            all_xyxy.dtype if np.issubdtype(all_xyxy.dtype, np.integer) else np.float32
+        )
         xyxy = np.array(
             [
                 [
@@ -3490,7 +3493,7 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
                     all_xyxy[:, 3].max(),
                 ]
             ],
-            dtype=np.float32,
+            dtype=union_dtype,
         )
         data = winner.data
 
