@@ -2090,8 +2090,9 @@ class TestDetectionsWithSoftNms:
         assert result.xyxy.dtype == dtype
         np.testing.assert_array_equal(result.xyxy, boxes_large)
 
+    @pytest.mark.parametrize("class_agnostic", [False, True])
     def test_float32_boxes_and_scores_with_int64_class_id_keep_float64_decay_precision(
-        self,
+        self, class_agnostic: bool
     ) -> None:
         """Float32 boxes/scores with int64 class_id retain float64 decay precision."""
         detections = Detections(
@@ -2100,7 +2101,9 @@ class TestDetectionsWithSoftNms:
             class_id=np.array([0, 0], dtype=np.int64),
         )
 
-        result = detections.with_soft_nms(sigma=0.01, score_threshold=0)
+        result = detections.with_soft_nms(
+            sigma=0.01, score_threshold=0, class_agnostic=class_agnostic
+        )
 
         assert len(result) == 2
         assert result.confidence is not None

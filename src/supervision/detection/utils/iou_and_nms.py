@@ -1648,7 +1648,7 @@ def _box_soft_non_max_suppression_from_arrays(
     sorted_boxes = boxes[sort_index]
     ious = box_iou_batch(sorted_boxes, sorted_boxes, overlap_metric)
     score_dtype = (
-        np.result_type(boxes.dtype, scores.dtype)
+        np.result_type(boxes.dtype, scores.dtype, np.float64)
         if categories is None
         else np.result_type(boxes.dtype, scores.dtype, categories.dtype)
     )

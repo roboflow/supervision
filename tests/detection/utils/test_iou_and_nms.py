@@ -317,6 +317,18 @@ def test_box_non_max_suppression(
         assert np.array_equal(result, expected_result)
 
 
+def test_box_soft_non_max_suppression_preserves_agnostic_score_precision() -> None:
+    """Keep a positive decayed score for five-column float32 predictions."""
+    predictions = np.array(
+        [[0, 0, 10, 10, 0.9], [0, 0, 10, 10, 0.01]], dtype=np.float32
+    )
+
+    result = box_soft_non_max_suppression(predictions, sigma=0.01)
+
+    assert result.dtype == np.float64
+    assert result[1] > 0.0
+
+
 @pytest.mark.parametrize(
     ("predictions", "sigma", "expected_result", "exception"),
     [
