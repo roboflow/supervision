@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.with_soft_nms` now decays oriented-box detections by their rotated bodies (`data["xyxyxyxy"]`) instead of their axis-aligned envelope when masks are absent, like `with_nms` and `with_nmm`. Mask overlap takes precedence when both masks and oriented boxes are present. The new `sv.oriented_box_soft_non_max_suppression` does the same for raw arrays. ([#3023](https://github.com/roboflow/supervision/pull/3023))
+
 - `sv.Classifications.get_top_k` now returns classes with equal confidence in their input order, so a tie for the best score goes to the first class, as `np.argmax` picks it. It reversed an ascending sort, which put the last tied class first, and with many classes, such as 1000 ImageNet scores in float16, returned tied classes in an arbitrary order. A NaN confidence now ranks last instead of first. `sv.ClassificationDataset.as_folder_structure` uses the top class to choose each image's folder, so it follows the same order. ([#2989](https://github.com/roboflow/supervision/pull/2989))
 
 - `sv.process_video(preserve_audio=True)` preserves audio delayed relative to the source video instead of moving it to the start of the output. Audio starting after a shortened output is omitted. ([#2988](https://github.com/roboflow/supervision/pull/2988))
@@ -51,8 +53,6 @@ date_modified: 2026-11-18
     - On Windows, images whose path has characters outside ASCII, such as an accented, Cyrillic or CJK folder name, can now be read and written. OpenCV reads such a path in the ANSI code page, so `sv.DetectionDataset` raised `ValueError: Could not read image from path` when its images were loaded, and `as_yolo`, `as_coco`, `as_pascal_voc` and `sv.ImageSink` failed to save or wrote a file with a garbled name. When mapping succeeds, the file is mapped instead of loaded whole. If mapping fails, the fallback reads the whole file. ([#2963](https://github.com/roboflow/supervision/pull/2963), [#3058](https://github.com/roboflow/supervision/pull/3058))
 - **Models**: Transformers adapters accept `bfloat16` outputs.
     - `sv.Detections.from_transformers` and `sv.KeyPoints.from_transformers` now accept `bfloat16` model outputs, as a model run in `bfloat16` returns them, instead of raising `TypeError: Got unsupported ScalarType BFloat16`. Both adapters detach gradient-tracked tensors before conversion. `Detections` returns `bfloat16` boxes and scores as `float32` and keeps other precisions unchanged; `KeyPoints` coordinates and confidences are `float32` for every input precision, as before. ([#2962](https://github.com/roboflow/supervision/pull/2962))
-
-- `sv.Detections.with_soft_nms` now decays oriented-box detections by their rotated bodies (`data["xyxyxyxy"]`) instead of their axis-aligned envelope, like `with_nms` and `with_nmm`. The new `sv.oriented_box_soft_non_max_suppression` does the same for raw arrays. ([#3023](https://github.com/roboflow/supervision/pull/3023))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
