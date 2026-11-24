@@ -663,6 +663,11 @@ class Detections:
         `class_id` to the index of the matched text query; Grounding DINO reports
         the matched phrases instead of indices, so its `class_id` is `None`.
 
+        Class-agnostic results carry no class labels and also give
+        `class_id=None`: SAM 3 `post_process_object_detection` and
+        `post_process_instance_segmentation`, and OWL-ViT and OWLv2
+        `post_process_image_guided_detection`.
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
