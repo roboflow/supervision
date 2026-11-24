@@ -2880,6 +2880,80 @@ class TestQwenUnrelatedFences:
         np.testing.assert_array_equal(names_3, [label])
 
 
+QWEN_CAT_JSON = '{"bbox_2d": [100, 200, 300, 400], "label": "cat"}'
+QWEN_CAT_LITERAL = "{'bbox_2d': [100, 200, 300, 400], 'label': 'cat'}"
+
+
+class TestQwenNonDetectionItems:
+    """Non-detection items never hide the Qwen detection array that holds them."""
+
+    @pytest.mark.parametrize(
+        ("vlm", "kwargs"),
+        [
+            pytest.param(VLM.QWEN_2_5_VL, {"input_wh": (1000, 1000)}, id="qwen-2.5-vl"),
+            pytest.param(VLM.QWEN_3_VL, {}, id="qwen-3-vl"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pytest.param(f"```json\n[[], {QWEN_CAT_JSON}]\n```", id="empty-list-first"),
+            pytest.param(
+                f"```json\n[null, [], {QWEN_CAT_JSON}]\n```",
+                id="null-then-empty-list",
+            ),
+            pytest.param(
+                '```json\n[null, {"tags": [], "bbox_2d": [100, 200, 300, 400], '
+                '"label": "cat"}]\n```',
+                id="empty-list-field-before-box",
+            ),
+            pytest.param(
+                f"```json\n[[], {QWEN_CAT_LITERAL}]\n```",
+                id="python-literal-empty-list-first",
+            ),
+            pytest.param(
+                "```json\n[{'tags': [], 'bbox_2d': [100, 200, 300, 400], "
+                "'label': 'cat'}]\n```",
+                id="python-literal-empty-list-field-before-box",
+            ),
+            pytest.param(
+                f'```json\n[[], {QWEN_CAT_JSON}, {{"bbox_2d": [5, 6',
+                id="truncated-empty-list-first",
+            ),
+            pytest.param(
+                '```json\n[{"tags": [], "bbox_2d": [100, 200, 300, 400], '
+                '"label": "cat"}, {"bbox_2d": [5, 6',
+                id="truncated-empty-list-field-before-box",
+            ),
+            pytest.param(
+                "Thinking [] about [x1, y1]\n"
+                f"```json\n[null, [], {QWEN_CAT_JSON}]\n```",
+                id="prose-empty-list-before-fence",
+            ),
+            pytest.param(
+                "Each item has 'bbox_2d': [x1, y1, x2, y2].\n"
+                f"```json\n[[], {QWEN_CAT_LITERAL}]\n```",
+                id="prose-key-before-python-literal",
+            ),
+            pytest.param(
+                "```json\n[{'label': 'cat', 'note': 'see [left', "
+                "'bbox_2d': [100, 200, 300, 400]}]\n```",
+                id="python-literal-label-bracket-before-box",
+            ),
+        ],
+    )
+    def test_keeps_detection(
+        self, result: str, vlm: VLM, kwargs: dict[str, Any]
+    ) -> None:
+        """The valid detection survives null, empty-list and nested-list items."""
+        detections = Detections.from_vlm(
+            vlm, result, resolution_wh=(1000, 1000), **kwargs
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[100, 200, 300, 400]])
+        np.testing.assert_array_equal(detections[CLASS_NAME_DATA_FIELD], ["cat"])
+
+
 class TestQwenMalformedBoxes:
     """Malformed model boxes do not discard other detections in the response."""
 

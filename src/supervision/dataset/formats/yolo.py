@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
+import yaml
 from tqdm.auto import tqdm
 
 from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
@@ -32,7 +33,6 @@ from supervision.detection.utils.polygons import merge_multi_segment
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
-    read_yaml_file,
     save_text_file,
     save_yaml_file,
 )
@@ -55,6 +55,12 @@ _YOLO_IMAGE_EXTENSIONS: tuple[str, ...] = (
     "tiff",
     "webp",
 )
+
+#: YAML tag of a ``<<`` merge key, whose merged entries explicit keys may override.
+_YAML_MERGE_TAG = "tag:yaml.org,2002:merge"
+
+#: YAML tag of a string scalar, used to find the ``names`` key in data.yaml.
+_YAML_STR_TAG = "tag:yaml.org,2002:str"
 
 
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
@@ -198,6 +204,74 @@ def _with_seg_mask(lines: list[str]) -> bool:
     return any(len(line.split()) > 6 for line in lines)
 
 
+def _explicit_scalar_keys(loader: yaml.SafeLoader, node: yaml.MappingNode) -> list[Any]:
+    """Return the constructed scalar keys a YAML mapping node writes out, in order.
+
+    A ``<<`` merge key is skipped, since explicit keys may override merged ones.
+    """
+    return [
+        loader.construct_object(key_node)
+        for key_node, _ in node.value
+        if isinstance(key_node, yaml.ScalarNode) and key_node.tag != _YAML_MERGE_TAG
+    ]
+
+
+def _check_names_keys_unique(
+    loader: yaml.SafeLoader, root: yaml.Node, file_path: str
+) -> None:
+    """Reject a data.yaml that declares ``names`` twice or repeats a key inside it.
+
+    PyYAML keeps only the last value of a repeated mapping key, so either repeat
+    would silently relabel annotations. Keys are compared after construction:
+    ``1``, ``01``, ``1.0``, and ``true`` all collapse to one dict key.
+
+    Raises:
+        ValueError: If the root repeats ``names`` or a ``names`` mapping repeats
+            a key.
+    """
+    if not isinstance(root, yaml.MappingNode):
+        return
+    names_nodes = [
+        value_node
+        for key_node, value_node in root.value
+        if isinstance(key_node, yaml.ScalarNode)
+        and key_node.tag == _YAML_STR_TAG
+        and key_node.value == "names"
+    ]
+    if len(names_nodes) > 1:
+        raise ValueError(f"Found duplicate key 'names' in data.yaml at '{file_path}'.")
+    if not names_nodes or not isinstance(names_nodes[0], yaml.MappingNode):
+        return
+    seen: set[Any] = set()
+    for key in _explicit_scalar_keys(loader=loader, node=names_nodes[0]):
+        if key in seen:
+            raise ValueError(
+                f"Found duplicate class key {key!r} in 'names' at '{file_path}'."
+            )
+        seen.add(key)
+
+
+def _load_data_yaml(file_path: str) -> Any:
+    """Parse a YOLO data.yaml file, rejecting repeated ``names`` keys.
+
+    The node tree is checked before construction, because the constructed dict
+    has already dropped all but the last value of a repeated key.
+
+    Raises:
+        ValueError: If ``names`` is declared twice or repeats a key.
+    """
+    with open(file_path, encoding="utf-8") as file:
+        loader = yaml.SafeLoader(file)
+        try:
+            root = loader.get_single_node()
+            if root is None:
+                return None
+            _check_names_keys_unique(loader=loader, root=root, file_path=file_path)
+            return loader.construct_document(root)
+        finally:
+            loader.dispose()
+
+
 def _read_data_yaml(file_path: str) -> dict[str, Any]:
     """Read a YOLO data.yaml file and check that its root is a mapping.
 
@@ -208,9 +282,10 @@ def _read_data_yaml(file_path: str) -> dict[str, Any]:
         The parsed data.yaml content.
 
     Raises:
-        ValueError: If the YAML root is not a mapping.
+        ValueError: If the YAML root is not a mapping, if ``names`` is declared
+            twice, or if a ``names`` mapping repeats a key.
     """
-    data: dict[str, Any] = read_yaml_file(file_path=file_path)
+    data: dict[str, Any] = _load_data_yaml(file_path=file_path)
     if not isinstance(data, dict):
         raise ValueError(
             f"Expected mapping in data.yaml at '{file_path}',"
