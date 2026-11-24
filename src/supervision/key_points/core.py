@@ -1824,7 +1824,8 @@ class KeyPoints:
 
         Raises:
             IndexError: If an index in `selected_keypoint_indices` is out of range
-                for the number of key points, also when there are no skeletons.
+                for the number of key points, also when there are no skeletons. A
+                zero-length key point axis is exempt from this check.
 
         Examples:
             ```pycon

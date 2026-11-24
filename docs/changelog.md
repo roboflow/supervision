@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.KeyPoints.as_detections()` keeps `data` keys and the `class_id` dtype on frames without skeletons or key points, as it already did when every key point is invalid. It returned `sv.Detections.empty()` there, so the documented recipe for attaching tracker IDs to key points raised `KeyError: 'row'` on the first frame without people. Out-of-range `selected_keypoint_indices` now raise `IndexError` on such frames too, instead of only when skeletons are present. ([#3026](https://github.com/roboflow/supervision/pull/3026))
+- `sv.KeyPoints.as_detections()` keeps `data` keys and the `class_id` dtype on frames without skeletons or key points, as it already did when every key point is invalid. It returned `sv.Detections.empty()` there, so an unguarded version of the recipe for attaching tracker IDs to key points raised `KeyError: 'row'` on a frame without people. Out-of-range `selected_keypoint_indices` now raise `IndexError` when there are no skeletons but the key point axis is nonempty, instead of only when skeletons are present. ([#3026](https://github.com/roboflow/supervision/pull/3026))
 
 - `sv.Classifications.get_top_k` now returns classes with equal confidence in their input order, so a tie for the best score goes to the first class, as `np.argmax` picks it. It reversed an ascending sort, which put the last tied class first, and with many classes, such as 1000 ImageNet scores in float16, returned tied classes in an arbitrary order. A NaN confidence now ranks last instead of first. `sv.ClassificationDataset.as_folder_structure` uses the top class to choose each image's folder, so it follows the same order. ([#2989](https://github.com/roboflow/supervision/pull/2989))
 
