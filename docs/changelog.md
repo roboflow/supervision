@@ -9,6 +9,10 @@ date_modified: 2026-11-18
 
 - `sv.KeyPoints.__setitem__` now raises `ValueError` when the value's length does not match the number of objects, as `sv.Detections.__setitem__` already does. Previously a wrong-length list or array was stored silently and only failed later, in `as_detections()`, `merge`, or when selecting objects. ([#2974](https://github.com/roboflow/supervision/pull/2974))
 
+- `sv.Detections.with_nmm`, `sv.box_non_max_merge`, `sv.mask_non_max_merge` and `sv.oriented_box_non_max_merge` with `threshold=0` (`iou_threshold=0`) no longer add a detection to a merge candidate when their overlap is zero. An overlap of exactly 0 satisfied `IoU >= 0`, so every detection of a class entered one merge group. For example, `with_nmm` turned three disjoint boxes into a single `[0, 0, 210, 210]` union box, while `with_nms(threshold=0)` kept all of them. Merging now needs a positive overlap, matching non-max suppression; results for thresholds above 0 are unchanged. ([#2972](https://github.com/roboflow/supervision/pull/2972))
+
+- `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). With the OpenCV backend, cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#2970](https://github.com/roboflow/supervision/pull/2970))
+
 ### 0.32.1 <small>Nov 24, 2026</small>
 
 - **BGRA scenes**: annotators, drawing helpers and image resizing handle `(H, W, 4)` arrays.
