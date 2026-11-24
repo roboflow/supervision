@@ -100,31 +100,29 @@ def _show_bar_plot(details: PlotDetails) -> None:
     Every caller reports undefined scores as `-1`, so such bars are labelled `N/A`.
     """
     from matplotlib import pyplot as plt
+    from matplotlib import rc_context
 
-    plt.rcParams["font.family"] = "monospace"
+    with rc_context({"font.family": "monospace"}):
+        _, ax = plt.subplots(figsize=(10, 6))
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Value", fontweight="bold")
+        ax.set_title(details.title, fontweight="bold")
 
-    _, ax = plt.subplots(figsize=(10, 6))
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("Value", fontweight="bold")
-    ax.set_title(details.title, fontweight="bold")
+        x_positions = range(len(details.labels))
+        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
 
-    x_positions = range(len(details.labels))
-    bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(details.labels, rotation=45, ha="right")
 
-    ax.set_xticks(x_positions)
-    ax.set_xticklabels(details.labels, rotation=45, ha="right")
-
-    for bar in bars:
-        label, label_y = _score_bar_label(bar.get_height(), has_sentinel=True)
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            label_y,
-            label,
-            ha="center",
-            va="bottom",
-        )
-
-    plt.rcParams["font.family"] = "sans-serif"
+        for bar in bars:
+            label, label_y = _score_bar_label(bar.get_height(), has_sentinel=True)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                label_y,
+                label,
+                ha="center",
+                va="bottom",
+            )
 
     plt.tight_layout()
     plt.show()
