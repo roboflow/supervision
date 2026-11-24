@@ -72,13 +72,25 @@ def _farthest_from_segment(
 
 
 def _contour_area(contour: npt.NDArray[Any], oriented: bool = False) -> float:
-    """Compute a contour's signed or absolute shoelace area."""
-    points = _as_points(contour)
+    """Compute a contour's signed or absolute shoelace area.
+
+    The sum follows `cv2.contourArea` term by term, so the result is bit-identical:
+    integer points are read as float32, as OpenCV does, each term is
+    `prev.x * y - prev.y * x` in float64 starting from the last point, and the terms
+    are added left to right (`np.cumsum`, not the pairwise `np.sum`).
+    """
+    raw = np.asarray(contour)
+    if np.issubdtype(raw.dtype, np.integer):
+        raw = raw.astype(np.float32)
+    points = _as_points(raw)
     if len(points) < 3:
         return 0.0
     x = points[:, 0]
     y = points[:, 1]
-    area = 0.5 * float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
+    previous_x = np.roll(x, 1)
+    previous_y = np.roll(y, 1)
+    terms = previous_x * y - previous_y * x
+    area = float(np.cumsum(terms)[-1]) * 0.5
     return area if oriented else abs(area)
 
 

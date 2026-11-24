@@ -1,20 +1,28 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    _map_to_drawing_coordinates,
+    draw_filled_polygon,
     draw_filled_rectangle,
     draw_image,
     draw_line,
+    draw_polygon,
     draw_rectangle,
     draw_rounded_rectangle,
     draw_text,
 )
 from supervision.geometry.core import Point, Rect
 from supervision.utils.image import grayscale_image
+from tests.helpers import _MoveBeyondX, _WrongShapeTransform
+
+DRAWING_LIMIT = 2**20
 
 
 def test_draw_image_invalid_path_raises_oserror(tmp_path: Path) -> None:
@@ -326,6 +334,52 @@ def test_grayscale_image_uniform_color_stays_gray() -> None:
     assert result[:, :, 0].min() == result[:, :, 0].max()
 
 
+class TestMapToDrawingCoordinates:
+    """`_map_to_drawing_coordinates` maps points or rejects undrawable ones."""
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        ("mapped_x", "expected"),
+        [
+            pytest.param(np.nan, None, id="nan"),
+            pytest.param(np.inf, None, id="inf"),
+            pytest.param(-np.inf, None, id="negative-inf"),
+            pytest.param(1e30, None, id="far-beyond-limit"),
+            pytest.param(DRAWING_LIMIT + 0.5, None, id="just-beyond-limit"),
+            pytest.param(-DRAWING_LIMIT - 0.5, None, id="just-beyond-negative-limit"),
+            pytest.param(
+                DRAWING_LIMIT,
+                np.array([[0.0, 5.0], [DRAWING_LIMIT, 2.0]]),
+                id="at-limit",
+            ),
+            pytest.param(
+                -DRAWING_LIMIT,
+                np.array([[0.0, 5.0], [-DRAWING_LIMIT, 2.0]]),
+                id="at-negative-limit",
+            ),
+            pytest.param(
+                2.5, np.array([[0.0, 5.0], [2.5, 2.0]]), id="fraction-not-rounded"
+            ),
+        ],
+    )
+    def test_returns_mapped_points_or_none_when_undrawable(
+        self, mapped_x: float, expected: np.ndarray | None
+    ) -> None:
+        """One non-finite point, or one beyond 2**20 px before rounding, gives None."""
+        points = np.array([[0, 5], [10, 2]])
+
+        mapped = _map_to_drawing_coordinates(points, _MoveBeyondX(1, mapped_x))
+
+        np.testing.assert_equal(mapped, expected)
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        points = np.array([[0, 5], [10, 2]])
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            _map_to_drawing_coordinates(points, _WrongShapeTransform())
+
+
 class TestDrawImageSceneLayouts:
     @pytest.mark.parametrize(
         "scene_shape", [pytest.param((6, 8), id="2d"), pytest.param((6, 8, 1), id="3d")]
@@ -400,3 +454,187 @@ class TestDrawImageSceneLayouts:
         assert result.shape == (4, 4, 4)
         np.testing.assert_array_equal(result[..., :3], np.full((4, 4, 3), expected_bgr))
         np.testing.assert_array_equal(result[..., 3], np.full((4, 4), expected_alpha))
+
+
+_POLYGON = np.array([[5, 5], [40, 8], [35, 40], [8, 30]])
+_RECT = Rect(x=10, y=10, width=20, height=20)
+
+
+def _supports_negative_text_scale() -> bool:
+    """Detect whether the active backend renders negatively scaled text."""
+    scene = np.zeros((150, 300, 3), dtype=np.uint8)
+    cv2.putText(scene, "ABCDE", (200, 65), cv2.FONT_HERSHEY_SIMPLEX, -1.0, (0, 0, 255))
+    return bool(scene.any())
+
+
+class TestDrawOnBgraScene:
+    """Verify the shape and text helpers on BGRA scenes."""
+
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_line(scene, Point(2, 2), Point(40, 30), Color.RED),
+                id="line",
+            ),
+            pytest.param(
+                lambda scene: draw_rectangle(scene, _RECT, Color.RED), id="rectangle"
+            ),
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED, 0.5),
+                id="translucent-filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_rounded_rectangle(scene, _RECT, Color.RED, 4),
+                id="rounded-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_polygon(scene, _POLYGON, Color.RED), id="polygon"
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED),
+                id="filled-polygon",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED, 0.5),
+                id="translucent-filled-polygon",
+            ),
+            pytest.param(
+                lambda scene: draw_text(
+                    scene, "a", Point(25, 25), Color.RED, background_color=Color.WHITE
+                ),
+                id="text",
+            ),
+        ],
+    )
+    def test_opaque_bgra_scene_matches_bgr_scene(
+        self, draw: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]]
+    ) -> None:
+        """An opaque BGRA scene gets the colors of its BGR copy and stays opaque."""
+        bgr = np.full((50, 50, 3), 40, dtype=np.uint8)
+        scene = np.dstack([bgr, np.full((50, 50), 255, dtype=np.uint8)])
+        expected = draw(bgr.copy())
+
+        result = draw(scene)
+
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    @pytest.mark.parametrize(
+        ("scene_alpha", "expected_pixel"),
+        [
+            pytest.param(0, (0, 0, 255, 128), id="transparent-scene"),
+            pytest.param(128, (13, 13, 183, 192), id="translucent-scene"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED, 0.5),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED, 0.5),
+                id="filled-polygon",
+            ),
+        ],
+    )
+    def test_translucent_fill_is_composited_over_scene_alpha(
+        self,
+        draw: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]],
+        scene_alpha: int,
+        expected_pixel: tuple[int, int, int, int],
+    ) -> None:
+        """A translucent fill keeps its color on a scene that is not opaque."""
+        scene = np.full((50, 50, 4), 40, dtype=np.uint8)
+        scene[..., 3] = scene_alpha
+
+        result = draw(scene)
+
+        np.testing.assert_allclose(result[20, 20], expected_pixel, atol=1)
+        np.testing.assert_array_equal(result[45, 45], (40, 40, 40, scene_alpha))
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((0, 10, 4), id="no-rows"),
+            pytest.param((10, 0, 4), id="no-columns"),
+            pytest.param((0, 0, 4), id="no-pixels"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED, 0.5),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED, 0.5),
+                id="filled-polygon",
+            ),
+        ],
+    )
+    def test_translucent_fill_returns_empty_scene_unchanged(
+        self,
+        draw: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]],
+        shape: tuple[int, int, int],
+    ) -> None:
+        """A translucent fill on a zero-size BGRA scene returns that scene."""
+        scene = np.zeros(shape, dtype=np.uint8)
+
+        result = draw(scene)
+
+        assert result is scene
+        assert result.shape == shape
+
+    @pytest.mark.parametrize("scene_alpha", [0, 128])
+    def test_text_keeps_its_color_on_see_through_scene(self, scene_alpha: int) -> None:
+        """Text on a scene that is not opaque keeps the text color at glyph edges."""
+        scene = np.full((60, 120, 4), 40, dtype=np.uint8)
+        scene[..., 3] = scene_alpha
+        before = scene.copy()
+
+        result = draw_text(scene, "Agy", Point(60, 30), Color.RED, text_scale=1.0)
+
+        drawn = (result != before).any(axis=-1)
+        assert drawn.any()
+        assert (result[drawn][:, 3] >= scene_alpha).all()
+        assert result[..., 3].max() == 255
+        if scene_alpha == 0:
+            np.testing.assert_allclose(
+                result[drawn][:, :3],
+                np.broadcast_to(Color.RED.as_bgr(), (int(drawn.sum()), 3)),
+                atol=1,
+            )
+
+    def test_text_outside_bgra_scene_leaves_it_unchanged(self) -> None:
+        """Text anchored far outside a BGRA scene draws nothing."""
+        scene = np.full((40, 40, 4), 40, dtype=np.uint8)
+        before = scene.copy()
+
+        result = draw_text(scene, "a", Point(500, 500), Color.RED)
+
+        np.testing.assert_array_equal(result, before)
+
+    @pytest.mark.skipif(
+        not _supports_negative_text_scale(),
+        reason="The active backend does not render negatively scaled text.",
+    )
+    def test_negative_scale_text_matches_bgr_on_opaque_scene(self) -> None:
+        """Negative-scale text remains visible on an opaque BGRA scene."""
+        bgr = np.zeros((150, 300, 3), dtype=np.uint8)
+        scene = np.dstack([bgr, np.full((150, 300), 255, dtype=np.uint8)])
+        expected = draw_text(bgr, "ABCDE", Point(150, 75), Color.RED, text_scale=-1.0)
+
+        result = draw_text(scene, "ABCDE", Point(150, 75), Color.RED, text_scale=-1.0)
+
+        assert expected.any()
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert (result[..., 3] == 255).all()

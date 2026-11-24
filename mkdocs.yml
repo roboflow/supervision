@@ -3,7 +3,7 @@ site_url: https://supervision.roboflow.com/
 site_author: Roboflow
 site_description: "Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers."
 repo_name: roboflow/supervision
-edit_uri: https://github.com/roboflow/supervision/tree/main/docs
+edit_uri: https://github.com/roboflow/supervision/edit/develop/docs
 copyright: Roboflow 2026. All rights reserved.
 
 extra:
@@ -58,6 +58,7 @@ nav:
       - Benchmark a Model: how_to/benchmark_a_model.md
       - Count in Zone: how_to/count_in_zone.md
       - Use Compact Masks: how_to/use_compact_masks.md
+      - Load Semantic Segmentation: how_to/semantic_segmentation.md
       - Visualize Depth Maps: how_to/visualize_depth.md
       - OpenCV Migration: how_to/opencv_migration.md
   - Reference:

@@ -50,12 +50,15 @@ def move_masks(
             H, W are the dimensions of each mask.
         offset: An array of shape `(2,)` containing int values
             `[dx, dy]`. Supports both positive and negative values for bidirectional
-            movement.
+            movement. Any integer dtype works; slice bounds are computed without
+            integer overflow.
         resolution_wh: The width and height of the desired mask
             resolution.
 
     Returns:
-        Repositioned masks, optionally padded to the specified shape.
+        Repositioned masks, optionally padded to the specified shape. A shift that
+            moves the masks entirely outside the target resolution returns
+            all-`False` masks.
 
     Examples:
         ```pycon

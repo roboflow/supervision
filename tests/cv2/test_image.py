@@ -352,6 +352,68 @@ def test_fallback_convert_scale_abs_matches_opencv() -> None:
     )
 
 
+def test_fallback_convert_scale_abs_preserves_fused_midpoint_offset() -> None:
+    """Keep a tiny offset that changes fused float32 midpoint rounding."""
+    source = np.full((1, 64), 97, dtype=np.uint8)
+
+    actual = _convert_scale_abs(source, 172961 / 2**25, 2.0**-60)
+
+    np.testing.assert_array_equal(actual, np.ones_like(source))
+
+
+def test_fallback_convert_scale_abs_fuses_scale_and_offset() -> None:
+    """Round the scale and offset together before converting to uint8."""
+    source = np.array([[38]], dtype=np.uint8)
+
+    actual = _convert_scale_abs(source, 1.3, 0.1)
+
+    np.testing.assert_array_equal(actual, np.array([[50]], dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    ("dtype", "alpha", "beta"),
+    [
+        pytest.param(np.uint8, -1.3, 0.0, id="uint8-negative-alpha"),
+        pytest.param(np.uint8, 2.7, -0.5, id="uint8-negative-beta"),
+        pytest.param(np.uint8, 1.3, 0.1, id="uint8-fused-offset"),
+        pytest.param(np.uint8, 1.7, 0.3, id="uint8-fused-offset-2"),
+        pytest.param(np.int16, 1.3, 0.0, id="int16"),
+        pytest.param(np.float32, -1.3, 0.0, id="float32"),
+        pytest.param(np.float64, 1.3, 0.0, id="float64"),
+    ],
+)
+def test_fallback_convert_scale_abs_rounds_in_float32_like_opencv(
+    dtype: type[np.generic], alpha: float, beta: float
+) -> None:
+    """Round in float32, so `.5` ties in float64 land where OpenCV puts them."""
+    # 95 * 1.3 is 123.5 in float64 but 123.49999 in float32: OpenCV gives 123.
+    # 38 * 1.3 + 0.1 rounds to 50 with OpenCV's fused multiply-add, 49 without it.
+    ties = np.array([95, 190, 90, 195, 170, 38], dtype=np.float64)
+    noise = np.random.default_rng(0).uniform(-300, 300, size=200)
+    source = np.concatenate([ties, noise]).reshape(1, -1)
+    if np.issubdtype(dtype, np.integer):
+        source = np.rint(source)
+        if dtype is np.uint8:
+            source = np.abs(source) % 256
+    source = source.astype(dtype)
+
+    actual = _convert_scale_abs(source, alpha, beta)
+    reference = cv2.convertScaleAbs(source, alpha=alpha, beta=beta)
+    source32 = source.astype(np.float32)
+    fused = source32.astype(np.float64) * np.float64(np.float32(alpha))
+    fused = np.abs((fused + np.float64(np.float32(beta))).astype(np.float32))
+    fused = np.clip(np.rint(fused), 0, 255).astype(np.uint8)
+    separate = np.abs(source32 * np.float32(alpha) + np.float32(beta))
+    separate = np.clip(np.rint(separate), 0, 255).astype(np.uint8)
+
+    # OpenCV may use fused or separate float32 arithmetic depending on its build.
+    np.testing.assert_array_equal(actual, fused)
+    np.testing.assert_array_equal(
+        (reference == fused) | (reference == separate),
+        np.ones_like(source, dtype=bool),
+    )
+
+
 class TestFallbackMean:
     def test_matches_opencv_for_masked_uint8(self) -> None:
         """Match OpenCV masked mean semantics for integer images."""

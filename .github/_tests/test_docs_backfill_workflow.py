@@ -206,7 +206,9 @@ def test_backfill_wires_the_banner_injection_script(workflow_step: StepLookup) -
 @pytest.mark.parametrize(
     ("version_dir", "expected_snippet"),
     [
-        pytest.param("develop", "unreleased development version", id="develop"),
+        pytest.param(
+            "develop", "You are reading the development version", id="develop"
+        ),
         pytest.param("0.10.0", "older version of Supervision", id="archived"),
     ],
 )

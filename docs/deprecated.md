@@ -7,12 +7,19 @@ status: deprecated
 
 These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are typically supported for multiple subsequent releases, providing time for users to transition to updated methods.
 
-- `KeyPoints.confidence` is deprecated in `supervision-0.29.0`. Use `KeyPoints.keypoint_confidence` instead. It will be removed in `supervision-0.32.0`.
-- Public `validate_*` helper functions are deprecated in `supervision-0.29.0` and will be removed in `supervision-0.32.0`. Supervision internals now use private `_validate_*` helpers.
-- `merge_inner_detection_object_pair`, `merge_inner_detections_objects`, and `merge_inner_detections_objects_without_iou` in `supervision.detection.core` are deprecated in `supervision-0.29.0` and will be removed in `supervision-0.32.0`.
 - Passing `overlap_metric` or `mask_dimension` positionally to [`sv.mask_non_max_merge`](https://supervision.roboflow.com/latest/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.mask_non_max_merge) is deprecated in `supervision-0.30.0` and will be removed in `supervision-0.33.0`. Pass both by keyword instead.
+- Passing a `list[sv.Color]` as `color` or `text_color` to `sv.VertexLabelAnnotator` is deprecated in `supervision-0.32.0` and will be removed in `supervision-0.35.0`. Pass a single `sv.Color`, or a `sv.ColorPalette` together with `color_lookup=sv.ColorLookup.KEYPOINT`.
+- `resolve_color`, `resolve_color_idx`, and `get_color_by_index` in `supervision.annotators.utils` are deprecated in `supervision-0.32.0` and will be removed in `supervision-0.35.0`. `resolve_color` is also still importable from `supervision.annotators.core`; that copy is deprecated in `supervision-0.32.0` too and will be removed in `supervision-0.35.0`. Pass a `sv.ColorPalette` with `color_lookup` to the annotators instead.
+- `load_coco_annotations` imported from `supervision.dataset.core` and `get_detection_size_category` imported from `supervision.metrics.mean_average_recall` are deprecated in `supervision-0.32.0` and will be removed in `supervision-0.35.0`. Import them from `supervision.dataset.formats.coco` and `supervision.metrics.utils.object_size`.
+- Omitting `mask_rasterizer` in `sv.DetectionDataset.from_coco` for files with polygon segmentation is deprecated in `supervision-0.32.0`. The default changes from `"supervision"` to `"pycocotools"` no earlier than `supervision-0.35.0`. Pass `mask_rasterizer` explicitly.
 
 # Removed
+
+### 0.32.0
+
+- `KeyPoints.confidence` and the `confidence` argument of `KeyPoints()` were removed as of `supervision-0.32.0`. Use `KeyPoints.keypoint_confidence` instead.
+- The public `validate_*` helper functions (in `supervision.validators`, `supervision.detection.vlm`, `supervision.detection.core`, `supervision.annotators.utils`, `supervision.metrics.detection`, and `PercentageBarAnnotator.validate_custom_values`) were removed as of `supervision-0.32.0`. Supervision internals use private `_validate_*` helpers.
+- `merge_inner_detection_object_pair`, `merge_inner_detections_objects`, and `merge_inner_detections_objects_without_iou` in `supervision.detection.core` were removed as of `supervision-0.32.0`.
 
 ### 0.31.0
 

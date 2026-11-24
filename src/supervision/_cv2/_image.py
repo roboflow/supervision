@@ -184,8 +184,24 @@ def _add_weighted(
 def _convert_scale_abs(
     image: npt.NDArray[Any], alpha: float = 1, beta: float = 0
 ) -> npt.NDArray[np.uint8]:
-    """Scale, offset, take the absolute value, and saturate to uint8."""
-    values = np.abs(image.astype(np.float64) * alpha + beta)
+    """Scale, offset, take the absolute value, and saturate to uint8.
+
+    OpenCV does this arithmetic in float32 for every source depth, with `alpha` and
+    `beta` cast to float32 first, so the value is rounded to float32 before the final
+    round-half-to-even. Doing it in float64 lands on the other side of a `.5` tie for
+    inputs like `95 * 1.3`, which is `123.5` in float64 but just under it in float32.
+    OpenCV's SIMD path computes `src * alpha + beta` as one fused multiply-add, so
+    the product is not rounded on its own: `38 * 1.3 + 0.1` gives `50`, while
+    rounding the product to float32 first gives `49`. The fused helper also preserves
+    small offsets that a float64 addition could lose at a float32 midpoint.
+    """
+    with np.errstate(invalid="ignore", over="ignore"):
+        fused = _fused_multiply_add_float32(
+            image.astype(np.float32),
+            np.float64(np.float32(alpha)),
+            np.float64(np.float32(beta)),
+        )
+        values = np.abs(fused)
     return _cast_array_like_opencv(values, np.dtype(np.uint8))
 
 
@@ -276,24 +292,35 @@ def _resize(
     wy = y - y_floor
     wx = x - x_floor
 
-    source = src.astype(np.float64)
-    top_left = source[y0[:, np.newaxis], x0]
-    top_right = source[y0[:, np.newaxis], x1]
-    bottom_left = source[y1[:, np.newaxis], x0]
-    bottom_right = source[y1[:, np.newaxis], x1]
     if src.ndim == 3:
-        wy = wy[:, np.newaxis, np.newaxis]
         wx = wx[np.newaxis, :, np.newaxis]
     else:
-        wy = wy[:, np.newaxis]
         wx = wx[np.newaxis, :]
-    resized = (
-        top_left * (1 - wx) * (1 - wy)
-        + top_right * wx * (1 - wy)
-        + bottom_left * (1 - wx) * wy
-        + bottom_right * wx * wy
-    )
-    return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
+    resized = np.empty((height, width, *src.shape[2:]), dtype=src.dtype)
+    channels = 1 if src.ndim == 2 else src.shape[2]
+    block = max(1, _RESIZE_BLOCK_ELEMENTS // (width * channels))
+    # Limit the four float64 sampling buffers to a block of output rows.
+    for start in range(0, height, block):
+        stop = min(start + block, height)
+        rows0 = y0[start:stop, np.newaxis]
+        rows1 = y1[start:stop, np.newaxis]
+        weights = wy[start:stop]
+        if src.ndim == 3:
+            weights = weights[:, np.newaxis, np.newaxis]
+        else:
+            weights = weights[:, np.newaxis]
+        top_left = src[rows0, x0].astype(np.float64)
+        top_right = src[rows0, x1].astype(np.float64)
+        bottom_left = src[rows1, x0].astype(np.float64)
+        bottom_right = src[rows1, x1].astype(np.float64)
+        values = (
+            top_left * (1 - wx) * (1 - weights)
+            + top_right * wx * (1 - weights)
+            + bottom_left * (1 - wx) * weights
+            + bottom_right * wx * weights
+        )
+        resized[start:stop] = _cast_array_like_opencv(values, src.dtype)
+    return resized
 
 
 # OpenCV's uint8 `INTER_LINEAR` resize uses 11-bit fixed-point weights.

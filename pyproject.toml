@@ -4,21 +4,35 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.32.0.dev"
-description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
+version = "0.32.1"
+description = "Model-agnostic computer vision toolkit: load detections, annotate, filter, count, evaluate, manage data"
 readme = "README.md"
 keywords = [
   "AI",
+  "annotation",
+  "bounding-box",
+  "computer-vision",
+  "dataset",
   "deep-learning",
-  "DL",
+  "detection",
+  "image-processing",
+  "instance-segmentation",
+  "keypoints",
   "machine-learning",
-  "ML",
+  "metrics",
+  "object-detection",
+  "pose-estimation",
   "Roboflow",
+  "segmentation",
+  "video",
   "vision",
+  "vision-language-models",
+  "visualization",
 ]
 license = "MIT"
 maintainers = [
   { name = "Piotr Skalski", email = "piotr@roboflow.com" },
+  { name = "Jiri Borovec", email = "jiri@roboflow.com" },
 ]
 authors = [
   { name = "Roboflow et al.", email = "develop@roboflow.com" },
@@ -53,11 +67,14 @@ dependencies = [
   "matplotlib>=3.6",
   "numpy>=1.21.2",
   "pillow>=9.4",
-  "pydeprecate>=0.9,<0.15",
+  "pydeprecate>=0.9,<0.16",
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",
   "tqdm>=4.62.3"
+]
+optional-dependencies.coco = [
+  "pycocotools>=2.0.11",
 ]
 optional-dependencies.geotiff = [
   "rasterio>=1.3", # 1.3 introduced stable window-read API and CRS.is_projected
@@ -107,6 +124,10 @@ build = [
 mediapipe-reference = [
   "mediapipe>=0.10.35,<0.11; python_version<'3.13'",
 ]
+# The OpenCV range the `supervision._cv2` fallbacks are compared against in CI. Widen the
+# cap in a PR that also adapts the fallbacks to the new release.
+opencv-python = [ "opencv-python>=5,<5.1" ]
+opencv-python-headless = [ "opencv-python-headless>=5,<5.1" ]
 torch = [ "torch>=2" ]
 
 [tool.setuptools]
@@ -115,6 +136,15 @@ packages.find.include = [ "supervision*" ]
 include-package-data = false
 package-data.supervision = [ "py.typed" ]
 # exclude = [ "docs*", "tests*", "examples*" ]
+
+[tool.uv]
+# Both wheels provide the `cv2` module, so a single environment may hold only one.
+conflicts = [
+  [
+    { group = "opencv-python" },
+    { group = "opencv-python-headless" },
+  ],
+]
 
 [tool.ruff]
 target-version = "py310"
