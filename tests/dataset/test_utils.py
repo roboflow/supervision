@@ -760,6 +760,25 @@ class TestTrainTestSplitRatioValidation:
 class TestTrainTestSplitExactRatio:
     """train_test_split() keeps every item a decimal ratio exactly accounts for."""
 
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+        reason="longdouble has no extra precision on this platform",
+    )
+    @pytest.mark.parametrize(
+        "ratio",
+        [
+            pytest.param(np.nextafter(np.longdouble(1), np.longdouble(0)), id="scalar"),
+            pytest.param(
+                np.array(np.nextafter(np.longdouble(1), np.longdouble(0))), id="array"
+            ),
+        ],
+    )
+    def test_extended_precision_ratio_preserves_test_item(self, ratio: float) -> None:
+        """A wide ratio just below one leaves an item in the test split."""
+        train, test = train_test_split([0, 1], train_ratio=ratio, shuffle=False)
+
+        assert (train, test) == ([0], [1])
+
     @pytest.mark.parametrize(
         ("train_ratio", "expected_train_size"),
         [
@@ -839,6 +858,26 @@ class TestTrainTestSplitExactRatio:
             data=list(range(90)), train_ratio=train_ratio, shuffle=False
         )
         assert (len(train), len(test)) == (63, 27)
+
+    @pytest.mark.parametrize(
+        ("length", "train_ratio", "expected_train_size"),
+        [
+            pytest.param(4095, np.float16(0.5), 2047, id="float16-length-rounds-up"),
+            pytest.param(70000, np.float16(0.5), 35000, id="float16-length-overflows"),
+            pytest.param(10000, np.float16(0.7), 7000, id="float16-read-as-decimal"),
+        ],
+    )
+    def test_low_precision_numpy_ratio_keeps_exact_size(
+        self, length: int, train_ratio: float, expected_train_size: int
+    ) -> None:
+        """A float16 ratio splits by its decimal reading at any dataset length."""
+        train, test = train_test_split(
+            data=list(range(length)), train_ratio=train_ratio, shuffle=False
+        )
+        assert (len(train), len(test)) == (
+            expected_train_size,
+            length - expected_train_size,
+        )
 
     def test_keeps_order_and_shuffle_semantics(self) -> None:
         """The fix moves only the split point, not which items fill each part."""

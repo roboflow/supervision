@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 import os
 import subprocess
 import sys
+import tracemalloc
+from collections.abc import Callable
 from pathlib import Path
+from types import ModuleType
 
 import numpy as np
 import pytest
@@ -17,6 +21,59 @@ from supervision._cv2._image import _add_weighted, _flip
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = PROJECT_ROOT / "src" / "supervision"
 TEST_ROOT = PROJECT_ROOT / "tests"
+
+#: Leading bytes the fake OpenCV decoder accepts as an image signature.
+_FAKE_IMAGE_SIGNATURE = b"\x89FAKEIMG"
+#: Size of the non-image file whose contents must stay out of memory.
+_LARGE_FILE_BYTES = 32 * 1024 * 1024
+#: Allocation ceiling for rejecting that file after reading only its header.
+_HEADER_ONLY_PEAK_BYTES = 1024 * 1024
+
+
+def _fake_cv2_attribute(name: str) -> str:
+    """Stand in for every OpenCV name the facade imports but these tests never call."""
+    if name.startswith("__"):
+        raise AttributeError(name)
+    return name
+
+
+def _fake_imdecode(buffer: np.ndarray, flags: int) -> tuple[bytes, int] | None:
+    """Decode like OpenCV: check the signature, then read everything for an image."""
+    if bytes(buffer[: len(_FAKE_IMAGE_SIGNATURE)]) != _FAKE_IMAGE_SIGNATURE:
+        return None
+    return bytes(buffer), flags
+
+
+def _peak_traced_bytes(function: Callable[[], object]) -> tuple[object, int]:
+    """Run a call and return its result with the peak memory it allocated."""
+    was_tracing = tracemalloc.is_tracing()
+    tracemalloc.start()
+    baseline, _ = tracemalloc.get_traced_memory()
+    tracemalloc.reset_peak()
+    try:
+        result = function()
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        if not was_tracing:
+            tracemalloc.stop()
+    return result, peak - baseline
+
+
+@pytest.fixture
+def windows_opencv_facade(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
+    """Load a private facade copy backed by a fake OpenCV on the Windows route."""
+    fake_cv2 = ModuleType("cv2")
+    vars(fake_cv2).update(__getattr__=_fake_cv2_attribute, imdecode=_fake_imdecode)
+    monkeypatch.setitem(sys.modules, "cv2", fake_cv2)
+    spec = importlib.util.spec_from_file_location(
+        "_cv2_facade_with_fake_opencv", _cv2.__file__
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    facade = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(facade)
+    monkeypatch.setattr(facade, "_is_non_ascii_windows_path", lambda filename: True)
+    return facade
 
 
 def _direct_cv2_imports(root: Path, excluded: set[Path] | None = None) -> list[str]:
@@ -243,3 +300,71 @@ class TestNonAsciiImagePaths:
         np.testing.assert_array_equal(_cv2.imread(str(image_path)), image)
         assert _cv2.imread(str(tmp_path / "missing.png")) is None
         assert not _cv2.imwrite(str(tmp_path / "missing" / "image.png"), image)
+
+
+class TestWindowsNonAsciiImread:
+    """The OpenCV `imread` wrapper reads non-ASCII Windows paths through NumPy."""
+
+    def test_non_image_file_is_not_read_into_memory(
+        self, tmp_path: Path, windows_opencv_facade: ModuleType
+    ) -> None:
+        """Reject a large non-image file after OpenCV inspects only its header."""
+        path = tmp_path / "café.bin"
+        with path.open("wb") as file:
+            file.truncate(_LARGE_FILE_BYTES)
+
+        result, peak = _peak_traced_bytes(
+            lambda: windows_opencv_facade.imread(str(path), 1)
+        )
+
+        assert result is None
+        assert peak < _HEADER_ONLY_PEAK_BYTES
+
+    def test_decodes_file_bytes_with_given_flags(
+        self, tmp_path: Path, windows_opencv_facade: ModuleType
+    ) -> None:
+        """Hand OpenCV's decoder the exact file contents and the read flags."""
+        content = _FAKE_IMAGE_SIGNATURE + bytes(range(256))
+        path = tmp_path / "café.png"
+        path.write_bytes(content)
+
+        decoded = windows_opencv_facade.imread(str(path), 0)
+
+        assert decoded == (content, 0)
+
+    def test_decodes_file_bytes_when_file_cannot_be_mapped(
+        self,
+        tmp_path: Path,
+        windows_opencv_facade: ModuleType,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Read the whole file instead when its file system refuses a memory map."""
+        content = _FAKE_IMAGE_SIGNATURE + bytes(range(256))
+        path = tmp_path / "café.png"
+        path.write_bytes(content)
+
+        def refuse_mapping(*args: object, **kwargs: object) -> np.ndarray:
+            """Fail the way a file system without memory-map support does."""
+            raise OSError("mapping is not supported")
+
+        monkeypatch.setattr(np, "memmap", refuse_mapping)
+
+        decoded = windows_opencv_facade.imread(str(path), 0)
+
+        assert decoded == (content, 0)
+
+    @pytest.mark.parametrize(
+        "content",
+        [pytest.param(b"", id="empty-file"), pytest.param(None, id="missing-file")],
+    )
+    def test_returns_none_for_unreadable_file(
+        self, tmp_path: Path, windows_opencv_facade: ModuleType, content: bytes | None
+    ) -> None:
+        """Report an empty or missing file as unreadable, as `cv2.imread` does."""
+        path = tmp_path / "café.png"
+        if content is not None:
+            path.write_bytes(content)
+
+        result = windows_opencv_facade.imread(str(path), 1)
+
+        assert result is None
