@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- Fixed `Detections.from_ncnn` to accept Python integer and float rectangle coordinates alongside NumPy scalars without raising `AttributeError`. ([#2982](https://github.com/roboflow/supervision/pull/2982))
+
 - Fixed `KeyPoints` selection to keep per-joint covariance matrices aligned when subsetting or reordering joints, preventing ellipse annotation errors and incorrect uncertainty ellipses, while preserving per-object covariance metadata. ([#2979](https://github.com/roboflow/supervision/pull/2979))
 
 - Fixed `sv.KeyPoints.from_transformers` to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. Pass `num_keypoints` to retain trailing slots when all poses omit the last joints. An empty first pose no longer hides later poses. ([#2978](https://github.com/roboflow/supervision/pull/2978))
