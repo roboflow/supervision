@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.VideoInfo.from_video_path` now reports the real frame rate of a browser-recorded WebM (`MediaRecorder`) instead of `1000.0`, and a frame count to match, so `sv.process_video` keeps the source's duration instead of writing a video that plays about 33x too fast. A rate above 240 fps is checked against the first frames; when they disagree by more than 2x, video frame timestamps and count are measured across the file. Without OpenCV, the PyAV backend derives the rate from video packet timestamps when the stream has no average rate. ([#3007](https://github.com/roboflow/supervision/pull/3007))
+
 - `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` now skips an item whose `box_2d` cannot be converted to four finite coordinates or becomes non-finite when scaled, and keeps the valid detections from the same response. Float-convertible strings and booleans are accepted. ([#3005](https://github.com/roboflow/supervision/pull/3005))
 
 - `sv.Detections.from_vlm(sv.VLM.DEEPSEEK_VL_2, ...)` now raises `ValueError` for a non-positive `resolution_wh` instead of returning mirrored or all-zero boxes. ([#3003](https://github.com/roboflow/supervision/pull/3003))
