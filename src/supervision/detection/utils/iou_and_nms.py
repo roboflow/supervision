@@ -1580,7 +1580,7 @@ def _group_overlapping_masks(
         candidate_groups = [idx]
         while len(order) > 0:
             ious = mask_iou_batch(masks[order], merge_candidate, overlap_metric)
-            above_threshold: npt.NDArray[np.bool_] = ious.flatten() >= iou_threshold
+            above_threshold: npt.NDArray[np.bool_] = ious.flatten() > iou_threshold
             if not above_threshold.any():
                 break
             above_idx = order[above_threshold]
@@ -1731,7 +1731,7 @@ def _greedy_nmm_via_mask_candidate(
         merge_group = [idx]
         while len(order) > 0:
             ious = mask_iou_batch(masks[order], candidate, overlap_metric).flatten()
-            above_threshold = ious >= iou_threshold
+            above_threshold = ious > iou_threshold
             if not above_threshold.any():
                 break
             above_idx = order[above_threshold]
@@ -1821,7 +1821,7 @@ def _group_overlapping_boxes(
             predictions[idx : idx + 1, :4],
             overlap_metric,
         ).flatten()
-        above_threshold = ious >= iou_threshold
+        above_threshold = ious > iou_threshold
         merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]
@@ -2478,7 +2478,7 @@ def _group_overlapping_oriented_boxes(
             oriented_boxes[idx][None, ...],
             overlap_metric,
         ).flatten()
-        above_threshold = ious >= iou_threshold
+        above_threshold = ious > iou_threshold
         merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]

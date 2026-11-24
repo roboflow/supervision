@@ -136,10 +136,16 @@ def _aabb_of(corners: np.ndarray) -> np.ndarray:
         ),  # No IOU required
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 5, 5, 0.9]]),
-            0.25,
+            0.24,
             [[0, 1]],
             DoesNotRaise(),
-        ),  # Below IOU requirement
+        ),  # Above IOU threshold
+        (
+            np.array([[0, 0, 10, 10, 1.0], [0, 0, 5, 5, 0.9]]),
+            0.25,
+            [[0], [1]],
+            DoesNotRaise(),
+        ),  # Equal to IOU threshold
         (
             np.array([[0, 0, 10, 10, 1.0], [0, 0, 5, 5, 0.9]]),
             0.26,
@@ -1077,6 +1083,65 @@ def test_mask_non_max_merge_compact_mask_matches_dense_chained_union() -> None:
 
     assert sorted([sorted(group) for group in dense_result]) == [[0, 1, 2]]
     assert sorted([sorted(group) for group in compact_result]) == [[0, 1, 2]]
+
+
+@pytest.mark.parametrize("use_compact_mask", [False, True])
+@pytest.mark.parametrize(
+    ("masks", "iou_threshold"),
+    [
+        pytest.param(
+            np.array(
+                [
+                    [[1, 1, 0, 0], [1, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+                    [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 1], [0, 0, 1, 1]],
+                ],
+                dtype=bool,
+            ),
+            0.0,
+            id="disjoint-masks-threshold-0",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [[1, 1, 0, 0], [1, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+                    [[1, 1, 0, 0], [1, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+                ],
+                dtype=bool,
+            ),
+            1.0,
+            id="identical-masks-threshold-1",
+        ),
+    ],
+)
+def test_mask_non_max_merge_threshold_boundary_requires_strictly_greater_overlap(
+    masks: np.ndarray,
+    iou_threshold: float,
+    use_compact_mask: bool,
+) -> None:
+    """Mask NMM should not merge when mask IoU equals `iou_threshold`."""
+    from supervision.detection.compact_mask import CompactMask
+
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]],
+        dtype=np.float32,
+    )
+    mask_input: np.ndarray | CompactMask = (
+        CompactMask.from_dense(
+            masks=masks,
+            xyxy=np.array([[0, 0, 3, 3], [0, 0, 3, 3]], dtype=np.float32),
+            image_shape=(4, 4),
+        )
+        if use_compact_mask
+        else masks
+    )
+
+    result = mask_non_max_merge(
+        predictions=predictions,
+        masks=mask_input,
+        iou_threshold=iou_threshold,
+    )
+
+    assert result == [[0], [1]]
 
 
 @pytest.mark.parametrize(
@@ -2272,6 +2337,53 @@ class TestOrientedBoxNonMaxMerge:
         sorted_groups = sorted(sorted(g) for g in groups)
         assert sorted_groups == [[0, 1], [2]]
 
+    @pytest.mark.parametrize(
+        ("oriented_boxes", "iou_threshold"),
+        [
+            pytest.param(
+                np.stack(
+                    [
+                        _rotated_rect(20, 20, 10, 6, 30),
+                        _rotated_rect(100, 100, 10, 6, 30),
+                    ]
+                ),
+                0.0,
+                id="disjoint-obbs-threshold-0",
+            ),
+            pytest.param(
+                np.stack(
+                    [
+                        _rotated_rect(50, 50, 10, 6, 30),
+                        _rotated_rect(50, 50, 10, 6, 30),
+                    ]
+                ),
+                1.0,
+                id="identical-obbs-threshold-1",
+            ),
+        ],
+    )
+    def test_threshold_boundary_requires_strictly_greater_overlap(
+        self,
+        oriented_boxes: np.ndarray,
+        iou_threshold: float,
+    ) -> None:
+        """OBB NMM should not merge when OBB IoU equals `iou_threshold`."""
+        predictions = np.array(
+            [
+                [*_aabb_of(oriented_boxes[0]), 0.9, 0],
+                [*_aabb_of(oriented_boxes[1]), 0.8, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        groups = oriented_box_non_max_merge(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=iou_threshold,
+        )
+
+        assert groups == [[0], [1]]
+
 
 @pytest.mark.parametrize(
     "method",
@@ -2817,6 +2929,82 @@ class TestBoxNonMaxMerge:
         result = box_non_max_merge(predictions, iou_threshold=0.5)
         assert len(result) == 1
         assert len(result[0]) == 2
+
+    @pytest.mark.parametrize(
+        ("predictions", "iou_threshold", "expected_groups"),
+        [
+            pytest.param(
+                np.array(
+                    [
+                        [0, 0, 10, 10, 0.9],
+                        [20, 20, 30, 30, 0.8],
+                        [40, 40, 50, 50, 0.7],
+                    ],
+                    dtype=np.float32,
+                ),
+                0.0,
+                [[0], [1], [2]],
+                id="disjoint-three-boxes-threshold-0",
+            ),
+            pytest.param(
+                np.array(
+                    [[0, 0, 10, 10, 0.9], [10, 0, 20, 10, 0.8]],
+                    dtype=np.float32,
+                ),
+                0.0,
+                [[0], [1]],
+                id="edge-touching-boxes-threshold-0",
+            ),
+            pytest.param(
+                np.array(
+                    [[0, 0, 10, 10, 0.9], [6, 0, 16, 10, 0.8]],
+                    dtype=np.float32,
+                ),
+                0.25,
+                [[0], [1]],
+                id="partial-overlap-equal-to-threshold",
+            ),
+            pytest.param(
+                np.array(
+                    [[0, 0, 10, 10, 0.9], [6, 0, 16, 10, 0.8]],
+                    dtype=np.float32,
+                ),
+                0.0,
+                [[0, 1]],
+                id="partial-overlap-above-zero-threshold",
+            ),
+            pytest.param(
+                np.array(
+                    [[0, 0, 10, 10, 0.9], [0, 0, 10, 10, 0.8]],
+                    dtype=np.float32,
+                ),
+                1.0,
+                [[0], [1]],
+                id="identical-boxes-threshold-1",
+            ),
+            pytest.param(
+                np.array([[0, 0, 10, 10, 0.9]], dtype=np.float32),
+                0.0,
+                [[0]],
+                id="single-box-threshold-0",
+            ),
+            pytest.param(
+                np.empty((0, 5), dtype=np.float32),
+                0.0,
+                [],
+                id="empty-input-threshold-0",
+            ),
+        ],
+    )
+    def test_threshold_boundary_requires_strictly_greater_overlap(
+        self,
+        predictions: np.ndarray,
+        iou_threshold: float,
+        expected_groups: list[list[int]],
+    ) -> None:
+        """Merge boxes only when IoU strictly exceeds `iou_threshold`."""
+        result = box_non_max_merge(predictions, iou_threshold=iou_threshold)
+        assert result == expected_groups
 
 
 class TestBoxWeightedBoxFusion:

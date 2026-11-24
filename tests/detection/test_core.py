@@ -2959,6 +2959,119 @@ class TestDetectionsWithNMM:
         assert result_mask[7, 7]
         assert result_mask[8, 8]
 
+    @pytest.mark.parametrize("class_agnostic", [False, True])
+    @pytest.mark.parametrize(
+        ("xyxy", "confidence", "class_id", "threshold", "expected_length"),
+        [
+            pytest.param(
+                np.array(
+                    [[0, 0, 10, 10], [20, 20, 30, 30], [40, 40, 50, 50]],
+                    dtype=np.float32,
+                ),
+                np.array([0.9, 0.8, 0.7], dtype=np.float32),
+                np.array([0, 0, 0], dtype=int),
+                0.0,
+                3,
+                id="disjoint-three-boxes-threshold-0",
+            ),
+            pytest.param(
+                np.array([[0, 0, 10, 10], [10, 0, 20, 10]], dtype=np.float32),
+                np.array([0.9, 0.8], dtype=np.float32),
+                np.array([0, 0], dtype=int),
+                0.0,
+                2,
+                id="edge-touching-boxes-threshold-0",
+            ),
+            pytest.param(
+                np.array([[0, 0, 10, 10], [6, 0, 16, 10]], dtype=np.float32),
+                np.array([0.9, 0.8], dtype=np.float32),
+                np.array([0, 0], dtype=int),
+                0.25,
+                2,
+                id="partial-overlap-equal-to-threshold",
+            ),
+            pytest.param(
+                np.array([[0, 0, 10, 10], [0, 0, 10, 10]], dtype=np.float32),
+                np.array([0.9, 0.8], dtype=np.float32),
+                np.array([0, 0], dtype=int),
+                1.0,
+                2,
+                id="identical-boxes-threshold-1",
+            ),
+            pytest.param(
+                np.array([[0, 0, 10, 10]], dtype=np.float32),
+                np.array([0.9], dtype=np.float32),
+                np.array([0], dtype=int),
+                0.0,
+                1,
+                id="single-box-threshold-0",
+            ),
+            pytest.param(
+                np.empty((0, 4), dtype=np.float32),
+                np.empty((0,), dtype=np.float32),
+                np.empty((0,), dtype=int),
+                0.0,
+                0,
+                id="empty-detections-threshold-0",
+            ),
+        ],
+    )
+    def test_threshold_boundary_matches_with_nms(
+        self,
+        xyxy: np.ndarray,
+        confidence: np.ndarray,
+        class_id: np.ndarray,
+        threshold: float,
+        expected_length: int,
+        class_agnostic: bool,
+    ) -> None:
+        """Keep boxes whose IoU does not exceed `threshold`, matching `with_nms`."""
+        detections = Detections(
+            xyxy=xyxy,
+            confidence=confidence,
+            class_id=class_id,
+        )
+
+        nmm_result = detections.with_nmm(
+            threshold=threshold, class_agnostic=class_agnostic
+        )
+        nms_result = detections.with_nms(
+            threshold=threshold, class_agnostic=class_agnostic
+        )
+
+        assert len(nms_result) == expected_length
+        assert len(nmm_result) == expected_length
+        np.testing.assert_array_equal(nmm_result.xyxy, nms_result.xyxy)
+        np.testing.assert_array_equal(
+            _required(nmm_result.confidence), _required(nms_result.confidence)
+        )
+        np.testing.assert_array_equal(
+            _required(nmm_result.class_id), _required(nms_result.class_id)
+        )
+
+    @pytest.mark.parametrize("class_agnostic", [False, True])
+    def test_partial_overlap_merges_above_zero_threshold(
+        self, class_agnostic: bool
+    ) -> None:
+        """Merge boxes with positive IoU when `threshold=0.0`, unlike `with_nms`."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [6, 0, 16, 10]], dtype=np.float32),
+            confidence=np.array([0.9, 0.8], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+
+        nmm_result = detections.with_nmm(threshold=0.0, class_agnostic=class_agnostic)
+        nms_result = detections.with_nms(threshold=0.0, class_agnostic=class_agnostic)
+
+        assert len(nmm_result) == 1
+        np.testing.assert_array_equal(
+            nmm_result.xyxy, np.array([[0, 0, 16, 10]], dtype=np.float32)
+        )
+        assert len(nms_result) == 1
+        np.testing.assert_array_equal(
+            nms_result.xyxy, np.array([[0, 0, 10, 10]], dtype=np.float32)
+        )
+
 
 class TestDetectionsArea:
     """Selection order for the `area` property: mask → OBB → AABB."""
