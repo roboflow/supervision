@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- Fixed `KeyPoints` selection to keep per-joint covariance matrices aligned when subsetting or reordering joints, preventing ellipse annotation errors and incorrect uncertainty ellipses. ([#2979](https://github.com/roboflow/supervision/pull/2979))
+- Fixed `KeyPoints` selection to keep per-joint covariance matrices aligned when subsetting or reordering joints, preventing ellipse annotation errors and incorrect uncertainty ellipses, while preserving per-object covariance metadata. ([#2979](https://github.com/roboflow/supervision/pull/2979))
 
 ### 0.32.1 <small>Nov 24, 2026</small>
 

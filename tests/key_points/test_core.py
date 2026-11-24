@@ -2953,6 +2953,46 @@ class TestCovarianceSelection:
     """Keep each joint's uncertainty attached to its selected coordinates."""
 
     @pytest.mark.parametrize(
+        ("keypoint_count", "index", "rows"),
+        [
+            pytest.param(3, [1], [1], id="object-selection"),
+            pytest.param(2, (slice(None), [1, 0]), [0, 1], id="joint-permutation"),
+            pytest.param(
+                3,
+                np.array([[True, False, True], [False, True, True]]),
+                [0, 1],
+                id="per-row-mask",
+            ),
+        ],
+    )
+    def test_preserves_per_object_covariance(
+        self, keypoint_count: int, index: Any, rows: list[int]
+    ) -> None:
+        """Per-object covariance remains independent of joint selection."""
+        covariance = np.arange(8, dtype=np.float32).reshape(2, 2, 2)
+        key_points = KeyPoints(
+            xy=np.zeros((2, keypoint_count, 2)),
+            data={KEYPOINT_COVARIANCE_DATA_FIELD: covariance},
+        )
+
+        selected = key_points.select(index)
+
+        np.testing.assert_array_equal(
+            selected.data[KEYPOINT_COVARIANCE_DATA_FIELD], covariance[rows]
+        )
+
+    def test_preserves_ragged_per_object_covariance_list(self) -> None:
+        """Ragged per-object list values remain valid metadata."""
+        covariance = [[1, 2], [3]]
+        key_points = KeyPoints(
+            xy=np.zeros((2, 3, 2)), data={KEYPOINT_COVARIANCE_DATA_FIELD: covariance}
+        )
+
+        selected = key_points.select([1])
+
+        assert selected.data[KEYPOINT_COVARIANCE_DATA_FIELD] == [[3]]
+
+    @pytest.mark.parametrize(
         ("index", "rows", "joints"),
         [
             pytest.param((slice(None), [2, 0]), [0, 1], [[2, 0], [2, 0]], id="subset"),

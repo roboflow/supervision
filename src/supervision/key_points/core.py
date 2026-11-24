@@ -12,6 +12,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     HANDEDNESS_SCORE_DATA_FIELD,
     KEYPOINT_ALIGNED_DATA_FIELDS,
+    KEYPOINT_COVARIANCE_DATA_FIELD,
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import (
@@ -31,6 +32,17 @@ from supervision.utils.internal import _to_numpy
 from supervision.validators import _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
+
+
+def _is_joint_aligned_covariance(
+    value: _DetectionDataValueType, shape: tuple[int, int]
+) -> bool:
+    """Recognize per-joint covariance without reinterpreting per-object metadata."""
+    try:
+        return np.asarray(value).shape == (*shape, 2, 2)
+    except ValueError:
+        return False
+
 
 Index1D = (
     int
@@ -1118,6 +1130,10 @@ class KeyPoints:
         columns = np.nonzero(mask)[1].reshape(n, k)
         rows = np.arange(n)[:, np.newaxis]
         for key in KEYPOINT_ALIGNED_DATA_FIELDS & data_selected.keys():
+            if key == KEYPOINT_COVARIANCE_DATA_FIELD and not (
+                _is_joint_aligned_covariance(self.data[key], self.xy.shape[:2])
+            ):
+                continue
             data_selected[key] = np.asarray(self.data[key])[rows, columns]
 
         return KeyPoints(
@@ -1302,6 +1318,10 @@ class KeyPoints:
         # fix-ups above only restore size-1 axes a scalar index dropped, so
         # reshaping to the leading axes of `xy` restores them here as well.
         for key in KEYPOINT_ALIGNED_DATA_FIELDS & data_selected.keys():
+            if key == KEYPOINT_COVARIANCE_DATA_FIELD and not (
+                _is_joint_aligned_covariance(self.data[key], self.xy.shape[:2])
+            ):
+                continue
             value = np.asarray(self.data[key])
             data_selected[key] = value[i, j].reshape(
                 xy_selected.shape[:2] + value.shape[2:]
