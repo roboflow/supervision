@@ -2376,6 +2376,28 @@ def test_from_vlm_empty_outcome_keeps_class_id_integer(
     assert detections.class_id.dtype == int
 
 
+@pytest.mark.parametrize(
+    ("vlm", "result"),
+    [
+        pytest.param(VLM.GOOGLE_GEMINI_2_5, _GEMINI_BOX_RESULT, id="gemini-2.5"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_5, _GEMINI_BOX_RESULT, id="gemini-3.5"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_6, _GEMINI_STRUCTURED_RESULT, id="gemini-3.6"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_7, _GEMINI_STRUCTURED_RESULT, id="gemini-3.7"),
+    ],
+)
+def test_gemini_all_filtered_items_return_empty_confidence(
+    vlm: VLM, result: str
+) -> None:
+    """Filtering unscored items returns an empty floating-point confidence array."""
+    detections = Detections.from_vlm(
+        vlm=vlm, result=result, resolution_wh=(100, 100), classes=["dog"]
+    )
+
+    assert detections.confidence is not None
+    assert detections.confidence.shape == (0,)
+    assert detections.confidence.dtype == float
+
+
 class TestFromVlmCornerOrdering:
     """Tests that `from_vlm` returns boxes obeying the `xyxy` corner ordering."""
 

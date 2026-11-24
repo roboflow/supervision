@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` and a `classes` filter now keeps the confidence of the kept detections when an item removed by that filter has no `confidence`. Previously that one item set `confidence` to `None` for every detection. ([#3009](https://github.com/roboflow/supervision/pull/3009))
+- `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` and a `classes` filter now keeps confidence when every kept detection has a score, even if an item removed by that filter has no `confidence`. Previously that one item set `confidence` to `None` for every detection. ([#3009](https://github.com/roboflow/supervision/pull/3009))
 
 - `sv.Classifications.get_top_k` now returns classes with equal confidence in their input order, so a tie for the best score goes to the first class, as `np.argmax` picks it. It reversed an ascending sort, which put the last tied class first, and with many classes, such as 1000 ImageNet scores in float16, returned tied classes in an arbitrary order. A NaN confidence now ranks last instead of first. `sv.ClassificationDataset.as_folder_structure` uses the top class to choose each image's folder, so it follows the same order. ([#2989](https://github.com/roboflow/supervision/pull/2989))
 
