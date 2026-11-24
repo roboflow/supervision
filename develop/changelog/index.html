@@ -4563,12 +4563,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p><code>sv.crop_image</code> returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). With the OpenCV backend, cropping an RGB, RGBA or palette Pillow image raised <code>cv2.error</code> from <code>cv2.cvtColor</code> in that case. (<a href="https://github.com/roboflow/supervision/pull/2970">#2970</a>)</p>
 </li>
+<li>
+<p>Fixed semantic segmentation imports from 2- and 4-bit grayscale PNGs. Class IDs now match the stored PNG samples instead of Pillow's 8-bit display intensities, so low-bit class IDs retain their names. (<a href="https://github.com/roboflow/supervision/pull/2999">#2999</a>)</p>
+</li>
 </ul>
 <h3 id="0321-nov-24-2026">0.32.1 <small>Nov 24, 2026</small><a class="headerlink" href="#0321-nov-24-2026" title="Permanent link">&para;</a></h3>
 <ul>
-<li>
-<p><strong>BGRA scenes</strong>: annotators, drawing helpers and image resizing handle <code>(H, W, 4)</code> arrays.</p>
-<ul>
+<li><strong>BGRA scenes</strong>: annotators, drawing helpers and image resizing handle <code>(H, W, 4)</code> arrays.<ul>
 <li><code>sv.MaskAnnotator</code>, <code>sv.HaloAnnotator</code>, <code>sv.BackgroundOverlayAnnotator</code> and <code>sv.ComparisonAnnotator</code> now annotate BGRA scenes, shaped <code>(H, W, 4)</code>, instead of raising <code>ValueError: shape mismatch</code> or <code>could not broadcast input array</code>. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha, including text that extends past a very small legend. (<a href="https://github.com/roboflow/supervision/pull/2956">#2956</a>, <a href="https://github.com/roboflow/supervision/pull/3058">#3058</a>)</li>
 <li><code>sv.HeatMapAnnotator</code>, <code>sv.CropAnnotator</code> and <code>sv.IconAnnotator</code> now annotate BGRA scenes, shaped <code>(H, W, 4)</code>, instead of raising a channel mismatch error. Overlays use straight-alpha compositing, and crop borders are opaque; colors on opaque scenes match their BGR counterparts within resize rounding. (<a href="https://github.com/roboflow/supervision/pull/2958">#2958</a>)</li>
 <li><code>sv.RichLabelAnnotator</code> now annotates BGRA arrays, shaped <code>(H, W, 4)</code>, instead of raising <code>ValueError: could not broadcast input array from shape (H,W,3) into shape (H,W,4)</code>. The label is drawn opaque with the colors it has on the BGR copy of the scene, and the rest of the scene keeps its alpha. (<a href="https://github.com/roboflow/supervision/pull/2960">#2960</a>)</li>
@@ -4578,39 +4579,25 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li><code>sv.RichLabelAnnotator</code> now places each text line by its own measured bounds. With a tight <code>text_padding</code>, a low glyph such as a period no longer spills below the label background, which left translucent pixels on transparent BGRA scenes, and labels without capital-height glyphs, for example <code>car</code>, are centered in their background instead of sitting low. (<a href="https://github.com/roboflow/supervision/pull/3058">#3058</a>)</li>
 </ul>
 </li>
-<li>
-<p><strong>Metrics</strong>: the normalized confusion matrix and empty-target mAR scores are corrected, and plots keep small shares and label undefined scores.</p>
-<ul>
+<li><strong>Metrics</strong>: the normalized confusion matrix and empty-target mAR scores are corrected, and plots keep small shares and label undefined scores.<ul>
 <li><code>sv.ConfusionMatrix.plot(normalize=True)</code> now divides each row by its sum, so each ground-truth row shows how that class's targets were predicted and the diagonal is per-class recall, as in <code>sklearn.metrics.confusion_matrix(normalize="true")</code>. It used to divide by column sums, which did not match the <code>True</code> / <code>Predicted</code> axis labels: with 10 cats all found and 5 of 10 dogs predicted as cat, the plot showed cat -&gt; cat 0.67 and dog -&gt; dog 1.00 instead of 1.00 and 0.50. Normalized plots now show different numbers. (<a href="https://github.com/roboflow/supervision/pull/2954">#2954</a>)</li>
 <li><code>sv.metrics.MeanAverageRecall</code> now returns <code>-1</code> scores when there are no targets to recall, for the whole run or for an empty small, medium or large size bucket, as <code>sv.metrics.MeanAveragePrecision</code> and <code>pycocotools</code> AR do. It returned <code>0.0</code>, so a size bucket without objects looked like a model that found none of them. Code that aggregates mAR scores across runs or size buckets should skip negative values, as with mAP. Recall and comparison plots label undefined values <code>N/A</code>. (<a href="https://github.com/roboflow/supervision/pull/2965">#2965</a>)</li>
 <li><code>sv.ConfusionMatrix.plot(normalize=True)</code> now colors every non-zero share in the heatmap. Shares below 0.005 were masked, so a row whose counts were spread over 200 or more cells, such as many single misclassifications, plotted as empty. Shares too small to print now stay colored without a text label. (<a href="https://github.com/roboflow/supervision/pull/3058">#3058</a>)</li>
 <li><code>sv.metrics.MeanAveragePrecisionResult.plot</code>, <code>sv.metrics.KeyPointMeanAveragePrecisionResult.plot</code> and <code>sv.metrics.plot_aggregate_metric_results</code> now label an undefined <code>-1</code> mAP score <code>N/A</code> inside the plot, as mAR plots do, instead of a <code>-1.00</code> label drawn below the score axis. (<a href="https://github.com/roboflow/supervision/pull/3058">#3058</a>)</li>
 </ul>
 </li>
-<li>
-<p><strong>Datasets</strong>: splits keep every train item and label files with a UTF-8 byte order mark load.</p>
-<ul>
+<li><strong>Datasets</strong>: splits keep every train item and label files with a UTF-8 byte order mark load.<ul>
 <li><code>sv.DetectionDataset.split</code>, <code>sv.ClassificationDataset.split</code> and <code>sv.KeyPointsDataset.split</code> now keep the training image that floating-point rounding dropped when <code>split_ratio</code> times the number of images is a whole number. For example, 90 images at <code>split_ratio=0.7</code> gave 62 train and 28 test images instead of 63 and 27. The split uses the larger of the previous floating-point result and the exact product of the evaluated ratio's decimal representation. A low-precision NumPy <code>split_ratio</code> such as <code>np.float16(0.5)</code> is multiplied as its decimal value, so it no longer overcounts, for example 2,048 training images for 4,095, or raises <code>OverflowError</code> for 70,000 images. (<a href="https://github.com/roboflow/supervision/pull/2969">#2969</a>, <a href="https://github.com/roboflow/supervision/pull/3058">#3058</a>)</li>
 <li><code>sv.DetectionDataset.from_yolo</code>, <code>from_coco</code> and the other dataset loaders now read label and annotation files that start with a UTF-8 byte order mark, as written by some Windows editors. A YOLO label file with one failed with <code>Invalid YOLO annotation file</code>, and a JSON file failed with <code>Unexpected UTF-8 BOM</code>. <code>read_txt_file</code> and <code>save_text_file</code> now use UTF-8 on every platform, like the JSON and YAML readers. (<a href="https://github.com/roboflow/supervision/pull/2959">#2959</a>)</li>
 </ul>
 </li>
-<li>
-<p><strong>Boxes, images and paths</strong>: integer sizes no longer overflow and Windows paths with non-ASCII characters work.</p>
-<ul>
+<li><strong>Boxes, images and paths</strong>: integer sizes no longer overflow and Windows paths with non-ASCII characters work.<ul>
 <li><code>sv.xyxy_to_xcycarh</code> now computes centers and dimensions of integer boxes without overflowing the input dtype, avoiding incorrect centers and aspect ratios for boxes spanning integer limits. (<a href="https://github.com/roboflow/supervision/pull/2966">#2966</a>)</li>
 <li><code>sv.resize_image</code> and <code>sv.letterbox_image</code> now handle NumPy integer target dimensions without overflowing aspect-ratio calculations or failing in the image backend. (<a href="https://github.com/roboflow/supervision/pull/2967">#2967</a>, <a href="https://github.com/roboflow/supervision/pull/3058">#3058</a>)</li>
 <li>On Windows, images whose path has characters outside ASCII, such as an accented, Cyrillic or CJK folder name, can now be read and written. OpenCV reads such a path in the ANSI code page, so <code>sv.DetectionDataset</code> raised <code>ValueError: Could not read image from path</code> when its images were loaded, and <code>as_yolo</code>, <code>as_coco</code>, <code>as_pascal_voc</code> and <code>sv.ImageSink</code> failed to save or wrote a file with a garbled name. When mapping succeeds, the file is mapped instead of loaded whole. If mapping fails, the fallback reads the whole file. (<a href="https://github.com/roboflow/supervision/pull/2963">#2963</a>, <a href="https://github.com/roboflow/supervision/pull/3058">#3058</a>)</li>
 </ul>
 </li>
-<li>
-<p><strong>Models</strong>: Transformers adapters accept <code>bfloat16</code> outputs.</p>
-<ul>
 <li><code>sv.Detections.from_transformers</code> and <code>sv.KeyPoints.from_transformers</code> now accept <code>bfloat16</code> model outputs, as a model run in <code>bfloat16</code> returns them, instead of raising <code>TypeError: Got unsupported ScalarType BFloat16</code>. Both adapters detach gradient-tracked tensors before conversion. <code>Detections</code> returns <code>bfloat16</code> boxes and scores as <code>float32</code> and keeps other precisions unchanged; <code>KeyPoints</code> coordinates and confidences are <code>float32</code> for every input precision, as before. (<a href="https://github.com/roboflow/supervision/pull/2962">#2962</a>)</li>
-</ul>
-</li>
-<li>
-<p>Fixed semantic segmentation imports from 2- and 4-bit grayscale PNGs. Class IDs now match the stored PNG samples instead of Pillow's 8-bit display intensities, so low-bit class IDs retain their names. (<a href="https://github.com/roboflow/supervision/pull/2999">#2999</a>)</p>
-</li>
 </ul>
 <h3 id="0320-nov-18-2026">0.32.0 <small>Nov 18, 2026</small><a class="headerlink" href="#0320-nov-18-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -4663,10 +4650,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li><code>load_coco_annotations</code> imported from <code>supervision.dataset.core</code> and <code>get_detection_size_category</code> imported from <code>supervision.metrics.mean_average_recall</code> are deprecated in <code>0.32.0</code> and will be removed in <code>0.35.0</code>. Both modules exposed these as a side effect of using them, so the names now warn when called; import them from <code>supervision.dataset.formats.coco</code> and <code>supervision.metrics.utils.object_size</code>. (<a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 </ul>
 </li>
-<li><strong>Documentation site</strong>: unversioned documentation URLs resolve to the latest release.<ul>
 <li>The documentation site retries missing unversioned URLs under <code>/latest/</code> and preserves 404s for compact and dotted alpha and beta release tags. (<a href="https://github.com/roboflow/supervision/pull/3020">#3020</a>)</li>
-</ul>
-</li>
 </ul>
 <h3 id="0317-nov-11-2026">0.31.7 <small>Nov 11, 2026</small><a class="headerlink" href="#0317-nov-11-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -4760,10 +4744,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li><code>sv.CSVSink</code> now preserves an exception raised inside a <code>with</code> block when cleanup raises an ordinary exception, such as a deferred-header write or file flush error. The cleanup exception is logged; when the block succeeds, cleanup exceptions still propagate. (<a href="https://github.com/roboflow/supervision/pull/2869">#2869</a>)</li>
 </ul>
 </li>
-<li><strong>Key points</strong>: skeleton edges are right.<ul>
 <li><code>Skeleton.GHUM</code> now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default <code>sv.EdgeAnnotator</code> drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. (<a href="https://github.com/roboflow/supervision/pull/2876">#2876</a>)</li>
-</ul>
-</li>
 <li><strong>Video and windows</strong>: reading and showing frames.<ul>
 <li><code>sv.get_video_frames_generator</code> stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. (<a href="https://github.com/roboflow/supervision/pull/2874">#2874</a>)</li>
 <li><strong>Image window</strong>: <code>sv.ImageWindow.show</code> now draws the frame on the call that opens a window, instead of leaving it blank until the next <code>show</code>. A new window opens at the frame's size, up to the screen size, and no longer grows on each redraw, which could stop <code>show</code> from returning for wide frames. (<a href="https://github.com/roboflow/supervision/pull/2881">#2881</a>)</li>
@@ -7050,7 +7031,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 20:42:01 UTC">November 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 20:45:45 UTC">November 24, 2026</span>
   </span>
 
     
@@ -7078,6 +7059,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
           <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
@@ -7091,11 +7077,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
         <a href="https://github.com/ArthDubey1011" class="md-author" title="@ArthDubey1011">
           
           <img src="https://avatars.githubusercontent.com/u/71122807?v=4&size=72" alt="ArthDubey1011">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
