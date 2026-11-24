@@ -5,11 +5,11 @@ date_modified: 2026-11-18
 
 # Changelog
 
-### 0.32.1 <small>Nov 24, 2026</small>
-
 ### Unreleased <small>upcoming</small>
 
-- Fixed `sv.KeyPoints.from_transformers` to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. An empty first pose no longer hides later poses. ([#2978](https://github.com/roboflow/supervision/pull/2978))
+- Fixed `sv.KeyPoints.from_transformers` to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. Pass `num_keypoints` to retain trailing slots when all poses omit the last joints. An empty first pose no longer hides later poses. ([#2978](https://github.com/roboflow/supervision/pull/2978))
+
+### 0.32.1 <small>Nov 24, 2026</small>
 
 - **BGRA scenes**: annotators, drawing helpers and image resizing handle `(H, W, 4)` arrays.
     - `sv.MaskAnnotator`, `sv.HaloAnnotator`, `sv.BackgroundOverlayAnnotator` and `sv.ComparisonAnnotator` now annotate BGRA scenes, shaped `(H, W, 4)`, instead of raising `ValueError: shape mismatch` or `could not broadcast input array`. They composite colors using the scene's alpha, and covered pixels become opaque in proportion to the annotator's opacity. Comparison labels retain their alpha, including text that extends past a very small legend. ([#2956](https://github.com/roboflow/supervision/pull/2956), [#3058](https://github.com/roboflow/supervision/pull/3058))

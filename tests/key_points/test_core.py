@@ -8,7 +8,9 @@ from supervision.config import (
     HANDEDNESS_SCORE_DATA_FIELD,
     KEYPOINT_VISIBILITY_DATA_FIELD,
 )
+from supervision.key_points.annotators import EdgeAnnotator
 from supervision.key_points.core import KeyPoints
+from supervision.key_points.skeletons import Skeleton
 from tests.helpers import (
     _create_key_points,
     _FakeMediapipeClassification,
@@ -1995,6 +1997,70 @@ class TestFromUltralytics:
 
 class TestFromTransformers:
     """KeyPoints.from_transformers for per-image pose results."""
+
+    def test_explicit_joint_count_keeps_trailing_slots_for_consumers(self) -> None:
+        """Keep a common skeleton when the last joint is filtered in one frame."""
+        filtered = [
+            {
+                "keypoints": np.column_stack(
+                    (np.arange(16) % 6 + 1, np.arange(16) % 6 + 1)
+                ),
+                "scores": np.ones(16),
+                "labels": np.arange(16),
+            }
+        ]
+        full = [
+            {
+                "keypoints": np.ones((17, 2)),
+                "scores": np.ones(17),
+                "labels": np.arange(17),
+            }
+        ]
+
+        first = KeyPoints.from_transformers(filtered, num_keypoints=17)
+        second = KeyPoints.from_transformers(full, num_keypoints=17)
+        annotated = EdgeAnnotator(edges=Skeleton.COCO.value).annotate(
+            np.zeros((10, 10, 3), dtype=np.uint8), first
+        )
+        automatic = EdgeAnnotator().annotate(
+            np.zeros((10, 10, 3), dtype=np.uint8), first
+        )
+        merged = KeyPoints.merge([first, second])
+
+        assert np.any(annotated)
+        assert np.any(automatic)
+        assert merged.xy.shape == (2, 17, 2)
+        np.testing.assert_array_equal(first.xy[0, 16], [0, 0])
+        assert first.keypoint_confidence is not None
+        assert first.keypoint_confidence[0, 16] == 0
+
+    def test_explicit_joint_count_rejects_out_of_range_label(self) -> None:
+        """Reject a skeleton size that cannot contain a retained joint."""
+        results = [
+            {
+                "keypoints": np.ones((1, 2)),
+                "scores": np.ones(1),
+                "labels": np.array([2]),
+            }
+        ]
+
+        with pytest.raises(ValueError, match="num_keypoints"):
+            KeyPoints.from_transformers(results, num_keypoints=2)
+
+    def test_explicit_joint_count_keeps_fully_filtered_pose(self) -> None:
+        """Keep a detected pose whose joints were all filtered out."""
+        results = [
+            {
+                "keypoints": np.empty((0, 2)),
+                "scores": np.empty(0),
+                "labels": np.array([], dtype=int),
+            }
+        ]
+
+        key_points = KeyPoints.from_transformers(results, num_keypoints=17)
+
+        np.testing.assert_array_equal(key_points.xy, np.zeros((1, 17, 2)))
+        np.testing.assert_array_equal(key_points.class_id, [0])
 
     @pytest.mark.parametrize(
         "labels",

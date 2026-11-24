@@ -279,7 +279,9 @@ class KeyPoints:
             outputs = pose_estimation_model(**inputs)
 
         results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
-        key_point = sv.KeyPoints.from_transformers(results[0])
+        key_point = sv.KeyPoints.from_transformers(
+            results[0], num_keypoints=len(pose_estimation_model.config.id2label)
+        )
         ```
 
     Attributes:
@@ -929,7 +931,9 @@ class KeyPoints:
             return cls.empty()
 
     @classmethod
-    def from_transformers(cls, transformers_results: Any) -> KeyPoints:
+    def from_transformers(
+        cls, transformers_results: Any, *, num_keypoints: int | None = None
+    ) -> KeyPoints:
         """
         Create a :class:`~supervision.key_points.core.KeyPoints` object from the
         [Transformers](https://github.com/huggingface/transformers) inference result.
@@ -938,6 +942,10 @@ class KeyPoints:
             transformers_results: The per-image output of a Transformers pose
                 post-processor: a list with one dict of prediction data per
                 detected pose. An empty list means no poses were detected.
+            num_keypoints: Full skeleton size, when known. Supply this to retain
+                trailing joints removed by confidence filtering. Defaults to the
+                largest retained joint label plus one. A pose with no retained
+                joints is kept as zero-filled slots when this is supplied.
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
@@ -948,8 +956,13 @@ class KeyPoints:
                 :meth:`~supervision.key_points.core.KeyPoints.empty`.
                 Joint `labels` retain their skeleton indices after confidence
                 filtering. Missing slots have zero coordinates and confidence;
-                the joint axis ends at the largest retained label. Results without
-                `labels` use their keypoint list order.
+                the joint axis ends at the largest retained label unless
+                `num_keypoints` is supplied. Results without `labels` use their
+                keypoint list order.
+
+        Raises:
+            ValueError: If `num_keypoints` is not positive or cannot contain the
+                retained joint labels.
 
         Examples:
             ```python
@@ -995,15 +1008,21 @@ class KeyPoints:
                 outputs = pose_estimation_model(**inputs)
 
             results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
-            key_point = sv.KeyPoints.from_transformers(results[0])
+            key_point = sv.KeyPoints.from_transformers(
+                results[0], num_keypoints=len(pose_estimation_model.config.id2label)
+            )
             ```
 
         """  # noqa: E501 // docs
+
+        if num_keypoints is not None and num_keypoints <= 0:
+            raise ValueError("num_keypoints must be positive.")
 
         if len(transformers_results) == 0:
             return cls.empty()
 
         if "keypoints" in transformers_results[0]:
+
             def pose_to_numpy(value: Any) -> npt.NDArray[Any]:
                 """Detach tensor inputs while preserving NumPy pose arrays."""
                 return _to_numpy(value.detach() if hasattr(value, "detach") else value)
@@ -1021,6 +1040,10 @@ class KeyPoints:
                 (int(labels.max()) + 1 for _, _, labels in result_data if labels.size),
                 default=0,
             )
+            if num_keypoints is not None:
+                if keypoint_count > num_keypoints:
+                    raise ValueError("num_keypoints must include all retained joints.")
+                keypoint_count = num_keypoints
             if keypoint_count == 0:
                 return cls.empty()
             xy = np.zeros((len(result_data), keypoint_count, 2), dtype=np.float32)
