@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from enum import Enum
 from fractions import Fraction
 from typing import Any, cast
@@ -93,6 +93,29 @@ def _validate_iou_threshold(iou_threshold: float) -> None:
             "Value of `iou_threshold` must be in the closed range from 0 to 1, "
             f"{iou_threshold} given."
         )
+
+
+def _is_mergeable_overlap(
+    overlaps: npt.NDArray[np.floating], iou_threshold: float
+) -> npt.NDArray[np.bool_]:
+    """Flag pairs whose overlap is high enough to be grouped by non-max merging.
+
+    A pair qualifies when its overlap reaches `iou_threshold` and is strictly
+    positive. The positivity guard only matters at `iou_threshold=0`, where a
+    plain `>=` would group disjoint pairs, whereas non-max suppression, which
+    compares with a strict `>`, never suppresses them. For any positive
+    threshold the result equals `overlaps >= iou_threshold`.
+
+    Args:
+        overlaps: Overlap values (IoU or IoS) of candidates against one
+            reference, as a `np.ndarray` of any shape.
+        iou_threshold: Minimum overlap, in the closed range from 0 to 1.
+
+    Returns:
+        Boolean `np.ndarray` with the shape of `overlaps`.
+    """
+    mergeable: npt.NDArray[np.bool_] = (overlaps >= iou_threshold) & (overlaps > 0)
+    return mergeable
 
 
 def _coordinate_difference(upper: np.number, lower: np.number) -> float:
@@ -966,6 +989,27 @@ def compact_mask_iou_batch(
     pixel_count = masks_true.image_shape[0] * masks_true.image_shape[1]
     count_dtype = np.float32 if pixel_count <= 2**24 else np.float64
 
+    for idx_a, idx_b, pixel_overlap in _compact_mask_intersections(
+        masks_true, masks_detection
+    ):
+        inter = count_dtype(pixel_overlap)
+        area_a_i = count_dtype(areas_a[idx_a])
+        area_b_j = count_dtype(areas_b[idx_b])
+
+        if overlap_metric == OverlapMetric.IOU:
+            union = area_a_i + area_b_j - inter
+            result[idx_a, idx_b] = inter / union if union > 0 else 0.0
+        elif overlap_metric == OverlapMetric.IOS:
+            small = min(area_a_i, area_b_j)
+            result[idx_a, idx_b] = inter / small if small > 0 else 0.0
+
+    return result
+
+
+def _compact_mask_intersections(
+    masks_true: CompactMask, masks_detection: CompactMask
+) -> Iterator[tuple[int, int, int]]:
+    """Yield mask indexes and exact intersection counts for overlapping crops."""
     # Inclusive per-mask bounding boxes obtained from public accessors.
     # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
     bboxes_a: npt.NDArray[np.int32] = masks_true.bbox_xyxy.astype(np.int32)
@@ -1010,18 +1054,7 @@ def compact_mask_iou_batch(
         ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
         sub_b = crops_b[idx_b][ly1 - oy_b : ly2 - oy_b + 1, lx1 - ox_b : lx2 - ox_b + 1]
 
-        inter = count_dtype(np.logical_and(sub_a, sub_b).sum())
-        area_a_i = count_dtype(areas_a[idx_a])
-        area_b_j = count_dtype(areas_b[idx_b])
-
-        if overlap_metric == OverlapMetric.IOU:
-            union = area_a_i + area_b_j - inter
-            result[idx_a, idx_b] = inter / union if union > 0 else 0.0
-        elif overlap_metric == OverlapMetric.IOS:
-            small = min(area_a_i, area_b_j)
-            result[idx_a, idx_b] = inter / small if small > 0 else 0.0
-
-    return result
+        yield idx_a, idx_b, int(np.count_nonzero(sub_a & sub_b))
 
 
 def _mask_iou_batch_split(
@@ -1580,7 +1613,7 @@ def _group_overlapping_masks(
         candidate_groups = [idx]
         while len(order) > 0:
             ious = mask_iou_batch(masks[order], merge_candidate, overlap_metric)
-            above_threshold: npt.NDArray[np.bool_] = ious.flatten() >= iou_threshold
+            above_threshold = _is_mergeable_overlap(ious.flatten(), iou_threshold)
             if not above_threshold.any():
                 break
             above_idx = order[above_threshold]
@@ -1731,7 +1764,7 @@ def _greedy_nmm_via_mask_candidate(
         merge_group = [idx]
         while len(order) > 0:
             ious = mask_iou_batch(masks[order], candidate, overlap_metric).flatten()
-            above_threshold = ious >= iou_threshold
+            above_threshold = _is_mergeable_overlap(ious, iou_threshold)
             if not above_threshold.any():
                 break
             above_idx = order[above_threshold]
@@ -1821,7 +1854,7 @@ def _group_overlapping_boxes(
             predictions[idx : idx + 1, :4],
             overlap_metric,
         ).flatten()
-        above_threshold = ious >= iou_threshold
+        above_threshold = _is_mergeable_overlap(ious, iou_threshold)
         merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]
@@ -2478,7 +2511,7 @@ def _group_overlapping_oriented_boxes(
             oriented_boxes[idx][None, ...],
             overlap_metric,
         ).flatten()
-        above_threshold = ious >= iou_threshold
+        above_threshold = _is_mergeable_overlap(ious, iou_threshold)
         merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
         merge_groups.append(merge_group)
         order = order[~above_threshold]
