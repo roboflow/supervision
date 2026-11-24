@@ -157,6 +157,8 @@ def crop_image(
         Coordinates are rounded to integers and clipped to the image bounds
         before slicing. This keeps NumPy and Pillow inputs aligned and avoids
         negative-index wrap-around on NumPy arrays.
+        A box with no pixels inside the image (outside it, or with no area)
+        returns an empty image of the input type.
 
     Examples:
         ```pycon
@@ -228,6 +230,55 @@ def _is_single_channel(image: npt.NDArray[Any]) -> bool:
     return image.ndim == 2 or (image.ndim == 3 and image.shape[2] == 1)
 
 
+def _resize_linear(
+    image: npt.NDArray[Any], size_wh: tuple[int, int]
+) -> npt.NDArray[Any]:
+    """Resize ``image`` to ``size_wh`` with linear interpolation.
+
+    A uint8 BGRA image whose alpha varies is interpolated with its colors weighted by
+    alpha. Interpolating straight colors mixes the color hidden under a transparent
+    pixel into its visible neighbors, which shows as a colored fringe along alpha edges.
+    Fully transparent results keep the colors of a plain resize.
+    """
+    resized = cast(
+        npt.NDArray[Any], cv2.resize(image, size_wh, interpolation=cv2.INTER_LINEAR)
+    )
+    is_bgra = image.dtype == np.uint8 and image.ndim == 3 and image.shape[2] == 4
+    if (
+        not is_bgra
+        or size_wh == (image.shape[1], image.shape[0])
+        or image[..., 3].min() == image[..., 3].max()
+    ):
+        # Identity and uniform-alpha resizes preserve the plain result exactly.
+        return resized
+    alpha = image[..., 3:].astype(np.float32) / 255.0
+    premultiplied = np.dstack([image[..., :3].astype(np.float32) * alpha, alpha])
+    resized_premultiplied = cv2.resize(
+        premultiplied, size_wh, interpolation=cv2.INTER_LINEAR
+    )
+    resized_alpha = resized_premultiplied[..., 3:]
+    output_alpha = np.clip(np.rint(resized_alpha * 255.0), 0, 255).astype(np.uint8)
+    # Restore straight colors in place, retaining the plain RGB wherever the
+    # quantized output is transparent. This avoids another full float image.
+    visible = output_alpha[..., 0] > 0
+    np.divide(
+        resized_premultiplied[..., :3],
+        resized_alpha,
+        out=resized_premultiplied[..., :3],
+        where=visible[..., np.newaxis],
+    )
+    np.rint(resized_premultiplied[..., :3], out=resized_premultiplied[..., :3])
+    np.clip(resized_premultiplied[..., :3], 0, 255, out=resized_premultiplied[..., :3])
+    np.copyto(
+        resized[..., :3],
+        resized_premultiplied[..., :3],
+        where=visible[..., np.newaxis],
+        casting="unsafe",
+    )
+    resized[..., 3:] = output_alpha
+    return resized
+
+
 @ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
@@ -247,7 +298,9 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     Note:
         Each axis keeps at least one pixel, so a factor small enough to round an
         axis of a small image down to zero returns a one-pixel-wide or
-        one-pixel-tall image rather than raising.
+        one-pixel-tall image rather than raising. A uint8 BGRA image whose alpha
+        varies is interpolated with alpha-weighted colors, so the color hidden
+        under a transparent pixel does not bleed into its visible neighbors.
 
     Examples:
         ```pycon
@@ -283,7 +336,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     # image that still exists, so clamp there instead.
     width_new = max(1, int(width_old * scale_factor))
     height_new = max(1, int(height_old * scale_factor))
-    resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    resized = _resize_linear(image, (width_new, height_new))
     return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
 
@@ -314,7 +367,9 @@ def resize_image(
         pixel and keeps at least one pixel, so an aspect ratio too extreme to fit
         the target box returns a one-pixel-wide or one-pixel-tall image rather
         than raising. A target with the same aspect ratio as the image returns
-        exactly the target size.
+        exactly the target size. A uint8 BGRA image whose alpha varies is
+        interpolated with alpha-weighted colors, so the color hidden under a
+        transparent pixel does not bleed into its visible neighbors.
 
     Examples:
         ```pycon
@@ -370,7 +425,7 @@ def resize_image(
     else:
         width_new, height_new = target_width, target_height
 
-    resized = cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    resized = _resize_linear(image, (width_new, height_new))
     return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
 
@@ -423,14 +478,20 @@ def letterbox_image(
     ![letterbox-image](https://media.roboflow.com/supervision-docs/supervision-docs-letterbox-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     color = unify_to_bgr(color=color)
+    # NumPy integer sizes would keep their dtype through the padding arithmetic, and
+    # NumPy 1.x promotes `np.uint64` minus a Python int to float64, which the border
+    # backend rejects. `resize_image` converts them the same way.
+    target_width, target_height = (
+        int(size) if isinstance(size, np.integer) else size for size in resolution_wh
+    )
     resized_image = resize_image(
         image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
     )
     height_new, width_new = resized_image.shape[:2]
-    padding_top = (resolution_wh[1] - height_new) // 2
-    padding_bottom = resolution_wh[1] - height_new - padding_top
-    padding_left = (resolution_wh[0] - width_new) // 2
-    padding_right = resolution_wh[0] - width_new - padding_left
+    padding_top = (target_height - height_new) // 2
+    padding_bottom = target_height - height_new - padding_top
+    padding_left = (target_width - width_new) // 2
+    padding_right = target_width - width_new - padding_left
     image_with_borders = cv2.copyMakeBorder(
         resized_image,
         padding_top,
@@ -454,9 +515,15 @@ def _match_overlay_to_scene_channels(
     an icon, as its gray luminance. A grayscale overlay is reshaped to the scene's
     layout, because ``cv2.resize`` drops the channel axis of a crop taken from an ``(H,
     W, 1)`` scene. A BGRA scene, shaped ``(H, W, 4)``, takes a BGR overlay with an
-    opaque alpha, as :func:`~supervision.draw.utils.draw_image` does.
+    opaque alpha, as :func:`~supervision.draw.utils.draw_image` does, and a grayscale
+    overlay as opaque gray.
     """
-    if roi.ndim == 3 and roi.shape[2] == 4 and overlay.ndim == 3:
+    if roi.ndim == 3 and roi.shape[2] == 4:
+        if _is_single_channel(overlay):
+            # Gray fills every color channel, as it does when broadcast into BGR,
+            # instead of landing in the alpha channel as well.
+            gray = overlay.reshape(*overlay.shape[:2], 1)
+            overlay = np.repeat(gray, 3, axis=2)
         if overlay.shape[2] == 3:
             opaque = np.full((*overlay.shape[:2], 1), 255, dtype=np.uint8)
             return np.concatenate((overlay, opaque), axis=2)
@@ -484,7 +551,7 @@ def _overlay_image(
         overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``, or
             grayscale like ``image``; channel 4, when present, is treated as
             alpha. A BGR overlay is drawn as gray luminance on a grayscale
-            ``image``.
+            ``image``, and a grayscale overlay as opaque gray on a BGRA ``image``.
         anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
             be negative (partial off-screen placement is clipped).
 
