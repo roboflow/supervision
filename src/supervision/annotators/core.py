@@ -47,6 +47,7 @@ from supervision.draw.utils import (
     _color_for_canvas,
     _composite_coverage_over_bgra,
     _composite_over_bgra,
+    _draw_antialiased,
     draw_polygon,
     draw_rounded_rectangle,
     draw_text,
@@ -1695,15 +1696,19 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 text_x = box_xyxy[0] + self.text_padding
                 text_y = current_y + text_h  # Add height to get to text baseline
 
-                cv2.putText(
-                    img=scene,
-                    text=line,
-                    org=(text_x, text_y),
-                    fontFace=CV2_FONT,
-                    fontScale=self.text_scale,
-                    color=_color_for_canvas(text_color.as_bgr(), scene),
-                    thickness=self.text_thickness,
-                    lineType=cv2.LINE_AA,
+                _draw_antialiased(
+                    scene,
+                    text_color.as_bgr(),
+                    lambda image, color: cv2.putText(
+                        image,
+                        line,
+                        (text_x, text_y),
+                        CV2_FONT,
+                        self.text_scale,
+                        color,
+                        self.text_thickness,
+                        lineType=cv2.LINE_AA,
+                    ),
                 )
 
                 current_y += text_h + self.text_padding  # Move to next line position

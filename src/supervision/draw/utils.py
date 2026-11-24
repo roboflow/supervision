@@ -1,4 +1,5 @@
 import os
+from collections.abc import Callable
 from typing import cast
 
 import numpy as np
@@ -654,6 +655,22 @@ def _composite_coverage_over_bgra(
         overlay = overlay[region]
     scene[region] = _composite_over_bgra(scene[region], overlay, alpha)
     return scene
+
+
+def _draw_antialiased(
+    scene: npt.NDArray[np.uint8],
+    color: tuple[int, int, int],
+    draw: Callable[[npt.NDArray[np.uint8], tuple[int, ...]], object],
+) -> None:
+    """Draw antialiased coverage over a straight-alpha canvas."""
+    if scene.ndim != 3 or scene.shape[2] != 4:
+        draw(scene, _color_for_canvas(color, scene))
+        return
+
+    # Draw coverage separately so hidden RGB does not tint partially covered pixels.
+    coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+    draw(coverage, (255,))
+    _composite_coverage_over_bgra(scene, color, coverage, 1.0)
 
 
 def draw_image(

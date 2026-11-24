@@ -2151,9 +2151,50 @@ class TestLineZoneAnnotatorsOnBgraScene:
 
         result = annotate(np.zeros((120, 200, 4), dtype=np.uint8))
 
-        np.testing.assert_array_equal(result[..., :3], expected_bgr)
+        composited = result[..., :3].astype(np.float32) * (result[..., 3:] / 255.0)
+        np.testing.assert_allclose(composited, expected_bgr, atol=2)
         assert drawn.any()
         assert np.all(result[..., 3][drawn] > 0)
+
+    @pytest.mark.skipif(
+        not _cv2._IS_CV2_AVAILABLE, reason="OpenCV antialiasing required"
+    )
+    def test_antialiased_line_ignores_hidden_scene_color(self) -> None:
+        """Antialiased line edges retain their color on a transparent scene."""
+        annotator = LineZoneAnnotator(
+            color=Color.RED,
+            text_color=Color.RED,
+            display_in_count=False,
+            display_out_count=False,
+        )
+        scene = np.zeros((120, 200, 4), dtype=np.uint8)
+        scene[..., 1] = 200
+
+        result = annotator.annotate(scene, LineZone(Point(10, 20), Point(190, 100)))
+
+        edge = (result[..., 3] > 0) & (result[..., 3] < 255)
+        assert edge.any()
+        np.testing.assert_array_equal(
+            result[..., :3][edge], np.tile((0, 0, 255), (edge.sum(), 1))
+        )
+
+    def test_opaque_frame_matches_bgr_rendering(self) -> None:
+        """Antialiased drawing preserves opaque alpha and BGR appearance."""
+        annotator = LineZoneAnnotator(
+            color=Color.RED,
+            text_color=Color.RED,
+            display_in_count=False,
+            display_out_count=False,
+        )
+        bgr = np.full((120, 200, 3), 80, dtype=np.uint8)
+        bgra = np.dstack((bgr.copy(), np.full((120, 200), 255, dtype=np.uint8)))
+        zone = LineZone(Point(10, 20), Point(190, 100))
+
+        expected = annotator.annotate(bgr, zone)
+        result = annotator.annotate(bgra, zone)
+
+        np.testing.assert_allclose(result[..., :3], expected, atol=2)
+        assert np.all(result[..., 3] == 255)
 
     def test_line_and_endpoints_are_opaque(self) -> None:
         """The line and its endpoint markers are opaque on a transparent frame."""

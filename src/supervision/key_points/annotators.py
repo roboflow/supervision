@@ -18,6 +18,7 @@ from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     _color_for_canvas,
     _composite_coverage_over_bgra,
+    _draw_antialiased,
     draw_rounded_rectangle,
 )
 from supervision.geometry.core import Rect
@@ -791,16 +792,20 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
         for level in self._iter_ellipse_params(key_points):
             for center, axis_lengths, angle, _sigma, color in level:
-                cv2.ellipse(
-                    img=scene,
-                    center=center,
-                    axes=axis_lengths,
-                    angle=angle,
-                    startAngle=0,
-                    endAngle=360,
-                    color=_color_for_canvas(color.as_bgr(), scene),
-                    thickness=self.thickness,
-                    lineType=cv2.LINE_AA,
+                _draw_antialiased(
+                    scene,
+                    color.as_bgr(),
+                    lambda image, draw_color: cv2.ellipse(
+                        image,
+                        center,
+                        axis_lengths,
+                        angle,
+                        0,
+                        360,
+                        draw_color,
+                        self.thickness,
+                        lineType=cv2.LINE_AA,
+                    ),
                 )
 
         return scene
@@ -1205,15 +1210,19 @@ class VertexLabelAnnotator:
                 color=color,
                 border_radius=self.border_radius,
             )
-            cv2.putText(
-                img=scene,
-                text=text,
-                org=(box[0], box[3]),
-                fontFace=font,
-                fontScale=self.text_scale,
-                color=_color_for_canvas(text_color.as_bgr(), scene),
-                thickness=self.text_thickness,
-                lineType=cv2.LINE_AA,
+            _draw_antialiased(
+                scene,
+                text_color.as_bgr(),
+                lambda image, draw_color: cv2.putText(
+                    image,
+                    text,
+                    (box[0], box[3]),
+                    font,
+                    self.text_scale,
+                    draw_color,
+                    self.text_thickness,
+                    lineType=cv2.LINE_AA,
+                ),
             )
 
         return scene

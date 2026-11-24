@@ -1220,7 +1220,8 @@ class TestBgraSceneKeyPointAnnotators:
 
         result = annotator.annotate(np.zeros((80, 80, 4), dtype=np.uint8), key_points)
 
-        np.testing.assert_array_equal(result[..., :3], expected_bgr)
+        composited = result[..., :3].astype(np.float32) * (result[..., 3:] / 255.0)
+        np.testing.assert_allclose(composited, expected_bgr, atol=2)
         assert drawn.any()
         assert np.all(result[..., 3][drawn] > 0)
         assert np.all(result[..., 3][~drawn] == 0)
