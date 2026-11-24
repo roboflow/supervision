@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -18,8 +18,11 @@ from supervision.config import (
     ISCROWD_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.utils.converters import mask_to_xyxy
 from supervision.detection.utils.iou_and_nms import (
+    _compact_mask_intersections,
     _oriented_box_pair_intersections,
     _polygon_areas,
     box_iou_batch_with_jaccard,
@@ -67,6 +70,8 @@ class _TypeCocoDict(TypedDict, total=False):
     # `MetricTarget.BOXES`; for the keypoint evaluator it is `(K, 3)` rows of
     # `(x, y, visible)`.
     content: npt.NDArray[Any]
+    # Reference the collection and row so preparing annotations never decodes it.
+    compact_mask: tuple[CompactMask, int]
 
 
 _TypeCocoDataset: TypeAlias = dict[str, list[_TypeCocoDict]]
@@ -638,9 +643,57 @@ def _oriented_box_iou_with_jaccard(
     return iou
 
 
+_MaskRow: TypeAlias = npt.NDArray[np.bool_] | tuple[CompactMask, int]
+
+
+def _mask_row_shape(mask: _MaskRow) -> tuple[int, ...]:
+    """Return a mask row's canvas shape without decoding a compact mask."""
+    return mask[0].image_shape if isinstance(mask, tuple) else mask.shape
+
+
+def _compact_mask_rows(masks: Sequence[_MaskRow]) -> CompactMask:
+    """Gather compact rows in evaluator order, encoding any dense rows losslessly."""
+    rows = []
+    for mask in masks:
+        if isinstance(mask, tuple):
+            source, index = mask
+            rows.append(source[index : index + 1])
+        else:
+            dense = mask[np.newaxis, ...]
+            height, width = mask.shape
+            rows.append(
+                CompactMask.from_dense(dense, mask_to_xyxy(dense), (height, width))
+            )
+    return CompactMask.merge(rows)
+
+
+def _compact_mask_iou_with_jaccard(
+    masks_true: CompactMask,
+    masks_detection: CompactMask,
+    is_crowd: list[bool],
+) -> npt.NDArray[np.float64]:
+    """Compute exact COCO overlap ratios from crop intersections and pixel areas."""
+    area_gt = masks_true.area
+    area_dt = masks_detection.area
+    iou = np.zeros((len(masks_detection), len(masks_true)), dtype=np.float64)
+    for gt_index, dt_index, intersection in _compact_mask_intersections(
+        masks_true, masks_detection
+    ):
+        if intersection == 0:
+            continue
+        detection_area = int(area_dt[dt_index])
+        union = (
+            detection_area
+            if is_crowd[gt_index]
+            else detection_area + int(area_gt[gt_index]) - intersection
+        )
+        iou[dt_index, gt_index] = intersection / union
+    return iou
+
+
 def _mask_iou_with_jaccard(
-    masks_true: list[npt.NDArray[np.bool_]],
-    masks_detection: list[npt.NDArray[np.bool_]],
+    masks_true: Sequence[_MaskRow],
+    masks_detection: Sequence[_MaskRow],
     is_crowd: list[bool],
 ) -> npt.NDArray[np.float64]:
     """
@@ -651,8 +704,9 @@ def _mask_iou_with_jaccard(
     :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch_with_jaccard`).
 
     Args:
-        masks_true: List of ground-truth masks of shape `(H, W)`.
-        masks_detection: List of detection masks of shape `(H, W)`.
+        masks_true: Ground-truth masks as dense `(H, W)` arrays or compact row
+            references.
+        masks_detection: Detection masks as dense arrays or compact row references.
         is_crowd: List indicating if each ground-truth mask is a crowd region.
 
     Returns:
@@ -664,14 +718,23 @@ def _mask_iou_with_jaccard(
     if len(masks_detection) == 0 or len(masks_true) == 0:
         return np.empty((len(masks_detection), len(masks_true)), dtype=np.float64)
 
-    mask_shape = masks_true[0].shape
+    mask_shape = _mask_row_shape(masks_true[0])
     if any(
-        mask.shape != mask_shape
+        _mask_row_shape(mask) != mask_shape
         for mask in itertools.chain(masks_true[1:], masks_detection)
     ):
         raise ValueError(
             "Ground-truth and detection masks must share the same spatial "
             f"dimensions; got {mask_shape} and a different shape."
+        )
+
+    if any(
+        isinstance(mask, tuple) for mask in itertools.chain(masks_true, masks_detection)
+    ):
+        return _compact_mask_iou_with_jaccard(
+            _compact_mask_rows(masks_true),
+            _compact_mask_rows(masks_detection),
+            is_crowd,
         )
 
     crowd = np.asarray(is_crowd, dtype=bool)
@@ -922,7 +985,15 @@ class COCOEvaluator:
         # Compute iou between each prediction and gt region
         if self.metric_target == MetricTarget.MASKS:
             iou = _mask_iou_with_jaccard(
-                [g["content"] for g in gt], [d["content"] for d in dt], is_crowd
+                [
+                    g["compact_mask"] if "compact_mask" in g else g["content"]
+                    for g in gt
+                ],
+                [
+                    d["compact_mask"] if "compact_mask" in d else d["content"]
+                    for d in dt
+                ],
+                is_crowd,
             )
         elif self.metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             if len(gt) == 0 or len(dt) == 0:
@@ -1578,7 +1649,9 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
 
         return self
 
-    def _detections_content(self, detections: Detections) -> npt.NDArray[Any] | None:
+    def _detections_content(
+        self, detections: Detections
+    ) -> npt.NDArray[Any] | CompactMask | None:
         """Return per-detection masks or oriented boxes for the metric target, or `None`
         for the box target and for empty detections.
 
@@ -1593,7 +1666,9 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     "MeanAveragePrecision with `MetricTarget.MASKS` requires"
                     " masks on both predictions and targets."
                 )
-            return np.asarray(detections.mask).astype(bool)
+            if isinstance(detections.mask, CompactMask):
+                return detections.mask
+            return detections.mask.astype(bool)
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is None:
@@ -1636,6 +1711,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 continue
 
             content = self._detections_content(image_targets)
+            compact_areas = content.area if isinstance(content, CompactMask) else None
             # Native Python scalars avoid overflowing narrow NumPy dtypes when
             # subtracting corners or multiplying the resulting box extents.
             for target_idx, xyxy in enumerate(image_targets.xyxy.tolist()):
@@ -1666,7 +1742,12 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     area = float(area_data[target_idx])
 
                 if area is None:
-                    area = self._content_area(xywh, content, target_idx)
+                    if compact_areas is not None:
+                        area = float(compact_areas[target_idx])
+                    else:
+                        area = self._content_area(
+                            xywh, cast(npt.NDArray[Any] | None, content), target_idx
+                        )
 
                 iscrowd = 0
                 if (
@@ -1694,7 +1775,9 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     "id": len(annotations) + 1,  # Start IDs from 1 (0 means no match)
                     "ignore": ignore,
                 }
-                if content is not None:
+                if isinstance(content, CompactMask):
+                    dict_annotation["compact_mask"] = (content, target_idx)
+                elif content is not None:
                     dict_annotation["content"] = content[target_idx]
                 annotations.append(dict_annotation)
         # Category list
@@ -1721,6 +1804,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 continue
 
             content = self._detections_content(image_predictions)
+            compact_areas = content.area if isinstance(content, CompactMask) else None
             # Match target preparation: overflow would also change whether an
             # unmatched prediction is ignored in each area bucket.
             for pred_idx, xyxy in enumerate(image_predictions.xyxy.tolist()):
@@ -1742,7 +1826,12 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 # pycocotools `loadRes` sizes every result by its own bbox or
                 # mask, so area metadata on predictions must not change the
                 # size bucket of an unmatched prediction.
-                area = self._content_area(xywh, content, pred_idx)
+                if compact_areas is not None:
+                    area = float(compact_areas[pred_idx])
+                else:
+                    area = self._content_area(
+                        xywh, cast(npt.NDArray[Any] | None, content), pred_idx
+                    )
 
                 dict_prediction: _TypeCocoDict = {
                     "image_id": image_id,
@@ -1752,7 +1841,9 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     "area": area,
                     "id": len(coco_predictions) + 1,
                 }
-                if content is not None:
+                if isinstance(content, CompactMask):
+                    dict_prediction["compact_mask"] = (content, pred_idx)
+                elif content is not None:
                     dict_prediction["content"] = content[pred_idx]
                 coco_predictions.append(dict_prediction)
         return coco_predictions
