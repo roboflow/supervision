@@ -1004,15 +1004,19 @@ class KeyPoints:
             return cls.empty()
 
         if "keypoints" in transformers_results[0]:
+            def pose_to_numpy(value: Any) -> npt.NDArray[Any]:
+                """Detach tensor inputs while preserving NumPy pose arrays."""
+                return _to_numpy(value.detach() if hasattr(value, "detach") else value)
+
             result_data = []
             for result in transformers_results:
-                points = result["keypoints"].cpu().numpy()
+                points = pose_to_numpy(result["keypoints"])
                 labels = (
-                    result["labels"].cpu().numpy()
+                    pose_to_numpy(result["labels"])
                     if "labels" in result
                     else np.arange(len(points))
                 )
-                result_data.append((points, result["scores"].cpu().numpy(), labels))
+                result_data.append((points, pose_to_numpy(result["scores"]), labels))
             keypoint_count = max(
                 (int(labels.max()) + 1 for _, _, labels in result_data if labels.size),
                 default=0,
