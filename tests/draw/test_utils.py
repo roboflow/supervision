@@ -582,6 +582,40 @@ class TestDrawOnBgraScene:
         np.testing.assert_allclose(result[20, 20], expected_pixel, atol=1)
         np.testing.assert_array_equal(result[45, 45], (40, 40, 40, scene_alpha))
 
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((0, 10, 4), id="no-rows"),
+            pytest.param((10, 0, 4), id="no-columns"),
+            pytest.param((0, 0, 4), id="no-pixels"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED, 0.5),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED, 0.5),
+                id="filled-polygon",
+            ),
+        ],
+    )
+    def test_translucent_fill_returns_empty_scene_unchanged(
+        self,
+        draw: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]],
+        shape: tuple[int, int, int],
+    ) -> None:
+        """A translucent fill on a zero-size BGRA scene returns that scene."""
+        scene = np.zeros(shape, dtype=np.uint8)
+
+        result = draw(scene)
+
+        assert result is scene
+        assert result.shape == shape
+
     @pytest.mark.parametrize("scene_alpha", [0, 128])
     def test_text_keeps_its_color_on_see_through_scene(self, scene_alpha: int) -> None:
         """Text on a scene that is not opaque keeps the text color at glyph edges."""

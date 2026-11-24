@@ -230,6 +230,10 @@ def draw_filled_rectangle(
 
         ```
     """
+    if scene.size == 0:
+        # A zero-size scene has no pixel to fill, and the transparency check
+        # below cannot reduce its empty alpha plane, so return it as it is.
+        return scene
     if opacity == 1:
         cv2.rectangle(
             scene,
@@ -415,6 +419,10 @@ def draw_filled_polygon(
 
         ```
     """
+    if scene.size == 0:
+        # A zero-size scene has no pixel to fill, and the transparency check
+        # below cannot reduce its empty alpha plane, so return it as it is.
+        return scene
     if opacity == 1:
         cv2.fillPoly(scene, [polygon], color=_color_for_scene(color, scene))
     elif _has_transparency(scene):

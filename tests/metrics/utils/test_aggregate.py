@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from unittest.mock import MagicMock, patch
 
 import matplotlib.pyplot as plt
@@ -11,6 +12,9 @@ import pytest
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, MetricResult, MetricTarget
 from supervision.metrics.f1_score import F1ScoreResult
+from supervision.metrics.keypoint_mean_average_precision import (
+    KeyPointMeanAveragePrecisionResult,
+)
 from supervision.metrics.mean_average_precision import MeanAveragePrecisionResult
 from supervision.metrics.mean_average_recall import MeanAverageRecallResult
 from supervision.metrics.precision import PrecisionResult
@@ -78,6 +82,20 @@ def _make_map_result(
         small_objects=None,
         medium_objects=None,
         large_objects=None,
+    )
+
+
+def _make_keypoint_map_result(
+    map50: float = 0.85, map75: float = 0.65
+) -> KeyPointMeanAveragePrecisionResult:
+    """Build a minimal KeyPointMeanAveragePrecisionResult for testing."""
+    scores = np.array([map50, 0.0, 0.0, 0.0, 0.0, map75, 0.0, 0.0, 0.0, 0.0])
+    return KeyPointMeanAveragePrecisionResult(
+        is_class_agnostic=False,
+        mAP_scores=scores,
+        ap_per_class=np.zeros((1, 10)),
+        oks_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float64),
+        matched_classes=np.array([0], dtype=np.int32),
     )
 
 
@@ -243,6 +261,40 @@ class TestPlotAggregateMetricResults:
             "N/A",
         ]
         assert ax.texts[3].get_position()[1] >= ax.get_ylim()[0]
+        plt.close(plt.gcf())
+
+    @pytest.mark.parametrize(
+        "plot",
+        [
+            pytest.param(lambda result: result.plot(), id="standalone"),
+            pytest.param(
+                lambda result: plot_aggregate_metric_results([result]),
+                id="comparison",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "make_result",
+        [
+            pytest.param(_make_map_result, id="map"),
+            pytest.param(_make_keypoint_map_result, id="keypoint-map"),
+        ],
+    )
+    @patch("matplotlib.pyplot.show", autospec=True)
+    def test_map_plot_labels_unavailable_score_inside_axis(
+        self,
+        mock_show: MagicMock,
+        make_result: Callable[..., MetricResult],
+        plot: Callable[[MetricResult], None],
+    ) -> None:
+        """Both mAP plots label an undefined score N/A inside the score axis."""
+        result = make_result(map50=-1.0, map75=0.0)
+
+        plot(result)
+
+        ax = plt.gcf().axes[0]
+        assert [text.get_text() for text in ax.texts] == ["0.00", "N/A", "0.00"]
+        assert ax.texts[1].get_position()[1] >= ax.get_ylim()[0]
         plt.close(plt.gcf())
 
     def test_aggregate_plot_preserves_other_negative_labels(self) -> None:
