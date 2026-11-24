@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.match_detections` with `iou_threshold=0` no longer matches detections that do not overlap. A pair with an IoU of exactly 0 satisfied `IoU >= 0`, so boxes far apart were reported as matched; a match now needs a positive overlap. Results for thresholds above 0 are unchanged. ([#2992](https://github.com/roboflow/supervision/pull/2992))
+
 - The `plot` methods of `sv.metrics` results and `plot_aggregate_metric_results` now leave the user's Matplotlib font family unchanged. They drew in monospace by setting `plt.rcParams["font.family"]` globally and then set it to `"sans-serif"`, so a family the user had configured, such as `"serif"`, was replaced for every later figure. The monospace font is now applied only while the plot is drawn. ([#2991](https://github.com/roboflow/supervision/pull/2991))
 
 - `sv.Classifications.get_top_k` now returns classes with equal confidence in their input order, so a tie for the best score goes to the first class, as `np.argmax` picks it. It reversed an ascending sort, which put the last tied class first, and with many classes, such as 1000 ImageNet scores in float16, returned tied classes in an arbitrary order. A NaN confidence now ranks last instead of first. `sv.ClassificationDataset.as_folder_structure` uses the top class to choose each image's folder, so it follows the same order. ([#2989](https://github.com/roboflow/supervision/pull/2989))
