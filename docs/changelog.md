@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` now skips an item whose `box_2d` is not four finite numbers and keeps the valid detections from the same response, instead of raising. ([#3005](https://github.com/roboflow/supervision/pull/3005))
+- `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` now skips an item whose `box_2d` cannot be converted to four finite coordinates or becomes non-finite when scaled, and keeps the valid detections from the same response. Float-convertible strings and booleans are accepted. ([#3005](https://github.com/roboflow/supervision/pull/3005))
 
 - `sv.Classifications.get_top_k` now returns classes with equal confidence in their input order, so a tie for the best score goes to the first class, as `np.argmax` picks it. It reversed an ascending sort, which put the last tied class first, and with many classes, such as 1000 ImageNet scores in float16, returned tied classes in an arbitrary order. A NaN confidence now ranks last instead of first. `sv.ClassificationDataset.as_folder_structure` uses the top class to choose each image's folder, so it follows the same order. ([#2989](https://github.com/roboflow/supervision/pull/2989))
 

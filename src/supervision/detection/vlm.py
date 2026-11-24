@@ -629,20 +629,27 @@ def from_florence_2(
     raise RuntimeError(f"Unimplemented task: {task}")
 
 
-def _is_valid_gemini_box(box: Any) -> bool:
-    """Tell whether a Gemini `box_2d` value is four finite coordinates.
+def _is_valid_gemini_box(box: Any, resolution_wh: tuple[int, int]) -> bool:
+    """Tell whether a Gemini box has finite coordinates after scaling.
 
     Args:
         box: The raw `box_2d` value of one response item.
+        resolution_wh: Output image width and height.
 
     Returns:
-        `True` when `box` converts to four finite floats, otherwise `False`.
+        `True` when four float-convertible coordinates remain finite after scaling.
     """
     try:
         coordinates = np.asarray(box, dtype=float)
     except (TypeError, ValueError, OverflowError):
         return False
-    return coordinates.shape == (4,) and bool(np.isfinite(coordinates).all())
+    if coordinates.shape != (4,) or not np.isfinite(coordinates).all():
+        return False
+    width, height = resolution_wh
+    # Match denormalization so an overflowing item is filtered before assembly.
+    with np.errstate(over="ignore", invalid="ignore"):
+        scaled = coordinates * (np.array([height, width, height, width]) / 1000)
+    return bool(np.isfinite(scaled).all())
 
 
 def _strip_gemini_json_fence(result: str) -> str:
@@ -811,7 +818,7 @@ def _parse_gemini_boxes(
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
         absolute_box = denormalize_boxes(
-            np.array([[box[1], box[0], box[3], box[2]]]).astype(np.float64),
+            np.array([[box[1], box[0], box[3], box[2]]], dtype=np.float64),
             resolution_wh=(w, h),
             normalization_factor=1000,
         )
@@ -902,7 +909,7 @@ def from_google_gemini_2_0(
     for item in data:
         if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
             continue
-        if not _is_valid_gemini_box(item["box_2d"]):
+        if not _is_valid_gemini_box(item["box_2d"], (w, h)):
             continue
         labels.append(item["label"])
         box = item["box_2d"]
@@ -991,7 +998,7 @@ def from_google_gemini_2_5(
         if isinstance(item, dict)
         and "box_2d" in item
         and "label" in item
-        and _is_valid_gemini_box(item["box_2d"])
+        and _is_valid_gemini_box(item["box_2d"], (w, h))
     ]
     if not items:
         return empty_result
@@ -1177,7 +1184,7 @@ def from_google_gemini_3_6(
         if isinstance(item, dict)
         and "box_2d" in item
         and "label" in item
-        and _is_valid_gemini_box(item["box_2d"])
+        and _is_valid_gemini_box(item["box_2d"], (w, h))
     ]
     xyxy, class_id, class_name, confidence, keep_mask = _parse_gemini_boxes(
         items, resolution_wh, classes

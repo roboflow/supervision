@@ -2695,6 +2695,58 @@ GEMINI_MALFORMED_BOXES = [
 class TestGeminiMalformedBoxes:
     """Malformed Gemini `box_2d` values do not discard other detections."""
 
+    @pytest.mark.parametrize("vlm", [VLM.GOOGLE_GEMINI_2_5, VLM.GOOGLE_GEMINI_3_5])
+    def test_keeps_float_convertible_mixed_coordinates(self, vlm: VLM) -> None:
+        """Mixed float-convertible coordinates do not break valid siblings."""
+        result = json.dumps(
+            [
+                {"box_2d": [0, 0, 5, 5], "label": "cat"},
+                {"box_2d": [True, "0", 5, 6], "label": "dog"},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(1000, 1000)
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[0, 0, 5, 5], [0, 1, 6, 5]])
+
+    @pytest.mark.parametrize(
+        "vlm", [VLM.GOOGLE_GEMINI_2_0, VLM.GOOGLE_GEMINI_2_5, VLM.GOOGLE_GEMINI_3_5]
+    )
+    def test_skips_box_that_overflows_when_scaled(self, vlm: VLM) -> None:
+        """A box that overflows during scaling does not discard a valid sibling."""
+        result = json.dumps(
+            [
+                {"box_2d": [0, 0, 5, 5], "label": "cat"},
+                {"box_2d": [0, 0, 1e308, 1e308], "label": "dog"},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(2000, 2000)
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[0, 0, 10, 10]])
+
+    @pytest.mark.parametrize("vlm", [VLM.GOOGLE_GEMINI_3_6, VLM.GOOGLE_GEMINI_3_7])
+    def test_structured_skips_box_that_overflows_when_scaled(self, vlm: VLM) -> None:
+        """Structured output retains valid siblings when a scaled box overflows."""
+        result = json.dumps(
+            {
+                "boxes": [
+                    {"box_2d": [0, 0, 5, 5], "label": "cat"},
+                    {"box_2d": [0, 0, 1e308, 1e308], "label": "dog"},
+                ]
+            }
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(2000, 2000)
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[0, 0, 10, 10]])
+
     @pytest.mark.parametrize("box", GEMINI_MALFORMED_BOXES)
     @pytest.mark.parametrize(
         "vlm", [VLM.GOOGLE_GEMINI_2_0, VLM.GOOGLE_GEMINI_2_5, VLM.GOOGLE_GEMINI_3_5]
