@@ -5,12 +5,23 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import MetricResult
+from supervision.metrics.core import MetricResult, _score_bar_label
+from supervision.metrics.keypoint_mean_average_precision import (
+    KeyPointMeanAveragePrecisionResult,
+)
+from supervision.metrics.mean_average_precision import MeanAveragePrecisionResult
 from supervision.metrics.mean_average_recall import MeanAverageRecallResult
 from supervision.metrics.utils.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
     import pandas as pd
+
+#: Result types that report an undefined score as the `-1` sentinel.
+_SENTINEL_RESULT_TYPES = (
+    KeyPointMeanAveragePrecisionResult,
+    MeanAveragePrecisionResult,
+    MeanAverageRecallResult,
+)
 
 
 def aggregate_metric_results(
@@ -167,14 +178,11 @@ def plot_aggregate_metric_results(
             label=name,
             color=color,
         )
+        has_sentinel = isinstance(metric_results[model_idx], _SENTINEL_RESULT_TYPES)
         for bar in bars:
-            y_value = bar.get_height()
-            unavailable = (
-                isinstance(metric_results[model_idx], MeanAverageRecallResult)
-                and y_value == -1
+            label, label_y = _score_bar_label(
+                bar.get_height(), has_sentinel=has_sentinel
             )
-            label = "N/A" if unavailable else f"{y_value:.2f}"
-            label_y = 0.02 if unavailable else y_value + 0.02
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 label_y,
