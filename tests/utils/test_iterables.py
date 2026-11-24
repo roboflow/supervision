@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 import pytest
 
 from supervision.utils.iterables import create_batches, fill
@@ -24,6 +26,33 @@ def test_create_batches(
     """Batching preserves item order across empty, partial and full batches."""
     result = list(create_batches(sequence=sequence, batch_size=batch_size))
     assert result == expected
+
+
+class TestCreateBatchesStreaming:
+    def test_leaves_next_item_in_source(self) -> None:
+        """A full batch does not consume an item from the next batch."""
+        source = iter([1, 2, 3, 4])
+        batches = create_batches(source, 2)
+
+        batch = next(batches)
+
+        assert batch == [1, 2]
+        assert next(source) == 3
+
+    def test_yields_complete_batch_before_source_error(self) -> None:
+        """A later source error does not prevent a complete batch from being yielded."""
+
+        def source() -> Iterator[int]:
+            """Raise after producing a complete batch."""
+            yield 1
+            yield 2
+            raise RuntimeError("source failed")
+
+        batches = create_batches(source(), 2)
+
+        assert next(batches) == [1, 2]
+        with pytest.raises(RuntimeError, match="source failed"):
+            next(batches)
 
 
 @pytest.mark.parametrize(

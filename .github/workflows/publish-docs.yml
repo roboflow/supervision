@@ -6,6 +6,9 @@ name: Docs/Build and Publish
 #   release published -> mike deploy <tag> only; does not move /latest/. When the tag
 #     is the newest stable release, its own tree is built banner-free and the
 #     previously-latest tag's already-published tree is patched back to archived.
+#
+# Every deploy also publishes .github/root-404.html as the gh-pages root 404.html, which
+# redirects version-less paths such as /how_to/track_objects/ to /latest/.
 
 on:
   push:
@@ -27,12 +30,12 @@ concurrency:
 
 # Restrict permissions by default
 permissions:
-  contents: write # Required for committing to gh-pages
-  pages: write # Required for deploying to Pages
-  pull-requests: write # Required for PR comments
+  contents: read
 
 jobs:
   docs-build-deploy:
+    permissions:
+      contents: write
     name: Publish Docs
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -42,6 +45,8 @@ jobs:
       # job timeout inside this step. Shallow checkout, then fetch only what is needed.
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked] -- This job pushes documentation to gh-pages.
 
       # Source history + tags, blobless: git-revision-date-localized walks commits per
       # file and compute_is_latest_release.py reads every tag; neither reads old blobs
@@ -55,18 +60,19 @@ jobs:
         run: git fetch --depth=1 origin gh-pages
 
       - name: 🐍 Install uv and set Python
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: "3.10"
           activate-environment: true
+          enable-cache: false
 
       - name: 🏗️ Install dependencies
         run: uv sync --frozen --group docs
 
       - name: ⚙️ Configure git for github-actions
         run: |
-          git config --global user.name "${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "$GITHUB_ACTOR"
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       # MIKE_DOCS_VERSION feeds `extra.doc_version` in mkdocs.yml, which gates the
       # outdated-version banner the theme renders server-side. It must name the version
@@ -113,9 +119,11 @@ jobs:
               is_latest_release=$(python .github/scripts/compute_is_latest_release.py "$release_tag")
             fi
           fi
-          echo "is_rc=$is_rc" >> "$GITHUB_OUTPUT"
-          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
-          echo "is_latest_release=$is_latest_release" >> "$GITHUB_OUTPUT"
+          {
+            echo "is_rc=$is_rc"
+            echo "release_tag=$release_tag"
+            echo "is_latest_release=$is_latest_release"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true'
@@ -124,7 +132,7 @@ jobs:
           MIKE_DOCS_VERSION: ${{ steps.release_metadata.outputs.release_tag }}
           MIKE_IS_LATEST_RELEASE: ${{ steps.release_metadata.outputs.is_latest_release }}
         run: |
-          mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
+          mike deploy --push "$MIKE_DOCS_VERSION"
 
       # mike never rebuilds an archived tag's tree (see docs/theme/main.html), so the
       # release /latest/ pointed to a moment ago — built with
@@ -178,6 +186,12 @@ jobs:
           if git cat-file -e "$GITHUB_SHA:.github/root-index.html" 2>/dev/null; then
             git show "$GITHUB_SHA:.github/root-index.html" > /tmp/root-index.html
           fi
+          # Site-root 404: sends version-less paths such as /how_to/track_objects/ to
+          # /latest/. Optional for the same reason as root-index.html above.
+          rm -f /tmp/root-404.html
+          if git cat-file -e "$GITHUB_SHA:.github/root-404.html" 2>/dev/null; then
+            git show "$GITHUB_SHA:.github/root-404.html" > /tmp/root-404.html
+          fi
           if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
             version_dir="latest"
           else
@@ -192,6 +206,10 @@ jobs:
           if [[ -f /tmp/root-index.html ]]; then
             cp /tmp/root-index.html index.html
             files_to_add+=(index.html)
+          fi
+          if [[ -f /tmp/root-404.html ]]; then
+            cp /tmp/root-404.html 404.html
+            files_to_add+=(404.html)
           fi
           if [[ -n "$version_dir" && -f "$version_dir/sitemap.xml" ]]; then
             cp "$version_dir/sitemap.xml" sitemap.xml

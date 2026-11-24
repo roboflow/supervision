@@ -70,37 +70,81 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
     raise ValueError(f"Unsupported color conversion code: {code}")
 
 
+# OpenCV's x86-64 wheels convert 8-bit HSV in AVX2 blocks of 32 pixels per row.
+_HSV_VECTOR_BLOCK = 32
+
+# For each hue sector, which of OpenCV's four candidate values (v, p, q, t) becomes
+# blue, green and red.
+_HSV_SECTOR_CHANNELS = np.array(
+    [[1, 3, 0], [1, 0, 2], [3, 0, 1], [0, 2, 1], [0, 1, 3], [2, 1, 0]]
+)
+
+
 def _hsv_to_bgr(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
-    """Convert OpenCV's HSV representation to BGR.
+    """Convert OpenCV's HSV representation to BGR with OpenCV's float32 arithmetic.
 
     Like OpenCV, an 8-bit image holds hue in [0, 180) and saturation and value in [0,
     255], and gives BGR in [0, 255]. A float32 image holds hue in degrees, [0, 360), and
     saturation and value in [0, 1], and gives BGR in [0, 1].
+
+    OpenCV converts both depths in float32: 8-bit hue is scaled by ``6 / 180`` and
+    saturation and value by ``1 / 255``, and each channel is picked from ``v``,
+    ``v * (1 - s)``, ``v * (1 - s * f)`` and ``v * (1 - s * (1 - f))``. Float32 results
+    then match OpenCV's Windows and macOS wheels bit for bit. The Linux wheels fuse
+    ``1 - s * f`` into one multiply-add, so a few of their results differ by about
+    6e-8 in float32, or one 8-bit level. Hues of 360 degrees (180) and more wrap
+    around, as in OpenCV; OpenCV's own scalar and vector code disagree on negative
+    hues, so those are not guaranteed to match.
+
+    8-bit results are ``255 * channel``, which OpenCV's vector code truncates and its
+    scalar code, for the pixels left over at the end of each row, rounds. This follows
+    the AVX2 code of OpenCV's x86-64 wheels: whole blocks of 32 pixels are truncated
+    and the rest of the row is rounded. Builds converting other block sizes, such as
+    ARM ones, can differ by one level only in the last pixels of a row.
+
+    Example:
+        ```pycon
+        >>> hsv = np.full((1, 33, 3), (1, 255, 255), dtype=np.uint8)
+        >>> bgr = _hsv_to_bgr(hsv)
+        >>> bgr[0, 0].tolist(), bgr[0, 32].tolist()
+        ([0, 8, 255], [0, 9, 255])
+
+        ```
     """
-    values = image.astype(np.float64)
+    float32 = np.float32
+    one = float32(1)
     if image.dtype == np.float32:
-        hue = values[..., 0] / 60.0
-        saturation = values[..., 1]
-        value = values[..., 2]
-        scale = 1.0
+        hue = image[..., 0] * float32(1 / 60)
+        saturation = image[..., 1]
+        value = image[..., 2]
     else:
-        hue = values[..., 0] / 30.0
-        saturation = values[..., 1] / 255.0
-        value = values[..., 2] / 255.0
-        scale = 255.0
+        hue = image[..., 0].astype(float32) * float32(6 / 180)
+        saturation = image[..., 1].astype(float32) * float32(1 / 255)
+        value = image[..., 2].astype(float32) * float32(1 / 255)
 
-    chroma = value * saturation
-    sector_index = np.floor(hue).astype(np.int64) % 6
-    sector = hue - np.floor(hue)
-    x = chroma * (1 - np.abs(((sector_index + sector) % 2) - 1))
-    match = value - chroma
-    zeros = np.zeros_like(chroma)
-
-    red = np.choose(sector_index, (chroma, x, zeros, zeros, x, chroma))
-    green = np.choose(sector_index, (x, chroma, chroma, x, zeros, zeros))
-    blue = np.choose(sector_index, (zeros, zeros, x, chroma, chroma, x))
-    bgr = np.stack((blue + match, green + match, red + match), axis=-1) * scale
-    return _cast_array_like_opencv(bgr, image.dtype)
+    with np.errstate(invalid="ignore"):
+        whole = np.floor(hue)
+        fraction = hue - whole
+        sector = np.nan_to_num(whole).astype(np.int64) % 6
+    candidates = np.stack(
+        (
+            value,
+            value * (one - saturation),
+            value * (one - saturation * fraction),
+            value * (one - saturation * (one - fraction)),
+        ),
+        axis=-1,
+    )
+    bgr = np.take_along_axis(candidates, _HSV_SECTOR_CHANNELS[sector], axis=-1)
+    # Gray pixels take the value directly, whatever the hue.
+    bgr = np.where((saturation == 0)[..., np.newaxis], value[..., np.newaxis], bgr)
+    if image.dtype == np.float32:
+        return np.ascontiguousarray(bgr, dtype=np.float32)
+    scaled = bgr * float32(255)
+    width = image.shape[1]
+    vector_columns = np.arange(width) < width - width % _HSV_VECTOR_BLOCK
+    levels = np.where(vector_columns[:, np.newaxis], np.trunc(scaled), np.rint(scaled))
+    return _cast_array_like_opencv(levels, image.dtype)
 
 
 def _split(image: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], ...]:

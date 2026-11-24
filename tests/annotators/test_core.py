@@ -213,6 +213,24 @@ class TestBoxAnnotator:
     essential for users to visualize detection results.
     """
 
+    def test_track_lookup_explains_missing_tracker(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Missing track IDs explain how to populate detections before annotation."""
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        annotator = BoxAnnotator(color_lookup=ColorLookup.TRACK)
+
+        with pytest.raises(
+            ValueError, match="Could not resolve color by track"
+        ) as exc_info:
+            annotator.annotate(scene=test_image, detections=detections)
+
+        assert str(exc_info.value) == (
+            "Could not resolve color by track because "
+            "Detections do not have tracker_id. Did you run a tracker's "
+            "update(...) method (e.g. ByteTrackTracker) before annotating?"
+        )
+
     def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
         """Verify that annotation with no detections does not change the image.
 
@@ -960,6 +978,290 @@ class TestSingleChannelMaskAnnotators:
         assert result.getpixel((2, 2)) == 50
 
 
+class TestBgraMaskAnnotators:
+    """Verify mask-painting annotators on BGRA scenes."""
+
+    @staticmethod
+    def _detections() -> Detections:
+        """Return one square mask detection inside a 30x40 scene."""
+        mask = np.zeros((1, 30, 40), dtype=bool)
+        mask[0, 8:20, 10:26] = True
+        xyxy = np.array([[10, 8, 25, 19]], dtype=np.float32)
+        return Detections(xyxy=xyxy, mask=mask, class_id=np.array([0]))
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(MaskAnnotator(opacity=0.6), id="mask"),
+            pytest.param(HaloAnnotator(kernel_size=5), id="halo"),
+            pytest.param(BackgroundOverlayAnnotator(), id="background-overlay"),
+        ],
+    )
+    def test_opaque_bgra_matches_bgr_scene(
+        self, annotator: MaskAnnotator | HaloAnnotator | BackgroundOverlayAnnotator
+    ) -> None:
+        """An opaque BGRA scene gets the colors of its BGR copy and stays opaque."""
+        bgr = (np.arange(30 * 40 * 3) % 251).astype(np.uint8).reshape(30, 40, 3)
+        scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
+        detections = self._detections()
+        expected = annotator.annotate(scene=bgr.copy(), detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_comparison_opaque_bgra_matches_bgr_scene(self) -> None:
+        """Compared masks get the colors of the BGR copy on an opaque BGRA scene."""
+        bgr = np.full((30, 40, 3), 50, dtype=np.uint8)
+        scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
+        detections = self._detections()
+        annotator = ComparisonAnnotator()
+        expected = annotator.annotate(bgr.copy(), detections, Detections.empty())
+
+        result = annotator.annotate(scene, detections, Detections.empty())
+
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_mask_makes_transparent_bgra_scene_more_opaque(self) -> None:
+        """A mask blended over a transparent BGRA scene raises the alpha it covers."""
+        scene = np.zeros((30, 40, 4), dtype=np.uint8)
+
+        result = MaskAnnotator(opacity=0.5).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        assert result[12, 18, 3] == 128
+        assert result[2, 2, 3] == 0
+
+    @pytest.mark.parametrize(
+        ("annotator", "pixel"),
+        [
+            pytest.param(
+                MaskAnnotator(color=Color.RED, opacity=0.5), (12, 18), id="mask"
+            ),
+            pytest.param(
+                BackgroundOverlayAnnotator(color=Color.RED, opacity=0.5),
+                (2, 2),
+                id="background",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("background_alpha", "expected"),
+        [
+            pytest.param(0, [0, 0, 255, 128], id="transparent"),
+            pytest.param(128, [0, 67, 170, 192], id="translucent"),
+        ],
+    )
+    def test_transparent_background_does_not_tint_color(
+        self,
+        annotator: MaskAnnotator | BackgroundOverlayAnnotator,
+        pixel: tuple[int, int],
+        background_alpha: int,
+        expected: list[int],
+    ) -> None:
+        """Paint colors weight the destination RGB by its alpha."""
+        scene = np.full((30, 40, 4), (0, 200, 0, background_alpha), dtype=np.uint8)
+
+        result = annotator.annotate(scene, self._detections())
+
+        np.testing.assert_array_equal(result[pixel], expected)
+
+    def test_comparison_composites_transparent_background(self) -> None:
+        """Comparison colors retain their intensity over transparent pixels."""
+        scene = np.full((30, 40, 4), (0, 200, 0, 0), dtype=np.uint8)
+        annotator = ComparisonAnnotator(color_1=Color.RED, opacity=0.5)
+
+        result = annotator.annotate(scene, self._detections(), Detections.empty())
+
+        np.testing.assert_array_equal(result[12, 18], [0, 0, 255, 128])
+
+    def test_halo_ignores_hidden_background_color(self) -> None:
+        """Halo pixels do not contain colors hidden by zero destination alpha."""
+        scene = np.full((30, 40, 4), (0, 200, 0, 0), dtype=np.uint8)
+        annotator = HaloAnnotator(color=Color.RED, opacity=0.5, kernel_size=5)
+
+        result = annotator.annotate(scene, self._detections())
+
+        assert result[7, 12, 3] > 0
+        assert result[7, 12, 1] == 0
+        assert result[7, 12, 2] > 0
+
+    def test_comparison_labels_preserve_opaque_alpha(self) -> None:
+        """Comparison legends remain visible on an opaque BGRA scene."""
+        scene = np.full((200, 400, 4), 255, dtype=np.uint8)
+        annotator = ComparisonAnnotator(label_1="first")
+        detections = Detections(xyxy=np.array([[0, 0, 10, 10]]))
+
+        result = annotator.annotate(scene, detections, Detections.empty())
+
+        assert (result[..., 3] == 255).all()
+
+    def test_comparison_labels_cover_transparent_scene(self) -> None:
+        """A legend becomes visible without changing unrelated transparent pixels."""
+        scene = np.zeros((200, 400, 4), dtype=np.uint8)
+        annotator = ComparisonAnnotator(label_1="first")
+        detections = Detections(xyxy=np.array([[0, 0, 10, 10]]))
+
+        result = annotator.annotate(scene, detections, Detections.empty())
+
+        assert result[70, 70, 3] == 255
+        assert result[199, 399, 3] == 0
+
+    def test_comparison_label_ink_outside_tiny_legend_is_visible(self) -> None:
+        """Label ink spilling past a tiny legend is visible on a transparent scene."""
+        scene = np.zeros((60, 200, 4), dtype=np.uint8)
+        scene[..., :3] = 255
+        annotator = ComparisonAnnotator(label_1="gjpqy", label_scale=0.1)
+        detections = Detections(xyxy=np.array([[150, 40, 160, 50]]))
+
+        result = annotator.annotate(scene, detections, Detections.empty())
+
+        darkened = np.any(result[:35, 10:100, :3] != 255, axis=2)
+        assert np.any(darkened)
+        assert not np.any(darkened & (result[:35, 10:100, 3] == 0))
+
+
+class TestBgraMaskAnnotatorsParity:
+    """Verify mask-painting annotators on four-channel BGRA scenes."""
+
+    @staticmethod
+    def _detections(compact: bool = False) -> Detections:
+        """Return one square mask detection inside a 30x40 scene."""
+        mask = np.zeros((1, 30, 40), dtype=bool)
+        mask[0, 8:20, 10:26] = True
+        xyxy = np.array([[10, 8, 25, 19]], dtype=np.float32)
+        masks = CompactMask.from_dense(mask, xyxy, (30, 40)) if compact else mask
+        return Detections(xyxy=xyxy, mask=masks, class_id=np.array([0]))
+
+    @staticmethod
+    def _annotate(
+        annotator: MaskAnnotator
+        | HaloAnnotator
+        | BackgroundOverlayAnnotator
+        | ComparisonAnnotator,
+        scene: npt.NDArray[np.uint8],
+        detections: Detections,
+    ) -> npt.NDArray[np.uint8]:
+        """Annotate `scene`, comparing `detections` with an empty set if needed."""
+        if isinstance(annotator, ComparisonAnnotator):
+            result = annotator.annotate(scene, detections, Detections.empty())
+        else:
+            result = annotator.annotate(scene=scene, detections=detections)
+        return np.asarray(result, dtype=np.uint8)
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(MaskAnnotator(opacity=0.6), id="mask"),
+            pytest.param(HaloAnnotator(kernel_size=5), id="halo"),
+            pytest.param(BackgroundOverlayAnnotator(), id="background-overlay"),
+            pytest.param(ComparisonAnnotator(), id="comparison"),
+        ],
+    )
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_bgra_matches_color_scene_and_stays_opaque(
+        self,
+        annotator: MaskAnnotator
+        | HaloAnnotator
+        | BackgroundOverlayAnnotator
+        | ComparisonAnnotator,
+        compact: bool,
+    ) -> None:
+        """An opaque BGRA scene gets the BGR result and keeps an opaque alpha.
+
+        BGRA compositing rounds where some BGR blends truncate, so colors may differ by
+        one level.
+        """
+        bgr = np.arange(30 * 40 * 3, dtype=np.uint8).reshape(30, 40, 3)
+        scene = np.dstack([bgr, np.full((30, 40), 255, dtype=np.uint8)])
+        detections = self._detections(compact=compact)
+        expected = self._annotate(annotator, bgr.copy(), detections)
+
+        result = self._annotate(annotator, scene, detections)
+
+        assert result is scene
+        assert result.shape == (30, 40, 4)
+        np.testing.assert_allclose(
+            result[..., :3].astype(np.int16), expected.astype(np.int16), atol=1
+        )
+        assert not np.array_equal(result[..., :3], bgr)
+        np.testing.assert_array_equal(result[..., 3], 255)
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(MaskAnnotator(opacity=0.4), id="mask"),
+            pytest.param(HaloAnnotator(kernel_size=5), id="halo"),
+            pytest.param(
+                BackgroundOverlayAnnotator(opacity=0.4), id="background-overlay"
+            ),
+            pytest.param(ComparisonAnnotator(opacity=0.4), id="comparison"),
+        ],
+    )
+    def test_hidden_colors_of_transparent_bgra_scene_do_not_show(
+        self,
+        annotator: MaskAnnotator
+        | HaloAnnotator
+        | BackgroundOverlayAnnotator
+        | ComparisonAnnotator,
+    ) -> None:
+        """On a fully transparent scene, its hidden colors do not tint annotations."""
+        detections = self._detections()
+        black = np.zeros((30, 40, 4), dtype=np.uint8)
+        white = black.copy()
+        white[..., :3] = 255
+
+        on_black = self._annotate(annotator, black, detections)
+        on_white = self._annotate(annotator, white, detections)
+
+        drawn = on_black[..., 3] > 0
+        assert drawn.any()
+        np.testing.assert_array_equal(on_black[drawn], on_white[drawn])
+
+    @pytest.mark.parametrize(
+        "scene_alpha",
+        [pytest.param(0, id="transparent"), pytest.param(128, id="translucent")],
+    )
+    def test_mask_composites_fractional_opacity_over_bgra_scene(
+        self, scene_alpha: int
+    ) -> None:
+        """A translucent mask composites over the scene's alpha ("over" operator)."""
+        scene = np.full((30, 40, 4), (0, 0, 0, scene_alpha), dtype=np.uint8)
+        color = Color(r=10, g=20, b=200)
+        opacity = 0.4
+        scene_weight = (1 - opacity) * scene_alpha / 255
+        output_alpha = opacity + scene_weight
+        expected = [
+            *(opacity * value / output_alpha for value in (color.b, color.g, color.r)),
+            255 * output_alpha,
+        ]
+
+        result = MaskAnnotator(color=color, opacity=opacity).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        np.testing.assert_allclose(result[12, 18], expected, atol=1)
+        assert result[2, 2].tolist() == [0, 0, 0, scene_alpha]
+
+    def test_mask_composites_over_transparent_bgra_scene(self) -> None:
+        """A fully opaque mask makes its pixels opaque and leaves the rest as is."""
+        scene = np.zeros((30, 40, 4), dtype=np.uint8)
+        color = Color(r=10, g=20, b=200)
+
+        result = MaskAnnotator(color=color, opacity=1.0).annotate(
+            scene=scene, detections=self._detections()
+        )
+
+        assert result[12, 18].tolist() == [color.b, color.g, color.r, 255]
+        assert result[2, 2].tolist() == [0, 0, 0, 0]
+
+
 class TestPaintMasksByArea:
     """Tests for the _paint_masks_by_area helper function."""
 
@@ -1294,6 +1596,77 @@ class TestHeatMapAnnotator:
         assert result.getpixel((40, 40)) != 100
         assert result.getpixel((2, 2)) == 100
 
+    def test_bgra_matches_color_scene_and_stays_opaque(self) -> None:
+        """An opaque BGRA scene gets the BGR heat map and keeps an opaque alpha."""
+        bgr = np.arange(60 * 80 * 3, dtype=np.uint8).reshape(60, 80, 3)
+        scene = np.dstack([bgr, np.full((60, 80), 255, dtype=np.uint8)])
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        expected = HeatMapAnnotator().annotate(scene=bgr.copy(), detections=detections)
+
+        result = HeatMapAnnotator().annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == (60, 80, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        np.testing.assert_array_equal(result[..., 3], 255)
+
+    def test_bgra_heat_composites_over_transparent_scene(self) -> None:
+        """Opaque heat on a transparent scene is opaque; other pixels stay clear."""
+        scene = np.zeros((60, 80, 4), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        annotator = HeatMapAnnotator(opacity=1.0)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert annotator.heat_mask is not None
+        heat = annotator.heat_mask > 0
+        assert heat.any()
+        np.testing.assert_array_equal(result[..., 3][heat], 255)
+        np.testing.assert_array_equal(result[..., 3][~heat], 0)
+
+    def test_bgra_hidden_colors_of_transparent_scene_do_not_show(self) -> None:
+        """On a fully transparent scene, its hidden colors do not tint the heat."""
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        black = np.zeros((60, 80, 4), dtype=np.uint8)
+        white = black.copy()
+        white[..., :3] = 255
+
+        on_black = HeatMapAnnotator().annotate(scene=black, detections=detections)
+        on_white = HeatMapAnnotator().annotate(scene=white, detections=detections)
+
+        heat = on_black[..., 3] > 0
+        assert heat.any()
+        np.testing.assert_array_equal(on_black[heat], on_white[heat])
+
+    @pytest.mark.parametrize(
+        "scene_alpha",
+        [pytest.param(0, id="transparent"), pytest.param(128, id="translucent")],
+    )
+    def test_bgra_fractional_opacity_composites_over_scene(
+        self, scene_alpha: int
+    ) -> None:
+        """Heat at fractional opacity composites over the scene's alpha ("over")."""
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        bgr = np.zeros((60, 80, 3), dtype=np.uint8)
+        opacity = 0.2
+        heat_on_black = (
+            HeatMapAnnotator(opacity=1.0)
+            .annotate(scene=bgr, detections=detections)[30, 40]
+            .astype(np.float64)
+        )
+        scene = np.full((60, 80, 4), (0, 0, 0, scene_alpha), dtype=np.uint8)
+        scene_weight = (1 - opacity) * scene_alpha / 255
+        output_alpha = opacity + scene_weight
+        expected = [*(opacity * heat_on_black / output_alpha), 255 * output_alpha]
+
+        result = HeatMapAnnotator(opacity=opacity).annotate(
+            scene=scene, detections=detections
+        )
+
+        np.testing.assert_allclose(result[30, 40], expected, atol=1)
+        assert result[2, 2].tolist() == [0, 0, 0, scene_alpha]
+
 
 class TestCenterOfMassPosition:
     """Tests for annotators anchored at `Position.CENTER_OF_MASS`."""
@@ -1534,9 +1907,64 @@ class TestLabelAnnotator:
         assert np.min(background_rows) < np.min(text_rows)
         assert np.max(text_rows) < np.max(background_rows)
 
+    @pytest.mark.parametrize("annotator_class", [LabelAnnotator, RichLabelAnnotator])
+    def test_integer_zero_label_is_drawn_like_its_text(
+        self, annotator_class: type[LabelAnnotator | RichLabelAnnotator]
+    ) -> None:
+        """Integer label `0` is drawn the same as the string label `"0"`."""
+        scene = np.zeros((80, 100, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[10, 40, 90, 70]], class_id=[0])
+        annotator = annotator_class()
+
+        result = annotator.annotate(
+            scene=scene.copy(), detections=detections, labels=cast(list[str], [0])
+        )
+
+        expected = annotator.annotate(
+            scene=scene.copy(), detections=detections, labels=["0"]
+        )
+        assert np.array_equal(result, expected)
+
 
 class TestRichLabelAnnotator:
     """Tests for RichLabelAnnotator class."""
+
+    @pytest.mark.parametrize(
+        "label",
+        [
+            pytest.param("مرحبا بالعالم " * 4, id="arabic"),
+            pytest.param("שלום עולם " * 4, id="hebrew"),
+            pytest.param(
+                "Long Latin label " * 4 + "\n" + "مرحبا بالعالم " * 4, id="mixed"
+            ),
+        ],
+    )
+    def test_oversized_rtl_label_keeps_leading_text_in_frame(
+        self, monkeypatch: pytest.MonkeyPatch, label: str
+    ) -> None:
+        """Keep the leading edge of oversized shaped text visible."""
+        khatt = pytest.importorskip("khatt")
+        original_draw = khatt.draw_text
+        right_edges: list[float] = []
+
+        def record_draw(image: Image.Image, xy: Any, text: str, **kwargs: Any) -> Any:
+            """Record the rendered ink boundary while drawing the text."""
+            options = {key: value for key, value in kwargs.items() if key != "fill"}
+            right_edges.append(xy[0] + khatt.text_bbox(text, **options)[2])
+            return original_draw(image, xy, text, **kwargs)
+
+        monkeypatch.setattr(khatt, "draw_text", record_draw)
+        scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[10, 40, 20, 70]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            font_size=24, smart_position=True, text_position=Position.TOP_LEFT
+        )
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=[label])
+
+        assert right_edges
+        assert all(0 < edge <= scene.shape[1] for edge in right_edges)
+        assert np.any(np.all(result == 255, axis=-1))
 
     def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
         """Test that annotate method returns unmodified image when no detections."""
@@ -1553,6 +1981,96 @@ class TestRichLabelAnnotator:
             scene=test_image.copy(), detections=detections, labels=["test"]
         )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.95)
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((100, 100), id="two-dimensional"),
+            pytest.param((100, 100, 1), id="singleton-channel"),
+        ],
+    )
+    def test_array_grayscale_scene_draws_blue_channel(
+        self, shape: tuple[int, ...]
+    ) -> None:
+        """A grayscale array gets the blue channel of the background, in its shape."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        color = Color(r=10, g=20, b=200)
+        scene = np.zeros(shape, dtype=np.uint8)
+
+        result = RichLabelAnnotator(color=color).annotate(
+            scene=scene, detections=detections, labels=["a"]
+        )
+
+        assert result is scene
+        assert result.shape == shape
+        assert 200 in result
+
+    def test_array_bgra_scene_matches_bgr_scene(self) -> None:
+        """A BGRA array gets the label colors of its BGR copy and keeps its alpha."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        bgr = np.full((100, 100, 3), 50, dtype=np.uint8)
+        alpha = (np.arange(10000).reshape(100, 100) % 200).astype(np.uint8)
+        scene = np.dstack([bgr, alpha])
+        expected = RichLabelAnnotator().annotate(
+            scene=bgr.copy(), detections=detections, labels=["a"]
+        )
+
+        result = RichLabelAnnotator().annotate(
+            scene=scene, detections=detections, labels=["a"]
+        )
+
+        assert result is scene
+        np.testing.assert_array_equal(result[..., :3], expected)
+        drawn = np.any(expected != bgr, axis=2)
+        assert np.any(drawn)
+        np.testing.assert_array_equal(result[..., 3][~drawn], alpha[~drawn])
+        assert np.all(result[..., 3][drawn] == 255)
+
+    @pytest.mark.parametrize(
+        "label",
+        [".", "a", pytest.param("a\n.", id="two-lines")],
+    )
+    def test_unpadded_label_ink_stays_on_opaque_background(self, label: str) -> None:
+        """Without padding, glyph ink lands on the opaque box, not around it."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        annotator = RichLabelAnnotator(
+            text_padding=0, font_size=20, color=Color.BLACK, text_color=Color.WHITE
+        )
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=[label])
+
+        alpha = result[..., 3]
+        assert np.any(alpha == 255)
+        assert np.any(result[..., :3] > 0)
+        assert np.all((alpha == 0) | (alpha == 255))
+
+    @pytest.mark.parametrize(
+        ("mode", "expected"),
+        [
+            pytest.param("1", 255, id="one-bit"),
+            pytest.param("L", 200, id="eight-bit"),
+            pytest.param("LA", (200, 255), id="eight-bit-alpha"),
+            pytest.param("I", 200 * 257, id="signed-32-bit"),
+            pytest.param("I;16", 200 * 257, id="sixteen-bit"),
+            pytest.param("F", 200.0, id="float"),
+        ],
+    )
+    def test_pillow_grayscale_scene_draws_label_background(
+        self, mode: str, expected: float | tuple[int, ...]
+    ) -> None:
+        """Every Pillow grayscale mode draws the background in its own value range."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            color=Color(r=10, g=20, b=200), text_position=Position.TOP_LEFT
+        )
+        scene = Image.new(mode, (100, 100))
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=["a"])
+
+        assert result is scene
+        assert result.mode == mode
+        assert result.getpixel((21, 39)) == expected
 
     def test_smart_position_spreads_boxes_once(
         self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
@@ -2141,9 +2659,168 @@ class TestCropAnnotator:
             "Regression: source_scene must be scene.copy(), not an alias."
         )
 
+    def test_bgra_scene_matches_color_scene(self) -> None:
+        """A BGRA scene gets the BGR crops and keeps its alpha under the crop.
+
+        The 2x crop of the 20x15 box is pasted at columns 20-60, rows 0-30; alpha is
+        checked inside it, away from the border `cv2.rectangle` draws around it.
+        """
+        bgr = np.arange(60 * 80 * 3, dtype=np.uint8).reshape(60, 80, 3)
+        scene = np.dstack([bgr, np.full((60, 80), 255, dtype=np.uint8)])
+        detections = _create_detections(xyxy=[[30, 30, 50, 45]], class_id=[0])
+        annotator = CropAnnotator()
+        expected = annotator.annotate(scene=bgr.copy(), detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result.shape == (60, 80, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        np.testing.assert_array_equal(result[3:27, 23:57, 3], 255)
+
+
+class TestBgraOverlayAnnotators:
+    """Verify annotators that paste an overlay onto BGRA scenes."""
+
+    @staticmethod
+    def _scenes() -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
+        """Return a 48x48 BGR scene and its opaque BGRA copy."""
+        bgr = (np.arange(48 * 48 * 3) % 251).astype(np.uint8).reshape(48, 48, 3)
+        bgra = np.dstack([bgr, np.full((48, 48), 255, dtype=np.uint8)])
+        return bgr, bgra
+
+    def test_heat_map_opaque_bgra_matches_bgr_scene(self) -> None:
+        """A heat map on an opaque BGRA scene has the BGR colors and stays opaque."""
+        bgr, scene = self._scenes()
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = HeatMapAnnotator(radius=6).annotate(bgr.copy(), detections)
+
+        result = HeatMapAnnotator(radius=6).annotate(scene, detections)
+
+        assert result is scene
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_crop_opaque_bgra_matches_bgr_scene(self) -> None:
+        """A crop pasted onto an opaque BGRA scene has the colors of the BGR copy."""
+        bgr, scene = self._scenes()
+        detections = _create_detections(xyxy=[[8, 16, 24, 32]], class_id=[0])
+        expected = CropAnnotator().annotate(bgr.copy(), detections)
+
+        result = CropAnnotator().annotate(scene, detections)
+
+        assert result.shape == (48, 48, 4)
+        # Resizing a four-channel crop can round one level away from the BGR resize.
+        np.testing.assert_allclose(
+            result[..., :3].astype(int), expected.astype(int), atol=1
+        )
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_heat_map_on_transparent_scene_preserves_overlay_color(self) -> None:
+        """A translucent heat map does not mix in hidden destination colors."""
+        scene = np.zeros((48, 48, 4), dtype=np.uint8)
+        scene[..., 0] = 255
+        detections = _create_detections(xyxy=[[8, 8, 24, 24]], class_id=[0])
+        annotator = HeatMapAnnotator(opacity=0.5, radius=4, kernel_size=None)
+
+        result = annotator.annotate(scene, detections)
+
+        np.testing.assert_array_equal(result[24, 16], [0, 0, 255, 128])
+
+    def test_translucent_icon_on_transparent_scene_preserves_color(
+        self, tmp_path: Path
+    ) -> None:
+        """A translucent icon keeps its straight color over a transparent scene."""
+        icon_path = tmp_path / "translucent.png"
+        Image.new("RGBA", (16, 16), (255, 0, 0, 128)).save(icon_path)
+        scene = np.zeros((48, 48, 4), dtype=np.uint8)
+        scene[..., 0] = 255
+        detections = _create_detections(xyxy=[[8, 8, 24, 24]], class_id=[0])
+        annotator = IconAnnotator(icon_resolution_wh=(16, 16))
+
+        result = annotator.annotate(scene, detections, icon_path=str(icon_path))
+
+        np.testing.assert_array_equal(result[8, 16], [0, 0, 255, 128])
+
+    def test_icon_opaque_bgra_matches_bgr_scene(self, tmp_path: Path) -> None:
+        """An icon drawn on an opaque BGRA scene has the BGR colors and stays opaque."""
+        icon_path = tmp_path / "icon.png"
+        Image.fromarray(np.full((16, 16, 3), 200, dtype=np.uint8)).save(icon_path)
+        bgr, scene = self._scenes()
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        annotator = IconAnnotator(icon_resolution_wh=(16, 16))
+        expected = annotator.annotate(bgr.copy(), detections, icon_path=str(icon_path))
+
+        result = annotator.annotate(scene, detections, icon_path=str(icon_path))
+
+        np.testing.assert_array_equal(result[..., :3], expected)
+        assert not np.array_equal(result[..., :3], bgr)
+        assert (result[..., 3] == 255).all()
+
+    def test_scaled_crop_hides_color_of_transparent_pixels(self) -> None:
+        """Scaling a crop does not bleed the color hidden under transparent pixels."""
+        scene = np.zeros((64, 64, 4), dtype=np.uint8)
+        scene[..., 2] = 255
+        scene[16:32, 16:32] = (0, 255, 0, 255)
+        detections = _create_detections(xyxy=[[8, 8, 24, 24]], class_id=[0])
+        annotator = CropAnnotator(
+            position=Position.BOTTOM_RIGHT, border_color=Color.GREEN
+        )
+
+        result = annotator.annotate(scene, detections)
+
+        visible = result[..., 3] > 0
+        assert np.any(visible & (result[..., 3] < 255))
+        assert np.all(result[..., 2][visible] == 0)
+
+    def test_resized_icon_hides_color_of_transparent_pixels(
+        self, tmp_path: Path
+    ) -> None:
+        """Resizing an icon does not bleed the color hidden under its transparency."""
+        icon_path = tmp_path / "half-transparent.png"
+        icon = np.zeros((8, 8, 4), dtype=np.uint8)
+        icon[..., 0] = 255
+        icon[:, 4:] = (0, 255, 0, 255)
+        Image.fromarray(icon).save(icon_path)
+        scene = np.zeros((48, 48, 4), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[8, 8, 40, 40]], class_id=[0])
+        annotator = IconAnnotator(icon_resolution_wh=(16, 16))
+
+        result = annotator.annotate(scene, detections, icon_path=str(icon_path))
+
+        visible = result[..., 3] > 0
+        assert np.any(visible & (result[..., 3] < 255))
+        assert np.all(result[..., 2][visible] == 0)
+
 
 class TestIconAnnotator:
     """Tests for IconAnnotator class."""
+
+    def test_bgra_scene_composites_icon_alpha(self, tmp_path: Path) -> None:
+        """A BGRA scene gets the BGR icon colors; icon alpha composites over its own."""
+        icon = np.zeros((16, 16, 4), dtype=np.uint8)
+        icon[4:12, 4:12] = (255, 0, 0, 255)
+        icon_path = tmp_path / "icon.png"
+        Image.fromarray(icon[..., [2, 1, 0, 3]], mode="RGBA").save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        annotator = IconAnnotator(icon_resolution_wh=(16, 16))
+        expected = annotator.annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        result = annotator.annotate(
+            scene=np.zeros((48, 48, 4), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        assert result.shape == (48, 48, 4)
+        np.testing.assert_array_equal(result[..., :3], expected)
+        np.testing.assert_array_equal(result[..., 3], np.any(expected, axis=2) * 255)
 
     @pytest.mark.parametrize(
         ("icon_shape_hw", "expected_slice"),

@@ -487,7 +487,7 @@ class ColorPalette:
             ```pycon
             >>> import supervision as sv
             >>> sv.ColorPalette.from_matplotlib('viridis', 5)  # doctest: +ELLIPSIS
-            ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=58, g=82, b=139), ...])
+            ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=59, g=82, b=139), ...])
 
             ```
 
@@ -515,8 +515,13 @@ class ColorPalette:
             )
             colors = [mpl_palette(position) for position in positions]
 
+        # Round like `matplotlib.colors.to_hex`; truncating turns channels stored as
+        # `n / 255` floats, such as 0.0902 for 23, into `n - 1`.
         return cls(
-            [Color(int(r * 255), int(g * 255), int(b * 255)) for r, g, b, _ in colors]
+            [
+                Color(round(r * 255), round(g * 255), round(b * 255))
+                for r, g, b, _ in colors
+            ]
         )
 
     def by_idx(self, idx: int) -> Color:

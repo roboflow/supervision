@@ -65,6 +65,10 @@ class Classifications:
         Returns:
             A new Classifications object.
 
+        Note:
+            Bfloat16 probabilities are returned as float32 because NumPy has no
+            native bfloat16 dtype. Other dtypes keep their existing behavior.
+
         Example:
             ```python
             from PIL import Image
@@ -82,7 +86,10 @@ class Classifications:
             ```
         """
 
-        confidence = clip_results.softmax(dim=-1).cpu().detach().numpy()[0]
+        probabilities = clip_results.softmax(dim=-1).cpu().detach()
+        if str(probabilities.dtype) == "torch.bfloat16":
+            probabilities = probabilities.float()
+        confidence = probabilities.numpy()[0]
 
         if len(confidence) == 0:
             return cls(
@@ -131,6 +138,8 @@ class Classifications:
         Note:
             Returned confidences are softmax-normalized probabilities, so
             thresholds calibrated against raw logits may need recalibration.
+            Bfloat16 probabilities are returned as float32 because NumPy has no
+            native bfloat16 dtype. Other dtypes keep their existing behavior.
 
         Args:
             timm_results: The inference result from timm model.
@@ -161,7 +170,10 @@ class Classifications:
             classifications = sv.Classifications.from_timm(output)
             ```
         """
-        confidence = timm_results.softmax(dim=-1).cpu().detach().numpy()[0]
+        probabilities = timm_results.softmax(dim=-1).cpu().detach()
+        if str(probabilities.dtype) == "torch.bfloat16":
+            probabilities = probabilities.float()
+        confidence = probabilities.numpy()[0]
 
         if len(confidence) == 0:
             return cls(
@@ -177,6 +189,9 @@ class Classifications:
     ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating]]:
         """Retrieve the top k class IDs and confidences, ordered in descending order by
         confidence.
+
+        Classes with equal confidence keep their input order, and a NaN confidence
+        ranks below every number.
 
         Args:
             k: The number of top class IDs and confidences to retrieve.
@@ -205,7 +220,16 @@ class Classifications:
         if k < 0:
             raise ValueError("k must be non-negative")
 
-        order = np.argsort(self.confidence)[::-1]
+        # Reverse before and after a stable ascending sort to preserve tie order
+        # without narrowing scores or overflowing when negating integer values.
+        order = (
+            len(self.confidence)
+            - 1
+            - np.argsort(self.confidence[::-1], kind="stable")[::-1]
+        )
+        # Descending order puts NaNs first; move them behind all numeric scores.
+        nan_mask = np.isnan(self.confidence[order])
+        order = np.concatenate((order[~nan_mask], order[nan_mask]))
         top_k_order = order[:k]
         top_k_class_id = self.class_id[top_k_order]
         top_k_confidence = self.confidence[top_k_order]

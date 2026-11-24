@@ -13,7 +13,9 @@ class _MockTensor:
     """Minimal tensor double that supports the tensor chain used by adapters."""
 
     def __init__(self, value: np.ndarray) -> None:
+        """Store the backing values and expose their dtype for adapter conversion."""
         self.value = value
+        self.dtype = value.dtype
 
     def softmax(self, dim: int) -> _MockTensor:
         """Return a tensor double with softmax applied along the requested axis."""
@@ -135,6 +137,43 @@ def test_from_timm_softmaxes_logits() -> None:
     assert np.isclose(np.sum(result.confidence), 1.0)
 
 
+class TestClassificationTensorPrecision:
+    """Framework adapters preserve representable probabilities across precisions."""
+
+    @pytest.mark.parametrize("adapter", ["from_clip", "from_timm"])
+    @pytest.mark.parametrize(
+        "dtype_name", ["bfloat16", "float16", "float32", "float64"]
+    )
+    @pytest.mark.parametrize("class_count", [0, 3])
+    @pytest.mark.parametrize("requires_grad", [False, True])
+    def test_preserves_probabilities_in_a_numpy_supported_dtype(
+        self,
+        adapter: str,
+        dtype_name: str,
+        class_count: int,
+        requires_grad: bool,
+    ) -> None:
+        """Convert framework probabilities without losing their values or precision."""
+        torch = pytest.importorskip("torch")
+        logits = torch.arange(class_count, dtype=getattr(torch, dtype_name)).reshape(
+            1, -1
+        )
+        logits.requires_grad_(requires_grad)
+        expected_dtype = np.float32 if dtype_name == "bfloat16" else dtype_name
+        if class_count == 0:
+            expected_dtype = np.float32
+        expected = np.array(
+            logits.softmax(dim=-1).detach().tolist()[0], dtype=expected_dtype
+        )
+
+        result = getattr(Classifications, adapter)(logits)
+
+        np.testing.assert_array_equal(result.class_id, np.arange(class_count))
+        np.testing.assert_array_equal(result.confidence, expected)
+        assert result.confidence is not None
+        assert result.confidence.dtype == expected.dtype
+
+
 def test_classifications_compare_numpy_fields_by_value() -> None:
     """Classifications equality handles NumPy arrays and confidence values."""
     left = Classifications(
@@ -152,3 +191,86 @@ def test_classifications_compare_numpy_fields_by_value() -> None:
 
     assert left == right
     assert left != different
+
+
+class TestClassificationsGetTopK:
+    """Order of the classes that `Classifications.get_top_k` returns."""
+
+    def test_returns_first_class_among_tied_top_scores(self) -> None:
+        """A tie for the best score goes to the earlier class, as `np.argmax`."""
+        classifications = Classifications(
+            class_id=np.array([0, 1, 2]), confidence=np.array([0.4, 0.4, 0.2])
+        )
+
+        class_id, confidence = classifications.get_top_k(1)
+
+        np.testing.assert_array_equal(class_id, [0])
+        np.testing.assert_array_equal(confidence, [0.4])
+
+    def test_keeps_input_order_among_ties_with_many_classes(self) -> None:
+        """Tied scores among 1000 classes come back in input order, not scrambled."""
+        confidence = np.zeros(1000, dtype=np.float16)
+        confidence[[10, 20, 30, 40]] = 0.25
+        classifications = Classifications(
+            class_id=np.arange(1000), confidence=confidence
+        )
+
+        class_id, _ = classifications.get_top_k(6)
+
+        np.testing.assert_array_equal(class_id, [10, 20, 30, 40, 0, 1])
+
+    def test_ranks_nan_confidence_last(self) -> None:
+        """A NaN confidence is never returned ahead of real scores."""
+        classifications = Classifications(
+            class_id=np.array([0, 1, 2]), confidence=np.array([0.7, np.nan, 0.3])
+        )
+
+        class_id, _ = classifications.get_top_k(2)
+
+        np.testing.assert_array_equal(class_id, [0, 2])
+
+    @pytest.mark.parametrize(
+        "confidence",
+        [
+            pytest.param(np.array([2**53, 2**53 + 1], dtype=np.int64), id="int64"),
+            pytest.param(
+                np.array([2**64 - 2, 2**64 - 1], dtype=np.uint64), id="uint64"
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        np.longdouble(0.5),
+                        np.nextafter(np.longdouble(0.5), np.longdouble(1)),
+                    ]
+                ),
+                marks=pytest.mark.skipif(
+                    np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+                    reason="longdouble has no additional precision on this platform",
+                ),
+                id="extended-float",
+            ),
+        ],
+    )
+    def test_orders_distinct_scores_without_losing_precision(
+        self, confidence: np.ndarray
+    ) -> None:
+        """Higher scores rank first even when float64 conversion loses precision."""
+        classifications = Classifications(
+            class_id=np.array([0, 1]), confidence=confidence
+        )
+
+        class_id, result_confidence = classifications.get_top_k(2)
+
+        np.testing.assert_array_equal(class_id, [1, 0])
+        np.testing.assert_array_equal(result_confidence, confidence[[1, 0]])
+
+    def test_preserves_ties_and_nan_order_with_infinite_scores(self) -> None:
+        """NaNs follow infinities while ties preserve their original order."""
+        classifications = Classifications(
+            class_id=np.arange(6),
+            confidence=np.array([np.nan, -np.inf, np.inf, np.nan, np.inf, -np.inf]),
+        )
+
+        class_id, _ = classifications.get_top_k(6)
+
+        np.testing.assert_array_equal(class_id, [2, 4, 1, 5, 0, 3])

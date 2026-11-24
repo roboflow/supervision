@@ -1,14 +1,17 @@
 import random
+import sys
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from fractions import Fraction
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, SupportsIndex, TypeVar
 
 import numpy as np
 import pytest
 
 import supervision.dataset.utils as dataset_utils
 from supervision import DetectionDataset, Detections, _cv2
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.utils import (
     _bridge_holes,
     _is_hole_contour,
@@ -17,10 +20,12 @@ from supervision.dataset.utils import (
     build_class_index_mapping,
     check_no_basename_collisions,
     map_detections_class_id,
+    map_key_points_class_id,
     merge_class_lists,
     train_test_split,
 )
 from supervision.detection.utils.converters import mask_to_polygons, polygon_to_mask
+from supervision.key_points.core import KeyPoints
 from tests.helpers import _create_detections
 
 T = TypeVar("T")
@@ -376,6 +381,22 @@ class TestApproximateMaskWithPolygons:
         assert len(simplified) == len(exact) == 1
         assert len(simplified[0]) < len(exact[0])
 
+    @pytest.mark.parametrize("approximation_percentage", [0.5, 0.75])
+    def test_bridges_traced_contours_when_simplified_ones_have_no_seam(
+        self, approximation_percentage: float, ragged_mask_with_hole: np.ndarray
+    ) -> None:
+        """A hole the simplified outline cannot reach is bridged, not raised."""
+        mask = ragged_mask_with_hole
+
+        polygons = approximate_mask_with_polygons(
+            mask,
+            approximation_percentage=approximation_percentage,
+            bridge_holes=True,
+        )
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (7, 10)), mask)
+
 
 class TestIsSegmentInsideMask:
     """Tests for `_is_segment_inside_mask`."""
@@ -511,6 +532,84 @@ def test_build_class_index_mapping(
             source_classes=source_classes, target_classes=target_classes
         )
         assert result == expected_result
+
+
+class TestBuildClassIndexMapping:
+    """Class-name lookup preserves ordering and repeated-name behavior."""
+
+    @pytest.mark.parametrize(
+        ("source_classes", "target_classes", "expected"),
+        [
+            pytest.param([], [], {}, id="both-empty"),
+            pytest.param([], ["cat", "cat"], {}, id="empty-source"),
+            pytest.param(["cat"], ["cat", "cat"], {0: 0}, id="first-duplicate"),
+            pytest.param(
+                ["cat", "dog", "cat"],
+                ["dog", "cat", "dog", "cat"],
+                {0: 1, 1: 0, 2: 1},
+                id="repeated-source-and-target",
+            ),
+            pytest.param(
+                ["dog", "cat"],
+                ["person", "cat", "dog"],
+                {0: 2, 1: 1},
+                id="reordered-subset",
+            ),
+        ],
+    )
+    def test_preserves_first_target_index_and_input_lists(
+        self,
+        source_classes: list[str],
+        target_classes: list[str],
+        expected: dict[int, int],
+    ) -> None:
+        """Repeated names map to their first target occurrence without mutation."""
+        source_before = source_classes.copy()
+        target_before = target_classes.copy()
+
+        result = build_class_index_mapping(source_classes, target_classes)
+
+        assert result == expected
+        assert source_classes == source_before
+        assert target_classes == target_before
+
+    def test_reports_first_missing_source_name(self) -> None:
+        """Missing classes are reported in source order, not sorted order."""
+        source_classes = ["zebra", "ant"]
+        target_classes = ["cat", "cat"]
+
+        with pytest.raises(ValueError, match="Class zebra not found in target classes"):
+            build_class_index_mapping(source_classes, target_classes)
+
+    def test_does_not_scan_target_list_per_source_class(self) -> None:
+        """Mapping uses a prebuilt lookup instead of scanning the target list."""
+
+        class ScanCountingList(list[str]):
+            """List that counts the linear-scan operations performed on it."""
+
+            scans = 0
+
+            def index(
+                self,
+                value: str,
+                start: SupportsIndex = 0,
+                stop: SupportsIndex = sys.maxsize,
+            ) -> int:
+                """Count and delegate a linear ``index`` scan."""
+                type(self).scans += 1
+                return super().index(value, start, stop)
+
+            def __contains__(self, item: object) -> bool:
+                """Count and delegate a linear membership scan."""
+                type(self).scans += 1
+                return super().__contains__(item)
+
+        target_classes = ScanCountingList(["cat", "dog", "person"])
+
+        result = build_class_index_mapping(["person", "cat", "dog"], target_classes)
+
+        assert result == {0: 2, 1: 0, 2: 1}
+        assert ScanCountingList.scans == 0
 
 
 @pytest.mark.parametrize(
@@ -658,6 +757,139 @@ class TestTrainTestSplitRatioValidation:
         assert result == expected_result
 
 
+class TestTrainTestSplitExactRatio:
+    """train_test_split() keeps every item a decimal ratio exactly accounts for."""
+
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+        reason="longdouble has no extra precision on this platform",
+    )
+    @pytest.mark.parametrize(
+        "ratio",
+        [
+            pytest.param(np.nextafter(np.longdouble(1), np.longdouble(0)), id="scalar"),
+            pytest.param(
+                np.array(np.nextafter(np.longdouble(1), np.longdouble(0))), id="array"
+            ),
+        ],
+    )
+    def test_extended_precision_ratio_preserves_test_item(self, ratio: float) -> None:
+        """A wide ratio just below one leaves an item in the test split."""
+        train, test = train_test_split([0, 1], train_ratio=ratio, shuffle=False)
+
+        assert (train, test) == ([0], [1])
+
+    @pytest.mark.parametrize(
+        ("train_ratio", "expected_train_size"),
+        [
+            pytest.param(1 / 3, 1, id="one-third"),
+            pytest.param(2 / 3, 2, id="two-thirds"),
+        ],
+    )
+    def test_computed_ratio_preserves_previous_split_size(
+        self, train_ratio: float, expected_train_size: int
+    ) -> None:
+        """Computed thirds retain the training size from float multiplication."""
+        train, test = train_test_split(list(range(3)), train_ratio, shuffle=False)
+        assert (len(train), len(test)) == (expected_train_size, 3 - expected_train_size)
+
+    @pytest.mark.parametrize(
+        ("length", "train_ratio", "expected_train_size"),
+        [
+            (90, 0.7, 63),
+            (100, 0.57, 57),
+            (100, 0.29, 29),
+            (180, 0.35, 63),
+            (100, 0.58, 58),
+            (10, 0.3, 3),
+            (7, 0.5, 3),
+            (3, 0.8, 2),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_train_size_is_floor_of_exact_product(
+        self, length: int, train_ratio: float, expected_train_size: int, shuffle: bool
+    ) -> None:
+        """The train part holds floor(length * ratio) items, read in decimal."""
+        train, test = train_test_split(
+            data=list(range(length)),
+            train_ratio=train_ratio,
+            random_state=0,
+            shuffle=shuffle,
+        )
+        assert (len(train), len(test)) == (
+            expected_train_size,
+            length - expected_train_size,
+        )
+
+    @pytest.mark.parametrize("percent", range(101))
+    def test_matches_exact_arithmetic_for_percent_ratios(self, percent: int) -> None:
+        """Every length up to 200 splits as exact rational arithmetic says."""
+        train_ratio = percent / 100
+        splits = {
+            length: train_test_split(
+                data=list(range(length)), train_ratio=train_ratio, shuffle=False
+            )
+            for length in range(201)
+        }
+        wrong_lengths = [
+            length
+            for length, (train, _) in splits.items()
+            if len(train) != int(Fraction(percent, 100) * length)
+        ]
+        assert wrong_lengths == []
+
+    @pytest.mark.parametrize(
+        "train_ratio",
+        [
+            pytest.param(np.float64(0.7), id="numpy-float64"),
+            pytest.param(np.float32(0.7), id="numpy-float32"),
+            pytest.param(np.array(0.7), id="numpy-zero-dim-array"),
+            pytest.param(
+                np.array(0.7, dtype=np.float32), id="numpy-zero-dim-float32-array"
+            ),
+        ],
+    )
+    def test_numpy_ratio_gives_same_size_as_python_ratio(
+        self, train_ratio: float
+    ) -> None:
+        """A NumPy scalar ratio splits like the equivalent Python float."""
+        train, test = train_test_split(
+            data=list(range(90)), train_ratio=train_ratio, shuffle=False
+        )
+        assert (len(train), len(test)) == (63, 27)
+
+    @pytest.mark.parametrize(
+        ("length", "train_ratio", "expected_train_size"),
+        [
+            pytest.param(4095, np.float16(0.5), 2047, id="float16-length-rounds-up"),
+            pytest.param(70000, np.float16(0.5), 35000, id="float16-length-overflows"),
+            pytest.param(10000, np.float16(0.7), 7000, id="float16-read-as-decimal"),
+        ],
+    )
+    def test_low_precision_numpy_ratio_keeps_exact_size(
+        self, length: int, train_ratio: float, expected_train_size: int
+    ) -> None:
+        """A float16 ratio splits by its decimal reading at any dataset length."""
+        train, test = train_test_split(
+            data=list(range(length)), train_ratio=train_ratio, shuffle=False
+        )
+        assert (len(train), len(test)) == (
+            expected_train_size,
+            length - expected_train_size,
+        )
+
+    def test_keeps_order_and_shuffle_semantics(self) -> None:
+        """The fix moves only the split point, not which items fill each part."""
+        data = list(range(90))
+        shuffled = data.copy()
+        random.Random(3).shuffle(shuffled)  # noqa: S311 — reference shuffle, not crypto
+        train, test = train_test_split(
+            data=data, train_ratio=0.7, random_state=3, shuffle=True
+        )
+        assert (train, test) == (shuffled[:63], shuffled[63:])
+
+
 class TestCheckNoBasenameCollisions:
     """Regression tests for export basename collision detection (DAT-04)."""
 
@@ -726,3 +958,52 @@ class TestSaveDatasetImages:
 
         saved = _cv2.imread(str(tmp_path / "image.png"))
         np.testing.assert_array_equal(saved, image)
+
+
+class TestMapKeyPointsClassId:
+    """Tests for remapping key point class ids onto a merged class list."""
+
+    def test_remaps_class_id_and_drops_stale_class_name(self) -> None:
+        """Remapping renumbers ``class_id`` and clears the cached class name."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={CLASS_NAME_DATA_FIELD: np.array(["cat"])},
+        )
+
+        result = map_key_points_class_id(
+            source_to_target_mapping={0: 3}, key_points=key_points
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([3]))
+        assert CLASS_NAME_DATA_FIELD not in result.data
+
+    def test_does_not_mutate_the_input(self) -> None:
+        """The source key points keep their original class ids."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([0])
+        )
+
+        map_key_points_class_id(source_to_target_mapping={0: 3}, key_points=key_points)
+
+        np.testing.assert_array_equal(key_points.class_id, np.array([0]))
+
+    def test_rejects_key_points_without_class_id(self) -> None:
+        """Key points with no ``class_id`` have nothing to remap, so they raise."""
+        key_points = KeyPoints(xy=np.array([[[1.0, 2.0]]], dtype=np.float32))
+
+        with pytest.raises(ValueError, match="class_id"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )
+
+    def test_rejects_a_class_id_missing_from_the_mapping(self) -> None:
+        """A class id with no target is an error rather than a silent pass."""
+        key_points = KeyPoints(
+            xy=np.array([[[1.0, 2.0]]], dtype=np.float32), class_id=np.array([5])
+        )
+
+        with pytest.raises(ValueError, match="subset"):
+            map_key_points_class_id(
+                source_to_target_mapping={0: 3}, key_points=key_points
+            )

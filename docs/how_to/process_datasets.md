@@ -129,6 +129,21 @@ The Supervision library provides convenient functions to load datasets in variou
     # 800, 100, 100
     ```
 
+    For segmentation datasets, pass `compact_masks=True` to keep masks as [`sv.CompactMask`](https://supervision.roboflow.com/latest/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) instead of dense NumPy arrays:
+
+    ```python
+    ds_train = sv.DetectionDataset.from_yolo(
+        images_directory_path=f"{dataset.location}/train/images",
+        annotations_directory_path=f"{dataset.location}/train/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
+        compact_masks=True,
+    )
+    ```
+
+    Compact loading is lossless: the masks decode to exactly the pixels of the dense loader. Retained memory is roughly the size of each object's run-length encoding inside its rounded vertex bounds, rather than a full `(N, H, W)` array per image, so the saving depends on mask size and complexity. Each polygon is encoded before the next one is drawn, so the temporary memory used while loading stays bounded by a few frame-sized buffers, however many objects an image has. Images remain lazily loaded, as before. Use `detections.mask.to_dense()` only when a consumer requires a NumPy stack; that allocates full-size masks again.
+
+    The option does not generate masks for box-only datasets unless `force_masks=True` is also set. Empty annotations still have `mask=None`, and OBB annotations never generate masks. The default `compact_masks=False` keeps the existing dense representation.
+
 === "Pascal VOC"
 
     We can do so using the [`sv.DetectionDataset.from_pascal_voc`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc) to load annotations in [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format.
@@ -209,6 +224,30 @@ The Supervision library provides convenient functions to load datasets in variou
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
     ```
+
+### COCO polygon masks
+
+COCO polygon vertices are points on a continuous boundary. A square from `(1.65, 1.65)` to `(5.65, 5.65)` encloses a 4 × 4 area, so the COCO reference tools, which evaluation metrics are built on, produce a 16-pixel mask for it: a pixel is on when its centre lies inside the boundary. The default `mask_rasterizer="supervision"` rounds each vertex and fills inclusively, treating the rounded vertices as pixel indices, so the same polygon becomes 25 pixels: one extra row and one extra column. The same holds for integer vertices, where `(1, 1)` to `(5, 5)` gives 25 pixels instead of 16. On large objects the difference is small. On small objects it changes mask area and IoU noticeably.
+
+![Animation of one square polygon: "supervision" rounds the vertices and fills 25 pixels, "pycocotools" keeps them continuous and fills the 16 pixels whose centres are inside the boundary, leaving 9 extra pixels and an IoU of 0.64](../assets/coco-polygon-rasterizer.svg){ align=center width="760" }
+
+Pass `mask_rasterizer="pycocotools"` to load polygons the way COCO does. This mode needs the optional extra: `pip install "supervision[coco]"`.
+
+```python
+import supervision as sv
+
+ds_train = sv.DetectionDataset.from_coco(
+    images_directory_path=f"{dataset.location}/train",
+    annotations_path=f"{dataset.location}/train/_annotations.coco.json",
+    mask_rasterizer="pycocotools",
+)
+```
+
+!!! warning
+
+    Omitting `mask_rasterizer` still gives the current `"supervision"` masks, but loading a file that contains polygon segmentation now emits a `SupervisionWarnings` warning. The default changes to `"pycocotools"` no earlier than `0.35.0`. Pass `mask_rasterizer="supervision"` to keep today's masks, or `"pycocotools"` to adopt the COCO ones now.
+
+RLE masks decode identically in both modes, and `as_coco` export is unchanged. Use RLE when you need exact masks to survive a round trip through other COCO tools.
 
 ## Split Dataset
 

@@ -184,8 +184,24 @@ def _add_weighted(
 def _convert_scale_abs(
     image: npt.NDArray[Any], alpha: float = 1, beta: float = 0
 ) -> npt.NDArray[np.uint8]:
-    """Scale, offset, take the absolute value, and saturate to uint8."""
-    values = np.abs(image.astype(np.float64) * alpha + beta)
+    """Scale, offset, take the absolute value, and saturate to uint8.
+
+    OpenCV does this arithmetic in float32 for every source depth, with `alpha` and
+    `beta` cast to float32 first, so the value is rounded to float32 before the final
+    round-half-to-even. Doing it in float64 lands on the other side of a `.5` tie for
+    inputs like `95 * 1.3`, which is `123.5` in float64 but just under it in float32.
+    OpenCV's SIMD path computes `src * alpha + beta` as one fused multiply-add, so
+    the product is not rounded on its own: `38 * 1.3 + 0.1` gives `50`, while
+    rounding the product to float32 first gives `49`. The fused helper also preserves
+    small offsets that a float64 addition could lose at a float32 midpoint.
+    """
+    with np.errstate(invalid="ignore", over="ignore"):
+        fused = _fused_multiply_add_float32(
+            image.astype(np.float32),
+            np.float64(np.float32(alpha)),
+            np.float64(np.float32(beta)),
+        )
+        values = np.abs(fused)
     return _cast_array_like_opencv(values, np.dtype(np.uint8))
 
 
@@ -276,24 +292,35 @@ def _resize(
     wy = y - y_floor
     wx = x - x_floor
 
-    source = src.astype(np.float64)
-    top_left = source[y0[:, np.newaxis], x0]
-    top_right = source[y0[:, np.newaxis], x1]
-    bottom_left = source[y1[:, np.newaxis], x0]
-    bottom_right = source[y1[:, np.newaxis], x1]
     if src.ndim == 3:
-        wy = wy[:, np.newaxis, np.newaxis]
         wx = wx[np.newaxis, :, np.newaxis]
     else:
-        wy = wy[:, np.newaxis]
         wx = wx[np.newaxis, :]
-    resized = (
-        top_left * (1 - wx) * (1 - wy)
-        + top_right * wx * (1 - wy)
-        + bottom_left * (1 - wx) * wy
-        + bottom_right * wx * wy
-    )
-    return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
+    resized = np.empty((height, width, *src.shape[2:]), dtype=src.dtype)
+    channels = 1 if src.ndim == 2 else src.shape[2]
+    block = max(1, _RESIZE_BLOCK_ELEMENTS // (width * channels))
+    # Limit the four float64 sampling buffers to a block of output rows.
+    for start in range(0, height, block):
+        stop = min(start + block, height)
+        rows0 = y0[start:stop, np.newaxis]
+        rows1 = y1[start:stop, np.newaxis]
+        weights = wy[start:stop]
+        if src.ndim == 3:
+            weights = weights[:, np.newaxis, np.newaxis]
+        else:
+            weights = weights[:, np.newaxis]
+        top_left = src[rows0, x0].astype(np.float64)
+        top_right = src[rows0, x1].astype(np.float64)
+        bottom_left = src[rows1, x0].astype(np.float64)
+        bottom_right = src[rows1, x1].astype(np.float64)
+        values = (
+            top_left * (1 - wx) * (1 - weights)
+            + top_right * wx * (1 - weights)
+            + bottom_left * (1 - wx) * weights
+            + bottom_right * wx * weights
+        )
+        resized[start:stop] = _cast_array_like_opencv(values, src.dtype)
+    return resized
 
 
 # OpenCV's uint8 `INTER_LINEAR` resize uses 11-bit fixed-point weights.
@@ -633,6 +660,126 @@ def _bgr_to_pil_values(
     return np.ascontiguousarray(values)
 
 
+# Sample types OpenCV's encoders write as they are. `cv2.imwrite` and `cv2.imencode`
+# convert any other type to 8 bits before encoding; formats not listed keep theirs.
+_OPENCV_ENCODER_DTYPES: dict[str, frozenset[np.dtype[Any]]] = {
+    "BMP": frozenset({np.dtype(np.uint8)}),
+    "JPEG": frozenset({np.dtype(np.uint8)}),
+    "WEBP": frozenset({np.dtype(np.uint8)}),
+    "PNG": frozenset({np.dtype(np.uint8), np.dtype(np.uint16)}),
+    "TIFF": frozenset(
+        np.dtype(dtype)
+        for dtype in (
+            np.uint8,
+            np.int8,
+            np.uint16,
+            np.int16,
+            np.int32,
+            np.float32,
+            np.float64,
+        )
+    ),
+}
+
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_COLOR_TYPES = {3: 2, 4: 6}
+
+
+def _opencv_encoder_values(
+    image: npt.NDArray[Any], image_format: str | None
+) -> npt.NDArray[Any]:
+    """Convert samples to a type OpenCV's encoder for `image_format` writes.
+
+    OpenCV writes JPEG, BMP and WebP as 8-bit, PNG as 8- or 16-bit and TIFF in most
+    types. It saturates any other type to `uint8`, rounding half to even with NaN
+    becoming 0, and logs an "Unsupported depth" warning instead of failing. Boolean
+    images are written as 0 and 1 in every format.
+
+    Example:
+        ```pycon
+        >>> values = np.array([[0.5, 1.5, -3.0, 300.0, np.nan]], dtype=np.float32)
+        >>> _opencv_encoder_values(values, "PNG").tolist()
+        [[0, 2, 0, 255, 0]]
+
+        ```
+    """
+    values = np.asarray(image)
+    if values.dtype == np.bool_:
+        return values.astype(np.uint8)
+    supported = _OPENCV_ENCODER_DTYPES.get(image_format or "")
+    if supported is None or values.dtype in supported:
+        return values
+    if values.dtype.kind == "f":
+        values = np.where(np.isnan(values), 0, values)
+    return _cast_array_like_opencv(values, np.dtype(np.uint8))
+
+
+def _encode_png_16bit_color(values: npt.NDArray[np.uint16]) -> bytes:
+    """Encode a 16-bit RGB or RGBA array as PNG, which Pillow cannot write.
+
+    Pillow has no 16-bit color modes, so the PNG is assembled here: a header, one zlib
+    stream of unfiltered big-endian scanlines, and the end marker.
+    """
+    import struct
+    import zlib
+
+    height, width, channels = values.shape
+    if height == 0 or width == 0:
+        raise ValueError("PNG dimensions must be nonzero")
+    rows = np.ascontiguousarray(values, dtype=">u2").view(np.uint8)
+    # Every scanline starts with filter type 0, which stores bytes as they are.
+    scanlines = np.hstack(
+        (np.zeros((height, 1), dtype=np.uint8), rows.reshape(height, -1))
+    )
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        """Frame one PNG chunk with its length and CRC."""
+        crc = zlib.crc32(tag + data)
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
+
+    header = struct.pack(
+        ">IIBBBBB", width, height, 16, _PNG_COLOR_TYPES[channels], 0, 0, 0
+    )
+    return (
+        _PNG_SIGNATURE
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(scanlines.tobytes()))
+        + chunk(b"IEND", b"")
+    )
+
+
+def _save_like_opencv(
+    image: npt.NDArray[Any], image_format: str | None, target: Any
+) -> None:
+    """Encode a BGR or BGRA array to a path or binary buffer as OpenCV would.
+
+    Samples are first converted as
+    :func:`~supervision._cv2._image._opencv_encoder_values` describes. Pillow
+    encodes the result, except 16-bit color PNGs, which it cannot write.
+    """
+    from PIL import Image
+
+    values = _bgr_to_pil_values(
+        _opencv_encoder_values(image, image_format), image_format
+    )
+    if (
+        image_format == "PNG"
+        and values.dtype == np.uint16
+        and values.ndim == 3
+        and values.shape[2] in _PNG_COLOR_TYPES
+    ):
+        data = _encode_png_16bit_color(values)
+        if isinstance(target, (str, os.PathLike)):
+            with open(target, "wb") as file:
+                file.write(data)
+        else:
+            target.write(data)
+        return
+    Image.fromarray(values).save(
+        target, format=image_format, **_opencv_default_save_options(image_format)
+    )
+
+
 def _opencv_default_save_options(image_format: str | None) -> dict[str, Any]:
     """Return the Pillow save options that encode like OpenCV's default writers.
 
@@ -652,6 +799,11 @@ def _imwrite(
 ) -> bool:
     """Write a BGR or BGRA array with Pillow and return OpenCV's boolean status.
 
+    Sample types the format cannot hold are converted to 8 bits, as OpenCV does; see
+    :func:`~supervision._cv2._image._opencv_encoder_values`. `False` is returned
+    when Pillow cannot write the result, such as multi-channel TIFFs of types other
+    than `uint8`, which OpenCV writes.
+
     `params` is accepted for compatibility with `cv2.imwrite`'s signature and is
     ignored: the file is encoded with the OpenCV defaults that
     :func:`~supervision._cv2._image._opencv_default_save_options` returns, not
@@ -662,12 +814,9 @@ def _imwrite(
     del params
     extension = os.path.splitext(filename)[1].lower()
     image_format = Image.registered_extensions().get(extension)
-    save_options = _opencv_default_save_options(image_format)
     try:
-        Image.fromarray(_bgr_to_pil_values(image, image_format)).save(
-            filename, **save_options
-        )
-    except (OSError, ValueError):
+        _save_like_opencv(image, image_format, filename)
+    except (KeyError, OSError, TypeError, ValueError):
         return False
     return True
 
@@ -676,6 +825,9 @@ def _imencode(
     ext: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
 ) -> tuple[bool, npt.NDArray[np.uint8] | None]:
     """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return.
+
+    Samples are converted and unsupported results reported exactly as in
+    :func:`~supervision._cv2._image._imwrite`.
 
     `params` is accepted for compatibility with `cv2.imencode`'s signature and is
     ignored: the image is encoded with the OpenCV defaults that
@@ -692,12 +844,9 @@ def _imencode(
     # resolves to None, which `Image.save` rejects for a buffer with no file name.
     extension = f".{ext.lstrip('.').lower()}"
     image_format = Image.registered_extensions().get(extension)
-    save_options = _opencv_default_save_options(image_format)
     buffer = io.BytesIO()
     try:
-        Image.fromarray(_bgr_to_pil_values(image, image_format)).save(
-            buffer, format=image_format, **save_options
-        )
-    except (KeyError, OSError, ValueError):
+        _save_like_opencv(image, image_format, buffer)
+    except (KeyError, OSError, TypeError, ValueError):
         return False, None
     return True, np.frombuffer(buffer.getvalue(), dtype=np.uint8)

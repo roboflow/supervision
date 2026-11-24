@@ -113,6 +113,9 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     Returns:
         A numpy array of shape `(N, 4)` where each row corresponds
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
+            Integer inputs produce `int64` output, or `float64` if a corner exceeds
+            the `int64` range; the latter may round integer values. Floating-point
+            inputs preserve their dtype.
 
     Examples:
         ```pycon
@@ -128,9 +131,16 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
         ```
     """
-    xyxy = xywh.copy()
-    xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
-    xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
+    # Import at call time: boxes imports converters through compact_mask.
+    from supervision.detection.utils.boxes import _add_integer_offset
+
+    bottom_right = _add_integer_offset(xywh[:, :2], xywh[:, 2:])
+    output_dtype = (
+        xywh.dtype if np.issubdtype(xywh.dtype, np.floating) else bottom_right.dtype
+    )
+    xyxy = np.empty_like(xywh, dtype=output_dtype)
+    xyxy[:, :2] = xywh[:, :2]
+    xyxy[:, 2:] = bottom_right
     return cast(npt.NDArray[np.number], np.asarray(xyxy))
 
 
@@ -147,6 +157,10 @@ def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
         A numpy array of shape `(N, 4)` where each row corresponds
             to a bounding box in the format `(x, y, width, height)`.
 
+        Integer inputs produce `int64` output, or `float64` if any output value
+        exceeds the `int64` range; the latter may round integer values.
+        Floating-point inputs preserve their dtype.
+
     Examples:
         ```pycon
         >>> import numpy as np
@@ -161,9 +175,22 @@ def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
         ```
     """
-    xywh = xyxy.copy()
-    xywh[:, 2] = xyxy[:, 2] - xyxy[:, 0]
-    xywh[:, 3] = xyxy[:, 3] - xyxy[:, 1]
+    integer_input = np.issubdtype(xyxy.dtype, np.integer)
+    if integer_input:
+        safe_limit = np.iinfo(np.int64).max // 2
+        is_safe_to_cast = np.all(
+            xyxy <= safe_limit
+            if np.issubdtype(xyxy.dtype, np.unsignedinteger)
+            else (xyxy >= -safe_limit) & (xyxy <= safe_limit)
+        )
+        xywh = xyxy.astype(np.int64 if is_safe_to_cast else object)
+    else:
+        xywh = xyxy.copy()
+    xywh[:, 2:] = xywh[:, 2:] - xywh[:, :2]
+    if integer_input and xywh.dtype == object:
+        limits = np.iinfo(np.int64)
+        fits_int64 = np.all((xywh >= limits.min) & (xywh <= limits.max))
+        xywh = np.asarray(xywh, dtype=np.int64 if fits_int64 else np.float64)
     return cast(npt.NDArray[np.number], np.asarray(xywh))
 
 
@@ -224,6 +251,8 @@ def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
     Returns:
         Bounding box in format
             `(center x, center y, aspect ratio, height)`. Shape `(N, 4)`.
+            Integer coordinates are calculated without integer overflow and the
+            result is float64. Very large values may be rounded to float64.
 
     Examples:
         ```pycon
@@ -243,10 +272,20 @@ def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
         return np.empty((0, 4), dtype=float)
 
     x1, y1, x2, y2 = xyxy.T
-    width = x2 - x1
-    height = y2 - y1
-    center_x = x1 + width / 2
-    center_y = y1 + height / 2
+    if np.issubdtype(xyxy.dtype, np.integer):
+        # Compute integer differences before float conversion to retain small
+        # extents at origins beyond float64's exact integer range.
+        from supervision.detection.utils.boxes import _box_midpoint
+
+        extents = xyxy_to_xywh(xyxy)
+        width, height = extents[:, 2], extents[:, 3]
+        center_x = _box_midpoint(x1, x2)
+        center_y = _box_midpoint(y1, y2)
+    else:
+        width = x2 - x1
+        height = y2 - y1
+        center_x = x1 + width / 2
+        center_y = y1 + height / 2
 
     aspect_ratio = np.divide(
         width,
@@ -410,7 +449,9 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
         A list of polygons, where each polygon is represented by a NumPy array
             of shape `(N, 2)`, containing the `x`, `y` coordinates of the
             points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
-            are excluded from the output.
+            are excluded from the output. Polygons follow OpenCV's `RETR_TREE`
+            order with and without OpenCV installed: each outline is followed by
+            its holes, and sibling outlines come last-found first.
 
     Examples:
         ```pycon
