@@ -18,6 +18,7 @@ from supervision.dataset.formats.yolo import (
     load_yolo_annotations,
     object_to_yolo,
     save_data_yaml,
+    save_yolo_annotations,
     yolo_annotations_to_detections,
 )
 from supervision.detection.compact_mask import CompactMask
@@ -605,6 +606,140 @@ def _write_yolo_dataset(
 
 class TestFromYoloClassNames:
     """Tests that ``DetectionDataset.from_yolo`` maps class ids to declared names."""
+
+    def test_annotation_only_export_retains_sparse_class_ids(
+        self, tmp_path: Path
+    ) -> None:
+        """Annotation-only export remains compatible with the source YAML."""
+        paths = _write_yolo_dataset(
+            tmp_path, "2 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  2: dog\n"
+        )
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        dataset.as_yolo(annotations_directory_path=paths[1])
+        reloaded = DetectionDataset.from_yolo(*paths)
+
+        class_ids = reloaded[0][2].class_id
+        assert class_ids is not None
+        assert reloaded.classes[class_ids[0]] == "dog"
+
+    def test_rejects_duplicate_numeric_names(self, tmp_path: Path) -> None:
+        """Distinct YAML keys that normalize to one ID are ambiguous."""
+        paths = _write_yolo_dataset(
+            tmp_path, "1 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  '1': dog\n"
+        )
+
+        with pytest.raises(ValueError, match=r"duplicate.*class.*1"):
+            DetectionDataset.from_yolo(*paths)
+
+    def test_split_preserves_sparse_mapping(self, tmp_path: Path) -> None:
+        """A split can export labels against the original class mapping."""
+        paths = _write_yolo_dataset(
+            tmp_path, "2 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  2: dog\n"
+        )
+        dataset = DetectionDataset.from_yolo(*paths)
+        subset, _ = dataset.split(split_ratio=1, shuffle=False)
+
+        subset.as_yolo(annotations_directory_path=paths[1])
+
+        assert Path(paths[1], "test.txt").read_text().split()[0] == "2"
+
+    def test_new_yaml_uses_normalized_ids(self, tmp_path: Path) -> None:
+        """Exporting a new YAML writes IDs aligned with its names list."""
+        paths = _write_yolo_dataset(
+            tmp_path, "2 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  2: dog\n"
+        )
+        dataset = DetectionDataset.from_yolo(*paths)
+        new_yaml = str(tmp_path / "new.yaml")
+
+        dataset.as_yolo(annotations_directory_path=paths[1], data_yaml_path=new_yaml)
+        reloaded = DetectionDataset.from_yolo(paths[0], paths[1], new_yaml)
+
+        class_ids = reloaded[0][2].class_id
+        assert class_ids is not None
+        assert reloaded.classes[class_ids[0]] == "dog"
+
+    def test_yaml_only_export_retains_sparse_class_ids(self, tmp_path: Path) -> None:
+        """A YAML-only export stays compatible with existing sparse-ID labels."""
+        paths = _write_yolo_dataset(
+            tmp_path, "2 0.5 0.5 0.2 0.4\n", "names:\n  0: cat\n  2: dog\n  3: bird\n"
+        )
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        dataset.as_yolo(data_yaml_path=paths[2])
+        reloaded = DetectionDataset.from_yolo(*paths)
+
+        class_ids = reloaded[0][2].class_id
+        assert class_ids is not None
+        assert reloaded.classes[class_ids[0]] == "dog"
+
+    def test_direct_writer_retains_sparse_class_ids(self, tmp_path: Path) -> None:
+        """The direct annotation writer remains compatible with the source YAML."""
+        paths = _write_yolo_dataset(
+            tmp_path, "2 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  2: dog\n"
+        )
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        save_yolo_annotations(dataset, paths[1])
+        reloaded = DetectionDataset.from_yolo(*paths)
+
+        class_ids = reloaded[0][2].class_id
+        assert class_ids is not None
+        assert reloaded.classes[class_ids[0]] == "dog"
+
+    def test_changed_classes_require_new_yaml(self, tmp_path: Path) -> None:
+        """Changed class names cannot silently reuse the original YAML mapping."""
+        paths = _write_yolo_dataset(
+            tmp_path, "2 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  2: dog\n"
+        )
+        dataset = DetectionDataset.from_yolo(*paths)
+        dataset.classes.reverse()
+
+        with pytest.raises(ValueError, match=r"classes changed.*data\.yaml"):
+            dataset.as_yolo(annotations_directory_path=paths[1])
+
+    def test_changed_source_yaml_requires_new_yaml(self, tmp_path: Path) -> None:
+        """An externally changed source mapping is not silently reused."""
+        paths = _write_yolo_dataset(
+            tmp_path, "2 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  2: dog\n"
+        )
+        dataset = DetectionDataset.from_yolo(*paths)
+        Path(paths[2]).write_text("names: [cat, dog]\n")
+
+        with pytest.raises(ValueError, match="mapping changed"):
+            dataset.as_yolo(annotations_directory_path=paths[1])
+
+    def test_invalid_changed_id_fails_before_export(self, tmp_path: Path) -> None:
+        """Negative class IDs cannot wrap around the stored source mapping."""
+        paths = _write_yolo_dataset(
+            tmp_path, "2 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  2: dog\n"
+        )
+        dataset = DetectionDataset.from_yolo(*paths)
+        class_ids = dataset.annotations[dataset.image_paths[0]].class_id
+        assert class_ids is not None
+        class_ids[0] = -1
+
+        with pytest.raises(ValueError, match="Invalid class ids"):
+            dataset.as_yolo(annotations_directory_path=paths[1])
+
+        assert Path(paths[1], "test.txt").read_text().startswith("2 ")
+
+    def test_incompatible_merged_mappings_require_yaml(self, tmp_path: Path) -> None:
+        """Merged datasets with different source IDs need a new class mapping."""
+        (tmp_path / "first").mkdir()
+        (tmp_path / "second").mkdir()
+        paths = _write_yolo_dataset(
+            tmp_path / "first", "2 0.5 0.5 0.2 0.4\n", "names:\n  1: cat\n  2: dog\n"
+        )
+        other = _write_yolo_dataset(
+            tmp_path / "second", "1 0.5 0.5 0.2 0.4\n", "names: [cat, dog]\n"
+        )
+        merged = DetectionDataset.merge(
+            [DetectionDataset.from_yolo(*paths), DetectionDataset.from_yolo(*other)]
+        )
+
+        with pytest.raises(ValueError, match="mappings differ"):
+            merged.as_yolo(annotations_directory_path=str(tmp_path / "out"))
 
     @pytest.mark.parametrize(
         ("data_yaml", "label", "expected_names"),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -22,6 +22,7 @@ from supervision.dataset.formats.yolo import (
     _parse_class_id,
     _parse_relative_xyxy,
     _read_data_yaml,
+    _remap_yolo_export_lines,
 )
 from supervision.dataset.utils import (
     _image_file_resolution_wh,
@@ -755,6 +756,11 @@ def save_yolo_pose_annotations(
             ``data['xyxy']`` or ``data['keypoint_visibility']``; the message
             names the image.
     """
+    if not dataset._yolo_normalized_export:
+        # The dataset module imports this writer, so resolve the circular boundary here.
+        from supervision.dataset.core import _prepare_yolo_export
+
+        dataset = cast("KeyPointsDataset", _prepare_yolo_export(dataset))
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: _image_name_to_annotation_name(Path(image_path).name),
@@ -780,6 +786,9 @@ def save_yolo_pose_annotations(
             keypoint_count=dataset.keypoint_count,
             value_dim=dataset.value_dim,
         )
+        export_ids = getattr(dataset, "_yolo_export_class_ids", None)
+        if export_ids is not None:
+            lines = _remap_yolo_export_lines(lines, export_ids)
         save_text_file(
             lines=lines,
             file_path=os.path.join(annotations_directory_path, annotation_name),

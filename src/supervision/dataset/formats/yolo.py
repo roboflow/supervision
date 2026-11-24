@@ -5,6 +5,7 @@ import os
 import warnings
 from collections.abc import Sequence
 from decimal import Decimal, InvalidOperation
+from itertools import pairwise
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -318,6 +319,12 @@ def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list
             )
         if all(int_like):
             sorted_keys = sorted(keys, key=lambda k: int(k))
+            numeric_ids = [int(key) for key in sorted_keys]
+            for left, right in pairwise(numeric_ids):
+                if left == right:
+                    raise ValueError(
+                        f"Found duplicate class id {left} in 'names' at '{file_path}'."
+                    )
         else:
             sorted_keys = sorted(keys, key=str)
         return [str(names[key]) for key in sorted_keys]
@@ -551,6 +558,15 @@ def yolo_annotations_to_detections(
     else:
         mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
     return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
+
+
+def _remap_yolo_export_lines(lines: list[str], class_ids: list[int]) -> list[str]:
+    """Restore source class IDs in serialized YOLO rows."""
+    remapped = []
+    for line in lines:
+        class_id, values = line.split(" ", 1)
+        remapped.append(f"{class_ids[int(class_id)]} {values}")
+    return remapped
 
 
 def load_yolo_annotations(
@@ -945,6 +961,11 @@ def save_yolo_annotations(
 
         ```
     """
+    if not dataset._yolo_normalized_export:
+        # The dataset module imports this writer, so resolve the circular boundary here.
+        from supervision.dataset.core import _prepare_yolo_export
+
+        dataset = cast("DetectionDataset", _prepare_yolo_export(dataset))
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: _image_name_to_annotation_name(Path(image_path).name),
@@ -972,6 +993,9 @@ def save_yolo_annotations(
             ignore_crowd=ignore_crowd,
             merge_segments=merge_segments,
         )
+        export_ids = getattr(dataset, "_yolo_export_class_ids", None)
+        if export_ids is not None:
+            lines = _remap_yolo_export_lines(lines, export_ids)
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
