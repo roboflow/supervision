@@ -4528,6 +4528,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.Detections.get_anchors_coordinates</code> with <code>sv.Position.CENTER_OF_MASS</code> now anchors a detection whose mask has no pixels at the center of its bounding box, for dense masks and <code>sv.CompactMask</code> alike, instead of the frame's top-left corner <code>(0, 0)</code>. The mask centroid of an empty mask is undefined and <code>sv.calculate_masks_centroids</code> reports <code>(0, 0)</code>, so a stationary object whose mask came out empty in one frame made <code>sv.LineZone</code> count a phantom crossing, made <code>sv.PolygonZone</code> report it in the zone when the zone contained the corner, and was drawn at the corner by <code>sv.DotAnnotator</code>, <code>sv.LabelAnnotator</code> and <code>sv.TraceAnnotator</code>. A batch with an empty mask returns floating-point anchors to preserve fractional and large box centers. Centroids of non-empty masks are unchanged, and <code>sv.calculate_masks_centroids</code> itself still returns <code>(0, 0)</code> for an empty mask. (<a href="https://github.com/roboflow/supervision/pull/2976">#2976</a>)</p>
+</li>
+<li>
 <p><code>sv.KeyPoints.__setitem__</code> now raises <code>ValueError</code> when the value's length does not match the number of objects, as <code>sv.Detections.__setitem__</code> already does. Previously a wrong-length list or array was stored silently and only failed later, in <code>as_detections()</code>, <code>merge</code>, or when selecting objects. (<a href="https://github.com/roboflow/supervision/pull/2974">#2974</a>)</p>
 </li>
 <li>
@@ -7010,7 +7013,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 13:12:42 UTC">November 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 13:23:10 UTC">November 24, 2026</span>
   </span>
 
     
