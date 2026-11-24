@@ -279,7 +279,9 @@ class KeyPoints:
             outputs = pose_estimation_model(**inputs)
 
         results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
-        key_point = sv.KeyPoints.from_transformers(results[0])
+        key_point = sv.KeyPoints.from_transformers(
+            results[0], num_keypoints=len(pose_estimation_model.config.id2label)
+        )
         ```
 
     Attributes:
@@ -933,7 +935,9 @@ class KeyPoints:
             return cls.empty()
 
     @classmethod
-    def from_transformers(cls, transformers_results: Any) -> KeyPoints:
+    def from_transformers(
+        cls, transformers_results: Any, *, num_keypoints: int | None = None
+    ) -> KeyPoints:
         """
         Create a :class:`~supervision.key_points.core.KeyPoints` object from the
         [Transformers](https://github.com/huggingface/transformers) inference result.
@@ -942,6 +946,10 @@ class KeyPoints:
             transformers_results: The per-image output of a Transformers pose
                 post-processor: a list with one dict of prediction data per
                 detected pose. An empty list means no poses were detected.
+            num_keypoints: Full skeleton size, when known. Supply this to retain
+                trailing joints removed by confidence filtering. Defaults to the
+                largest retained joint label plus one. A pose with no retained
+                joints is kept as zero-filled slots when this is supplied.
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
@@ -950,6 +958,15 @@ class KeyPoints:
                 object category and reports no class of its own. An empty
                 `transformers_results` returns
                 :meth:`~supervision.key_points.core.KeyPoints.empty`.
+                Joint `labels` retain their skeleton indices after confidence
+                filtering. Missing slots have zero coordinates and confidence;
+                the joint axis ends at the largest retained label unless
+                `num_keypoints` is supplied. Results without `labels` use their
+                keypoint list order.
+
+        Raises:
+            ValueError: If `num_keypoints` is not positive or cannot contain the
+                retained joint labels.
 
         Examples:
             ```python
@@ -995,10 +1012,15 @@ class KeyPoints:
                 outputs = pose_estimation_model(**inputs)
 
             results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
-            key_point = sv.KeyPoints.from_transformers(results[0])
+            key_point = sv.KeyPoints.from_transformers(
+                results[0], num_keypoints=len(pose_estimation_model.config.id2label)
+            )
             ```
 
         """  # noqa: E501 // docs
+
+        if num_keypoints is not None and num_keypoints <= 0:
+            raise ValueError("num_keypoints must be positive.")
 
         if len(transformers_results) == 0:
             return cls.empty()
@@ -1009,22 +1031,34 @@ class KeyPoints:
                 """Detach tensor inputs while preserving NumPy pose arrays."""
                 return _to_numpy(value.detach() if hasattr(value, "detach") else value)
 
-            if pose_to_numpy(transformers_results[0]["keypoints"]).size == 0:
-                return cls.empty()
-
-            result_data = [
-                (
-                    pose_to_numpy(result["keypoints"]),
-                    pose_to_numpy(result["scores"]),
+            result_data = []
+            for result in transformers_results:
+                points = pose_to_numpy(result["keypoints"])
+                labels = (
+                    pose_to_numpy(result["labels"])
+                    if "labels" in result
+                    else np.arange(len(points))
                 )
-                for result in transformers_results
-            ]
-
-            xy, scores = zip(*result_data)
+                result_data.append((points, pose_to_numpy(result["scores"]), labels))
+            keypoint_count = max(
+                (int(labels.max()) + 1 for _, _, labels in result_data if labels.size),
+                default=0,
+            )
+            if num_keypoints is not None:
+                if keypoint_count > num_keypoints:
+                    raise ValueError("num_keypoints must include all retained joints.")
+                keypoint_count = num_keypoints
+            if keypoint_count == 0:
+                return cls.empty()
+            xy = np.zeros((len(result_data), keypoint_count, 2), dtype=np.float32)
+            scores = np.zeros((len(result_data), keypoint_count), dtype=np.float32)
+            for index, (points, confidence, labels) in enumerate(result_data):
+                xy[index, labels] = points
+                scores[index, labels] = confidence
 
             return cls(
-                xy=np.stack(xy).astype(np.float32),
-                keypoint_confidence=np.stack(scores).astype(np.float32),
+                xy=xy,
+                keypoint_confidence=scores,
                 class_id=np.zeros(len(xy), dtype=int),
             )
         else:
