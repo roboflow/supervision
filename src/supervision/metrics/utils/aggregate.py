@@ -6,6 +6,7 @@ import numpy as np
 
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import MetricResult
+from supervision.metrics.mean_average_recall import MeanAverageRecallResult
 from supervision.metrics.utils.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
@@ -168,10 +169,16 @@ def plot_aggregate_metric_results(
         )
         for bar in bars:
             y_value = bar.get_height()
+            unavailable = (
+                isinstance(metric_results[model_idx], MeanAverageRecallResult)
+                and y_value == -1
+            )
+            label = "N/A" if unavailable else f"{y_value:.2f}"
+            label_y = 0.02 if unavailable else y_value + 0.02
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
-                y_value + 0.02,
-                f"{y_value:.2f}",
+                label_y,
+                label,
                 ha="center",
                 va="bottom",
                 fontsize=max(6, 8 - num_models),

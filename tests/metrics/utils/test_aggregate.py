@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -201,6 +202,58 @@ class TestAggregateMetricResults:
 
 class TestPlotAggregateMetricResults:
     """Tests for the plot_aggregate_metric_results function."""
+
+    @patch("matplotlib.pyplot.show", autospec=True)
+    def test_mar_plot_distinguishes_unavailable_from_zero(
+        self, mock_show: MagicMock
+    ) -> None:
+        """The standalone plot labels undefined recall distinctly from zero."""
+        result = _make_mar_result(mar1=-1.0, mar10=0.0, mar100=0.5)
+
+        result.plot()
+
+        ax = plt.gcf().axes[0]
+        assert [text.get_text() for text in ax.texts] == ["N/A", "0.00", "0.50"]
+        assert ax.texts[0].get_position()[1] >= ax.get_ylim()[0]
+        mock_show.assert_called_once()
+        plt.close(plt.gcf())
+
+    def test_aggregate_plot_distinguishes_unavailable_size_buckets(self) -> None:
+        """The comparison plot labels an empty bucket for each model."""
+        first = _make_mar_result(mar1=0.0, mar10=0.5, mar100=1.0)
+        second = _make_mar_result(mar1=0.0, mar10=0.5, mar100=1.0)
+        first.small_objects = _make_mar_result(mar1=-1.0, mar10=-1.0, mar100=-1.0)
+        second.small_objects = _make_mar_result(mar1=-1.0, mar10=-1.0, mar100=-1.0)
+
+        plot_aggregate_metric_results([first, second], include_object_sizes=True)
+
+        ax = plt.gcf().axes[0]
+        assert [text.get_text() for text in ax.texts] == [
+            "0.00",
+            "0.50",
+            "1.00",
+            "N/A",
+            "N/A",
+            "N/A",
+            "0.00",
+            "0.50",
+            "1.00",
+            "N/A",
+            "N/A",
+            "N/A",
+        ]
+        assert ax.texts[3].get_position()[1] >= ax.get_ylim()[0]
+        plt.close(plt.gcf())
+
+    def test_aggregate_plot_preserves_other_negative_labels(self) -> None:
+        """The comparison plot preserves negative values for other metrics."""
+        result = _make_f1_result(f1_50=-0.5, f1_75=0.0)
+
+        plot_aggregate_metric_results([result])
+
+        ax = plt.gcf().axes[0]
+        assert [text.get_text() for text in ax.texts] == ["-0.50", "0.00"]
+        plt.close(plt.gcf())
 
     def test_empty_list_raises(self) -> None:
         """Empty input raises ValueError."""
