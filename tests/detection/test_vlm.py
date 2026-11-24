@@ -2209,6 +2209,86 @@ def test_from_vlm_google_gemini_3_6_class_filter_partial_keeps_masks_aligned() -
     assert not detections.mask[1, 20, 80]
 
 
+class TestGeminiConfidenceWithClassFilter:
+    """Gemini confidence scores survive items that the `classes` filter removes."""
+
+    @pytest.mark.parametrize("vlm", [VLM.GOOGLE_GEMINI_2_5, VLM.GOOGLE_GEMINI_3_5])
+    def test_keeps_scores_when_filtered_item_lacks_confidence(self, vlm: VLM) -> None:
+        """A filtered-out item without a score does not blank the kept scores."""
+        result = json.dumps(
+            [
+                {"box_2d": [0, 0, 500, 500], "label": "cat", "confidence": 0.9},
+                {"box_2d": [500, 500, 1000, 1000], "label": "tree"},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(100, 100), classes=["cat"]
+        )
+
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.9])
+
+    @pytest.mark.parametrize("vlm", [VLM.GOOGLE_GEMINI_3_6, VLM.GOOGLE_GEMINI_3_7])
+    def test_structured_keeps_scores_when_filtered_item_lacks_confidence(
+        self, vlm: VLM
+    ) -> None:
+        """The structured `boxes` format keeps the scores past a filtered item."""
+        result = json.dumps(
+            {
+                "boxes": [
+                    {"box_2d": [0, 0, 500, 500], "label": "cat", "confidence": 0.9},
+                    {"box_2d": [500, 500, 1000, 1000], "label": "tree"},
+                ]
+            }
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(100, 100), classes=["cat"]
+        )
+
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.9])
+
+    def test_keeps_scores_aligned_after_partial_filter(self) -> None:
+        """Each kept detection keeps its own score after a partial class filter."""
+        result = json.dumps(
+            [
+                {"box_2d": [0, 0, 500, 500], "label": "cat", "confidence": 0.9},
+                {"box_2d": [0, 500, 500, 1000], "label": "tree"},
+                {"box_2d": [500, 0, 1000, 500], "label": "cat", "confidence": 0.4},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=VLM.GOOGLE_GEMINI_2_5,
+            result=result,
+            resolution_wh=(100, 100),
+            classes=["cat"],
+        )
+
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.9, 0.4])
+
+    def test_kept_item_without_confidence_still_drops_scores(self) -> None:
+        """A kept item without a score still leaves the whole response unscored."""
+        result = json.dumps(
+            [
+                {"box_2d": [0, 0, 500, 500], "label": "cat", "confidence": 0.9},
+                {"box_2d": [500, 500, 1000, 1000], "label": "cat"},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=VLM.GOOGLE_GEMINI_2_5,
+            result=result,
+            resolution_wh=(100, 100),
+            classes=["cat"],
+        )
+
+        assert detections.confidence is None
+
+
 @pytest.mark.parametrize(
     "mask_value",
     [
@@ -2314,6 +2394,28 @@ def test_from_vlm_empty_outcome_keeps_class_id_integer(
     assert len(detections) == 0
     assert detections.class_id is not None
     assert detections.class_id.dtype == int
+
+
+@pytest.mark.parametrize(
+    ("vlm", "result"),
+    [
+        pytest.param(VLM.GOOGLE_GEMINI_2_5, _GEMINI_BOX_RESULT, id="gemini-2.5"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_5, _GEMINI_BOX_RESULT, id="gemini-3.5"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_6, _GEMINI_STRUCTURED_RESULT, id="gemini-3.6"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_7, _GEMINI_STRUCTURED_RESULT, id="gemini-3.7"),
+    ],
+)
+def test_gemini_all_filtered_items_return_empty_confidence(
+    vlm: VLM, result: str
+) -> None:
+    """Filtering unscored items returns an empty floating-point confidence array."""
+    detections = Detections.from_vlm(
+        vlm=vlm, result=result, resolution_wh=(100, 100), classes=["dog"]
+    )
+
+    assert detections.confidence is not None
+    assert detections.confidence.shape == (0,)
+    assert detections.confidence.dtype == float
 
 
 class TestFromVlmCornerOrdering:
