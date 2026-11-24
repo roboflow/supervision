@@ -1992,6 +1992,18 @@ class TestFromInferenceOmittedKeypoints:
             detections.xyxy, np.empty((0, 4), dtype=np.float32)
         )
 
+    def test_empty_result_keeps_explicit_keypoint_count(self) -> None:
+        """An empty frame keeps the requested skeleton dimensions."""
+        result = _inference_pose_result([])
+
+        key_points = KeyPoints.from_inference(result, num_keypoints=17)
+
+        assert key_points.xy.shape == (0, 17, 2)
+        assert key_points.keypoint_confidence is not None
+        assert key_points.keypoint_confidence.shape == (0, 17)
+        assert key_points.detection_confidence is not None
+        assert key_points.detection_confidence.shape == (0,)
+
     def test_explicit_keypoint_count_keeps_trailing_slots(self) -> None:
         """Key points every object lost at the end of the skeleton keep their slots."""
         result = _inference_pose_result(

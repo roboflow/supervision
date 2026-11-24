@@ -468,7 +468,8 @@ class KeyPoints:
                 points scored below the request's `keypoint_confidence`, so without
                 it the key point axis ends at the largest key point index any
                 object kept. Supply it to keep trailing key points that every
-                object lost, so frames load with the same number of key points.
+                object lost, so frames load with the same number of key points,
+                including when no objects are detected.
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
@@ -526,7 +527,14 @@ class KeyPoints:
         elif hasattr(inference_result, "json"):
             inference_result = inference_result.json()
         if not inference_result.get("predictions"):
-            return cls.empty()
+            if num_keypoints is None:
+                return cls.empty()
+            return cls(
+                xy=np.empty((0, num_keypoints, 2), dtype=np.float32),
+                class_id=np.array([], dtype=int),
+                keypoint_confidence=np.empty((0, num_keypoints), dtype=np.float32),
+                detection_confidence=np.array([], dtype=np.float32),
+            )
 
         predictions = inference_result["predictions"]
 
