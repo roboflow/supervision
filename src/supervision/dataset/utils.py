@@ -716,7 +716,10 @@ def _train_split_index(length: int, train_ratio: float) -> int:
     The evaluated ratio's decimal representation is multiplied exactly, so
     `90 * 0.7` gives `63` instead of the `62` that floating-point multiplication
     floors to. The previous floating-point result is retained when it is larger,
-    preserving computed ratios such as `1 / 3` for three items.
+    preserving computed ratios such as `1 / 3` for three items. A NumPy scalar
+    ratio enters that floating-point product as the Python float of its decimal,
+    so a low-precision ratio such as `np.float16(0.5)` neither rounds nor
+    overflows the item count.
 
     Args:
         length: The number of items to split.
@@ -735,6 +738,11 @@ def _train_split_index(length: int, train_ratio: float) -> int:
         decimal = str(train_ratio)
     else:
         decimal = str(float(train_ratio))
+    # NumPy 2 multiplies in the scalar's own dtype, so `4095 * np.float16(0.5)`
+    # rounds 4095 up to 4096 and `70000 * np.float16(0.5)` overflows. Its decimal,
+    # not its float64 widening, keeps `np.float16(0.7)` from reading as 0.70019.
+    if isinstance(train_ratio, np.generic) and train_ratio.dtype.itemsize <= 8:
+        train_ratio = float(decimal)
     return max(int(length * train_ratio), int(Fraction(decimal) * length))
 
 

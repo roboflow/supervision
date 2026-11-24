@@ -12,7 +12,7 @@ import requests
 from PIL import Image, ImageChops
 
 from supervision import _cv2 as cv2
-from supervision._cv2._image import _imdecode
+from supervision._cv2._image import _imdecode, _resize
 from supervision.draw.color import Color
 from supervision.utils.image import (
     ImageSink,
@@ -531,6 +531,84 @@ class TestLetterboxImage:
         assert np.all(result[:106] == 255)
         assert np.all(result[533:] == 255)
 
+    def test_numpy_integer_resolution_pads_with_python_ints(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """NumPy integer target sizes reach the border backend as Python ints."""
+        # given
+        padding_types: list[type] = []
+        original_copy_make_border = cv2.copyMakeBorder
+
+        def recording_copy_make_border(
+            image: npt.NDArray[np.uint8], *paddings: Any, **kwargs: Any
+        ) -> Any:
+            """Record the four padding types while retaining the original behavior."""
+            padding_types.extend(type(padding) for padding in paddings[:4])
+            return original_copy_make_border(image, *paddings, **kwargs)
+
+        monkeypatch.setattr(cv2, "copyMakeBorder", recording_copy_make_border)
+        image = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        # when
+        letterbox_image(image, (np.uint64(120), np.uint64(120)))
+
+        # then
+        assert padding_types == [int] * 4
+
+
+class TestResizeTranslucentBgraImage:
+    def test_fallback_float_resize_keeps_rows_across_blocks(self) -> None:
+        """A float resize preserves each row across the block boundary."""
+        image = np.arange(600 * 512 * 4, dtype=np.float32).reshape(600, 512, 4)
+
+        result = _resize(image, (512, 600))
+
+        np.testing.assert_array_equal(result, image)
+
+    def test_zero_alpha_output_keeps_plain_resized_color(self) -> None:
+        """Pixels whose alpha rounds to zero retain their plain-resized color."""
+        image = np.array([[(0, 0, 255, 0), (0, 255, 0, 1)]], dtype=np.uint8)
+        plain = cv2.resize(image, (4, 2), interpolation=cv2.INTER_LINEAR)
+
+        result = resize_image(image, (4, 2))
+
+        transparent = result[..., 3] == 0
+        np.testing.assert_array_equal(result[transparent, :3], plain[transparent, :3])
+
+    def test_identity_resize_preserves_all_pixels(self) -> None:
+        """A same-size resize preserves even colors under transparent pixels."""
+        image = np.array([[(10, 20, 30, 0), (40, 50, 60, 1)]], dtype=np.uint8)
+
+        result = resize_image(image, (2, 1))
+
+        np.testing.assert_array_equal(result, image)
+
+    @pytest.mark.parametrize(
+        "resize",
+        [
+            pytest.param(lambda image: scale_image(image, 2.0), id="scale-image"),
+            pytest.param(
+                lambda image: resize_image(image, (16, 16)), id="resize-image"
+            ),
+        ],
+    )
+    def test_edges_keep_visible_color(
+        self, resize: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]]
+    ) -> None:
+        """Edge pixels blend visible colors, not the one under transparent pixels."""
+        # given
+        image = np.zeros((8, 8, 4), dtype=np.uint8)
+        image[..., 2] = 255
+        image[:, 4:] = (0, 255, 0, 255)
+
+        # when
+        result = resize(image)
+
+        # then
+        visible = result[..., 3] > 0
+        assert np.any(visible & (result[..., 3] < 255))
+        assert np.all(result[visible][:, :3] == (0, 255, 0))
+
 
 def test_tint_image_leaves_numpy_input_unchanged() -> None:
     """Tinting a NumPy image returns a tinted copy and leaves the input untouched."""
@@ -749,6 +827,31 @@ def test_overlay_image_blends_bgra_overlay_as_gray_on_grayscale_scene(
     # then
     assert result.shape == image_shape
     np.testing.assert_array_equal(result.reshape(2, 2), expected)
+
+
+class TestOverlayImageOnBgraScene:
+    @pytest.mark.parametrize(
+        "overlay_shape",
+        [
+            pytest.param((2, 2), id="2d-overlay"),
+            pytest.param((2, 2, 1), id="channel-overlay"),
+        ],
+    )
+    def test_pastes_grayscale_overlay_as_opaque_gray(
+        self, overlay_shape: tuple[int, ...]
+    ) -> None:
+        """A grayscale overlay is pasted into a BGRA scene as opaque gray."""
+        # given
+        image = np.zeros((3, 3, 4), dtype=np.uint8)
+        overlay = np.full(overlay_shape, 9, dtype=np.uint8)
+        expected = np.zeros((3, 3, 4), dtype=np.uint8)
+        expected[1:, 1:] = (9, 9, 9, 255)
+
+        # when
+        result = _overlay_image(image=image, overlay=overlay, anchor=(1, 1))
+
+        # then
+        np.testing.assert_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
