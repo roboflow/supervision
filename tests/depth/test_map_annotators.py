@@ -43,6 +43,18 @@ class TestNormalMapAnnotator:
 
         assert _rgb(scene) == [[[255, 128, 128], [9, 9, 9], [9, 9, 9]]]
 
+    def test_leaves_masked_vectors_unpainted(self) -> None:
+        """A vector with a masked component in a masked array is a hole."""
+        normal_map = np.ma.masked_array(
+            [[[0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]],
+            mask=[[[False, False, False], [True, False, False]]],
+        )
+        scene = np.full((1, 2, 3), 9, dtype=np.uint8)
+
+        sv.NormalMapAnnotator().annotate(scene, normal_map)
+
+        assert _rgb(scene) == [[[128, 128, 255], [9, 9, 9]]]
+
     def test_stretches_normals_over_the_scene_and_supports_pillow(self) -> None:
         """Normal maps use centre sampling and Pillow scenes keep RGB channel order."""
         normal_map = np.array([[[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]]])
@@ -117,15 +129,37 @@ class TestGradientMapAnnotator:
         np.testing.assert_array_equal(scene, expected)
 
     def test_auto_uses_the_two_to_ninety_eighth_percentile(self) -> None:
-        """Automatic scaling ignores extreme gradient outliers at both ends."""
+        """Automatic scaling spans the nearest-rank 2nd and 98th percentile values."""
         values = np.arange(100, dtype=np.float32).reshape(10, 10)
         automatic = np.zeros((10, 10, 3), dtype=np.uint8)
         explicit = np.zeros_like(automatic)
 
         sv.GradientMapAnnotator().annotate(automatic, values)
-        sv.GradientMapAnnotator(display_range=(1.98, 97.02)).annotate(explicit, values)
+        sv.GradientMapAnnotator(display_range=(2.0, 97.0)).annotate(explicit, values)
 
         np.testing.assert_array_equal(automatic, explicit)
+
+    def test_auto_keeps_sparse_peaks_visible_on_a_mostly_flat_map(self) -> None:
+        """Peaks among nearly all zeros still colour above the far end of the range."""
+        gradient = np.zeros((10, 10), dtype=np.float32)
+        gradient[0, 0] = 5.0
+        gradient[0, 1] = 10.0
+        scene = np.zeros((10, 10, 3), dtype=np.uint8)
+
+        sv.GradientMapAnnotator().annotate(scene, gradient)
+
+        assert _rgb(scene)[0][0] not in (TURBO_FAR_RGB, TURBO_NEAR_RGB)
+        assert _rgb(scene)[0][1] == TURBO_NEAR_RGB
+        assert _rgb(scene)[9][9] == TURBO_FAR_RGB
+
+    def test_auto_paints_a_constant_map_with_the_far_colour(self) -> None:
+        """A map of one repeated value has no span, so every pixel takes the far end."""
+        gradient = np.full((10, 10), 3.0, dtype=np.float32)
+        scene = np.zeros((10, 10, 3), dtype=np.uint8)
+
+        sv.GradientMapAnnotator().annotate(scene, gradient)
+
+        assert _rgb(scene) == [[TURBO_FAR_RGB] * 10] * 10
 
     def test_masks_nonfinite_values_and_handles_flat_maps(self) -> None:
         """Nonfinite map values show the scene and a flat map uses the far colour."""
@@ -135,6 +169,17 @@ class TestGradientMapAnnotator:
         sv.GradientMapAnnotator(display_range="auto").annotate(scene, gradient)
 
         assert _rgb(scene) == [[[7, 7, 7], TURBO_FAR_RGB, [7, 7, 7]]]
+
+    def test_leaves_masked_entries_unpainted(self) -> None:
+        """Masked entries of an integer masked array are holes, not painted values."""
+        gradient = np.ma.masked_array(
+            np.array([[0, 10, 5]], dtype=np.int32), mask=[[False, False, True]]
+        )
+        scene = np.full((1, 3, 3), 7, dtype=np.uint8)
+
+        sv.GradientMapAnnotator(display_range=(0.0, 10.0)).annotate(scene, gradient)
+
+        assert _rgb(scene) == [[TURBO_FAR_RGB, TURBO_NEAR_RGB, [7, 7, 7]]]
 
     def test_clamps_values_outside_the_display_range(self) -> None:
         """Values below and above the selected range use its endpoint colours."""

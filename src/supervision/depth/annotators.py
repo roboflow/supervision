@@ -142,19 +142,7 @@ class DepthAnnotator:
 
             ```
         """
-        # The conversion decorator rejects other types and turns a Pillow image into
-        # an array, so this always holds; it narrows `ImageType` for the type checker.
-        assert isinstance(scene, np.ndarray)
-        if scene.ndim != 3 or scene.shape[2] != 3:
-            raise ValueError(
-                f"DepthAnnotator draws on 3-channel images, got shape {scene.shape}."
-            )
-        # The colours are uint8; a wider scene would blend differently on OpenCV and
-        # on the NumPy fallback, and `opacity >= 1` would write 0-255 into a float one.
-        if scene.dtype != np.uint8:
-            raise ValueError(
-                f"DepthAnnotator draws on uint8 images, got dtype {scene.dtype}."
-            )
+        scene_array = _validate_map_scene(scene, "DepthAnnotator")
         conversion = _resolve_conversion(depth_map.kind, depth_map.camera, self.scale)
         # The frame is converted once, for both the mask and the colours.
         converted = conversion.apply(depth_map.values)
@@ -168,19 +156,7 @@ class DepthAnnotator:
         value_range = self._resolve_range(depth_map, valid, conversion)
         coordinates = _color_coordinates(converted, valid, conversion, value_range)
         colors = _colorize(coordinates, self.colormap)
-
-        scene_height, scene_width = scene.shape[:2]
-        map_width, map_height = depth_map.resolution_wh
-        if (map_height, map_width) != (scene_height, scene_width):
-            rows = _index_map(map_height, scene_height)
-            columns = _index_map(map_width, scene_width)
-            # One 1-D take per axis is several times faster than a broadcast
-            # `[rows[:, None], columns]` fancy index and samples the same pixels.
-            colors = colors.take(rows, axis=0).take(columns, axis=1)
-            valid = valid.take(rows, axis=0).take(columns, axis=1)
-
-        _blend(scene, valid, colors, self.opacity)
-        return scene
+        return _annotate_map_colors(scene_array, colors, valid, self.opacity)
 
     def _resolve_range(
         self,
@@ -207,7 +183,8 @@ class NormalMapAnnotator:
 
     Each vector is normalized before its x, y and z components are encoded as red,
     green and blue. A component of -1 maps to 0, 0 to 128 and 1 to 255. Zero-length
-    and nonfinite vectors are left unpainted.
+    and nonfinite vectors are left unpainted, as are vectors with a masked component
+    in a `numpy.ma.MaskedArray`, which count as NaN holes.
 
     Examples:
         ```pycon
@@ -242,7 +219,9 @@ class NormalMapAnnotator:
             scene: The image to draw on, a 3-channel `uint8` `numpy.ndarray` (BGR) or
                 a `PIL.Image.Image`. It is drawn on in place.
             normal_map: A real numeric array shaped `(height, width, 3)` holding
-                x, y and z normal components. Vectors are normalized per pixel.
+                x, y and z normal components. Vectors are normalized per pixel. In a
+                `numpy.ma.MaskedArray`, a masked component counts as NaN, so its
+                pixel is left unpainted.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray` or
@@ -263,8 +242,11 @@ class GradientMapAnnotator:
 
     A gradient map may hold scalar magnitudes shaped `(height, width)` or x and y
     derivative components shaped `(height, width, 2)`. The default `"auto"` range
-    spans the valid values' 2nd to 98th percentile; a fixed range keeps colours stable
-    across frames. Nonfinite pixels are left unpainted.
+    spans the valid values' 2nd to 98th percentile; when those coincide on a map that
+    is not constant, as on a mostly flat map with a few edges, it spans the valid
+    minimum to maximum instead. A fixed range keeps colours stable across frames.
+    Nonfinite pixels are left unpainted, as are masked entries of a
+    `numpy.ma.MaskedArray`, which count as NaN holes.
 
     Examples:
         ```pycon
@@ -292,7 +274,9 @@ class GradientMapAnnotator:
             colormap: Colour table: `"turbo"` (default), `"viridis"`, `"cividis"`,
                 `"inferno"`, `"magma"` or `"grayscale"`.
             display_range: The values the colour table spans; values outside clamp to
-                its ends. `"auto"` (default) uses the map's 2nd to 98th percentile.
+                its ends. `"auto"` (default) uses the map's 2nd to 98th percentile,
+                or its minimum to maximum when those percentiles coincide on a map
+                that is not constant; a constant map paints the far-end colour.
                 A `(low, high)` tuple fixes the range. Equal bounds paint the far-end
                 colour.
             opacity: Opacity of the colours over the scene, from 0 to 1. Values
@@ -319,7 +303,9 @@ class GradientMapAnnotator:
             gradient_map: A real numeric array shaped `(height, width)` with
                 nonnegative scalar magnitudes, or `(height, width, 2)` with x and y
                 derivative components. Component arrays are visualized by their
-                Euclidean magnitude.
+                Euclidean magnitude. In a `numpy.ma.MaskedArray`, a masked entry
+                counts as NaN, so its pixel is left unpainted and ignored by
+                `"auto"`.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray` or
@@ -613,7 +599,7 @@ def _check_percentiles(low: float, high: float) -> None:
 
 
 def _values_at_ranks(
-    values: npt.NDArray[np.float32], low: float, high: float
+    values: npt.NDArray[np.floating], low: float, high: float
 ) -> tuple[float, float]:
     """Return the values at the low and high nearest ranks of an unsorted array."""
     low_rank = _nearest_rank(values.size, low / 100)
@@ -628,12 +614,17 @@ def _nearest_rank(count: int, fraction: float) -> int:
 
 
 def _validate_map_scene(scene: ImageType, annotator_name: str) -> npt.NDArray[np.uint8]:
-    """Require a three-channel uint8 scene for scalar or vector map overlays."""
+    """Require a three-channel uint8 scene for a depth, normal or gradient overlay."""
+    # Every caller's `annotate` runs under the conversion decorator, which rejects
+    # other types and turns a Pillow image into an array, so this always holds; it
+    # narrows `ImageType` for the type checker.
     assert isinstance(scene, np.ndarray)
     if scene.ndim != 3 or scene.shape[2] != 3:
         raise ValueError(
             f"{annotator_name} draws on 3-channel images, got shape {scene.shape}."
         )
+    # The colours are uint8; a wider scene would blend differently on OpenCV and
+    # on the NumPy fallback, and `opacity >= 1` would write 0-255 into a float one.
     if scene.dtype != np.uint8:
         raise ValueError(
             f"{annotator_name} draws on uint8 images, got dtype {scene.dtype}."
@@ -653,6 +644,8 @@ def _annotate_map_colors(
     if (map_height, map_width) != (scene_height, scene_width):
         rows = _index_map(map_height, scene_height)
         columns = _index_map(map_width, scene_width)
+        # One 1-D take per axis is several times faster than a broadcast
+        # `[rows[:, None], columns]` fancy index and samples the same pixels.
         colors = colors.take(rows, axis=0).take(columns, axis=1)
         valid = valid.take(rows, axis=0).take(columns, axis=1)
     _blend(scene, valid, colors, opacity)
@@ -660,11 +653,17 @@ def _annotate_map_colors(
 
 
 def _real_numeric_map(values: Any, name: str) -> np.ndarray:
-    """Require a NumPy array with a real integer or floating-point dtype."""
+    """Require a real numeric NumPy array, turning masked entries into NaN holes."""
     if not isinstance(values, np.ndarray):
         raise TypeError(f"{name} must be a numpy.ndarray, got {type(values)}.")
     if values.dtype.kind not in "iuf":
         raise ValueError(f"{name} must have a real numeric dtype, got {values.dtype}.")
+    if isinstance(values, np.ma.MaskedArray):
+        # The finiteness checks and reductions downstream read the raw data and
+        # ignore the mask, so masked entries would be painted. NaN marks them as
+        # holes instead; the cast comes first because an integer array cannot
+        # hold NaN.
+        return np.ma.filled(values.astype(np.float64), np.nan)
     return values
 
 
@@ -683,6 +682,9 @@ def _normal_map_colors(
 
     vectors = values.astype(np.float64, copy=False)
     finite = np.isfinite(vectors).all(axis=2)
+    # Dividing each vector by its largest absolute component before squaring keeps
+    # the squared sum in [1, 3], so squaring cannot overflow huge components or
+    # underflow tiny ones to a zero length. `scale > 0` drops zero-length vectors.
     with np.errstate(over="ignore", invalid="ignore"):
         scale = np.max(np.abs(vectors), axis=2)
     valid = finite & (scale > 0)
@@ -759,16 +761,22 @@ def _gradient_map_range(
     valid: npt.NDArray[np.bool_],
     display_range: str | tuple[float, float],
 ) -> tuple[float, float]:
-    """Resolve the explicit or percentile colour range for a gradient map."""
+    """Resolve the explicit or automatic colour range for a gradient map."""
     if isinstance(display_range, tuple):
         return display_range
     values = magnitudes[valid]
     if values.size == 0:
         return _FALLBACK_RANGE
-    low, high = np.percentile(
-        values, [_DEFAULT_LOW_PERCENTILE, _DEFAULT_HIGH_PERCENTILE]
+    low, high = _values_at_ranks(
+        values, _DEFAULT_LOW_PERCENTILE, _DEFAULT_HIGH_PERCENTILE
     )
-    return float(low), float(high)
+    if low == high:
+        # When nearly every value is the same, as in the edge magnitudes of a mostly
+        # plain image, both percentiles land on it and a flat range would paint the
+        # few real edges the lowest colour. Spanning the valid minimum to maximum
+        # keeps them visible; on a constant map those coincide, so it stays flat.
+        return float(values.min()), float(values.max())
+    return low, high
 
 
 def _gradient_color_coordinates(
