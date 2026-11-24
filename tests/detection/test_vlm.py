@@ -2693,6 +2693,71 @@ class TestQwenTextBeforeFence:
         np.testing.assert_array_equal(names, ["cat", "dog"])
 
 
+class TestQwenUnrelatedFences:
+    """Preserve detection payloads around unrelated fences and quoted backticks."""
+
+    @pytest.mark.parametrize(
+        ("result", "label"),
+        [
+            pytest.param(
+                "```text\nnotes\n```\n```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```',
+                "cat",
+                id="earlier-unrelated-fence",
+            ),
+            pytest.param(
+                "```json\n[{'bbox_2d': [1, 2, 3, 4], 'label': 'cat'}]\n```\nSee [note]",
+                "cat",
+                id="python-literal-with-trailing-brackets",
+            ),
+            pytest.param(
+                "Thinking []\n```json\n"
+                "[{'bbox_2d': [1, 2, 3, 4], 'label': 'cat'}]\n```",
+                "cat",
+                id="earlier-empty-array-python-literal",
+            ),
+            pytest.param(
+                "Thinking []\n```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}, '
+                '{"bbox_2d": [5, 6',
+                "cat",
+                id="earlier-empty-array-truncated-json",
+            ),
+            pytest.param(
+                '```json\n[{"example": "not a detection"}]\n```\n'
+                '```json\n[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```',
+                "cat",
+                id="earlier-unrelated-json-array",
+            ),
+            pytest.param(
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```text\nnotes\n```',
+                "cat",
+                id="later-unrelated-fence",
+            ),
+            pytest.param(
+                "```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "literal ``` marker"}]\n```',
+                "literal ``` marker",
+                id="fenced-label-backticks",
+            ),
+            pytest.param(
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "literal ``` marker"}]',
+                "literal ``` marker",
+                id="unfenced-label-backticks",
+            ),
+        ],
+    )
+    def test_preserves_detection(self, result: str, label: str) -> None:
+        """Return the detection and complete label for both Qwen parsers."""
+        boxes_2, _, names_2 = from_qwen_2_5_vl(result, (1000, 1000), (1000, 1000))
+        boxes_3, _, names_3 = from_qwen_3_vl(result, (1000, 1000))
+
+        np.testing.assert_allclose(boxes_2, [[1, 2, 3, 4]])
+        np.testing.assert_array_equal(names_2, [label])
+        np.testing.assert_allclose(boxes_3, [[1, 2, 3, 4]])
+        np.testing.assert_array_equal(names_3, [label])
+
+
 class TestQwenMalformedBoxes:
     """Malformed model boxes do not discard other detections in the response."""
 

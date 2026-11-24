@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now reads the fenced JSON block wherever it starts in the response. Previously a `[` in text before the fence, such as a restated box format or a thinking model's reasoning, made the parser return no detections. ([#3011](https://github.com/roboflow/supervision/pull/3011))
+- `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now finds detection JSON after surrounding text or unrelated code fences, and preserves backticks inside labels. Previously bracketed reasoning or unrelated fences could make the parser return no detections. ([#3011](https://github.com/roboflow/supervision/pull/3011))
 
 - `sv.Classifications.get_top_k` now returns classes with equal confidence in their input order, so a tie for the best score goes to the first class, as `np.argmax` picks it. It reversed an ascending sort, which put the last tied class first, and with many classes, such as 1000 ImageNet scores in float16, returned tied classes in an arbitrary order. A NaN confidence now ranks last instead of first. `sv.ClassificationDataset.as_folder_structure` uses the top class to choose each image's folder, so it follows the same order. ([#2989](https://github.com/roboflow/supervision/pull/2989))
 
