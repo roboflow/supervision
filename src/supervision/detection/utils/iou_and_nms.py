@@ -4,7 +4,7 @@ import warnings
 from collections.abc import Callable, Sequence
 from enum import Enum
 from fractions import Fraction
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -13,8 +13,43 @@ from supervision._cv2._geometry import _intersect_convex_convex
 from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.utils.internal import warn_deprecated
 
-# np.bitwise_count (popcount) was added in NumPy 2.0.
+#: ``np.bitwise_count`` (popcount) was added in NumPy 2.0; the packed mask
+#: overlap path needs it.
 _HAS_BITWISE_COUNT = hasattr(np, "bitwise_count")
+
+#: Largest pixel count whose float32 sum is still exact (``2**24``); masks with
+#: more pixels count in float64 instead.
+_FLOAT32_EXACT_PIXELS = 2**24
+
+_Candidate = TypeVar("_Candidate")
+
+#: Upper bound, in bytes, of the temporary the packed intersection kernel builds
+#: per block of true-mask rows (the bitwise AND plus its popcount).
+_PACKED_BLOCK_BYTES = 4 * 1024 * 1024
+
+
+def _count_dtype(pixels: int) -> type[np.floating]:
+    """Return the float dtype that counts `pixels` mask pixels exactly.
+
+    Args:
+        pixels: Number of pixels in one mask.
+
+    Returns:
+        `np.float32` up to `2**24` pixels, `np.float64` beyond.
+    """
+    return np.float32 if pixels <= _FLOAT32_EXACT_PIXELS else np.float64
+
+
+def _use_packed(*masks: npt.NDArray[Any]) -> bool:
+    """Tell whether the bit-packed overlap path applies to the given masks.
+
+    Args:
+        *masks: Mask arrays that would be compared.
+
+    Returns:
+        `True` when `np.bitwise_count` exists and every array is boolean.
+    """
+    return _HAS_BITWISE_COUNT and all(mask.dtype == bool for mask in masks)
 
 
 class OverlapFilter(Enum):
@@ -990,7 +1025,7 @@ def compact_mask_iou_batch(
     # matters at an NMS threshold such as 0.1, where float32's rounded value
     # is just above the threshold while the exact Python float is not.
     pixel_count = masks_true.image_shape[0] * masks_true.image_shape[1]
-    count_dtype = np.float32 if pixel_count <= 2**24 else np.float64
+    count_dtype = _count_dtype(pixel_count)
 
     # Inclusive per-mask bounding boxes obtained from public accessors.
     # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
@@ -1072,17 +1107,7 @@ def _mask_iou_batch_split(
     # float32 counts pixels exactly up to 2**24; for larger masks (beyond
     # ~4096x4096) we promote to float64 so the counts stay exact.
     pixels = int(np.prod(masks_true.shape[1:]))
-    count_dtype = np.float32 if pixels <= 2**24 else np.float64
-
-    if _HAS_BITWISE_COUNT and masks_true.dtype == masks_detection.dtype == bool:
-        # Popcount on bit-packed masks gives exact integer counts from 1/32 of
-        # the memory a float32 copy would take.
-        return _packed_mask_iou_batch(
-            _pack_masks(masks_true),
-            _pack_masks(masks_detection),
-            count_dtype,
-            overlap_metric,
-        )
+    count_dtype = _count_dtype(pixels)
 
     # The overlap of two binary masks is the dot product of their flattened
     # pixels, so the whole (N, M) intersection matrix is a single matmul.
@@ -1113,19 +1138,33 @@ def _packed_mask_iou_batch(
     count_dtype: type[np.floating],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     detection_area: npt.NDArray[np.floating] | None = None,
+    detection_columns: npt.NDArray[np.intp] | None = None,
+    block_rows: int | None = None,
 ) -> npt.NDArray[np.floating]:
     """Internal function.
 
-    Pairwise overlap of two sets of masks packed by `_pack_masks`, counted with
-    popcount so the counts are exact integers.
+    Pairwise overlap of two sets of masks packed by
+    :func:`~supervision.detection.utils.iou_and_nms._pack_masks`, counted with
+    popcount so the counts are exact integers. Intersections are counted for
+    blocks of true-mask rows at once, so the row loop runs `N / block_rows`
+    times instead of `N` times.
 
     Args:
         true_words: 2D `uint64` `np.ndarray` of shape `(N, K)`.
-        detection_words: 2D `uint64` `np.ndarray` of shape `(M, K)`.
+        detection_words: 2D `uint64` `np.ndarray` of shape `(M, K)`. When
+            `detection_columns` is given it already holds only those columns.
         count_dtype: Float dtype the pixel counts are cast to.
-        detection_area: Optional precomputed detection mask areas.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
+        detection_area: Optional precomputed detection mask areas, taken
+            before any column was dropped from `detection_words`.
+        detection_columns: Optional indices of the word columns that are
+            non-empty in the detections, with `detection_words` already
+            reduced to them. Passing them lets a chunked caller reduce the
+            detections once instead of once per chunk. Computed from
+            `detection_words` when omitted.
+        block_rows: Rows of `true_words` intersected per step. Derived from
+            `_PACKED_BLOCK_BYTES` when omitted.
 
     Returns:
         Pairwise overlap of shape `(N, M)`.
@@ -1133,20 +1172,29 @@ def _packed_mask_iou_batch(
     masks_true_area = _count_pixels(true_words).astype(count_dtype)
     if detection_area is None:
         detection_area = _count_pixels(detection_words).astype(count_dtype)
-    masks_detection_area = detection_area
 
-    # Words that are empty in either set cannot add to any intersection.
-    used = true_words.any(axis=0) & detection_words.any(axis=0)
-    true_words = np.ascontiguousarray(true_words[:, used])
-    detection_words = np.ascontiguousarray(detection_words[:, used])
-    intersection_area = np.zeros(
+    # Words that are empty in the detections cannot add to any intersection; the
+    # areas above were taken before they were dropped.
+    if detection_columns is None:
+        detection_columns = np.flatnonzero(detection_words.any(axis=0))
+        detection_words = np.ascontiguousarray(detection_words[:, detection_columns])
+    true_words = true_words[:, detection_columns]
+
+    if block_rows is None:
+        row_bytes = max(detection_words.size * detection_words.itemsize, 1)
+        block_rows = max(_PACKED_BLOCK_BYTES // row_bytes, 1)
+
+    intersection_area = np.empty(
         (len(true_words), len(detection_words)), dtype=count_dtype
     )
-    for row_index, row in enumerate(true_words):
-        intersection_area[row_index] = _count_pixels(row & detection_words)
+    for start in range(0, len(true_words), block_rows):
+        block = true_words[start : start + block_rows]
+        intersection_area[start : start + block_rows] = _count_pixels(
+            block[:, None, :] & detection_words[None, :, :]
+        )
 
     return _overlap_from_areas(
-        intersection_area, masks_true_area, masks_detection_area, overlap_metric
+        intersection_area, masks_true_area, detection_area, overlap_metric
     )
 
 
@@ -1154,7 +1202,8 @@ def _pack_masks(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.uint64]:
     """Internal function.
 
     Pack boolean masks into one row of `uint64` words per mask, zero-padded to
-    a whole word. Requires NumPy >= 2.0 to count them with `_count_pixels`.
+    a whole word. Requires NumPy >= 2.0 to count them with
+    :func:`~supervision.detection.utils.iou_and_nms._count_pixels`.
 
     Args:
         masks: 3D boolean `np.ndarray` of shape `(N, H, W)`.
@@ -1164,7 +1213,10 @@ def _pack_masks(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.uint64]:
     """
     flat = masks.reshape(masks.shape[0], int(np.prod(masks.shape[1:])))
     packed = np.packbits(flat, axis=1)
-    packed = np.pad(packed, ((0, 0), (0, -packed.shape[1] % 8)))
+    # np.pad copies even for a zero width, so pad only when a word is incomplete.
+    pad_width = -packed.shape[1] % 8
+    if pad_width:
+        packed = np.pad(packed, ((0, 0), (0, pad_width)))
     return np.ascontiguousarray(packed).view(np.uint64)
 
 
@@ -1231,6 +1283,101 @@ def _overlap_from_areas(
     return cast(npt.NDArray[np.floating], ious)
 
 
+def _mask_iou_batch_packed(
+    masks_true: npt.NDArray[np.bool_],
+    masks_detection: npt.NDArray[np.bool_],
+    overlap_metric: OverlapMetric,
+    memory_limit: int,
+) -> npt.NDArray[np.floating]:
+    """Internal function.
+
+    Chunked bit-packed overlap of two non-empty boolean mask stacks, sized to
+    `memory_limit`. Counts are exact integers, so the result equals the float
+    matmul path of :func:`~supervision.detection.utils.iou_and_nms.mask_iou_batch`.
+
+    Args:
+        masks_true: 3D boolean `np.ndarray` of shape `(N, H, W)`.
+        masks_detection: 3D boolean `np.ndarray` of shape `(M, H, W)`.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of masks (e.g., IoU, IoS).
+        memory_limit: Memory limit in MB that sizes the chunks of `masks_true`.
+
+    Returns:
+        Pairwise overlap of shape `(N, M)`.
+    """
+    true_count, detection_count = len(masks_true), len(masks_detection)
+    pixels = masks_true.shape[1] * masks_true.shape[2]
+    limit_bytes = memory_limit * 1024 * 1024
+    count_dtype = _count_dtype(pixels)
+    word_bytes = ((pixels + 63) // 64) * 8
+
+    # Fixed buffers: packing the detections peaks at the packed words plus their
+    # padded copy, and the reduced detection words stay beside the originals. A
+    # strided batch only needs a spatial copy when its two spatial strides cannot
+    # form a flat view.
+    packed_detection_bytes = detection_count * word_bytes
+    fixed_bytes = 2 * packed_detection_bytes + detection_count * 8
+    height, width = masks_detection.shape[1:]
+    if (
+        height > 1
+        and width > 1
+        and masks_detection.strides[1] != width * masks_detection.strides[2]
+    ):
+        fixed_bytes += masks_detection.size
+    # The kernel intersects a block of true rows at once; each row costs the
+    # bitwise AND plus its popcount, and one row is the unavoidable minimum.
+    row_temp_bytes = packed_detection_bytes + packed_detection_bytes // 8
+    detection_floor = fixed_bytes + row_temp_bytes
+    if detection_floor > limit_bytes > 0:
+        warnings.warn(
+            f"detection masks ({detection_floor // 1024 // 1024} MB) exceed "
+            f"memory_limit ({memory_limit} MB); chunking cannot reduce peak "
+            "memory below this floor.",
+            UserWarning,
+            stacklevel=3,
+        )
+    # Give the block temporaries at most half of the headroom, so the chunks of
+    # true masks keep room too and a tight limit does not force one-row chunks.
+    headroom_bytes = max(limit_bytes - fixed_bytes, 0)
+    block_budget = min(_PACKED_BLOCK_BYTES, headroom_bytes // 2)
+    block_rows = max(block_budget // max(row_temp_bytes, 1), 1)
+
+    packed_words = _pack_masks(masks_detection)
+    detection_area = _count_pixels(packed_words).astype(count_dtype)
+    # Reduce the detections to their non-empty words once, not once per chunk.
+    detection_columns = np.flatnonzero(packed_words.any(axis=0))
+    detection_words = np.ascontiguousarray(packed_words[:, detection_columns])
+    # Self-overlap (NMS) compares one stack with itself: slice its packed words
+    # instead of packing every chunk again.
+    packed_true = packed_words if masks_true is masks_detection else None
+    del packed_words
+
+    output_bytes = true_count * detection_count * 8
+    per_true_row = 3 * word_bytes + 8 + 3 * detection_count * 8
+    if not masks_true.flags.c_contiguous:
+        per_true_row += pixels
+    detection_bytes = fixed_bytes + block_rows * row_temp_bytes
+    step = max((limit_bytes - detection_bytes - output_bytes) // per_true_row, 1)
+
+    result = np.empty((true_count, detection_count), dtype=float)
+    for chunk_start in range(0, true_count, step):
+        chunk_end = min(chunk_start + step, true_count)
+        if packed_true is None:
+            true_words = _pack_masks(masks_true[chunk_start:chunk_end])
+        else:
+            true_words = packed_true[chunk_start:chunk_end]
+        result[chunk_start:chunk_end] = _packed_mask_iou_batch(
+            true_words,
+            detection_words,
+            count_dtype,
+            overlap_metric,
+            detection_area,
+            detection_columns,
+            block_rows,
+        )
+    return result
+
+
 def mask_iou_batch(
     masks_true: npt.NDArray[Any] | CompactMask,
     masks_detection: npt.NDArray[Any] | CompactMask,
@@ -1255,11 +1402,15 @@ def mask_iou_batch(
             between pairs of masks (e.g., IoU, IoS).
         memory_limit: Memory limit in MB, default is 1024 * 5 MB (5GB).
             Controls chunking of ``masks_true`` based on estimated working
-            buffers. A ``UserWarning`` is raised when detection buffers alone
-            exceed the limit, as chunking cannot reduce peak memory below
-            that floor. The output and a minimum one-row chunk may also exceed
-            the limit. Ignored when both inputs are
-            :class:`~supervision.detection.compact_mask.CompactMask`.
+            buffers. Boolean masks whose float32 copies fit the limit use one
+            float matrix product. Boolean masks that do not fit it use
+            bit-packed counting on NumPy >= 2.0, which needs 16-32x less memory
+            and so warns only when the packed buffers alone exceed the limit;
+            other inputs chunk the float copies. A ``UserWarning`` is raised
+            when detection buffers alone exceed the limit, as chunking cannot
+            reduce peak memory below that floor. The output and a minimum
+            one-row chunk may also exceed the limit. Ignored when both inputs
+            are :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Returns:
         Pairwise IoU of masks from `masks_true` and `masks_detection`.
@@ -1306,66 +1457,24 @@ def mask_iou_batch(
     if masks_true.shape[0] == 0 or masks_detection.shape[0] == 0:
         return _mask_iou_batch_split(masks_true, masks_detection, overlap_metric)
 
-    pixels = masks_true.shape[1] * masks_true.shape[2]
-    limit_bytes = memory_limit * 1024 * 1024
-    if _HAS_BITWISE_COUNT and masks_true.dtype == masks_detection.dtype == bool:
-        word_bytes = ((pixels + 63) // 64) * 8
-        detection_count = len(masks_detection)
-        # Account for packed detections, the filtered copy, the bitwise AND and
-        # popcount temporaries, plus the already allocated final output matrix.
-        packed_detection_bytes = detection_count * word_bytes
-        detection_bytes = 3 * packed_detection_bytes + packed_detection_bytes // 8
-        detection_bytes += detection_count * 8 + 3 * (word_bytes // 8)
-        detection_floor = packed_detection_bytes
-        # Flattening copies only when the two spatial strides cannot form a view;
-        # a strided batch alone does not require a spatial copy.
-        height, width = masks_detection.shape[1:]
-        spatial_copy = (
-            height > 1
-            and width > 1
-            and masks_detection.strides[1] != width * masks_detection.strides[2]
-        )
-        if spatial_copy:
-            detection_bytes += masks_detection.size
-            detection_floor += masks_detection.size
-        output_bytes = len(masks_true) * detection_count * 8
-        per_true_row = 3 * word_bytes + 8 + 3 * detection_count * 8
-        if not masks_true.flags.c_contiguous:
-            per_true_row += pixels
-        if detection_floor > limit_bytes > 0:
-            warnings.warn(
-                f"detection masks ({detection_floor // 1024 // 1024} MB) exceed "
-                f"memory_limit ({memory_limit} MB); chunking cannot reduce peak "
-                "memory below this floor.",
-                UserWarning,
-                stacklevel=2,
-            )
-        detection_words = _pack_masks(masks_detection)
-        count_dtype = np.float32 if pixels <= 2**24 else np.float64
-        detection_area = _count_pixels(detection_words).astype(count_dtype)
-        step = max((limit_bytes - detection_bytes - output_bytes) // per_true_row, 1)
-        result = np.empty((len(masks_true), detection_count), dtype=float)
-        for chunk_start in range(0, len(masks_true), step):
-            chunk_end = min(chunk_start + step, len(masks_true))
-            result[chunk_start:chunk_end] = _packed_mask_iou_batch(
-                _pack_masks(masks_true[chunk_start:chunk_end]),
-                detection_words,
-                count_dtype,
-                overlap_metric,
-                detection_area,
-            )
-        return result
-
     # Peak memory of a single matmul pass: the flattened detection masks (shared
     # across chunks) plus, per true-mask row, its flattened pixels and the three
     # (N, M) matrices it touches (intersection, denominator and output). The
     # previous (N, M, H, W) estimate overcounted by a factor of M and forced
     # needless chunking now that the intersection is a matmul.
     pixels = masks_true.shape[1] * masks_true.shape[2]
-    itemsize = 4 if pixels <= 2**24 else 8
+    itemsize = np.dtype(_count_dtype(pixels)).itemsize
     limit_bytes = memory_limit * 1024 * 1024
     detection_bytes = masks_detection.shape[0] * pixels * itemsize
     per_true_row = pixels * itemsize + 3 * masks_detection.shape[0] * 8
+    float_fits = detection_bytes + masks_true.shape[0] * per_true_row <= limit_bytes
+    # The float matmul is the faster kernel on a fast BLAS, so bit-packed counting
+    # is kept for the inputs where its 16-32x smaller working set matters: those
+    # whose float copies would not fit `memory_limit`.
+    if not float_fits and _use_packed(masks_true, masks_detection):
+        return _mask_iou_batch_packed(
+            masks_true, masks_detection, overlap_metric, memory_limit
+        )
     if detection_bytes > limit_bytes > 0:
         warnings.warn(
             f"detection masks ({detection_bytes // 1024 // 1024} MB) exceed "
@@ -1374,7 +1483,7 @@ def mask_iou_batch(
             UserWarning,
             stacklevel=2,
         )
-    if detection_bytes + masks_true.shape[0] * per_true_row <= limit_bytes:
+    if float_fits:
         return _mask_iou_batch_split(masks_true, masks_detection, overlap_metric)
 
     ious = []
@@ -1752,41 +1861,64 @@ def _group_overlapping_masks(
         Groups of prediction indices to be merged.
             Each group may have 1 or more elements.
     """
-    if _HAS_BITWISE_COUNT and masks.dtype == bool:
+    if _use_packed(masks):
         return _group_overlapping_packed_masks(
             predictions, masks, iou_threshold, overlap_metric
         )
+    return _greedy_nmm_via_mask_candidate(
+        predictions, masks, iou_threshold, overlap_metric
+    )
 
+
+def _greedy_merge_groups(
+    scores: npt.NDArray[np.floating],
+    iou_threshold: float,
+    start: Callable[[int], _Candidate],
+    overlap: Callable[[npt.NDArray[np.int_], _Candidate], npt.NDArray[np.floating]],
+    union: Callable[[_Candidate, npt.NDArray[np.int_]], _Candidate],
+) -> list[list[int]]:
+    """Internal function.
+
+    Greedy non-maximum merging shared by the dense, bit-packed and compact mask
+    representations: take the best remaining prediction, repeatedly absorb every
+    remaining prediction that overlaps the growing union of the group, and start
+    a new group when none does. Only how a candidate is built, compared and
+    grown differs by representation, so the grouping rule lives here once.
+
+    Args:
+        scores: Confidence of each prediction, shape `(n,)`.
+        iou_threshold: Minimum overlap, in the closed range from 0 to 1, for a
+            prediction to join the group.
+        start: Builds the candidate for the best remaining prediction index.
+        overlap: Returns the overlaps, shape `(len(order),)`, of the predictions
+            at `order` against the candidate.
+        union: Grows the candidate with the predictions at the given indices.
+
+    Returns:
+        Groups of prediction indices to be merged.
+            Each group may have 1 or more elements.
+    """
     merge_groups: list[list[int]] = []
-
-    scores = predictions[:, 4]
     order = scores.argsort()
-
     while len(order) > 0:
         idx = int(order[-1])
-
         order = order[:-1]
         if len(order) == 0:
             merge_groups.append([idx])
             break
-
-        merge_candidate = masks[idx][None, ...]
-        candidate_groups = [idx]
+        candidate = start(idx)
+        merge_group = [idx]
         while len(order) > 0:
-            ious = mask_iou_batch(masks[order], merge_candidate, overlap_metric)
-            above_threshold = _is_mergeable_overlap(ious.flatten(), iou_threshold)
+            above_threshold = _is_mergeable_overlap(
+                overlap(order, candidate), iou_threshold
+            )
             if not above_threshold.any():
                 break
             above_idx = order[above_threshold]
-            merge_candidate = np.logical_or.reduce(
-                np.concatenate([masks[above_idx], merge_candidate]),
-                axis=0,
-                keepdims=True,
-            )
-            candidate_groups.extend(np.flip(above_idx).tolist())
+            candidate = union(candidate, above_idx)
+            merge_group.extend(np.flip(above_idx).tolist())
             order = order[~above_threshold]
-
-        merge_groups.append(candidate_groups)
+        merge_groups.append(merge_group)
     return merge_groups
 
 
@@ -1818,49 +1950,50 @@ def _group_overlapping_packed_masks(
     Returns:
         Groups of prediction indices to be merged.
             Each group may have 1 or more elements.
+
+    Raises:
+        ValueError: If more than one mask is given and `masks` is not 3D.
     """
-    merge_groups: list[list[int]] = []
+    if len(masks) > 1 and masks.ndim != 3:
+        # The dense route validates this inside `mask_iou_batch`; keep the error.
+        raise ValueError(
+            f"masks must be 3D (N, H, W); got ndim={masks.ndim}. "
+            "Dense masks are compared as (N, H, W) arrays."
+        )
 
     words = _pack_masks(masks)
-    pixels = int(np.prod(masks.shape[1:]))
-    count_dtype = np.float32 if pixels <= 2**24 else np.float64
+    count_dtype = _count_dtype(int(np.prod(masks.shape[1:])))
     areas = _count_pixels(words).astype(count_dtype)
 
-    scores = predictions[:, 4]
-    order = scores.argsort()
+    def start(idx: int) -> tuple[npt.NDArray[np.uint64], npt.NDArray[np.floating]]:
+        """Return the packed words and area of the prediction at `idx`."""
+        return words[idx : idx + 1], areas[idx : idx + 1]
 
-    while len(order) > 0:
-        idx = int(order[-1])
+    def overlap(
+        order: npt.NDArray[np.int_],
+        candidate: tuple[npt.NDArray[np.uint64], npt.NDArray[np.floating]],
+    ) -> npt.NDArray[np.floating]:
+        """Return the overlaps of the predictions at `order` with the candidate."""
+        candidate_words, candidate_area = candidate
+        intersection_area = _count_pixels(words[order] & candidate_words)
+        return _overlap_from_areas(
+            intersection_area.astype(count_dtype)[:, None],
+            areas[order],
+            candidate_area,
+            overlap_metric,
+        ).flatten()
 
-        order = order[:-1]
-        if len(order) == 0:
-            merge_groups.append([idx])
-            break
+    def union(
+        candidate: tuple[npt.NDArray[np.uint64], npt.NDArray[np.floating]],
+        above_idx: npt.NDArray[np.int_],
+    ) -> tuple[npt.NDArray[np.uint64], npt.NDArray[np.floating]]:
+        """Grow the candidate with the predictions at `above_idx`."""
+        merged = candidate[0] | np.bitwise_or.reduce(
+            words[above_idx], axis=0, keepdims=True
+        )
+        return merged, _count_pixels(merged).astype(count_dtype)
 
-        merge_candidate = words[idx : idx + 1]
-        candidate_area = areas[idx : idx + 1]
-        candidate_groups = [idx]
-        while len(order) > 0:
-            intersection_area = _count_pixels(words[order] & merge_candidate)
-            ious = _overlap_from_areas(
-                intersection_area.astype(count_dtype)[:, None],
-                areas[order],
-                candidate_area,
-                overlap_metric,
-            )
-            above_threshold: npt.NDArray[np.bool_] = ious.flatten() >= iou_threshold
-            if not above_threshold.any():
-                break
-            above_idx = order[above_threshold]
-            merge_candidate = merge_candidate | np.bitwise_or.reduce(
-                words[above_idx], axis=0, keepdims=True
-            )
-            candidate_area = _count_pixels(merge_candidate).astype(count_dtype)
-            candidate_groups.extend(np.flip(above_idx).tolist())
-            order = order[~above_threshold]
-
-        merge_groups.append(candidate_groups)
-    return merge_groups
+    return _greedy_merge_groups(predictions[:, 4], iou_threshold, start, overlap, union)
 
 
 def mask_non_max_merge(
@@ -1985,28 +2118,17 @@ def _greedy_nmm_via_mask_candidate(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
     """Group masks by exact overlap while updating the merged candidate union."""
-    merge_groups: list[list[int]] = []
-    scores = predictions[:, 4]
-    order = scores.argsort()
-    while len(order) > 0:
-        idx = int(order[-1])
-        order = order[:-1]
-        if len(order) == 0:
-            merge_groups.append([idx])
-            break
-        candidate = masks[[idx]]
-        merge_group = [idx]
-        while len(order) > 0:
-            ious = mask_iou_batch(masks[order], candidate, overlap_metric).flatten()
-            above_threshold = _is_mergeable_overlap(ious, iou_threshold)
-            if not above_threshold.any():
-                break
-            above_idx = order[above_threshold]
-            candidate = _update_mask_candidate(masks, candidate, above_idx)
-            merge_group.extend(np.flip(above_idx).tolist())
-            order = order[~above_threshold]
-        merge_groups.append(merge_group)
-    return merge_groups
+    return _greedy_merge_groups(
+        predictions[:, 4],
+        iou_threshold,
+        lambda idx: masks[[idx]],
+        lambda order, candidate: mask_iou_batch(
+            masks[order], candidate, overlap_metric
+        ).flatten(),
+        lambda candidate, above_idx: _update_mask_candidate(
+            masks, candidate, above_idx
+        ),
+    )
 
 
 def _group_overlapping_masks_pairwise(
