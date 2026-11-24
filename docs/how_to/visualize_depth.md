@@ -174,20 +174,24 @@ For one pixel, `depth_map.value_at(x, y)` returns the value in the map's own uni
 Normal maps hold an x, y and z component at every pixel. `sv.NormalMapAnnotator` normalizes each vector and maps its components to red, green and blue. Zero vectors and vectors with a nonfinite component are left unpainted:
 
 ```python
+import numpy as np
+
 normal_map = np.load("<NORMAL_MAP_NPY_PATH>")  # float32 array shaped (H, W, 3)
 annotated_image = sv.NormalMapAnnotator(opacity=0.7).annotate(image.copy(), normal_map)
 ```
 
-Gradient maps may hold a scalar magnitude shaped `(H, W)` or x and y derivative components shaped `(H, W, 2)`. The component form is visualized by its Euclidean magnitude. By default, the colormap spans the valid values' 2nd to 98th percentile; set a fixed range to compare frames on the same scale:
+Gradient maps may hold a scalar magnitude shaped `(H, W)` or x and y derivative components shaped `(H, W, 2)`. Scalar magnitudes must be nonnegative: a finite negative value raises `ValueError`. The component form is visualized by its Euclidean magnitude. By default, the colormap spans the valid values' 2nd to 98th percentile; set a fixed range to compare frames on the same scale:
 
 ```python
+import numpy as np
+
 gradient_map = np.load("<GRADIENT_MAP_NPY_PATH>")  # magnitude or two components
 annotated_image = sv.GradientMapAnnotator(
     colormap="turbo", display_range=(0.0, 25.0), opacity=0.7
 ).annotate(image.copy(), gradient_map)
 ```
 
-Both annotators accept NumPy BGR scenes and Pillow images, draw in place, and stretch a map over the whole scene when their dimensions differ. Nonfinite values remain transparent. `sv.GradientMapAnnotator` also accepts a constant range, which paints the far-end colour for every valid pixel.
+Both annotators accept NumPy BGR scenes and Pillow images, draw in place, and stretch a map over the whole scene when their dimensions differ. Nonfinite values remain transparent. `sv.GradientMapAnnotator` clamps values outside its range to the range's ends, except when the bounds are equal: a `(low, high)` tuple with `low == high`, or `"auto"` on a map whose valid values are all the same, paints every valid pixel the colormap's low-end colour. When the 2nd and 98th percentiles coincide on a map that is not constant, such as a mostly flat map with a few edges, `"auto"` spans the valid minimum to maximum instead.
 
 ## Attribution
 

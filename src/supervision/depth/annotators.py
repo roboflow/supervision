@@ -276,9 +276,10 @@ class GradientMapAnnotator:
             display_range: The values the colour table spans; values outside clamp to
                 its ends. `"auto"` (default) uses the map's 2nd to 98th percentile,
                 or its minimum to maximum when those percentiles coincide on a map
-                that is not constant; a constant map paints the far-end colour.
-                A `(low, high)` tuple fixes the range. Equal bounds paint the far-end
-                colour.
+                that is not constant. A `(low, high)` tuple fixes the range. Equal
+                bounds, from a tuple with `low == high` or from `"auto"` on a map
+                whose valid values are all the same, skip clamping: every valid
+                pixel takes the colormap's low-end colour.
             opacity: Opacity of the colours over the scene, from 0 to 1. Values
                 outside are clamped: `<= 0` draws nothing and `>= 1` fully replaces
                 pixels covered by the map.
@@ -784,7 +785,11 @@ def _gradient_color_coordinates(
     valid: npt.NDArray[np.bool_],
     value_range: tuple[float, float],
 ) -> npt.NDArray[np.float64]:
-    """Map gradient magnitudes to clamped colormap coordinates in `[0, 1]`."""
+    """Map gradient magnitudes to clamped colormap coordinates in `[0, 1]`.
+
+    Equal bounds, `low == high`, skip clamping and map every pixel to 0, the colormap's
+    low end, even a magnitude above them.
+    """
     low, high = value_range
     coordinates = np.zeros(magnitudes.shape, dtype=np.float64)
     if low == high:
