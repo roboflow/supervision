@@ -8,6 +8,7 @@ import os
 import random
 import shutil
 from collections.abc import Callable
+from fractions import Fraction
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar, cast
 
@@ -709,6 +710,42 @@ def save_dataset_images(
                 shutil.copyfile(image_path, final_path)
 
 
+def _train_split_index(length: int, train_ratio: float) -> int:
+    """Returns how many of `length` items belong to the train part.
+
+    The evaluated ratio's decimal representation is multiplied exactly, so
+    `90 * 0.7` gives `63` instead of the `62` that floating-point multiplication
+    floors to. The previous floating-point result is retained when it is larger,
+    preserving computed ratios such as `1 / 3` for three items. A NumPy scalar
+    ratio enters that floating-point product as the Python float of its decimal,
+    so a low-precision ratio such as `np.float16(0.5)` neither rounds nor
+    overflows the item count.
+
+    Args:
+        length: The number of items to split.
+        train_ratio: The train fraction, already validated to lie in `[0, 1]`.
+
+    Returns:
+        The number of leading items that go to the train part.
+    """
+    # A zero-dimensional array is unwrapped to its NumPy scalar first, so that
+    # `np.array(0.7, dtype=np.float32)` reads like `np.float32(0.7)`.
+    if isinstance(train_ratio, np.ndarray) and train_ratio.ndim == 0:
+        train_ratio = train_ratio[()]
+    # `str` of a NumPy float gives the shortest decimal for its own precision,
+    # so `np.float32(0.7)` reads as 0.7 and not as its float64 widening.
+    if isinstance(train_ratio, np.floating):
+        decimal = str(train_ratio)
+    else:
+        decimal = str(float(train_ratio))
+    # NumPy 2 multiplies in the scalar's own dtype, so `4095 * np.float16(0.5)`
+    # rounds 4095 up to 4096 and `70000 * np.float16(0.5)` overflows. Its decimal,
+    # not its float64 widening, keeps `np.float16(0.7)` from reading as 0.70019.
+    if isinstance(train_ratio, np.generic) and train_ratio.dtype.itemsize <= 8:
+        train_ratio = float(decimal)
+    return max(int(length * train_ratio), int(Fraction(decimal) * length))
+
+
 def train_test_split(
     data: list[T],
     train_ratio: float = 0.8,
@@ -756,5 +793,5 @@ def train_test_split(
     else:
         data = list(data)  # copy to guarantee non-mutation
 
-    split_index = int(len(data) * train_ratio)
+    split_index = _train_split_index(len(data), train_ratio)
     return data[:split_index], data[split_index:]
