@@ -1434,7 +1434,10 @@ class ConfusionMatrix:
             title: Title of the plot.
             classes: List of classes to be displayed on the plot.
                 If not provided, all classes will be displayed.
-            normalize: If True, normalize the confusion matrix.
+            normalize: If True, divide each row by its sum. Ground-truth class
+                rows show the share of each class's targets in each predicted
+                column, with per-class recall on the diagonal. The FP row shows
+                the distribution of unmatched predictions across classes.
             fig_size: Size of the plot.
 
         Returns:
@@ -1447,10 +1450,17 @@ class ConfusionMatrix:
         array = self.matrix.astype(np.float64)
 
         if normalize:
-            eps = 1e-8
-            array = array / (array.sum(0).reshape(1, -1) + eps)
+            # Divide only populated rows by their exact sums, so a row of many
+            # small shares still sums to 1 and an empty row stays all zero.
+            row_sums = array.sum(axis=1, keepdims=True)
+            array = np.divide(
+                array, row_sums, out=np.zeros_like(array), where=row_sums > 0
+            )
 
-        array[array < 0.005] = np.nan
+        # Hide only empty cells; a positive share too small to print stays visible
+        # in the heatmap and is skipped by the text cutoff below.
+        array[array <= 0] = np.nan
+        text_cutoff = 0.005
 
         fig, ax = plt.subplots(figsize=fig_size, tight_layout=True, facecolor="white")
 
@@ -1485,7 +1495,7 @@ class ConfusionMatrix:
             for i in range(array.shape[0]):
                 for j in range(array.shape[1]):
                     n_preds = array[i, j]
-                    if not np.isnan(n_preds):
+                    if n_preds >= text_cutoff:
                         ax.text(
                             j,
                             i,
