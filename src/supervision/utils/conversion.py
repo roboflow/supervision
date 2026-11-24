@@ -337,6 +337,10 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     if image.mode != "RGB":
         values = np.asarray(image.convert("RGB"))
 
+    if values.size == 0:
+        # OpenCV rejects empty arrays; keep the BGR layout and writable result.
+        return cast(npt.NDArray[np.uint8], values[..., ::-1].copy())
+
     scene = cv2.cvtColor(values, cv2.COLOR_RGB2BGR)
     # cvtColor already returns uint8 here, so astype is a no-op other than the
     # full-image copy it forces; copy=False keeps the dtype guard without it.
@@ -376,8 +380,9 @@ def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     if image.ndim == 2:
         return Image.fromarray(np.ascontiguousarray(image))
     if image.ndim == 3 and image.shape[2] == 3:
-        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        return Image.fromarray(rgb_image)
+        # Reversing the channels also handles an empty crop, which
+        # `cv2.cvtColor` rejects.
+        return Image.fromarray(np.ascontiguousarray(image[..., ::-1]))
     if image.ndim == 3 and image.shape[2] == 4:
         return Image.fromarray(np.ascontiguousarray(image[..., [2, 1, 0, 3]]))
     raise ValueError(f"Expected shape (H,W), (H,W,3), or (H,W,4), got {image.shape}.")
