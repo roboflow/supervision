@@ -292,24 +292,35 @@ def _resize(
     wy = y - y_floor
     wx = x - x_floor
 
-    source = src.astype(np.float64)
-    top_left = source[y0[:, np.newaxis], x0]
-    top_right = source[y0[:, np.newaxis], x1]
-    bottom_left = source[y1[:, np.newaxis], x0]
-    bottom_right = source[y1[:, np.newaxis], x1]
     if src.ndim == 3:
-        wy = wy[:, np.newaxis, np.newaxis]
         wx = wx[np.newaxis, :, np.newaxis]
     else:
-        wy = wy[:, np.newaxis]
         wx = wx[np.newaxis, :]
-    resized = (
-        top_left * (1 - wx) * (1 - wy)
-        + top_right * wx * (1 - wy)
-        + bottom_left * (1 - wx) * wy
-        + bottom_right * wx * wy
-    )
-    return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
+    resized = np.empty((height, width, *src.shape[2:]), dtype=src.dtype)
+    channels = 1 if src.ndim == 2 else src.shape[2]
+    block = max(1, _RESIZE_BLOCK_ELEMENTS // (width * channels))
+    # Limit the four float64 sampling buffers to a block of output rows.
+    for start in range(0, height, block):
+        stop = min(start + block, height)
+        rows0 = y0[start:stop, np.newaxis]
+        rows1 = y1[start:stop, np.newaxis]
+        weights = wy[start:stop]
+        if src.ndim == 3:
+            weights = weights[:, np.newaxis, np.newaxis]
+        else:
+            weights = weights[:, np.newaxis]
+        top_left = src[rows0, x0].astype(np.float64)
+        top_right = src[rows0, x1].astype(np.float64)
+        bottom_left = src[rows1, x0].astype(np.float64)
+        bottom_right = src[rows1, x1].astype(np.float64)
+        values = (
+            top_left * (1 - wx) * (1 - weights)
+            + top_right * wx * (1 - weights)
+            + bottom_left * (1 - wx) * weights
+            + bottom_right * wx * weights
+        )
+        resized[start:stop] = _cast_array_like_opencv(values, src.dtype)
+    return resized
 
 
 # OpenCV's uint8 `INTER_LINEAR` resize uses 11-bit fixed-point weights.
