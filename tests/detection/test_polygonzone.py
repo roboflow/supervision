@@ -36,6 +36,23 @@ requires_cv2 = pytest.mark.skipif(
     reason="OpenCV is required as the reference implementation for this test",
 )
 
+
+def test_empty_mask_negative_fractional_center_is_outside_zone() -> None:
+    """An empty-mask box just outside the frame does not enter a border zone."""
+    zone = sv.PolygonZone(
+        polygon=np.array([[0, 0], [4, 0], [4, 4], [0, 4]]),
+        triggering_anchors=[sv.Position.CENTER_OF_MASS],
+    )
+    detections = sv.Detections(
+        xyxy=np.array([[-1.0, 1.0, 0.0, 3.0]]),
+        mask=np.zeros((1, 5, 5), dtype=bool),
+    )
+
+    result = zone.trigger(detections)
+
+    np.testing.assert_array_equal(result, [False])
+
+
 DETECTION_BOXES = np.array(
     [
         [35.0, 35.0, 65.0, 65.0],

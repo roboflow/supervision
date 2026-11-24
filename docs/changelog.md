@@ -9,6 +9,16 @@ date_modified: 2026-11-18
 
 - Fixed `KeyPoints` selection to keep per-joint covariance matrices aligned when subsetting or reordering joints, preventing ellipse annotation errors and incorrect uncertainty ellipses, while preserving per-object covariance metadata. ([#2979](https://github.com/roboflow/supervision/pull/2979))
 
+- Fixed `sv.KeyPoints.from_transformers` to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. Pass `num_keypoints` to retain trailing slots when all poses omit the last joints. An empty first pose no longer hides later poses. ([#2978](https://github.com/roboflow/supervision/pull/2978))
+
+- `sv.Detections.get_anchors_coordinates` with `sv.Position.CENTER_OF_MASS` now anchors a detection whose mask has no pixels at the center of its bounding box, for dense masks and `sv.CompactMask` alike, instead of the frame's top-left corner `(0, 0)`. The mask centroid of an empty mask is undefined and `sv.calculate_masks_centroids` reports `(0, 0)`, so a stationary object whose mask came out empty in one frame made `sv.LineZone` count a phantom crossing, made `sv.PolygonZone` report it in the zone when the zone contained the corner, and was drawn at the corner by `sv.DotAnnotator`, `sv.LabelAnnotator` and `sv.TraceAnnotator`. A batch with an empty mask returns floating-point anchors to preserve fractional and large box centers. Centroids of non-empty masks are unchanged, and `sv.calculate_masks_centroids` itself still returns `(0, 0)` for an empty mask. ([#2976](https://github.com/roboflow/supervision/pull/2976))
+
+- `sv.KeyPoints.__setitem__` now raises `ValueError` when the value's length does not match the number of objects, as `sv.Detections.__setitem__` already does. Previously a wrong-length list or array was stored silently and only failed later, in `as_detections()`, `merge`, or when selecting objects. ([#2974](https://github.com/roboflow/supervision/pull/2974))
+
+- `sv.Detections.with_nmm`, `sv.box_non_max_merge`, `sv.mask_non_max_merge` and `sv.oriented_box_non_max_merge` with `threshold=0` (`iou_threshold=0`) no longer add a detection to a merge candidate when their overlap is zero. An overlap of exactly 0 satisfied `IoU >= 0`, so every detection of a class entered one merge group. For example, `with_nmm` turned three disjoint boxes into a single `[0, 0, 210, 210]` union box, while `with_nms(threshold=0)` kept all of them. Merging now needs a positive overlap, matching non-max suppression; results for thresholds above 0 are unchanged. ([#2972](https://github.com/roboflow/supervision/pull/2972))
+
+- `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). With the OpenCV backend, cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#2970](https://github.com/roboflow/supervision/pull/2970))
+
 ### 0.32.1 <small>Nov 24, 2026</small>
 
 - **BGRA scenes**: annotators, drawing helpers and image resizing handle `(H, W, 4)` arrays.
