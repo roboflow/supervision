@@ -458,7 +458,7 @@ def from_deepseek_vl_2(
             has shape `(0, 4)` and `class_id` is an empty integer array.
     """  # noqa: E501
 
-    width, height = resolution_wh
+    width, height = _validate_resolution(resolution_wh)
     label_segments = re.findall(r"<\|ref\|>(.*?)<\|/ref\|>", result, flags=re.S)
     detection_segments = re.findall(r"<\|det\|>(.*?)<\|/det\|>", result, flags=re.S)
 
