@@ -5,6 +5,10 @@ date_modified: 2026-11-18
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). With the OpenCV backend, cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#2970](https://github.com/roboflow/supervision/pull/2970))
+
 ### 0.32.1 <small>Nov 24, 2026</small>
 
 - **BGRA scenes**: annotators, drawing helpers and image resizing handle `(H, W, 4)` arrays.
