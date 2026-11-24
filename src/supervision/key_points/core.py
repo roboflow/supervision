@@ -299,7 +299,11 @@ class KeyPoints:
         data: A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data of length `n`
-            (one entry per detected object).
+            (one entry per detected object), or a zero-dimensional NumPy array
+            containing data shared across objects. Scalar arrays are preserved by
+            object selection, but :meth:`~supervision.key_points.core.KeyPoints.merge`
+            does not support them. Keypoint-aligned data fields require an array with
+            both object and keypoint dimensions.
     """  # noqa: E501 // docs
 
     xy: npt.NDArray[np.floating[Any]]
@@ -1402,7 +1406,11 @@ class KeyPoints:
 
         Args:
             key: The key in the data dictionary to set.
-            value: The value to set for the key.
+            value: A list or array with one entry per object, or a zero-dimensional
+                NumPy array containing data shared across objects. Scalar arrays are
+                preserved by object selection but are not supported by
+                :meth:`~supervision.key_points.core.KeyPoints.merge`. Keypoint-aligned
+                data fields require object and keypoint dimensions.
 
         Examples:
             ```python
@@ -1439,8 +1447,8 @@ class KeyPoints:
 
         Raises:
             TypeError: If `value` is not a `np.ndarray` or `list`.
-            ValueError: If `value` has a length or shape incompatible with
-                the number of objects in the
+            ValueError: If `value` has one or more dimensions and its first
+                dimension does not match the number of objects in the
                 :class:`~supervision.key_points.core.KeyPoints` object.
         """
         if not isinstance(value, (np.ndarray, list)):
