@@ -12,7 +12,7 @@ import requests
 from PIL import Image, ImageChops
 
 from supervision import _cv2 as cv2
-from supervision._cv2._image import _imdecode
+from supervision._cv2._image import _imdecode, _resize
 from supervision.draw.color import Color
 from supervision.utils.image import (
     ImageSink,
@@ -315,6 +315,34 @@ def test_resize_image_keeps_at_least_one_pixel_per_axis(
 
 
 class TestResizeImageKeepAspectRatio:
+    @pytest.mark.parametrize("dtype", [np.uint8, np.int16])
+    @pytest.mark.parametrize(
+        ("image_hw", "expected_hw"),
+        [
+            pytest.param((200, 400), (60, 120), id="landscape"),
+            pytest.param((400, 200), (120, 60), id="portrait"),
+        ],
+    )
+    def test_numpy_integer_resolution_does_not_overflow(
+        self, dtype: Any, image_hw: tuple[int, int], expected_hw: tuple[int, int]
+    ) -> None:
+        """NumPy integer target dimensions fit the image like Python integers."""
+        image = np.zeros((*image_hw, 3), dtype=np.uint8)
+        resolution = (dtype(120), dtype(120))
+
+        result = resize_image(image, resolution, keep_aspect_ratio=True)
+
+        assert result.shape == (*expected_hw, 3)
+
+    def test_numpy_integer_resolution_without_aspect_ratio(self) -> None:
+        """A NumPy integer target also works without aspect-ratio fitting."""
+        image = np.zeros((10, 20, 3), dtype=np.uint8)
+        resolution = (np.uint8(120), np.uint8(100))
+
+        result = resize_image(image, resolution)
+
+        assert result.shape == (100, 120, 3)
+
     @pytest.mark.parametrize(
         ("image_hw", "resolution_wh", "expected_hw"),
         [
@@ -474,6 +502,18 @@ def test_letterbox_image_for_pillow_image() -> None:
 
 
 class TestLetterboxImage:
+    def test_numpy_integer_resolution_preserves_fitted_image(self) -> None:
+        """Letterboxing a landscape image keeps its expected central region."""
+        image = np.full((100, 200, 3), 255, dtype=np.uint8)
+        resolution = (np.uint8(120), np.uint8(120))
+
+        result = letterbox_image(image, resolution)
+
+        assert result.shape == (120, 120, 3)
+        assert np.all(result[30:90] == 255)
+        assert np.all(result[:30] == 0)
+        assert np.all(result[90:] == 0)
+
     def test_keeps_source_pixels_when_width_already_fits(self) -> None:
         """A 640x427 image letterboxed to 640x640 is padded, not resampled."""
         # given
@@ -490,6 +530,84 @@ class TestLetterboxImage:
         assert np.array_equal(result[106:533], image)
         assert np.all(result[:106] == 255)
         assert np.all(result[533:] == 255)
+
+    def test_numpy_integer_resolution_pads_with_python_ints(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """NumPy integer target sizes reach the border backend as Python ints."""
+        # given
+        padding_types: list[type] = []
+        original_copy_make_border = cv2.copyMakeBorder
+
+        def recording_copy_make_border(
+            image: npt.NDArray[np.uint8], *paddings: Any, **kwargs: Any
+        ) -> Any:
+            """Record the four padding types while retaining the original behavior."""
+            padding_types.extend(type(padding) for padding in paddings[:4])
+            return original_copy_make_border(image, *paddings, **kwargs)
+
+        monkeypatch.setattr(cv2, "copyMakeBorder", recording_copy_make_border)
+        image = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        # when
+        letterbox_image(image, (np.uint64(120), np.uint64(120)))
+
+        # then
+        assert padding_types == [int] * 4
+
+
+class TestResizeTranslucentBgraImage:
+    def test_fallback_float_resize_keeps_rows_across_blocks(self) -> None:
+        """A float resize preserves each row across the block boundary."""
+        image = np.arange(600 * 512 * 4, dtype=np.float32).reshape(600, 512, 4)
+
+        result = _resize(image, (512, 600))
+
+        np.testing.assert_array_equal(result, image)
+
+    def test_zero_alpha_output_keeps_plain_resized_color(self) -> None:
+        """Pixels whose alpha rounds to zero retain their plain-resized color."""
+        image = np.array([[(0, 0, 255, 0), (0, 255, 0, 1)]], dtype=np.uint8)
+        plain = cv2.resize(image, (4, 2), interpolation=cv2.INTER_LINEAR)
+
+        result = resize_image(image, (4, 2))
+
+        transparent = result[..., 3] == 0
+        np.testing.assert_array_equal(result[transparent, :3], plain[transparent, :3])
+
+    def test_identity_resize_preserves_all_pixels(self) -> None:
+        """A same-size resize preserves even colors under transparent pixels."""
+        image = np.array([[(10, 20, 30, 0), (40, 50, 60, 1)]], dtype=np.uint8)
+
+        result = resize_image(image, (2, 1))
+
+        np.testing.assert_array_equal(result, image)
+
+    @pytest.mark.parametrize(
+        "resize",
+        [
+            pytest.param(lambda image: scale_image(image, 2.0), id="scale-image"),
+            pytest.param(
+                lambda image: resize_image(image, (16, 16)), id="resize-image"
+            ),
+        ],
+    )
+    def test_edges_keep_visible_color(
+        self, resize: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]]
+    ) -> None:
+        """Edge pixels blend visible colors, not the one under transparent pixels."""
+        # given
+        image = np.zeros((8, 8, 4), dtype=np.uint8)
+        image[..., 2] = 255
+        image[:, 4:] = (0, 255, 0, 255)
+
+        # when
+        result = resize(image)
+
+        # then
+        visible = result[..., 3] > 0
+        assert np.any(visible & (result[..., 3] < 255))
+        assert np.all(result[visible][:, :3] == (0, 255, 0))
 
 
 def test_tint_image_leaves_numpy_input_unchanged() -> None:
@@ -543,6 +661,37 @@ def test_tint_image_accepts_grayscale_array() -> None:
 
     # then
     np.testing.assert_array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    ("pixel", "opacity", "expected"),
+    [
+        pytest.param((0, 0, 0, 0), 0.25, (40, 100, 200, 64), id="transparent-black"),
+        pytest.param(
+            (255, 20, 90, 0), 0.25, (40, 100, 200, 64), id="transparent-hidden-color"
+        ),
+        pytest.param((20, 60, 100, 128), 0.25, (28, 76, 140, 160), id="translucent"),
+        pytest.param((20, 60, 100, 255), 0.25, (25, 70, 125, 255), id="opaque"),
+        pytest.param((20, 60, 100, 0), 0.0, (20, 60, 100, 0), id="zero-opacity"),
+        pytest.param((20, 60, 100, 128), 1.0, (40, 100, 200, 255), id="full-opacity"),
+    ],
+)
+def test_tint_image_accepts_bgra_array(
+    pixel: tuple[int, ...], opacity: float, expected: tuple[int, ...]
+) -> None:
+    """Tint BGRA pixels using their alpha and preserve the input."""
+    # given
+    image = np.array([[pixel]], dtype=np.uint8)
+    original = image.copy()
+
+    # when
+    result = tint_image(
+        image=image, color=Color(r=200, g=100, b=40, a=17), opacity=opacity
+    )
+
+    # then
+    np.testing.assert_array_equal(result, np.array([[expected]], dtype=np.uint8))
+    np.testing.assert_array_equal(image, original)
 
 
 @pytest.mark.parametrize(
@@ -678,6 +827,31 @@ def test_overlay_image_blends_bgra_overlay_as_gray_on_grayscale_scene(
     # then
     assert result.shape == image_shape
     np.testing.assert_array_equal(result.reshape(2, 2), expected)
+
+
+class TestOverlayImageOnBgraScene:
+    @pytest.mark.parametrize(
+        "overlay_shape",
+        [
+            pytest.param((2, 2), id="2d-overlay"),
+            pytest.param((2, 2, 1), id="channel-overlay"),
+        ],
+    )
+    def test_pastes_grayscale_overlay_as_opaque_gray(
+        self, overlay_shape: tuple[int, ...]
+    ) -> None:
+        """A grayscale overlay is pasted into a BGRA scene as opaque gray."""
+        # given
+        image = np.zeros((3, 3, 4), dtype=np.uint8)
+        overlay = np.full(overlay_shape, 9, dtype=np.uint8)
+        expected = np.zeros((3, 3, 4), dtype=np.uint8)
+        expected[1:, 1:] = (9, 9, 9, 255)
+
+        # when
+        result = _overlay_image(image=image, overlay=overlay, anchor=(1, 1))
+
+        # then
+        np.testing.assert_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
