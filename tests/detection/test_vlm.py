@@ -2760,6 +2760,126 @@ class TestPaliGemmaPunctuatedLabels:
         np.testing.assert_array_equal(names, ["cat/dog", "person (left)"])
 
 
+QWEN_FENCED_ANSWER = (
+    "```json\n"
+    "[\n"
+    '    {"bbox_2d": [100, 200, 300, 400], "label": "cat"},\n'
+    '    {"bbox_2d": [500, 200, 700, 400], "label": "dog"}\n'
+    "]\n"
+    "```"
+)
+
+
+class TestQwenTextBeforeFence:
+    """Text before the ```json fence does not hide the fenced detections."""
+
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pytest.param(QWEN_FENCED_ANSWER, id="fence_only"),
+            pytest.param("Here are the objects:\n" + QWEN_FENCED_ANSWER, id="sentence"),
+            pytest.param(
+                "Boxes are in [x1, y1, x2, y2] format:\n" + QWEN_FENCED_ANSWER,
+                id="sentence_with_brackets",
+            ),
+            pytest.param(
+                "<think>\nThe cat spans about [100, 200] to [300, 400].\n</think>\n\n"
+                + QWEN_FENCED_ANSWER,
+                id="reasoning_with_brackets",
+            ),
+            pytest.param(
+                QWEN_FENCED_ANSWER + "\nBoth boxes use [x1, y1, x2, y2].",
+                id="sentence_with_brackets_after_fence",
+            ),
+        ],
+    )
+    def test_parses_fenced_detections(self, result: str) -> None:
+        """Detections inside the fence are returned whatever text surrounds it."""
+        boxes, _, names = from_qwen_2_5_vl(
+            result, input_wh=(1000, 1000), resolution_wh=(1000, 1000)
+        )
+
+        np.testing.assert_allclose(boxes, [[100, 200, 300, 400], [500, 200, 700, 400]])
+        np.testing.assert_array_equal(names, ["cat", "dog"])
+
+    def test_qwen_3_vl_parses_after_reasoning(self) -> None:
+        """Qwen3-VL output with bracketed reasoning keeps its fenced detections."""
+        result = (
+            "<think>\nThe dog is right of the cat, near [500, 200].\n</think>\n\n"
+            + QWEN_FENCED_ANSWER
+        )
+
+        boxes, _, names = from_qwen_3_vl(result, resolution_wh=(1000, 1000))
+
+        np.testing.assert_allclose(boxes, [[100, 200, 300, 400], [500, 200, 700, 400]])
+        np.testing.assert_array_equal(names, ["cat", "dog"])
+
+
+class TestQwenUnrelatedFences:
+    """Preserve detection payloads around unrelated fences and quoted backticks."""
+
+    @pytest.mark.parametrize(
+        ("result", "label"),
+        [
+            pytest.param(
+                "```text\nnotes\n```\n```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```',
+                "cat",
+                id="earlier-unrelated-fence",
+            ),
+            pytest.param(
+                "```json\n[{'bbox_2d': [1, 2, 3, 4], 'label': 'cat'}]\n```\nSee [note]",
+                "cat",
+                id="python-literal-with-trailing-brackets",
+            ),
+            pytest.param(
+                "Thinking []\n```json\n"
+                "[{'bbox_2d': [1, 2, 3, 4], 'label': 'cat'}]\n```",
+                "cat",
+                id="earlier-empty-array-python-literal",
+            ),
+            pytest.param(
+                "Thinking []\n```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}, '
+                '{"bbox_2d": [5, 6',
+                "cat",
+                id="earlier-empty-array-truncated-json",
+            ),
+            pytest.param(
+                '```json\n[{"example": "not a detection"}]\n```\n'
+                '```json\n[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```',
+                "cat",
+                id="earlier-unrelated-json-array",
+            ),
+            pytest.param(
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```text\nnotes\n```',
+                "cat",
+                id="later-unrelated-fence",
+            ),
+            pytest.param(
+                "```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "literal ``` marker"}]\n```',
+                "literal ``` marker",
+                id="fenced-label-backticks",
+            ),
+            pytest.param(
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "literal ``` marker"}]',
+                "literal ``` marker",
+                id="unfenced-label-backticks",
+            ),
+        ],
+    )
+    def test_preserves_detection(self, result: str, label: str) -> None:
+        """Return the detection and complete label for both Qwen parsers."""
+        boxes_2, _, names_2 = from_qwen_2_5_vl(result, (1000, 1000), (1000, 1000))
+        boxes_3, _, names_3 = from_qwen_3_vl(result, (1000, 1000))
+
+        np.testing.assert_allclose(boxes_2, [[1, 2, 3, 4]])
+        np.testing.assert_array_equal(names_2, [label])
+        np.testing.assert_allclose(boxes_3, [[1, 2, 3, 4]])
+        np.testing.assert_array_equal(names_3, [label])
+
+
 class TestQwenMalformedBoxes:
     """Malformed model boxes do not discard other detections in the response."""
 

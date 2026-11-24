@@ -335,22 +335,37 @@ def from_qwen_2_5_vl(
     out_w, out_h = _validate_resolution(resolution_wh)
 
     text = result.strip()
-    text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
-    text = re.sub(r"```$", "", text).strip()
+    # Detection arrays begin with an object (or are empty), unlike coordinate
+    # examples in surrounding prose. Decode the array directly so Markdown fences
+    # and backticks inside JSON strings never become payload delimiters.
+    starts = list(re.finditer(r"\[\s*(?=\{|\])", text))
+    start = starts[0].start() if starts else 0
+    for index, candidate in enumerate(starts):
+        next_start = starts[index + 1].start() if index + 1 < len(starts) else len(text)
+        if "bbox_2d" in text[candidate.start() : next_start]:
+            start = candidate.start()
+            break
+    for candidate in starts:
+        try:
+            decoded, _ = json.JSONDecoder().raw_decode(text[candidate.start() :])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(decoded, list) and any(
+            isinstance(item, dict) and "bbox_2d" in item for item in decoded
+        ):
+            start = candidate.start()
+            break
+    text = re.sub(r"```$", "", text[start:]).strip()
 
-    # A response cut off inside a box's `bbox_2d` array ends in that array's
-    # elements, so the last `]` below belongs to the previous object's box and the
-    # slice drops that complete object. Recovery therefore reads the unsliced text
-    # first, and the slice when that fails (e.g. a `}` in trailing prose or in a
-    # label). `ast.literal_eval` keeps reading the slice.
+    # Recovery reads the unsliced response first: the last closing bracket can
+    # belong to an unfinished box rather than the outer array.
     unsliced = text
-    start = text.find("[")
     end = text.rfind("]")
-    if start != -1 and end != -1 and end > start:
-        text = text[start : end + 1].strip()
+    if end != -1:
+        text = text[: end + 1].strip()
 
     try:
-        data = json.loads(text)
+        data, _ = json.JSONDecoder().raw_decode(unsliced)
     except json.JSONDecodeError:
         repaired = recover_truncated_qwen_2_5_vl_response(unsliced)
         if repaired is None:
@@ -358,14 +373,15 @@ def from_qwen_2_5_vl(
         if repaired is not None:
             data = repaired
         else:
-            try:
-                data = ast.literal_eval(text)
-            except (ValueError, SyntaxError, TypeError):
-                return (
-                    np.empty((0, 4)),
-                    np.empty((0,), dtype=int),
-                    np.empty((0,), dtype=str),
-                )
+            # A Python-style list may be followed by prose with more brackets.
+            # Try each closing bracket until a complete literal is found.
+            data = None
+            for match in re.finditer(r"\]", text):
+                try:
+                    data = ast.literal_eval(text[: match.end()])
+                    break
+                except (ValueError, SyntaxError, TypeError):
+                    continue
 
     if not isinstance(data, list):
         return (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str))

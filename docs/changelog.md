@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now finds detection JSON after surrounding text or unrelated code fences, and preserves backticks inside labels. Previously bracketed reasoning or unrelated fences could make the parser return no detections. ([#3011](https://github.com/roboflow/supervision/pull/3011))
+
 - `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` and a `classes` filter now keeps confidence when every kept detection has a score, even if an item removed by that filter has no `confidence`. Previously that one item set `confidence` to `None` for every detection. ([#3009](https://github.com/roboflow/supervision/pull/3009))
 
 - `sv.VideoInfo.from_video_path` now reports the real frame rate of a browser-recorded WebM (`MediaRecorder`) instead of `1000.0`, and a frame count to match, so `sv.process_video` keeps the source's duration instead of writing a video that plays about 33x too fast. A rate above 240 fps is checked against the first frames; when they disagree by more than 2x, video frame timestamps and count are measured across the file. Without OpenCV, the PyAV backend derives the rate from video packet timestamps when the stream has no average rate. ([#3007](https://github.com/roboflow/supervision/pull/3007))
