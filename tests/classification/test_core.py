@@ -228,3 +228,49 @@ class TestClassificationsGetTopK:
         class_id, _ = classifications.get_top_k(2)
 
         np.testing.assert_array_equal(class_id, [0, 2])
+
+    @pytest.mark.parametrize(
+        "confidence",
+        [
+            pytest.param(np.array([2**53, 2**53 + 1], dtype=np.int64), id="int64"),
+            pytest.param(
+                np.array([2**64 - 2, 2**64 - 1], dtype=np.uint64), id="uint64"
+            ),
+            pytest.param(
+                np.array(
+                    [
+                        np.longdouble(0.5),
+                        np.nextafter(np.longdouble(0.5), np.longdouble(1)),
+                    ]
+                ),
+                marks=pytest.mark.skipif(
+                    np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+                    reason="longdouble has no additional precision on this platform",
+                ),
+                id="extended-float",
+            ),
+        ],
+    )
+    def test_orders_distinct_scores_without_losing_precision(
+        self, confidence: np.ndarray
+    ) -> None:
+        """Higher scores rank first even when float64 conversion loses precision."""
+        classifications = Classifications(
+            class_id=np.array([0, 1]), confidence=confidence
+        )
+
+        class_id, result_confidence = classifications.get_top_k(2)
+
+        np.testing.assert_array_equal(class_id, [1, 0])
+        np.testing.assert_array_equal(result_confidence, confidence[[1, 0]])
+
+    def test_preserves_ties_and_nan_order_with_infinite_scores(self) -> None:
+        """NaNs follow infinities while ties preserve their original order."""
+        classifications = Classifications(
+            class_id=np.arange(6),
+            confidence=np.array([np.nan, -np.inf, np.inf, np.nan, np.inf, -np.inf]),
+        )
+
+        class_id, _ = classifications.get_top_k(6)
+
+        np.testing.assert_array_equal(class_id, [2, 4, 1, 5, 0, 3])
