@@ -78,7 +78,7 @@ BANNER_DIV_RE = re.compile(
 )
 
 DEVELOP_TEXT = (
-    "You are reading the unreleased development version of the documentation, "
+    "You are reading the development version of the documentation, "
     "built from the <code>develop</code> branch.<br>\n"
     "APIs described here may change or may never ship in a release, so use the "
     f'<a href="{LATEST_URL}"><strong>latest stable release</strong></a> instead.'

@@ -3349,3 +3349,209 @@ class TestBoxWeightedBoxFusion:
         )
         result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.array_equal(result, expected_result)
+
+    @pytest.mark.parametrize(
+        ("predictions", "expected_result"),
+        [
+            pytest.param(
+                [
+                    [0.0, 0.0, 100.0, 100.0, 1e308, 0.0],
+                    [5.0, 5.0, 105.0, 105.0, 1e308, 0.0],
+                ],
+                [[2.5, 2.5, 102.5, 102.5, 1e308, 0.0]],
+                id="equal-huge-scores-average-shifted-boxes",
+            ),
+            pytest.param(
+                [
+                    [0.0, 0.0, 10.0, 10.0, 1e308, 0.0],
+                    [1.0, 1.0, 11.0, 11.0, 1e308, 0.0],
+                ],
+                [[0.5, 0.5, 10.5, 10.5, 1e308, 0.0]],
+                id="equal-huge-scores-average-unit-shift",
+            ),
+            pytest.param(
+                [
+                    [0.0, 0.0, 100.0, 100.0, 1e308, 0.0],
+                    [6.0, 6.0, 106.0, 106.0, 5e307, 0.0],
+                ],
+                [[2.0, 2.0, 102.0, 102.0, 7.5e307, 0.0]],
+                id="unequal-huge-scores-keep-weighting",
+            ),
+            pytest.param(
+                [
+                    [0.0, 0.0, 10.0, 10.0, np.finfo(np.float64).max, 0.0],
+                    [0.0, 0.0, 10.0, 10.0, np.finfo(np.float64).max, 0.0],
+                ],
+                [[0.0, 0.0, 10.0, 10.0, np.finfo(np.float64).max, 0.0]],
+                id="largest-finite-score-stays-finite",
+            ),
+        ],
+    )
+    def test_huge_finite_confidences_fuse_without_overflow(
+        self, predictions: list[list[float]], expected_result: list[list[float]]
+    ) -> None:
+        """Scores near the float64 limit fuse to the weighted box and mean score."""
+        predictions_array = np.array(predictions, dtype=np.float64)
+
+        result = box_weighted_box_fusion(predictions_array, iou_threshold=0.5)
+
+        np.testing.assert_allclose(result, expected_result)
+
+    @pytest.mark.parametrize(
+        ("predictions", "threshold", "expected_x"),
+        [
+            pytest.param(
+                [[0.0, 0.0, 1e308, 0.1, 0.125]]
+                + [[8e307, 0.0, 1.6e308, 0.1, 0.125]] * 5,
+                0.1,
+                6.666666666666666e307,
+                id="finite-mean-of-overflowing-offsets",
+            ),
+            pytest.param(
+                [[0.0, 0.0, 1e150, 1.0, 1e308], [1e148, 0.0, 1.01e150, 1.0, 1e-24]],
+                0.5,
+                1e-184,
+                id="representable-offset-with-underflowing-weight",
+            ),
+        ],
+    )
+    def test_retains_weighted_offsets_across_extreme_ranges(
+        self, predictions: list[list[float]], threshold: float, expected_x: float
+    ) -> None:
+        """A representable weighted coordinate neither overflows nor rounds to zero."""
+        result = box_weighted_box_fusion(
+            np.array(predictions, dtype=np.float64), iou_threshold=threshold
+        )
+
+        assert result.shape == (1, 5)
+        assert result[0, 0] == pytest.approx(expected_x, rel=1e-12, abs=0)
+
+    @pytest.mark.parametrize("class_id", [np.nan, np.inf, -np.inf])
+    def test_rejects_non_finite_class_ids(self, class_id: float) -> None:
+        """A NaN or infinite class id raises instead of forming its own fused class."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, class_id],
+                [1.0, 1.0, 11.0, 11.0, 0.8, class_id],
+            ]
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="Class ids passed to box_weighted_box_fusion must be finite",
+        ):
+            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+    @pytest.mark.parametrize(
+        "invalid_box",
+        [
+            pytest.param([np.nan, 0.0, 10.0, 10.0], id="nan-coordinate"),
+            pytest.param([0.0, 0.0, np.inf, 10.0], id="infinite-coordinate"),
+            pytest.param([10.0, 0.0, 0.0, 10.0], id="reversed-x-corners"),
+            pytest.param([0.0, 10.0, 10.0, 0.0], id="reversed-y-corners"),
+        ],
+    )
+    def test_rejects_non_finite_or_reversed_boxes(
+        self, invalid_box: list[float]
+    ) -> None:
+        """A box with a non-finite coordinate or reversed corners raises."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [*invalid_box, 0.8, 0.0],
+            ]
+        )
+
+        with pytest.raises(
+            ValueError, match="Boxes passed to box_weighted_box_fusion must have finite"
+        ):
+            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+    def test_keeps_zero_width_and_zero_height_boxes(self) -> None:
+        """Degenerate boxes with equal corners are accepted and returned unfused."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 0.0, 10.0, 0.9, 0.0],
+                [0.0, 0.0, 10.0, 0.0, 0.8, 0.0],
+            ]
+        )
+
+        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+
+        assert np.array_equal(result, predictions)
+
+
+def _nmm_groups(kind: str, rectangles: list[list[int]]) -> list[list[int]]:
+    """Run the NMM grouping for `kind` on pixel rectangles at `iou_threshold=0`.
+
+    Each `[x1, y1, x2, y2]` rectangle covers pixels `x1:x2` by `y1:y2`; masks and
+    oriented boxes are derived from it so every kind sees the same geometry. Confidences
+    descend with the index.
+    """
+    boxes = np.array(rectangles, dtype=np.float32)
+    confidence = np.linspace(0.9, 0.5, len(rectangles), dtype=np.float32)
+    predictions = np.column_stack([boxes, confidence, np.zeros(len(boxes))])
+    if kind == "box":
+        return box_non_max_merge(predictions, iou_threshold=0.0)
+    if kind == "oriented-box":
+        x1, y1, x2, y2 = boxes.T
+        corners = np.stack(
+            [
+                np.stack([x1, y1], axis=1),
+                np.stack([x2, y1], axis=1),
+                np.stack([x2, y2], axis=1),
+                np.stack([x1, y2], axis=1),
+            ],
+            axis=1,
+        )
+        return oriented_box_non_max_merge(predictions, corners, iou_threshold=0.0)
+
+    height = width = int(boxes.max()) + 1
+    masks = np.zeros((len(rectangles), height, width), dtype=bool)
+    for index, (left, top, right, bottom) in enumerate(rectangles):
+        masks[index, top:bottom, left:right] = True
+    if kind == "dense-mask":
+        return mask_non_max_merge(predictions, masks, iou_threshold=0.0)
+    from supervision.detection.compact_mask import CompactMask
+
+    compact_mask = CompactMask.from_dense(
+        masks=masks,
+        xyxy=np.tile([0, 0, width - 1, height - 1], (len(rectangles), 1)),
+        image_shape=(height, width),
+    )
+    return mask_non_max_merge(predictions, compact_mask, iou_threshold=0.0)
+
+
+class TestNonMaxMergeZeroThreshold:
+    """Non-max merge at `iou_threshold=0` groups only detections that overlap."""
+
+    @pytest.mark.parametrize(
+        "kind", ["box", "dense-mask", "compact-mask", "oriented-box"]
+    )
+    @pytest.mark.parametrize(
+        ("rectangles", "expected_groups"),
+        [
+            pytest.param(
+                [[0, 0, 10, 10], [100, 100, 110, 110], [200, 200, 210, 210]],
+                [[0], [1], [2]],
+                id="disjoint-stay-separate",
+            ),
+            pytest.param(
+                [[0, 0, 10, 10], [10, 0, 20, 10]],
+                [[0], [1]],
+                id="shared-edge-stays-separate",
+            ),
+            pytest.param(
+                [[0, 0, 10, 10], [9, 9, 19, 19]],
+                [[0, 1]],
+                id="one-pixel-overlap-merges",
+            ),
+        ],
+    )
+    def test_groups_only_overlapping_detections(
+        self, kind: str, rectangles: list[list[int]], expected_groups: list[list[int]]
+    ) -> None:
+        """At threshold zero only pairs with positive overlap share a group."""
+        groups = _nmm_groups(kind, rectangles)
+
+        assert sorted(sorted(group) for group in groups) == expected_groups

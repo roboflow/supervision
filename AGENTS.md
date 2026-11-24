@@ -98,6 +98,23 @@ Always name the version introduced and the removal version:
 warn_deprecated("'foo' deprecated in `0.29.0`, removed in `0.32.0`. Use 'bar'.")
 ```
 
+**Keep `@deprecated` wrappers minimal.** `pydeprecate` owns the warning and the forwarding, so the wrapper only needs to name the target and call `void(...)`:
+
+```python
+@deprecated(
+    target=_new_name,
+    deprecated_in="0.32.0",
+    remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,  # lets SUPERVISION_DEPRECATION_WARNING=0 silence it
+)
+def old_name(x: int) -> str:
+    """Deprecated: use :func:`new_name`."""
+    return void(x)  # type: ignore[no-any-return]
+```
+
+- Do not write tests that assert the deprecation warning is emitted; that is `pydeprecate`'s behavior, not ours.
+- Do not cast the return value of `void(...)`; add `# type: ignore[no-any-return]` instead.
+
 ______________________________________________________________________
 
 ## 6. Implementing Features

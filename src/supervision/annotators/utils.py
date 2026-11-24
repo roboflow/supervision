@@ -12,9 +12,25 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
+from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
 
 PENDING_TRACK_COLOR = Color.GREY
 PENDING_TRACK_ID = -1
+
+#: Warning text for the deprecated detection color helpers. It names the supported
+#: annotator options rather than the private helpers the decorators forward to.
+_DETECTION_COLOR_HELPER_DEPRECATION = (
+    "`%(source_name)s` is deprecated in `%(deprecated_in)s` and will be removed in "
+    "`%(remove_in)s`. Pass a `sv.ColorPalette` as `color` together with "
+    "`color_lookup` to the annotators instead."
+)
+#: Warning text for the deprecated palette lookup helper, whose direct public
+#: replacement is :meth:`~supervision.draw.color.ColorPalette.by_idx`.
+_PALETTE_COLOR_HELPER_DEPRECATION = (
+    "`%(source_name)s` is deprecated in `%(deprecated_in)s` and will be removed in "
+    "`%(remove_in)s`. Use `sv.ColorPalette.by_idx` instead, or pass a "
+    "`sv.ColorPalette` as `color` together with `color_lookup` to the annotators."
+)
 
 
 class ColorLookup(Enum):
@@ -177,6 +193,8 @@ def _resolve_detection_color_idx(
     target=_resolve_detection_color_idx,
     deprecated_in="0.32.0",
     remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
 )
 def resolve_color_idx(
     detections: Detections,
@@ -184,7 +202,7 @@ def resolve_color_idx(
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
     """Deprecated: resolve the palette index used to color a single detection."""
-    return cast(int, void(detections, detection_idx, color_lookup))
+    return void(detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
 
 
 def resolve_text_background_xyxy(
@@ -263,10 +281,12 @@ def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     target=_get_color_by_index,
     deprecated_in="0.32.0",
     remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_PALETTE_COLOR_HELPER_DEPRECATION,
 )
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     """Deprecated: pick the color drawn for a palette index."""
-    return cast(Color, void(color, idx))
+    return void(color, idx)  # type: ignore[no-any-return]
 
 
 def _resolve_detection_color(
@@ -306,6 +326,8 @@ def _resolve_detection_color(
     target=_resolve_detection_color,
     deprecated_in="0.32.0",
     remove_in="0.35.0",
+    stream=_DEPRECATION_WARNING_STREAM,
+    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
 )
 def resolve_color(
     color: Color | ColorPalette,
@@ -314,7 +336,7 @@ def resolve_color(
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> Color:
     """Deprecated: resolve the color used to draw a single detection."""
-    return cast(Color, void(color, detections, detection_idx, color_lookup))
+    return void(color, detections, detection_idx, color_lookup)  # type: ignore[no-any-return]
 
 
 def _resolve_annotator_color(
@@ -456,15 +478,6 @@ def _validate_labels(labels: list[str] | None, detections: Detections) -> None:
             f"number of detections ({len(detections)}). Each detection "
             f"should have exactly 1 label."
         )
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_labels,
-    deprecated_in="0.29.0",
-    remove_in="0.32.0",
-)
-def validate_labels(labels: list[str] | None, detections: Detections) -> None:
-    void(labels, detections)
 
 
 def get_labels_text(
