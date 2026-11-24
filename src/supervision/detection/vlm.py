@@ -474,7 +474,7 @@ def from_deepseek_vl_2(
             has shape `(0, 4)` and `class_id` is an empty integer array.
     """  # noqa: E501
 
-    width, height = resolution_wh
+    width, height = _validate_resolution(resolution_wh)
     label_segments = re.findall(r"<\|ref\|>(.*?)<\|/ref\|>", result, flags=re.S)
     detection_segments = re.findall(r"<\|det\|>(.*?)<\|/det\|>", result, flags=re.S)
 
@@ -645,6 +645,29 @@ def from_florence_2(
     raise RuntimeError(f"Unimplemented task: {task}")
 
 
+def _is_valid_gemini_box(box: Any, resolution_wh: tuple[int, int]) -> bool:
+    """Tell whether a Gemini box has finite coordinates after scaling.
+
+    Args:
+        box: The raw `box_2d` value of one response item.
+        resolution_wh: Output image width and height.
+
+    Returns:
+        `True` when four float-convertible coordinates remain finite after scaling.
+    """
+    try:
+        coordinates = np.asarray(box, dtype=float)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if coordinates.shape != (4,) or not np.isfinite(coordinates).all():
+        return False
+    width, height = resolution_wh
+    # Match denormalization so an overflowing item is filtered before assembly.
+    with np.errstate(over="ignore", invalid="ignore"):
+        scaled = coordinates * (np.array([height, width, height, width]) / 1000)
+    return bool(np.isfinite(scaled).all())
+
+
 def _strip_gemini_json_fence(result: str) -> str:
     """Unwrap the JSON payload of a Gemini response from its markdown fence.
 
@@ -788,8 +811,9 @@ def _parse_gemini_boxes(
             `class_id` is an array of shape `(n,)` with class indices,
             `class_name` is an array of shape `(n,)` with class labels,
             `confidence` is an optional array of shape `(n,)` with confidence
-            scores, and `keep_mask` is a boolean array of shape `(len(items),)`
-            marking the items kept by the `classes` filter.
+            scores, `None` when a kept item has no `confidence` (items removed by
+            `classes` do not count), and `keep_mask` is a boolean array of shape
+            `(len(items),)` marking the items kept by the `classes` filter.
     """
     w, h = _validate_resolution(resolution_wh)
 
@@ -804,24 +828,17 @@ def _parse_gemini_boxes(
 
     boxes_list: list[npt.NDArray[Any]] = []
     labels_list: list[str] = []
-    confidence_list: list[float] | None = []
 
     for item in items:
         labels_list.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
         absolute_box = denormalize_boxes(
-            np.array([[box[1], box[0], box[3], box[2]]]).astype(np.float64),
+            np.array([[box[1], box[0], box[3], box[2]]], dtype=np.float64),
             resolution_wh=(w, h),
             normalization_factor=1000,
         )
         boxes_list.append(_sort_box_corners(absolute_box)[0])
-
-        if "confidence" in item:
-            if confidence_list is not None:
-                confidence_list.append(item["confidence"])
-        else:
-            confidence_list = None
 
     xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list)
@@ -835,18 +852,19 @@ def _parse_gemini_boxes(
         # `dtype=int` matters only when every item is filtered out: an empty list
         # would otherwise make NumPy pick `float64` for an array of class indices.
         class_id = np.array([classes.index(name) for name in class_name], dtype=int)
-        if confidence_list is not None:
-            confidence_list = [
-                score for score, keep in zip(confidence_list, keep_mask) if keep
-            ]
     else:
         keep_mask = np.ones(len(items), dtype=bool)
         unique_labels = sorted(set(class_name))
         label_to_id = {label: index for index, label in enumerate(unique_labels)}
         class_id = np.array([label_to_id[name] for name in class_name])
 
+    # Confidence is all-or-nothing like the masks, and over the same population: an
+    # item dropped by `classes` must not null the scores of the items that were kept.
+    kept_items = [item for item, keep in zip(items, keep_mask) if keep]
     confidence = (
-        np.array(confidence_list, dtype=float) if confidence_list is not None else None
+        np.array([item["confidence"] for item in kept_items], dtype=float)
+        if all("confidence" in item for item in kept_items)
+        else None
     )
     return xyxy, class_id, class_name, confidence, keep_mask
 
@@ -901,6 +919,8 @@ def from_google_gemini_2_0(
 
     for item in data:
         if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
+            continue
+        if not _is_valid_gemini_box(item["box_2d"], (w, h)):
             continue
         labels.append(item["label"])
         box = item["box_2d"]
@@ -986,7 +1006,10 @@ def from_google_gemini_2_5(
     items = [
         item
         for item in data
-        if isinstance(item, dict) and "box_2d" in item and "label" in item
+        if isinstance(item, dict)
+        and "box_2d" in item
+        and "label" in item
+        and _is_valid_gemini_box(item["box_2d"], (w, h))
     ]
     if not items:
         return empty_result
@@ -1169,7 +1192,10 @@ def from_google_gemini_3_6(
     items = [
         item
         for item in payload["boxes"]
-        if isinstance(item, dict) and "box_2d" in item and "label" in item
+        if isinstance(item, dict)
+        and "box_2d" in item
+        and "label" in item
+        and _is_valid_gemini_box(item["box_2d"], (w, h))
     ]
     xyxy, class_id, class_name, confidence, keep_mask = _parse_gemini_boxes(
         items, resolution_wh, classes

@@ -19,6 +19,7 @@ from supervision._cv2._video import (
     _VideoCapture,
     _VideoWriter,
 )
+from tests.helpers import write_browser_recorded_webm
 
 
 def _write_video(path: Path, values: list[int], fps: int = 5) -> None:
@@ -252,6 +253,43 @@ def test_fallback_capture_reports_metadata_and_supports_exact_seek(
     assert frame.shape == (16, 16, 3)
     assert float(frame.mean()) == pytest.approx(120.0, abs=20.0)
     assert not capture.isOpened()
+
+
+@pytest.mark.parametrize(
+    "audio_seconds",
+    [
+        pytest.param(0.0, id="video-only"),
+        pytest.param(4.0, id="audio-longer-than-video"),
+    ],
+)
+def test_fallback_capture_reports_browser_webm_rate_from_timestamps(
+    tmp_path: Path, audio_seconds: float
+) -> None:
+    """Fallback capture reports a browser WebM's ~30 fps, whatever its audio length."""
+    source_path = str(tmp_path / "browser.webm")
+    write_browser_recorded_webm(
+        source_path, frame_count=60, audio_seconds=audio_seconds
+    )
+
+    capture = _VideoCapture(source_path)
+    fps = capture.get(_cv2.CAP_PROP_FPS)
+    capture.release()
+
+    assert fps == pytest.approx(30.3, rel=0.03)
+
+
+def test_fallback_capture_reports_position_of_last_read_frame(tmp_path: Path) -> None:
+    """Fallback capture reports the last read frame's timestamp in milliseconds."""
+    source_path = str(tmp_path / "browser.webm")
+    write_browser_recorded_webm(source_path, frame_count=10)
+    capture = _VideoCapture(source_path)
+
+    for _ in range(3):
+        capture.read()
+    position_msec = capture.get(_cv2.CAP_PROP_POS_MSEC)
+    capture.release()
+
+    assert position_msec == pytest.approx(66.0)
 
 
 @pytest.mark.parametrize(
