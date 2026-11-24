@@ -4478,6 +4478,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.DetectionDataset.split</code>, <code>sv.ClassificationDataset.split</code> and <code>sv.KeyPointsDataset.split</code> now keep the training image that floating-point rounding dropped when <code>split_ratio</code> times the number of images is a whole number. For example, 90 images at <code>split_ratio=0.7</code> gave 62 train and 28 test images instead of 63 and 27. The split uses the larger of the previous floating-point result and the exact product of the evaluated ratio's decimal representation. (<a href="https://github.com/roboflow/supervision/pull/2969">#2969</a>)</p>
+</li>
+<li>
 <p><code>sv.xyxy_to_xcycarh</code> now computes centers and dimensions of integer boxes without overflowing the input dtype, avoiding incorrect centers and aspect ratios for boxes spanning integer limits. (<a href="https://github.com/roboflow/supervision/pull/2966">#2966</a>)</p>
 </li>
 <li>
@@ -4500,6 +4503,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
 <li>
 <p><code>sv.HeatMapAnnotator</code>, <code>sv.CropAnnotator</code> and <code>sv.IconAnnotator</code> now annotate BGRA scenes, shaped <code>(H, W, 4)</code>, instead of raising a channel mismatch error. Overlays use straight-alpha compositing, and crop borders are opaque; colors on opaque scenes match their BGR counterparts within resize rounding. (<a href="https://github.com/roboflow/supervision/pull/2958">#2958</a>)</p>
+</li>
+<li>
+<p><code>sv.metrics.MeanAverageRecall</code> now returns <code>-1</code> scores when there are no targets to recall, for the whole run or for an empty small, medium or large size bucket, as <code>sv.metrics.MeanAveragePrecision</code> and <code>pycocotools</code> AR do. It returned <code>0.0</code>, so a size bucket without objects looked like a model that found none of them. Code that aggregates mAR scores across runs or size buckets should skip negative values, as with mAP. Recall and comparison plots label undefined values <code>N/A</code>. (<a href="https://github.com/roboflow/supervision/pull/2965">#2965</a>)</p>
 </li>
 <li>
 <p><code>sv.draw_line</code>, <code>sv.draw_rectangle</code>, <code>sv.draw_filled_rectangle</code>, <code>sv.draw_rounded_rectangle</code>, <code>sv.draw_polygon</code>, <code>sv.draw_filled_polygon</code> and <code>sv.draw_text</code> now draw visibly on a BGRA scene, shaped <code>(H, W, 4)</code>, while keeping an opaque scene opaque. They passed OpenCV a BGR color, and OpenCV fills the missing alpha with 0, so the drawn pixels of an opaque scene became fully transparent. On a scene that is not opaque, a translucent fill and antialiased text are composited over the scene's alpha, so they keep their own color and may remain translucent. (<a href="https://github.com/roboflow/supervision/pull/2957">#2957</a>)</p>
@@ -6968,7 +6974,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 00:25:42 UTC">November 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 00:29:15 UTC">November 24, 2026</span>
   </span>
 
     
@@ -6996,9 +7002,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Nikhila-Dhevi-R" class="md-author" title="@Nikhila-Dhevi-R">
+        <a href="https://github.com/MaiAditya" class="md-author" title="@MaiAditya">
           
-          <img src="https://avatars.githubusercontent.com/u/178061112?v=4&size=72" alt="Nikhila-Dhevi-R">
+          <img src="https://avatars.githubusercontent.com/u/84338325?v=4&size=72" alt="MaiAditya">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7006,21 +7012,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/mh-masum6875" class="md-author" title="@mh-masum6875">
+        <a href="https://github.com/avanish-garg" class="md-author" title="@avanish-garg">
           
-          <img src="https://avatars.githubusercontent.com/u/79536779?v=4&size=72" alt="mh-masum6875">
+          <img src="https://avatars.githubusercontent.com/u/146908506?v=4&size=72" alt="avanish-garg">
         </a>
       
-        <a href="https://github.com/sohailshk" class="md-author" title="@sohailshk">
+        <a href="https://github.com/Nikhila-Dhevi-R" class="md-author" title="@Nikhila-Dhevi-R">
           
-          <img src="https://avatars.githubusercontent.com/u/122166523?v=4&size=72" alt="sohailshk">
+          <img src="https://avatars.githubusercontent.com/u/178061112?v=4&size=72" alt="Nikhila-Dhevi-R">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +32
+            +34
           </a>
         
       
