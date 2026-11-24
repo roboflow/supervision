@@ -1,6 +1,7 @@
 """Tests for keypoint annotator argument validation."""
 
 import re
+from typing import Any
 
 import numpy as np
 import pytest
@@ -70,10 +71,9 @@ class TestVertexLabelLegacyColorListLength:
             xy=np.array([[[10, 10], [20, 20], [30, 30]]], dtype=np.float32),
             visible=np.zeros((1, 3), dtype=bool),
         )
+        colors: dict[str, Any] = {color_argument: [sv.Color.RED, sv.Color.GREEN]}
         with pytest.warns(SupervisionWarnings):
-            annotator = sv.VertexLabelAnnotator(
-                **{color_argument: [sv.Color.RED, sv.Color.GREEN]}
-            )
+            annotator = sv.VertexLabelAnnotator(**colors)
 
         # Act & Assert
         with pytest.raises(ValueError, match="Number of colors"):
@@ -87,10 +87,11 @@ class TestVertexLabelLegacyColorListLength:
         key_points = sv.KeyPoints(
             xy=np.array([[[10, 10], [20, 20], [30, 30]]], dtype=np.float32),
         )
+        colors: dict[str, Any] = {
+            color_argument: [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE]
+        }
         with pytest.warns(SupervisionWarnings):
-            annotator = sv.VertexLabelAnnotator(
-                **{color_argument: [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE]}
-            )
+            annotator = sv.VertexLabelAnnotator(**colors)
 
         # Act
         result = annotator.annotate(scene.copy(), key_points)
