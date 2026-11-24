@@ -16,15 +16,12 @@ from supervision.detection.core import (
     Detections,
     _merge_detection_group,
     _merge_obb_corners,
-    merge_inner_detection_object_pair,
-    merge_inner_detections_objects,
 )
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_iou_batch,
-    oriented_box_iou_batch,
 )
+from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
@@ -1440,175 +1437,6 @@ def test_equal(
 
 
 @pytest.mark.parametrize(
-    ("detection_1", "detection_2", "expected_result", "exception"),
-    [
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            DoesNotRaise(),
-        ),  # Merge with self
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            Detections.empty(),
-            None,
-            pytest.raises(ValueError, match="exactly 1 detected object"),
-        ),  # merge with empty: error
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30], [40, 40, 60, 60]],
-            ),
-            None,
-            pytest.raises(ValueError, match="Both Detections should have"),
-        ),  # merge with 2+ objects: error
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                confidence=[0.1],
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            _create_detections(
-                xyxy=[[20, 20, 40, 40]],
-                confidence=[0.1],
-                class_id=[2],
-                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[2],
-                data={"key_2": [2]},
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 40, 40]],
-                confidence=[0.1],
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            DoesNotRaise(),
-        ),  # Same confidence - merge box & mask, tie-break to detection_1
-        (
-            _create_detections(
-                xyxy=[[0, 0, 20, 20]],
-                confidence=[0.1],
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 50, 50]],
-                confidence=[0.2],
-                class_id=[2],
-                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[2],
-                data={"key_2": [2]},
-            ),
-            _create_detections(
-                xyxy=[[0, 0, 50, 50]],
-                confidence=[(1 * 0.1 + 4 * 0.2) / 5],
-                class_id=[2],
-                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[2],
-                data={"key_2": [2]},
-            ),
-            DoesNotRaise(),
-        ),  # Different confidence, different area
-        (
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                confidence=None,
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            _create_detections(
-                xyxy=[[20, 20, 40, 40]],
-                confidence=None,
-                class_id=[2],
-                mask=[np.array([[0, 0, 0], [0, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[2],
-                data={"key_2": [2]},
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 40, 40]],
-                confidence=None,
-                class_id=[1],
-                mask=[np.array([[1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=bool)],
-                tracker_id=[1],
-                data={"key_1": [1]},
-            ),
-            DoesNotRaise(),
-        ),  # No confidence at all
-        (
-            _create_detections(
-                xyxy=[[0, 0, 20, 20]],
-                confidence=None,
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                confidence=[0.2],
-            ),
-            None,
-            pytest.raises(ValueError, match="Field 'confidence'"),
-        ),  # confidence: None + [x]
-        (
-            _create_detections(
-                xyxy=[[0, 0, 20, 20]],
-                mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
-            ),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                mask=None,
-            ),
-            None,
-            pytest.raises(ValueError, match="Field 'mask'"),
-        ),  # mask: None + [x]
-        (
-            _create_detections(xyxy=[[0, 0, 20, 20]], tracker_id=[1]),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                tracker_id=None,
-            ),
-            None,
-            pytest.raises(ValueError, match="Field 'tracker_id'"),
-        ),  # tracker_id: None + []
-        (
-            _create_detections(xyxy=[[0, 0, 20, 20]], class_id=[1]),
-            _create_detections(
-                xyxy=[[10, 10, 30, 30]],
-                class_id=None,
-            ),
-            None,
-            pytest.raises(ValueError, match="Field 'class_id'"),
-        ),  # class_id: None + []
-    ],
-)
-def test_merge_inner_detection_object_pair(
-    detection_1: Detections,
-    detection_2: Detections,
-    expected_result: Detections | None,
-    exception: AbstractContextManager[object],
-) -> None:
-    with exception:
-        result = merge_inner_detection_object_pair(detection_1, detection_2)
-        assert result == expected_result
-
-
-@pytest.mark.parametrize(
     ("detections", "expected"),
     [
         pytest.param(
@@ -2039,50 +1867,6 @@ class TestDetectionsObbDispatch:
 
         assert len(result) == 2
 
-    def test_deprecated_merge_uses_obb_iou_before_merging(self) -> None:
-        """Deprecated inner merge keeps separated OBBs despite overlapping envelopes."""
-        quad_a = _rotated_rect(50, 50, 100, 10, 45)
-        quad_b = _rotated_rect(58, 50, 100, 10, -45)
-        detections_a = _make_obb_detections([quad_a], [0.9], [0])
-        detections_b = _make_obb_detections([quad_b], [0.8], [0])
-
-        obb_iou = oriented_box_iou_batch(
-            np.asarray(detections_a.data[ORIENTED_BOX_COORDINATES]),
-            np.asarray(detections_b.data[ORIENTED_BOX_COORDINATES]),
-        )[0, 0]
-        aabb_iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)[0, 0]
-
-        assert obb_iou < 0.5
-        assert aabb_iou > 0.5
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = merge_inner_detections_objects(
-                [detections_a, detections_b], threshold=0.5
-            )
-
-        np.testing.assert_array_equal(result.xyxy, detections_a.xyxy)
-
-    def test_deprecated_merge_chain_across_three_with_changing_geometry(self) -> None:
-        """N>2 chain: merge OBB pair, fall back to box IoU for AABB-only detection."""
-        quad_a = _rotated_rect(50, 50, 20, 10, 10)
-        quad_b = _rotated_rect(52, 50, 20, 10, -10)
-        detections_a = _make_obb_detections([quad_a], [0.9], [0])
-        detections_b = _make_obb_detections([quad_b], [0.85], [0])
-        detections_c = Detections(
-            xyxy=np.array([[35, 40, 65, 60]], dtype=np.float32),
-            confidence=np.array([0.7], dtype=np.float32),
-            class_id=np.array([0], dtype=int),
-        )
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = merge_inner_detections_objects(
-                [detections_a, detections_b, detections_c], threshold=0.3
-            )
-
-        assert len(result) == 1
-        np.testing.assert_array_equal(result.class_id, np.array([0]))
-
     @pytest.mark.parametrize(
         "method",
         [
@@ -2322,6 +2106,129 @@ class TestGetAnchorsObbDispatch:
         result = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
 
         assert result.shape == (1, 2)
+
+
+_EMPTY_MASK_IMAGE_SHAPE = (60, 80)
+_EMPTY_MASK_XYXY = np.array(
+    [[20, 10, 29, 19], [40, 20, 60, 50], [50, 40, 55, 43]], dtype=np.float32
+)
+
+
+def _make_masks_with_one_empty() -> np.ndarray:
+    """Build three dense masks whose middle mask has no pixels."""
+    masks = np.zeros((3, *_EMPTY_MASK_IMAGE_SHAPE), dtype=bool)
+    masks[0, 10:20, 20:30] = True
+    masks[2, 40:44, 50:56] = True
+    return masks
+
+
+def _make_mask_container(masks: np.ndarray, xyxy: np.ndarray, compact: bool) -> Any:
+    """Return `masks` as a dense array or as a `CompactMask`."""
+    if compact:
+        return CompactMask.from_dense(masks, xyxy, _EMPTY_MASK_IMAGE_SHAPE)
+    return masks
+
+
+class TestGetAnchorsCenterOfMassEmptyMask:
+    """`get_anchors_coordinates(CENTER_OF_MASS)` for detections with empty masks."""
+
+    def test_empty_mask_preserves_large_box_center(self) -> None:
+        """A uint64 box center above the signed integer range remains representable."""
+        xyxy = np.array([[2**63, 0, 2**63 + 2**20, 2]], dtype=np.uint64)
+        detections = Detections(xyxy=xyxy, mask=np.zeros((1, 5, 5), dtype=bool))
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[float(2**63 + 2**19), 1.0]])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_empty_mask_anchored_at_box_center(self, compact: bool) -> None:
+        """A single empty mask is anchored at its box center, not at (0, 0)."""
+        xyxy = np.array([[40, 20, 60, 50]], dtype=np.float32)
+        masks = np.zeros((1, *_EMPTY_MASK_IMAGE_SHAPE), dtype=bool)
+        detections = Detections(
+            xyxy=xyxy, mask=_make_mask_container(masks, xyxy, compact)
+        )
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[50, 35]])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_mixed_batch_only_replaces_empty_masks(self, compact: bool) -> None:
+        """Non-empty masks keep their centroids; only the empty one uses its box."""
+        masks = _make_masks_with_one_empty()
+        detections = Detections(
+            xyxy=_EMPTY_MASK_XYXY,
+            mask=_make_mask_container(masks, _EMPTY_MASK_XYXY, compact),
+        )
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[25, 15], [50, 35], [53, 42]])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_all_empty_batch_uses_box_centers(self, compact: bool) -> None:
+        """A batch where every mask is empty is anchored at all box centers."""
+        masks = np.zeros((3, *_EMPTY_MASK_IMAGE_SHAPE), dtype=bool)
+        detections = Detections(
+            xyxy=_EMPTY_MASK_XYXY,
+            mask=_make_mask_container(masks, _EMPTY_MASK_XYXY, compact),
+        )
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[24.5, 14.5], [50, 35], [52.5, 41.5]])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_empty_mask_anchors_use_floating_dtype(self, compact: bool) -> None:
+        """A batch with empty masks uses floats to preserve box centers."""
+        masks = _make_masks_with_one_empty()
+        detections = Detections(
+            xyxy=_EMPTY_MASK_XYXY,
+            mask=_make_mask_container(masks, _EMPTY_MASK_XYXY, compact),
+        )
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        assert np.issubdtype(anchors.dtype, np.floating)
+
+    def test_non_empty_masks_match_centroid_helper(self) -> None:
+        """Without empty masks the result is exactly the centroid helper output."""
+        masks = _make_masks_with_one_empty()[[0, 2]]
+        detections = Detections(xyxy=_EMPTY_MASK_XYXY[[0, 2]], mask=masks)
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, calculate_masks_centroids(masks))
+
+    def test_other_anchors_ignore_masks(self) -> None:
+        """Anchors other than `CENTER_OF_MASS` are still derived from `xyxy`."""
+        masks = _make_masks_with_one_empty()
+        detections = Detections(xyxy=_EMPTY_MASK_XYXY, mask=masks)
+
+        anchors = detections.get_anchors_coordinates(Position.BOTTOM_CENTER)
+
+        np.testing.assert_array_equal(
+            anchors, [[24.5, 19.0], [50.0, 50.0], [52.5, 43.0]]
+        )
+
+    def test_detections_without_mask_still_raise(self) -> None:
+        """A non-empty batch without a mask keeps raising for `CENTER_OF_MASS`."""
+        detections = Detections(xyxy=_EMPTY_MASK_XYXY)
+
+        with pytest.raises(ValueError, match="without a detection mask"):
+            detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+    def test_empty_mask_with_obb_data_uses_xyxy_center(self) -> None:
+        """An empty mask on an OBB detection falls back to the `xyxy` center."""
+        quad = _rotated_rect(50, 35, 20, 30, 0)
+        detections = _make_obb_detections([quad], [0.9], [0])
+        detections.mask = np.zeros((1, *_EMPTY_MASK_IMAGE_SHAPE), dtype=bool)
+
+        anchors = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        np.testing.assert_array_equal(anchors, [[50, 35]])
 
 
 class TestMergeObbCorners:
@@ -2810,6 +2717,48 @@ class TestMergeDetectionGroup:
             assert np.allclose(result.xyxy, xyxyxyxy_to_xyxy(corners), atol=1e-5)
 
 
+def _make_rectangle_detections(kind: str, rectangles: list[list[int]]) -> Detections:
+    """Build same-class detections of `kind` from `[x1, y1, x2, y2]` pixel rectangles.
+
+    Rectangles cover pixels `x1:x2` by `y1:y2`. `kind` selects the geometry: `box`,
+    `dense-mask`, `compact-mask` or `obb`. Confidences descend with the index.
+    """
+    boxes = np.array(rectangles, dtype=np.float32)
+    detections = Detections(
+        xyxy=boxes,
+        confidence=np.linspace(0.9, 0.5, len(rectangles), dtype=np.float32),
+        class_id=np.zeros(len(rectangles), dtype=int),
+    )
+    if kind == "box":
+        return detections
+    if kind == "obb":
+        x1, y1, x2, y2 = boxes.T
+        detections.data[ORIENTED_BOX_COORDINATES] = np.stack(
+            [
+                np.stack([x1, y1], axis=1),
+                np.stack([x2, y1], axis=1),
+                np.stack([x2, y2], axis=1),
+                np.stack([x1, y2], axis=1),
+            ],
+            axis=1,
+        )
+        return detections
+
+    height = width = int(boxes.max()) + 1
+    masks = np.zeros((len(rectangles), height, width), dtype=bool)
+    for index, (left, top, right, bottom) in enumerate(rectangles):
+        masks[index, top:bottom, left:right] = True
+    if kind == "dense-mask":
+        detections.mask = masks
+    else:
+        detections.mask = CompactMask.from_dense(
+            masks=masks,
+            xyxy=np.tile([0, 0, width - 1, height - 1], (len(rectangles), 1)),
+            image_shape=(height, width),
+        )
+    return detections
+
+
 class TestDetectionsWithNMM:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
 
@@ -3175,6 +3124,36 @@ class TestDetectionsWithNMM:
         assert result_mask[1, 1]
         assert result_mask[7, 7]
         assert result_mask[8, 8]
+
+    @pytest.mark.parametrize("kind", ["box", "dense-mask", "compact-mask", "obb"])
+    def test_zero_threshold_keeps_disjoint_detections_unchanged(
+        self, kind: str
+    ) -> None:
+        """Disjoint same-class detections are not merged at threshold 0."""
+        detections = _make_rectangle_detections(
+            kind, [[0, 0, 10, 10], [100, 100, 110, 110], [200, 200, 210, 210]]
+        )
+
+        result = detections.with_nmm(threshold=0.0)
+
+        assert len(result) == 3
+        np.testing.assert_array_equal(result.xyxy, detections.xyxy)
+        assert result.confidence is not None
+        assert detections.confidence is not None
+        np.testing.assert_allclose(result.confidence, detections.confidence)
+
+    @pytest.mark.parametrize("kind", ["box", "dense-mask", "compact-mask", "obb"])
+    def test_zero_threshold_merges_detections_with_any_overlap(self, kind: str) -> None:
+        """A pair sharing a single pixel of area is still merged at threshold 0."""
+        detections = _make_rectangle_detections(
+            kind, [[0, 0, 10, 10], [9, 9, 19, 19], [100, 100, 110, 110]]
+        )
+
+        result = detections.with_nmm(threshold=0.0)
+
+        assert len(result) == 2
+        assert [0, 0, 19, 19] in result.xyxy.tolist()
+        assert [100, 100, 110, 110] in result.xyxy.tolist()
 
 
 class TestDetectionsArea:
@@ -3702,6 +3681,19 @@ class TestDetectionsFromSemanticSegmentation:
         assert detections.class_id is not None
         assert np.array_equal(detections.class_id, [7, 300])
 
+    def test_decodes_one_bit_png_as_class_ids_zero_and_one(self) -> None:
+        """A one-bit PNG, which Pillow reads as booleans, holds class ids 0 and 1."""
+        label_map = np.array([[False, True], [True, True]])
+
+        detections = Detections.from_semantic_segmentation(
+            _png_b64(label_map), background_id=None
+        )
+
+        assert detections.class_id is not None
+        assert isinstance(detections.mask, np.ndarray)
+        assert np.array_equal(detections.class_id, [0, 1])
+        assert np.array_equal(detections.mask, [~label_map, label_map])
+
     def test_returns_empty_detections_when_only_background(self) -> None:
         """A map holding only the background id yields no detections."""
         detections = Detections.from_semantic_segmentation(
@@ -3710,6 +3702,43 @@ class TestDetectionsFromSemanticSegmentation:
 
         assert len(detections) == 0
         assert len(detections.data["class_name"]) == 0
+
+    @pytest.mark.parametrize(
+        ("compact_masks", "mask_type"),
+        [
+            pytest.param(False, np.ndarray, id="dense"),
+            pytest.param(True, CompactMask, id="compact"),
+        ],
+    )
+    def test_background_only_result_keeps_requested_mask_type(
+        self, compact_masks: bool, mask_type: type
+    ) -> None:
+        """A background-only map returns an empty mask of the requested kind."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8), compact_masks=compact_masks
+        )
+
+        assert detections.mask is not None
+        assert isinstance(detections.mask, mask_type)
+        assert detections.mask.shape == (0, 2, 3)
+
+    def test_background_only_result_has_no_confidence_without_map(self) -> None:
+        """Without a confidence map an empty result keeps `confidence` as `None`."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8)
+        )
+
+        assert detections.confidence is None
+
+    def test_background_only_result_has_empty_confidence_with_map(self) -> None:
+        """With a confidence map an empty result has an empty `confidence` array."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8),
+            confidence_mask=np.full((2, 3), 255, dtype=np.uint8),
+        )
+
+        assert detections.confidence is not None
+        assert detections.confidence.shape == (0,)
 
     def test_names_classes_from_integer_keys(self) -> None:
         """An integer-keyed `id2label` names classes like a text-keyed `class_map`.
@@ -3804,6 +3833,7 @@ class TestDetectionsFromSemanticSegmentation:
         [
             pytest.param(np.zeros((2, 3), dtype=np.float32), id="float-map"),
             pytest.param({"a": 1}, id="dict"),
+            pytest.param(_png_b64(np.zeros((2, 3), dtype=bool)), id="one-bit-png"),
         ],
     )
     def test_undecodable_confidence_error_names_confidence_mask(

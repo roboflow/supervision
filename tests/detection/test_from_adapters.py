@@ -1,4 +1,5 @@
 from collections import UserDict
+from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any
 
@@ -224,6 +225,25 @@ class TestFromUltralyticsSemanticSegmentation:
             det.mask, [class_map == class_id for class_id in expected_class_id]
         )
 
+    @pytest.mark.parametrize(
+        "class_map",
+        [
+            pytest.param(np.zeros((1, 2, 3), dtype=np.uint8), id="batched-3d"),
+            pytest.param(
+                np.array([[0.0, 1.5], [1.0, 0.0]], dtype=np.float32),
+                id="fractional-float",
+            ),
+        ],
+    )
+    def test_rejects_map_that_is_not_two_dimensional_integer(
+        self, class_map: np.ndarray
+    ) -> None:
+        """A batched or non-integer map raises instead of failing late or losing IDs."""
+        results = _semantic_results(class_map, names={0: "road", 1: "car"})
+
+        with pytest.raises(ValueError, match=r"semantic_mask.*single-channel integer"):
+            Detections.from_ultralytics(results)
+
 
 def _semantic_results(
     class_map: np.ndarray, names: dict[int, str], backend: str = "tensor"
@@ -359,6 +379,54 @@ class TestFromTransformers:
         det = Detections.from_transformers(result, id2label={0: "cat", 1: "dog"})
 
         np.testing.assert_array_equal(det.data[CLASS_NAME_DATA_FIELD], ["cat", "dog"])
+
+    @pytest.mark.parametrize("dtype_name", ["bfloat16", "float16", "float32"])
+    @pytest.mark.parametrize("requires_grad", [False, True])
+    def test_detection_path_accepts_tensor_precisions(
+        self, dtype_name: str, requires_grad: bool
+    ) -> None:
+        """Half-precision model outputs load, with bfloat16 widened to float32."""
+        torch = pytest.importorskip("torch")
+        dtype = getattr(torch, dtype_name)
+        boxes = torch.tensor([[10.0, 20.0, 30.0, 40.0]], dtype=dtype)
+        scores = torch.tensor([0.5], dtype=dtype)
+        boxes.requires_grad_(requires_grad)
+        scores.requires_grad_(requires_grad)
+        result = {"boxes": boxes, "labels": torch.tensor([1]), "scores": scores}
+        expected_dtype = np.float32 if dtype_name == "bfloat16" else dtype_name
+
+        det = Detections.from_transformers(result)
+
+        np.testing.assert_array_equal(det.xyxy, [[10.0, 20.0, 30.0, 40.0]])
+        assert det.xyxy.dtype == expected_dtype
+        assert det.confidence is not None
+        np.testing.assert_array_equal(det.confidence, [0.5])
+        assert det.confidence.dtype == expected_dtype
+        np.testing.assert_array_equal(det.class_id, [1])
+
+    def test_v4_segmentation_path_accepts_bfloat16_outputs(self) -> None:
+        """V4 instance results with bfloat16 boxes and scores load as float32."""
+        torch = pytest.importorskip("torch")
+        masks = torch.zeros((1, 1, 4, 4), dtype=torch.bfloat16)
+        masks[0, 0, :2, :2] = 1
+        result = {
+            "boxes": torch.tensor([[0.0, 0.0, 2.0, 2.0]], dtype=torch.bfloat16),
+            "masks": masks,
+            "labels": torch.tensor([3]),
+            "scores": torch.tensor([0.75], dtype=torch.bfloat16),
+        }
+
+        det = Detections.from_transformers(result)
+
+        assert det.mask is not None
+        assert det.mask.shape == (1, 4, 4)
+        np.testing.assert_array_equal(det.mask[0][:2, :2], np.ones((2, 2), dtype=bool))
+        np.testing.assert_array_equal(det.area, [4])
+        np.testing.assert_array_equal(det.xyxy, [[0.0, 0.0, 2.0, 2.0]])
+        assert det.confidence is not None
+        np.testing.assert_array_equal(det.confidence, [0.75])
+        assert det.xyxy.dtype == np.float32
+        assert det.confidence.dtype == np.float32
 
     def test_v4_segmentation_masks_without_boxes_yield_correct_shape(self) -> None:
         """V4 segmentation with masks-only produces mask of shape (N, H, W)."""
@@ -863,6 +931,42 @@ class TestFromAzureAnalyzeImage:
 
 class TestFromNCNN:
     """from_ncnn converts ncnn rect objects (xywh) to xyxy Detections."""
+
+    @pytest.mark.parametrize(
+        "scalar_type",
+        [
+            pytest.param(float, id="python-float"),
+            pytest.param(int, id="python-int"),
+            pytest.param(np.float32, id="numpy-float32"),
+            pytest.param(np.float64, id="numpy-float64"),
+            pytest.param(np.int32, id="numpy-int32"),
+        ],
+    )
+    def test_accepts_python_and_numpy_coordinates(
+        self, scalar_type: Callable[[int], Any]
+    ) -> None:
+        """Convert numeric rect fields without requiring NumPy scalar methods."""
+        objects = [
+            SimpleNamespace(
+                rect=SimpleNamespace(
+                    x=scalar_type(10),
+                    y=scalar_type(-20),
+                    w=scalar_type(30),
+                    h=scalar_type(40),
+                ),
+                prob=0.9,
+                label=2,
+            )
+        ]
+
+        detections = Detections.from_ncnn(objects)
+
+        np.testing.assert_array_equal(detections.xyxy, [[10, -20, 40, 20]])
+        assert detections.xyxy.dtype == np.float32
+        assert detections.confidence is not None
+        assert detections.class_id is not None
+        np.testing.assert_allclose(detections.confidence, [0.9])
+        np.testing.assert_array_equal(detections.class_id, [2])
 
     def test_empty_objects_return_empty_detections(self) -> None:
         """Empty object list yields zero-length Detections."""
