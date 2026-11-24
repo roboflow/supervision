@@ -531,6 +531,58 @@ class TestLetterboxImage:
         assert np.all(result[:106] == 255)
         assert np.all(result[533:] == 255)
 
+    def test_numpy_integer_resolution_pads_with_python_ints(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """NumPy integer target sizes reach the border backend as Python ints."""
+        # given
+        padding_types: list[type] = []
+        original_copy_make_border = cv2.copyMakeBorder
+
+        def recording_copy_make_border(
+            image: npt.NDArray[np.uint8], *paddings: Any, **kwargs: Any
+        ) -> Any:
+            """Record the four padding types while retaining the original behavior."""
+            padding_types.extend(type(padding) for padding in paddings[:4])
+            return original_copy_make_border(image, *paddings, **kwargs)
+
+        monkeypatch.setattr(cv2, "copyMakeBorder", recording_copy_make_border)
+        image = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        # when
+        letterbox_image(image, (np.uint64(120), np.uint64(120)))
+
+        # then
+        assert padding_types == [int] * 4
+
+
+class TestResizeTranslucentBgraImage:
+    @pytest.mark.parametrize(
+        "resize",
+        [
+            pytest.param(lambda image: scale_image(image, 2.0), id="scale-image"),
+            pytest.param(
+                lambda image: resize_image(image, (16, 16)), id="resize-image"
+            ),
+        ],
+    )
+    def test_edges_keep_visible_color(
+        self, resize: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]]
+    ) -> None:
+        """Edge pixels blend visible colors, not the one under transparent pixels."""
+        # given
+        image = np.zeros((8, 8, 4), dtype=np.uint8)
+        image[..., 2] = 255
+        image[:, 4:] = (0, 255, 0, 255)
+
+        # when
+        result = resize(image)
+
+        # then
+        visible = result[..., 3] > 0
+        assert np.any(visible & (result[..., 3] < 255))
+        assert np.all(result[visible][:, :3] == (0, 255, 0))
+
 
 def test_tint_image_leaves_numpy_input_unchanged() -> None:
     """Tinting a NumPy image returns a tinted copy and leaves the input untouched."""
@@ -749,6 +801,31 @@ def test_overlay_image_blends_bgra_overlay_as_gray_on_grayscale_scene(
     # then
     assert result.shape == image_shape
     np.testing.assert_array_equal(result.reshape(2, 2), expected)
+
+
+class TestOverlayImageOnBgraScene:
+    @pytest.mark.parametrize(
+        "overlay_shape",
+        [
+            pytest.param((2, 2), id="2d-overlay"),
+            pytest.param((2, 2, 1), id="channel-overlay"),
+        ],
+    )
+    def test_pastes_grayscale_overlay_as_opaque_gray(
+        self, overlay_shape: tuple[int, ...]
+    ) -> None:
+        """A grayscale overlay is pasted into a BGRA scene as opaque gray."""
+        # given
+        image = np.zeros((3, 3, 4), dtype=np.uint8)
+        overlay = np.full(overlay_shape, 9, dtype=np.uint8)
+        expected = np.zeros((3, 3, 4), dtype=np.uint8)
+        expected[1:, 1:] = (9, 9, 9, 255)
+
+        # when
+        result = _overlay_image(image=image, overlay=overlay, anchor=(1, 1))
+
+        # then
+        np.testing.assert_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(

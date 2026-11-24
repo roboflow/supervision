@@ -1113,6 +1113,19 @@ class TestBgraMaskAnnotators:
         assert result[70, 70, 3] == 255
         assert result[199, 399, 3] == 0
 
+    def test_comparison_label_ink_outside_tiny_legend_is_visible(self) -> None:
+        """Label ink spilling past a tiny legend is visible on a transparent scene."""
+        scene = np.zeros((60, 200, 4), dtype=np.uint8)
+        scene[..., :3] = 255
+        annotator = ComparisonAnnotator(label_1="gjpqy", label_scale=0.02)
+        detections = Detections(xyxy=np.array([[150, 40, 160, 50]]))
+
+        result = annotator.annotate(scene, detections, Detections.empty())
+
+        darkened = np.any(result[..., :3] != 255, axis=2)
+        assert np.any(darkened)
+        assert not np.any(darkened & (result[..., 3] == 0))
+
 
 class TestPaintMasksByArea:
     """Tests for the _paint_masks_by_area helper function."""
@@ -1808,6 +1821,22 @@ class TestRichLabelAnnotator:
         assert np.all(result[..., 3][drawn] == 255)
 
     @pytest.mark.parametrize(
+        "label",
+        [".", "a", pytest.param("a\n.", id="two-lines")],
+    )
+    def test_unpadded_label_ink_stays_on_opaque_background(self, label: str) -> None:
+        """Without padding, glyph ink lands on the opaque box, not around it."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        annotator = RichLabelAnnotator(text_padding=0, font_size=20)
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=[label])
+
+        alpha = result[..., 3]
+        assert np.any(alpha == 255)
+        assert np.all((alpha == 0) | (alpha == 255))
+
+    @pytest.mark.parametrize(
         ("mode", "expected"),
         [
             pytest.param("1", 255, id="one-bit"),
@@ -2501,6 +2530,41 @@ class TestBgraOverlayAnnotators:
         np.testing.assert_array_equal(result[..., :3], expected)
         assert not np.array_equal(result[..., :3], bgr)
         assert (result[..., 3] == 255).all()
+
+    def test_scaled_crop_hides_color_of_transparent_pixels(self) -> None:
+        """Scaling a crop does not bleed the color hidden under transparent pixels."""
+        scene = np.zeros((64, 64, 4), dtype=np.uint8)
+        scene[..., 2] = 255
+        scene[16:32, 16:32] = (0, 255, 0, 255)
+        detections = _create_detections(xyxy=[[8, 8, 24, 24]], class_id=[0])
+        annotator = CropAnnotator(
+            position=Position.BOTTOM_RIGHT, border_color=Color.GREEN
+        )
+
+        result = annotator.annotate(scene, detections)
+
+        visible = result[..., 3] > 0
+        assert np.any(visible & (result[..., 3] < 255))
+        assert np.all(result[..., 2][visible] == 0)
+
+    def test_resized_icon_hides_color_of_transparent_pixels(
+        self, tmp_path: Path
+    ) -> None:
+        """Resizing an icon does not bleed the color hidden under its transparency."""
+        icon_path = tmp_path / "half-transparent.png"
+        icon = np.zeros((8, 8, 4), dtype=np.uint8)
+        icon[..., 0] = 255
+        icon[:, 4:] = (0, 255, 0, 255)
+        Image.fromarray(icon).save(icon_path)
+        scene = np.zeros((48, 48, 4), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[8, 8, 40, 40]], class_id=[0])
+        annotator = IconAnnotator(icon_resolution_wh=(16, 16))
+
+        result = annotator.annotate(scene, detections, icon_path=str(icon_path))
+
+        visible = result[..., 3] > 0
+        assert np.any(visible & (result[..., 3] < 255))
+        assert np.all(result[..., 2][visible] == 0)
 
 
 class TestIconAnnotator:
