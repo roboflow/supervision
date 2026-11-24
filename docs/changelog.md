@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.with_nmm`, `sv.box_non_max_merge`, `sv.mask_non_max_merge` and `sv.oriented_box_non_max_merge` with `threshold=0` (`iou_threshold=0`) no longer merge detections that do not overlap. Any pair with an IoU of exactly 0 satisfied `IoU >= 0`, so every detection of a class was merged into one union box (three disjoint boxes became a single `[0, 0, 210, 210]` box), while `with_nms(threshold=0)` kept all of them. Merging now needs a positive overlap, matching non-max suppression; results for thresholds above 0 are unchanged. ([#2972](https://github.com/roboflow/supervision/pull/2972))
+- `sv.Detections.with_nmm`, `sv.box_non_max_merge`, `sv.mask_non_max_merge` and `sv.oriented_box_non_max_merge` with `threshold=0` (`iou_threshold=0`) no longer add a detection to a merge candidate when their overlap is zero. An overlap of exactly 0 satisfied `IoU >= 0`, so every detection of a class entered one merge group. For example, `with_nmm` turned three disjoint boxes into a single `[0, 0, 210, 210]` union box, while `with_nms(threshold=0)` kept all of them. Merging now needs a positive overlap, matching non-max suppression; results for thresholds above 0 are unchanged. ([#2972](https://github.com/roboflow/supervision/pull/2972))
 
 ### 0.32.1 <small>Nov 24, 2026</small>
 
