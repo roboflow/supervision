@@ -620,8 +620,8 @@ class DetectionDataset(BaseDataset):
 
         The image is not read: like the rest of the dataset, it is loaded lazily from
         `image_path` when accessed or exported, so the file must exist by then. The
-        dataset stores a copy of `annotation` with its class names filled in, so later
-        changes to the passed object do not affect the dataset.
+        dataset stores an independent copy of `annotation` and fills in class names
+        only when `annotation.class_id` is not `None`.
 
         Args:
             image_path: Path of the image file. It must not already be in the dataset.
@@ -649,6 +649,12 @@ class DetectionDataset(BaseDataset):
             1
             >>> ds.annotations['img1.jpg'].data['class_name']
             array(['person'], dtype='<U6')
+            >>> ds.add(
+            ...     image_path='img2.jpg',
+            ...     annotation=sv.Detections(xyxy=np.array([[10, 10, 20, 20]])),
+            ... )
+            >>> 'class_name' in ds.annotations['img2.jpg'].data
+            False
 
             ```
 
