@@ -131,11 +131,13 @@ jobs:
 
       - name: 📌 Pin or drop public-CDN scripts in published trees
         run: |
-          # mkdocs.yml and docs/theme pin MathJax and DOMPurify with an integrity hash
-          # and drop RequireJS and Segment, but that too only reaches latest/ and
-          # develop/ on their next rebuild (see header). This must run after the
-          # tracking carrier step, which anchors utm.js on the segment.js tag that this
-          # step drops. No third-party dependencies needed.
+          # The docs source now serves DOMPurify from docs/javascripts/vendor/ and no
+          # longer loads MathJax, RequireJS or Segment, but that too only reaches
+          # latest/ and develop/ on their next rebuild (see header). Here MathJax and
+          # DOMPurify stay on their CDN, pinned with an integrity hash; the script's
+          # docstring says why. This must run after the tracking carrier step, which
+          # anchors utm.js on the segment.js tag that this step drops. No third-party
+          # dependencies needed.
           python3 \
             "$GITHUB_WORKSPACE/_scripts/.github/scripts/pin_cdn_scripts.py" .
           git diff --stat | tail -5

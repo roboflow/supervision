@@ -1138,17 +1138,6 @@ REQUIREJS_PUBLISHED = (
 SEGMENT_PUBLISHED = '<script src="../javascripts/segment.js"></script>'
 
 
-def _theme_script_tag(template: Path, src_fragment: str) -> str:
-    """Return the one script tag in `template` whose src contains `src_fragment`."""
-    tags: list[str] = re.findall(
-        rf'<script src="[^"]*{re.escape(src_fragment)}[^"]*".*?</script>',
-        template.read_text(encoding="utf-8"),
-        flags=re.DOTALL,
-    )
-    assert len(tags) == 1, f"expected one {src_fragment!r} script in {template.name}"
-    return tags[0]
-
-
 def test_backfill_wires_the_cdn_pinning_script(workflow_step: StepLookup) -> None:
     """Ensure the backfill job runs the CDN pinning script against the checkout root."""
     cdn_step = workflow_step(BACKFILL_WORKFLOW, "backfill", CDN_STEP)["run"]
@@ -1186,8 +1175,8 @@ def test_backfill_drops_segment_only_after_the_carrier_step_anchored_on_it(
         ),
         pytest.param(
             DOMPURIFY_PUBLISHED,
-            "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js",
-            id="dompurify-without-hash",
+            "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.5.0/purify.min.js",
+            id="dompurify-3.0.8",
         ),
     ],
 )
@@ -1273,23 +1262,21 @@ def test_pin_cdn_scripts_is_idempotent(
     assert page.read_text() == once
 
 
-def test_pin_cdn_scripts_leaves_a_page_rebuilt_from_the_theme_untouched(
-    tmp_path: Path, repo_root: Path, load_script: Callable[[str], ModuleType]
+def test_pin_cdn_scripts_leaves_a_rebuilt_page_untouched(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """Leave a page `mike` rebuilt alone: the theme's pinned tags match no pattern."""
+    """Leave a page `mike` rebuilt from the current source alone: no pattern matches."""
     module = load_script("pin_cdn_scripts")
-    theme_dir = repo_root / "docs" / "theme"
     page = tmp_path / "latest" / "cookbooks" / "index.html"
     page.parent.mkdir(parents=True)
-    original = "\n".join(
-        [
-            "<body>",
-            _theme_script_tag(theme_dir / "cookbooks.html", "dompurify"),
-            '<script src="https://app.roboflow.com/scripts/utm.js"></script>',
-            '<script src="../javascripts/mathjax.js"></script>',
-            _theme_script_tag(theme_dir / "main.html", "mathjax"),
-            "</body>",
-        ]
+    original = (
+        "<head>\n"
+        '<script src="../javascripts/vendor/purify.min.js"></script>\n'
+        "</head>\n"
+        "<body>\n"
+        '        <script src="../javascripts/cookbooks-card.js"></script>\n'
+        '        <script src="https://app.roboflow.com/scripts/utm.js"></script>\n'
+        "</body>\n"
     )
     page.write_text(original)
 
@@ -1298,20 +1285,6 @@ def test_pin_cdn_scripts_leaves_a_page_rebuilt_from_the_theme_untouched(
     assert rewritten == []
     assert not changes
     assert page.read_text() == original
-
-
-def test_pin_cdn_scripts_uses_the_theme_file_and_hash(
-    repo_root: Path, load_script: Callable[[str], ModuleType]
-) -> None:
-    """Pin published pages to the file and hash the theme gives a rebuilt page."""
-    module = load_script("pin_cdn_scripts")
-    theme_dir = repo_root / "docs" / "theme"
-
-    mathjax = _theme_script_tag(theme_dir / "main.html", "mathjax")
-    dompurify = _theme_script_tag(theme_dir / "cookbooks.html", "dompurify")
-
-    assert " ".join(mathjax.split()) == module.MATHJAX_3_TAG
-    assert " ".join(dompurify.split()) == module.DOMPURIFY_TAG
 
 
 def test_pin_cdn_scripts_keeps_crlf_line_endings(

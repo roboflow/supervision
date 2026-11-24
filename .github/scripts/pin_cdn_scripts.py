@@ -5,12 +5,15 @@ Purpose:
     the CDN serves runs on them: MathJax 3 from unpkg's floating ``mathjax@3``, MathJax
     2 through cdnjs's ``latest.js`` (which looks up the newest 2.x at runtime and loads
     it), DOMPurify 3.0.8 and RequireJS 2.1.10 from cdnjs, and Segment's
-    ``analytics.js`` through ``javascripts/segment.js``. ``mkdocs.yml`` and
-    ``docs/theme`` now pin or drop each of them, but only a tree ``mike`` rebuilds picks
-    that up: a ``develop`` merge rebuilds ``develop/``, a ``release/latest`` push
-    rebuilds ``latest/``, and neither ever touches a numbered version directory. This
-    rewrites the already-published static HTML instead, the same way
-    ``inject_tracking_carrier.py`` patches in the tracking carrier.
+    ``analytics.js`` through ``javascripts/segment.js``. The docs source now serves
+    DOMPurify from ``docs/javascripts/vendor/`` and loads none of the others, but only
+    a tree ``mike`` rebuilds picks that up: a ``develop`` merge rebuilds ``develop/``,
+    a ``release/latest`` push rebuilds ``latest/``, and neither ever touches a numbered
+    version directory. This rewrites the already-published static HTML instead, the
+    same way ``inject_tracking_carrier.py`` patches in the tracking carrier. It pins
+    rather than vendors: one page in 0.26.0 and one in 0.26.1 still render math, the
+    numbered trees see about 1% of the docs' traffic, and ``latest/`` swaps its pins
+    for the vendored copy on its next rebuild.
 Scope:
     Walks ``latest/``, ``develop/``, and every numeric version directory under a
     gh-pages checkout root. In each ``*.html`` file:
@@ -20,15 +23,16 @@ Scope:
     - the MathJax 2 ``latest.js`` tag becomes cdnjs's ``2.7.9/MathJax.js``, the newest
       2.x and so what ``latest.js`` loads today, with the same ``config`` and an
       ``integrity`` hash;
-    - each DOMPurify 3.0.8 tag gains an ``integrity`` hash;
+    - each DOMPurify 3.0.8 tag becomes 3.5.0 from the same cdnjs path, with an
+      ``integrity`` hash: 3.0.8 has published advisories, two of them high;
     - the RequireJS tag is dropped, line and all: no published page calls ``require``
       or ``define``, or embeds a widget that would;
     - the ``javascripts/segment.js`` tag is dropped, line and all, whatever its depth:
       Segment retired on 2026-09-30, and ``utm.js`` reports page views without it.
 
     Every pattern matches a tag exactly as MkDocs or mkdocs-jupyter rendered it, so a
-    page this script already rewrote, or one ``mike`` rebuilt from the current
-    ``mkdocs.yml``, matches none of them and is left untouched.
+    page this script already rewrote, or one ``mike`` rebuilt from the current docs
+    source, matches none of them and is left untouched.
 Usage:
     Run ``python .github/scripts/pin_cdn_scripts.py <gh-pages checkout root>`` (no
     third-party dependencies). Safe to re-run.
@@ -47,7 +51,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-# The same file and hash as the tag in docs/theme/main.html.
+# What ``mathjax@3`` resolves to today.
 MATHJAX_3_SRC = "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"
 MATHJAX_3_INTEGRITY = (
     "sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei"
@@ -59,10 +63,13 @@ MATHJAX_2_SRC = (
 MATHJAX_2_INTEGRITY = (
     "sha384-vi9R4hb1goLJPJDHY+dOmXxcY3HGv6tJIwHxy5JunOTxJGHbsSuubPgl++SNxYYi"
 )
-# The same file and hash as the tag in docs/theme/cookbooks.html.
-DOMPURIFY_SRC = "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
+# Published pages load 3.0.8, which has published advisories; 3.5.0 fixes them.
+DOMPURIFY_PUBLISHED_SRC = (
+    "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
+)
+DOMPURIFY_SRC = "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.5.0/purify.min.js"
 DOMPURIFY_INTEGRITY = (
-    "sha384-vdScihEZCfbPnBQf+lc7LgXUdJVYyhC3yWHUW5C5P5GpHRqVnaM6HJELJxT6IqwM"
+    "sha384-DOUwTXbuiiQxlONuue5N42674XXDfjIJ/LTPtJMZ2ZV1Ir4NRQ3OnM/yM505YQAc"
 )
 REQUIREJS_SRC = (
     "https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"
@@ -108,7 +115,7 @@ REWRITES: tuple[tuple[str, re.Pattern[str], str], ...] = (
         ),
         MATHJAX_2_TAG,
     ),
-    ("DOMPurify pinned", _published_tag(DOMPURIFY_SRC), DOMPURIFY_TAG),
+    ("DOMPurify pinned", _published_tag(DOMPURIFY_PUBLISHED_SRC), DOMPURIFY_TAG),
     ("RequireJS dropped", _published_line(re.escape(REQUIREJS_SRC)), ""),
     ("Segment dropped", _published_line(r'[^"]*javascripts/segment\.js'), ""),
 )

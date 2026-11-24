@@ -228,16 +228,12 @@ markdown_extensions:
             strip_prompt: true
             strip_continuation_prompt: true
 
-  - pymdownx.arithmatex:
-      generic: true
-
 extra_javascript:
   - "javascripts/version-banner.js"
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "javascripts/pycon_copy.js"
   - "https://app.roboflow.com/scripts/utm.js"
-  - "javascripts/mathjax.js"
 
 validation:
   nav:
