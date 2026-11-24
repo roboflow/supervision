@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.with_nmm`, `sv.Detections.with_nms`, `sv.Detections.with_soft_nms` and `sv.box_iou_batch` now preserve exact overlap for narrow `int64` and `uint64` boxes at large coordinate origins above `2**53`. Previously, converting coordinates to `float64` before subtracting corners collapsed distinct endpoints into zero-area boxes and caused overlapping detections to miss merging or suppression. ([#3057](https://github.com/roboflow/supervision/pull/3057))
+
 - `sv.DetectionDataset.split`, `sv.ClassificationDataset.split` and `sv.KeyPointsDataset.split` now keep the training image that floating-point rounding dropped when `split_ratio` times the number of images is a whole number. For example, 90 images at `split_ratio=0.7` gave 62 train and 28 test images instead of 63 and 27. The split uses the larger of the previous floating-point result and the exact product of the evaluated ratio's decimal representation. ([#2969](https://github.com/roboflow/supervision/pull/2969))
 
 - `sv.xyxy_to_xcycarh` now computes centers and dimensions of integer boxes without overflowing the input dtype, avoiding incorrect centers and aspect ratios for boxes spanning integer limits. ([#2966](https://github.com/roboflow/supervision/pull/2966))
