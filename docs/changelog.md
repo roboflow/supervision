@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Classifications.get_top_k` now returns classes with equal confidence in their input order, so a tie for the best score goes to the first class, as `np.argmax` picks it. It reversed an ascending sort, which put the last tied class first, and with many classes, such as 1000 ImageNet scores in float16, returned tied classes in an arbitrary order. A NaN confidence now ranks last instead of first. `sv.ClassificationDataset.as_folder_structure` uses the top class to choose each image's folder, so it follows the same order. ([#2989](https://github.com/roboflow/supervision/pull/2989))
+
 - `sv.process_video(preserve_audio=True)` preserves audio delayed relative to the source video instead of moving it to the start of the output. Audio starting after a shortened output is omitted. ([#2988](https://github.com/roboflow/supervision/pull/2988))
 
 - `sv.DetectionDataset.from_yolo` and `sv.KeyPointsDataset.from_yolo` map each label's class id to the name `data.yaml` declares for it when `names` is a dict whose keys start above `0` or skip values, such as `{1: cat, 2: dog}`, instead of silently loading labels under the wrong class. Loaded class ids index `classes`; annotation-only and YAML-only exports retain the source IDs, while exports writing both use normalized IDs. Undeclared label IDs and duplicate numeric class IDs raise `ValueError`. ([#2985](https://github.com/roboflow/supervision/pull/2985))
