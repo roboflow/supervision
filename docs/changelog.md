@@ -9,7 +9,7 @@ date_modified: 2026-11-18
 
 - `sv.crop_image` returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). With the OpenCV backend, cropping an RGB, RGBA or palette Pillow image raised `cv2.error` from `cv2.cvtColor` in that case. ([#2970](https://github.com/roboflow/supervision/pull/2970))
 
-- `sv.Detections.from_transformers` now loads class-agnostic Transformers results, which carry no class labels, with `class_id=None`. SAM 3 `post_process_object_detection` and `post_process_instance_segmentation` results, which have no `labels` key, raised `KeyError: 'labels'`, and OWL-ViT and OWLv2 `post_process_image_guided_detection` results, whose `labels` is `None`, raised `AttributeError: 'NoneType' object has no attribute 'detach'`. SAM 3 instance masks keep their `(N, H, W)` shape.
+- `sv.Detections.from_transformers` now loads class-agnostic Transformers results, which carry no class labels, with `class_id=None`. SAM 3 `post_process_object_detection` and `post_process_instance_segmentation` results, which have no `labels` key, raised `KeyError: 'labels'`, and OWL-ViT and OWLv2 `post_process_image_guided_detection` results, whose `labels` is `None`, raised `AttributeError: 'NoneType' object has no attribute 'detach'`. SAM 3 instance masks keep their `(N, H, W)` shape. ([#3061](https://github.com/roboflow/supervision/pull/3061))
 
 ### 0.32.1 <small>Nov 24, 2026</small>
 
