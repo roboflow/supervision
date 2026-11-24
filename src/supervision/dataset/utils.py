@@ -8,6 +8,7 @@ import os
 import random
 import shutil
 from collections.abc import Callable
+from fractions import Fraction
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar, cast
 
@@ -432,6 +433,21 @@ def approximate_mask_with_polygons(
 
 
 def merge_class_lists(class_lists: list[list[str]]) -> list[str]:
+    """Merge multiple lists of class names into a single deduplicated, sorted list.
+
+    Args:
+        class_lists: A list of class name lists to merge.
+
+    Returns:
+        A sorted list of unique class names across all input lists.
+
+    Examples:
+        ```python
+        from supervision.dataset.utils import merge_class_lists
+
+        merged = merge_class_lists([["dog", "cat"], ["cat", "person"]])
+        ```
+    """
     unique_classes = set()
 
     for class_list in class_lists:
@@ -444,17 +460,44 @@ def merge_class_lists(class_lists: list[list[str]]) -> list[str]:
 def build_class_index_mapping(
     source_classes: list[str], target_classes: list[str]
 ) -> dict[int, int]:
-    """Returns the index map of source classes -> target classes."""
-    index_mapping = {}
+    """Build an index mapping from source classes to their positions in target classes.
+
+    Args:
+        source_classes: Ordered list of source class names.
+        target_classes: Ordered list of target class names. Every class in
+            ``source_classes`` must be present in ``target_classes``.
+
+    Returns:
+        A dictionary mapping each source class index to its corresponding target
+        class index. Repeated target names use their first occurrence.
+
+    Raises:
+        ValueError: If any class in ``source_classes`` is not found in
+            ``target_classes``.
+
+    Examples:
+        ```python
+        from supervision.dataset.utils import build_class_index_mapping
+
+        mapping = build_class_index_mapping(
+            source_classes=["dog", "cat"],
+            target_classes=["cat", "dog", "person"],
+        )
+        ```
+    """
+    index_mapping: dict[int, int] = {}
+
+    target_indices: dict[str, int] = {}
+    for target_index, class_name in enumerate(target_classes):
+        target_indices.setdefault(class_name, target_index)
 
     for i, class_name in enumerate(source_classes):
-        if class_name not in target_classes:
+        if class_name not in target_indices:
             raise ValueError(
                 f"Class {class_name} not found in target classes. "
                 "source_classes must be a subset of target_classes."
             )
-        corresponding_index = target_classes.index(class_name)
-        index_mapping[i] = corresponding_index
+        index_mapping[i] = target_indices[class_name]
 
     return index_mapping
 
@@ -462,6 +505,37 @@ def build_class_index_mapping(
 def map_detections_class_id(
     source_to_target_mapping: dict[int, int], detections: Detections
 ) -> Detections:
+    """Remap the ``class_id`` of detections onto a merged or transformed class list.
+
+    The detection counterpart of
+    :func:`~supervision.dataset.utils.map_key_points_class_id`, used by
+    :meth:`~supervision.dataset.core.DetectionDataset.merge`.
+
+    Args:
+        source_to_target_mapping: Mapping from the source class index to the
+            index of the same class in the target list.
+        detections: The detections to remap; not mutated.
+
+    Returns:
+        A copy of ``detections`` carrying the remapped ``class_id``.
+
+    Raises:
+        ValueError: If ``detections.class_id`` is None, or if it contains a
+            class id not present in ``source_to_target_mapping``.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+        from supervision.dataset.utils import map_detections_class_id
+
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            class_id=np.array([0]),
+        )
+        remapped = map_detections_class_id({0: 2}, detections)
+        ```
+    """
     if detections.class_id is None:
         raise ValueError("Detections must have class_id attribute.")
     if set(np.unique(detections.class_id)) - set(source_to_target_mapping.keys()):
@@ -636,6 +710,42 @@ def save_dataset_images(
                 shutil.copyfile(image_path, final_path)
 
 
+def _train_split_index(length: int, train_ratio: float) -> int:
+    """Returns how many of `length` items belong to the train part.
+
+    The evaluated ratio's decimal representation is multiplied exactly, so
+    `90 * 0.7` gives `63` instead of the `62` that floating-point multiplication
+    floors to. The previous floating-point result is retained when it is larger,
+    preserving computed ratios such as `1 / 3` for three items. A NumPy scalar
+    ratio enters that floating-point product as the Python float of its decimal,
+    so a low-precision ratio such as `np.float16(0.5)` neither rounds nor
+    overflows the item count.
+
+    Args:
+        length: The number of items to split.
+        train_ratio: The train fraction, already validated to lie in `[0, 1]`.
+
+    Returns:
+        The number of leading items that go to the train part.
+    """
+    # A zero-dimensional array is unwrapped to its NumPy scalar first, so that
+    # `np.array(0.7, dtype=np.float32)` reads like `np.float32(0.7)`.
+    if isinstance(train_ratio, np.ndarray) and train_ratio.ndim == 0:
+        train_ratio = train_ratio[()]
+    # `str` of a NumPy float gives the shortest decimal for its own precision,
+    # so `np.float32(0.7)` reads as 0.7 and not as its float64 widening.
+    if isinstance(train_ratio, np.floating):
+        decimal = str(train_ratio)
+    else:
+        decimal = str(float(train_ratio))
+    # NumPy 2 multiplies in the scalar's own dtype, so `4095 * np.float16(0.5)`
+    # rounds 4095 up to 4096 and `70000 * np.float16(0.5)` overflows. Its decimal,
+    # not its float64 widening, keeps `np.float16(0.7)` from reading as 0.70019.
+    if isinstance(train_ratio, np.generic) and train_ratio.dtype.itemsize <= 8:
+        train_ratio = float(decimal)
+    return max(int(length * train_ratio), int(Fraction(decimal) * length))
+
+
 def train_test_split(
     data: list[T],
     train_ratio: float = 0.8,
@@ -683,5 +793,5 @@ def train_test_split(
     else:
         data = list(data)  # copy to guarantee non-mutation
 
-    split_index = int(len(data) * train_ratio)
+    split_index = _train_split_index(len(data), train_ratio)
     return data[:split_index], data[split_index:]

@@ -27,7 +27,7 @@
 {% set is_latest_release = config.extra.is_latest_release %}
 {% set latest_url = config.site_url | d('https://supervision.roboflow.com/latest/', true) %}
 {% if doc_version == "develop" %}
-You are reading the unreleased development version of the documentation, built from the <code>develop</code> branch.<br>
+You are reading the development version of the documentation, built from the <code>develop</code> branch.<br>
 APIs described here may change or may never ship in a release, so use the <a href="{{ latest_url }}"><strong>latest stable release</strong></a> instead.
 {% elif doc_version and doc_version != "latest" and not is_latest_release %}
 You are reading the documentation for an older version of Supervision, kept online for reference.<br>
