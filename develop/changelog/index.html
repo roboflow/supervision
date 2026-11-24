@@ -4528,6 +4528,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_5</code>, <code>GOOGLE_GEMINI_3_5</code>, <code>GOOGLE_GEMINI_3_6</code> or <code>GOOGLE_GEMINI_3_7</code> and a <code>classes</code> filter now keeps confidence when every kept detection has a score, even if an item removed by that filter has no <code>confidence</code>. Previously that one item set <code>confidence</code> to <code>None</code> for every detection. (<a href="https://github.com/roboflow/supervision/pull/3009">#3009</a>)</p>
+</li>
+<li>
 <p><code>sv.VideoInfo.from_video_path</code> now reports the real frame rate of a browser-recorded WebM (<code>MediaRecorder</code>) instead of <code>1000.0</code>, and a frame count to match, so <code>sv.process_video</code> keeps the source's duration instead of writing a video that plays about 33x too fast. A rate above 240 fps is checked against the first frames; when they disagree by more than 2x, video frame timestamps and count are measured across the file. Without OpenCV, the PyAV backend derives the rate from video packet timestamps when the stream has no average rate. (<a href="https://github.com/roboflow/supervision/pull/3007">#3007</a>)</p>
 </li>
 <li>
@@ -7043,7 +7046,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 22:45:01 UTC">November 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 24, 2026 22:51:48 UTC">November 24, 2026</span>
   </span>
 
     
@@ -7071,9 +7074,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Viranshul-P" class="md-author" title="@Viranshul-P">
+        <a href="https://github.com/BahaaMattar" class="md-author" title="@BahaaMattar">
           
-          <img src="https://avatars.githubusercontent.com/u/203832072?v=4&size=72" alt="Viranshul-P">
+          <img src="https://avatars.githubusercontent.com/u/165836773?v=4&size=72" alt="BahaaMattar">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7081,9 +7084,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/BahaaMattar" class="md-author" title="@BahaaMattar">
+        <a href="https://github.com/Viranshul-P" class="md-author" title="@Viranshul-P">
           
-          <img src="https://avatars.githubusercontent.com/u/165836773?v=4&size=72" alt="BahaaMattar">
+          <img src="https://avatars.githubusercontent.com/u/203832072?v=4&size=72" alt="Viranshul-P">
         </a>
       
         <a href="https://github.com/EnesSoydan" class="md-author" title="@EnesSoydan">
