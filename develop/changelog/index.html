@@ -4641,6 +4641,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p>Annotators that draw with OpenCV directly, such as <code>sv.BoxAnnotator</code>, <code>sv.LabelAnnotator</code>, the key point annotators and the line zone annotators, now draw visibly on BGRA scenes, such as a PNG read with <code>cv2.IMREAD_UNCHANGED</code>, with antialiased edges composited using their coverage. They wrote only the B, G and R channels and left alpha at <code>0</code>, so boxes, labels, key points and the like were invisible on transparent pixels. The translucent fills of <code>sv.ColorAnnotator</code> and <code>sv.VertexEllipseAreaAnnotator</code> composite their coverage times <code>opacity</code> over the existing alpha and keep their own color instead of blending with the hidden color of transparent pixels. (<a href="https://github.com/roboflow/supervision/pull/3033">#3033</a>)</p>
 </li>
+<li>
+<p><code>sv.Detections.from_transformers</code> now loads class-agnostic Transformers results, which carry no class labels, with <code>class_id=None</code>. SAM 3 <code>post_process_object_detection</code> and <code>post_process_instance_segmentation</code> results, which have no <code>labels</code> key, raised <code>KeyError: 'labels'</code>, and OWL-ViT and OWLv2 <code>post_process_image_guided_detection</code> results, whose <code>labels</code> is <code>None</code>, raised <code>AttributeError: 'NoneType' object has no attribute 'detach'</code>. SAM 3 instance masks keep their <code>(N, H, W)</code> shape. (<a href="https://github.com/roboflow/supervision/pull/3061">#3061</a>)</p>
+</li>
 </ul>
 <h3 id="0321-nov-24-2026">0.32.1 <small>Nov 24, 2026</small><a class="headerlink" href="#0321-nov-24-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -7106,7 +7109,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 18:02:49 UTC">November 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 18:33:14 UTC">November 25, 2026</span>
   </span>
 
     
@@ -7134,9 +7137,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/anishgurjar" class="md-author" title="@anishgurjar">
+        <a href="https://github.com/MaiAditya" class="md-author" title="@MaiAditya">
           
-          <img src="https://avatars.githubusercontent.com/u/50738829?v=4&size=72" alt="anishgurjar">
+          <img src="https://avatars.githubusercontent.com/u/84338325?v=4&size=72" alt="MaiAditya">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7144,14 +7147,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/anishgurjar" class="md-author" title="@anishgurjar">
+          
+          <img src="https://avatars.githubusercontent.com/u/50738829?v=4&size=72" alt="anishgurjar">
+        </a>
+      
         <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
           <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
-        </a>
-      
-        <a href="https://github.com/Nikhila-Dhevi-R" class="md-author" title="@Nikhila-Dhevi-R">
-          
-          <img src="https://avatars.githubusercontent.com/u/178061112?v=4&size=72" alt="Nikhila-Dhevi-R">
         </a>
       
       
