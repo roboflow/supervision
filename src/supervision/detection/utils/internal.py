@@ -87,12 +87,12 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
         mask = mask[top:bottom, left:right]
 
         if mask.shape != orig_shape:
-            # `cv2.resize` interpolates the float proto mask, so threshold at 0.5
-            # (matching Ultralytics' own semantics) instead of casting every
-            # nonzero interpolated value to True, which would dilate the mask.
+            # Interpolate binary uint8 masks in float so resize cannot round
+            # fractional pixels before the strict threshold.
+            if mask.dtype == np.uint8:
+                mask = mask.astype(np.float32)
             mask = cv2.resize(mask, (orig_shape[1], orig_shape[0])) > 0.5
-        # else: slice-crop (no interpolation) preserves the binary 0/1 float values
-        # produced by Ultralytics; the final np.asarray(..., dtype=bool) is equivalent.
+        # At the original resolution, the existing binary mask needs no resize.
 
         mask_maps.append(mask)
 
@@ -674,8 +674,10 @@ def decode_semantic_label_map(
         The map with its integer values unchanged, so class ids keep their meaning.
 
     Raises:
-        ValueError: If the payload is not a string, array or tensor, not valid base64,
-            not a decodable PNG, or not a single-channel integer ``(H, W)`` map.
+        ValueError: If the payload is not a string, array or tensor.
+        ValueError: If a string payload is not valid base64.
+        ValueError: If a decoded string payload is not a decodable PNG.
+        ValueError: If the payload is not a single-channel integer ``(H, W)`` map.
     """
     if not _is_semantic_map_payload(payload):
         raise ValueError(
@@ -747,7 +749,8 @@ def process_semantic_segmentation(
             remains every array is empty and ``masks`` keeps the requested kind.
 
     Raises:
-        ValueError: If a map cannot be decoded or the two maps differ in shape.
+        ValueError: If a map cannot be decoded.
+        ValueError: If the two maps differ in shape.
 
     Examples:
         ```pycon
@@ -886,8 +889,8 @@ def merge_data(
             types (list or npt.NDArray[np.generic]).
 
     Raises:
-        ValueError: If data values within a single object have different lengths or if
-            dictionaries have different keys.
+        ValueError: If data values within a single object have different lengths.
+        ValueError: If dictionaries have different keys.
     """
     if not data_list:
         return {}
@@ -976,8 +979,8 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
         A single merged metadata dictionary.
 
     Raises:
-        ValueError: If there are conflicting values for the same key or if
-            dictionaries have different keys.
+        ValueError: If there are conflicting values for the same key.
+        ValueError: If dictionaries have different keys.
     """
     if not metadata_list:
         return {}
