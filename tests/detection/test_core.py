@@ -2042,6 +2042,40 @@ class TestDetectionsWithSoftNms:
         assert result.confidence is not None
         np.testing.assert_almost_equal(result.confidence, [0.9], decimal=5)
 
+    def test_uses_obb_iou_when_oriented_box_coordinates_present(self) -> None:
+        """Edge-touching OBBs keep their score although their envelopes overlap."""
+        quad_a = _rotated_rect(0, 0, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        quad_b = _rotated_rect(10, 10, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.8], decimal=4)
+        assert len(detections.with_soft_nms(sigma=0.5, score_threshold=0.79)) == 2
+
+    def test_overlapping_obbs_are_decayed(self) -> None:
+        """OBBs whose rotated bodies overlap are still decayed."""
+        quad = _rotated_rect(50, 50, 100, 10, 30)
+        detections = _make_obb_detections([quad, quad], [0.9, 0.8], [0, 0])
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.10826823], decimal=4)
+
+    def test_mask_takes_precedence_over_oriented_box(self) -> None:
+        """With both a mask and OBB corners, the mask IoU drives the decay."""
+        quad_a = _rotated_rect(0, 0, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        quad_b = _rotated_rect(10, 10, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
+        detections.mask = np.ones((2, 4, 4), dtype=bool)
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.10826823], decimal=4)
+
     def test_none_score_threshold_keeps_all_detections(self) -> None:
         """Default `score_threshold=None` never drops a detection."""
         detections = Detections(
