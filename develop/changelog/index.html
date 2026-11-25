@@ -4550,6 +4550,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.metrics.Precision</code>, <code>sv.metrics.Recall</code> and <code>sv.metrics.F1Score</code> now treat COCO ignore regions as <code>sv.metrics.MeanAveragePrecision</code> and <code>sv.metrics.MeanAverageRecall</code> do: targets with <code>data["iscrowd"]</code> set, as <code>sv.DetectionDataset.from_coco</code> loads them, or with <code>data["ignore"]</code> set. They were scored as ordinary objects, so an undetected crowd region counted as a miss and every detection inside one counted as a false positive: on 500 COCO val2017 images with YOLO11n, precision@50 was 0.733 instead of the 0.768 that pycocotools' matching gives, and 0.670 instead of 0.838 on the images with crowd regions. A crowd region now absorbs any number of predictions, each overlapping it by the share of its own area inside the region. (<a href="https://github.com/roboflow/supervision/pull/3071">#3071</a>)</p>
+</li>
+<li>
 <p><code>sv.DetectionDataset.from_pascal_voc</code> now gives class ids in sorted class-name order. Previously, it processed images in sorted path order and appended newly encountered class names in sorted order within each file, so train and valid splits with the same classes could get different ids, and exporting both with <code>as_yolo</code> wrote one split's labels under the other split's class names. Datasets whose classes did not already appear in sorted order load with different <code>class_id</code> values. (<a href="https://github.com/roboflow/supervision/pull/3069">#3069</a>)</p>
 </li>
 <li>
@@ -7121,7 +7124,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 22:58:28 UTC">November 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 23:03:08 UTC">November 25, 2026</span>
   </span>
 
     
@@ -7149,9 +7152,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/owaiss21" class="md-author" title="@owaiss21">
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
-          <img src="https://avatars.githubusercontent.com/u/153536064?v=4&size=72" alt="owaiss21">
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7159,14 +7162,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/owaiss21" class="md-author" title="@owaiss21">
+          
+          <img src="https://avatars.githubusercontent.com/u/153536064?v=4&size=72" alt="owaiss21">
+        </a>
+      
         <a href="https://github.com/bhargavchintam" class="md-author" title="@bhargavchintam">
           
           <img src="https://avatars.githubusercontent.com/u/33771260?v=4&size=72" alt="bhargavchintam">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
