@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from supervision import (
+    CompactMask,
     Detections,
     LineZone,
     LineZoneAnnotator,
@@ -795,6 +796,35 @@ class TestLineZoneSubThresholdFlicker:
                     xyxy=[flickering_box, crossing_box], tracker_id=[1, 2]
                 )
             )
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    @pytest.mark.parametrize("copies", [2, 3])
+    def test_repeated_tracker_id_is_one_observation(self, copies: int) -> None:
+        """Copies of one id in a frame cannot satisfy the threshold on their own."""
+        line_zone = self._line_zone(minimum_crossing_threshold=copies)
+        line_zone.trigger(
+            _create_detections(xyxy=_boxes_from_sides("A"), tracker_id=[0])
+        )
+        duplicates = _create_detections(
+            xyxy=_boxes_from_sides("B" * copies), tracker_id=[0] * copies
+        )
+
+        line_zone.trigger(duplicates)
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+    def test_repeated_tracker_id_on_both_sides_keeps_first_copy(self) -> None:
+        """Copies of one id on both sides of the line give one crossing, not two."""
+        line_zone = self._line_zone(minimum_crossing_threshold=1)
+        line_zone.trigger(
+            _create_detections(xyxy=_boxes_from_sides("A"), tracker_id=[0])
+        )
+        split_copies = _create_detections(
+            xyxy=_boxes_from_sides("BA"), tracker_id=[0, 0]
+        )
+
+        line_zone.trigger(split_copies)
 
         assert (line_zone.in_count, line_zone.out_count) == (0, 1)
 
@@ -2119,3 +2149,119 @@ class TestLineZoneAnnotatorWithCoordTransform:
             LineZoneAnnotator().annotate(
                 frame, line_zone, coord_transform=_WrongShapeTransform()
             )
+
+
+class TestLineZoneAnnotatorsOnBgraScene:
+    """Line zone annotators on transparent BGRA frames."""
+
+    @pytest.mark.parametrize(
+        "annotate",
+        [
+            pytest.param(
+                lambda frame: LineZoneAnnotator().annotate(
+                    frame, LineZone(Point(10, 60), Point(190, 60))
+                ),
+                id="line",
+            ),
+            pytest.param(
+                lambda frame: LineZoneAnnotatorMulticlass(
+                    text_color=Color.RED
+                ).annotate(frame, [LineZone(Point(10, 60), Point(190, 60))]),
+                id="multiclass-table",
+            ),
+        ],
+    )
+    def test_drawn_pixels_are_visible(
+        self, annotate: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Every pixel drawn on a transparent frame gets a non-zero alpha."""
+        expected_bgr = annotate(np.zeros((120, 200, 3), dtype=np.uint8))
+        drawn = np.any(expected_bgr != 0, axis=-1)
+
+        result = annotate(np.zeros((120, 200, 4), dtype=np.uint8))
+
+        composited = result[..., :3].astype(np.float32) * (result[..., 3:] / 255.0)
+        np.testing.assert_allclose(composited, expected_bgr, atol=2)
+        assert drawn.any()
+        assert np.all(result[..., 3][drawn] > 0)
+
+    @pytest.mark.skipif(
+        not _cv2._IS_CV2_AVAILABLE, reason="OpenCV antialiasing required"
+    )
+    def test_antialiased_line_ignores_hidden_scene_color(self) -> None:
+        """Antialiased line edges retain their color on a transparent scene."""
+        annotator = LineZoneAnnotator(
+            color=Color.RED,
+            text_color=Color.RED,
+            display_in_count=False,
+            display_out_count=False,
+        )
+        scene = np.zeros((120, 200, 4), dtype=np.uint8)
+        scene[..., 1] = 200
+
+        result = annotator.annotate(scene, LineZone(Point(10, 20), Point(190, 100)))
+
+        edge = (result[..., 3] > 0) & (result[..., 3] < 255)
+        assert edge.any()
+        np.testing.assert_array_equal(
+            result[..., :3][edge], np.tile((0, 0, 255), (edge.sum(), 1))
+        )
+
+    def test_opaque_frame_matches_bgr_rendering(self) -> None:
+        """Antialiased drawing preserves opaque alpha and BGR appearance."""
+        annotator = LineZoneAnnotator(
+            color=Color.RED,
+            text_color=Color.RED,
+            display_in_count=False,
+            display_out_count=False,
+        )
+        bgr = np.full((120, 200, 3), 80, dtype=np.uint8)
+        bgra = np.dstack((bgr.copy(), np.full((120, 200), 255, dtype=np.uint8)))
+        zone = LineZone(Point(10, 20), Point(190, 100))
+
+        expected = annotator.annotate(bgr, zone)
+        result = annotator.annotate(bgra, zone)
+
+        np.testing.assert_allclose(result[..., :3], expected, atol=2)
+        assert np.all(result[..., 3] == 255)
+
+    def test_line_and_endpoints_are_opaque(self) -> None:
+        """The line and its endpoint markers are opaque on a transparent frame."""
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((120, 200, 4), dtype=np.uint8)
+
+        result = annotator.annotate(frame, LineZone(Point(10, 60), Point(190, 60)))
+
+        assert result[60, 100, 3] == 255
+        assert result[60, 10, 3] == 255
+        assert result[0, 0, 3] == 0
+
+
+class TestLineZoneCenterOfMassEmptyMask:
+    """`LineZone` with `Position.CENTER_OF_MASS` and detections with empty masks."""
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_stationary_object_with_empty_mask_is_not_counted(
+        self, compact: bool
+    ) -> None:
+        """An object that never moves is not counted when one frame's mask is empty."""
+        line_zone = LineZone(
+            Point(0, 50), Point(160, 50), triggering_anchors=[Position.CENTER_OF_MASS]
+        )
+        xyxy = np.array([[90.0, 80.0, 110.0, 100.0]], dtype=np.float32)
+        full_mask = np.zeros((1, 120, 160), dtype=bool)
+        full_mask[0, 80:100, 90:110] = True
+        empty_mask = np.zeros((1, 120, 160), dtype=bool)
+        frames = []
+        for dense_mask in (full_mask, full_mask, empty_mask, full_mask, full_mask):
+            mask = (
+                CompactMask.from_dense(dense_mask, xyxy, (120, 160))
+                if compact
+                else dense_mask
+            )
+            frames.append(Detections(xyxy=xyxy, mask=mask, tracker_id=np.array([7])))
+
+        for frame in frames:
+            line_zone.trigger(frame)
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
