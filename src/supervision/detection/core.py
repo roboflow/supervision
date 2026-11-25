@@ -956,19 +956,22 @@ class Detections:
                 shape as the class ids, in the same formats except a one-bit PNG,
                 and in the range 0-255.
                 When available,
-                `confidence` is each class's mean over its pixels divided by
-                255; otherwise `confidence` is `None`. Overrides the one inside
+                `confidence` is each detection's mean over its mask pixels divided
+                by 255; otherwise `confidence` is `None`. Overrides the one inside
                 `segmentation_result`.
             background_id: Class id left out of the result. Pass `None` to keep
                 every class.
             compact_masks: When `True`, return
                 :class:`~supervision.detection.compact_mask.CompactMask`, built
-                one class at a time, instead of a dense `(N, H, W)` array.
+                one detection at a time, instead of a dense `(N, H, W)` array.
             split_components: When `True`, split each class into its 8-connected
                 patches, so pixels touching only at a corner belong to the same
                 patch. Each patch becomes its own detection with its own mask, box
                 and mean `confidence`, and the name of its class. Entries are ordered
-                by class id, then top to bottom and left to right.
+                by class id, then by the top-left corner of each patch's box, top
+                to bottom and then left to right. A dense `mask`
+                holds one full `(H, W)` plane per patch, so pass `compact_masks=True`
+                to keep memory low when a map has many patches.
 
         Returns:
             A Detections object with one entry per remaining class id, or per
