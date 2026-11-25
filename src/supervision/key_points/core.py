@@ -978,7 +978,8 @@ class KeyPoints:
 
         Raises:
             ValueError: If `num_keypoints` is not positive or cannot contain the
-                retained joint labels.
+                retained joint labels, or if a pose has a negative or repeated
+                joint label.
 
         Examples:
             ```python
@@ -1051,6 +1052,13 @@ class KeyPoints:
                     if "labels" in result
                     else np.arange(len(points))
                 )
+                # Labels index the joint axis directly: NumPy would wrap a negative
+                # label onto a valid joint, and a repeated label would overwrite an
+                # earlier prediction for the same joint.
+                if np.any(labels < 0):
+                    raise ValueError("Joint labels must be non-negative.")
+                if np.unique(labels).size != labels.size:
+                    raise ValueError("Joint labels must not repeat within a pose.")
                 result_data.append((points, pose_to_numpy(result["scores"]), labels))
             keypoint_count = max(
                 (int(labels.max()) + 1 for _, _, labels in result_data if labels.size),
