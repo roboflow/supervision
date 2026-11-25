@@ -2146,18 +2146,56 @@ class TestFromTransformers:
         assert first.keypoint_confidence is not None
         assert first.keypoint_confidence[0, 16] == 0
 
-    def test_explicit_joint_count_rejects_out_of_range_label(self) -> None:
-        """Reject a skeleton size that cannot contain a retained joint."""
+    @pytest.mark.parametrize(
+        ("labels", "num_keypoints", "message"),
+        [
+            pytest.param([2], 2, "num_keypoints", id="beyond-explicit-joint-count"),
+            pytest.param(
+                [0, 1, -1], 2, "non-negative", id="negative-wraps-onto-retained-joint"
+            ),
+            pytest.param(
+                [0, 1, -1],
+                None,
+                "non-negative",
+                id="negative-with-inferred-joint-count",
+            ),
+            pytest.param(
+                [-3], 2, "non-negative", id="negative-below-explicit-joint-count"
+            ),
+            pytest.param([-1], None, "non-negative", id="only-negative-label"),
+            pytest.param(
+                [-3], None, "non-negative", id="only-negative-below-minus-one"
+            ),
+        ],
+    )
+    def test_rejects_out_of_range_joint_label(
+        self, labels: list[int], num_keypoints: int | None, message: str
+    ) -> None:
+        """Reject a joint label that names no slot of the skeleton."""
         results = [
             {
-                "keypoints": np.ones((1, 2)),
-                "scores": np.ones(1),
-                "labels": np.array([2]),
+                "keypoints": np.ones((len(labels), 2)),
+                "scores": np.ones(len(labels)),
+                "labels": np.array(labels),
             }
         ]
 
-        with pytest.raises(ValueError, match="num_keypoints"):
-            KeyPoints.from_transformers(results, num_keypoints=2)
+        with pytest.raises(ValueError, match=message):
+            KeyPoints.from_transformers(results, num_keypoints=num_keypoints)
+
+    @pytest.mark.parametrize("num_keypoints", [2, None])
+    def test_rejects_repeated_joint_label(self, num_keypoints: int | None) -> None:
+        """Reject a pose that names one joint slot twice instead of overwriting it."""
+        results = [
+            {
+                "keypoints": np.array([[1.0, 1.0], [2.0, 2.0], [9.0, 9.0]]),
+                "scores": np.array([0.1, 0.2, 0.9]),
+                "labels": np.array([0, 1, 1]),
+            }
+        ]
+
+        with pytest.raises(ValueError, match="repeat"):
+            KeyPoints.from_transformers(results, num_keypoints=num_keypoints)
 
     def test_explicit_joint_count_keeps_fully_filtered_pose(self) -> None:
         """Keep a detected pose whose joints were all filtered out."""

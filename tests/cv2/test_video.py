@@ -19,6 +19,7 @@ from supervision._cv2._video import (
     _VideoCapture,
     _VideoWriter,
 )
+from supervision.utils.video import _video_timing
 from tests.helpers import write_browser_recorded_webm
 
 
@@ -276,6 +277,32 @@ def test_fallback_capture_reports_browser_webm_rate_from_timestamps(
     capture.release()
 
     assert fps == pytest.approx(30.3, rel=0.03)
+
+
+@pytest.mark.parametrize(
+    ("frame_count", "slow_after", "gap_after"),
+    [
+        pytest.param(60, None, None, id="steady-cadence"),
+        pytest.param(152, 32, None, id="slower-after-start"),
+        pytest.param(4, None, 2, id="short-with-gap"),
+    ],
+)
+def test_fallback_capture_browser_webm_rate_matches_decoded_timing(
+    tmp_path: Path, frame_count: int, slow_after: int | None, gap_after: int | None
+) -> None:
+    """Fallback capture reports the rate OpenCV's browser WebM correction decodes."""
+    source_path = str(tmp_path / "browser.webm")
+    write_browser_recorded_webm(
+        source_path, frame_count=frame_count, slow_after=slow_after, gap_after=gap_after
+    )
+    timing = _video_timing(source_path)
+
+    capture = _VideoCapture(source_path)
+    fps = capture.get(_cv2.CAP_PROP_FPS)
+    capture.release()
+
+    assert timing is not None
+    assert fps == pytest.approx(timing[0])
 
 
 def test_fallback_capture_reports_position_of_last_read_frame(tmp_path: Path) -> None:

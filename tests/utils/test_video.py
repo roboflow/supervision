@@ -1372,6 +1372,17 @@ class TestVideoInfoFrameRate:
         assert count == 4
         assert count / fps == pytest.approx(1.132, abs=0.01)
 
+    def test_short_variable_rate_keeps_decoded_duration(self, tmp_path: Path) -> None:
+        """Frame count over fps spans the decoded duration, last frame included."""
+        source_path = str(tmp_path / "short-variable.webm")
+        write_browser_recorded_webm(source_path, frame_count=4, gap_after=2)
+
+        video_info = VideoInfo.from_video_path(source_path)
+
+        assert video_info.total_frames is not None
+        duration = video_info.total_frames / video_info.fps
+        assert duration == pytest.approx(1.132, abs=0.01)
+
     def test_longer_audio_does_not_inflate_video_frame_count(
         self, tmp_path: Path
     ) -> None:
