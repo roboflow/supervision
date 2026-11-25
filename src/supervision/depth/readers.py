@@ -47,8 +47,11 @@ def _decode_gray_png(source: BinaryIO, *, label: str) -> npt.NDArray[np.uint16]:
                     f"{label} must be a single-channel 16-bit grayscale PNG, got "
                     f"format {image.format} mode {image.mode}."
                 )
-            # Pillow decodes lazily, so corrupt pixel data fails only here; the cast
-            # narrows the int32 mode "I" Pillow before 10.3 gives a 16-bit PNG.
+            # Pillow decodes lazily, so corrupt pixel data fails only here. Decoding
+            # first keeps its OSError: NumPy before 1.25 hides an error raised while
+            # it reads the image and then fails with an unrelated TypeError.
+            image.load()
+            # The cast narrows the int32 mode "I" Pillow before 10.3 gives a 16-bit PNG.
             return np.ascontiguousarray(image, dtype=np.uint16)
     except (OSError, Image.DecompressionBombError) as error:
         raise ValueError(f"{label} is not a decodable PNG: {error}") from error

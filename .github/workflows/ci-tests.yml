@@ -109,6 +109,9 @@ jobs:
     name: Testing w/ minimum dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Also reaches the pytest subprocesses that tests start.
+      PYTEST_ADDOPTS: -m "not metrics"
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -138,7 +141,7 @@ jobs:
         run: uv pip list
 
       - name: 🧪 Run the Test
-        run: python -m pytest src/ tests/ -m "not metrics" --strict-markers -rs
+        run: python -m pytest src/ tests/ --strict-markers -rs
 
   with-torch:
     name: Testing w/ tensors (CPU)

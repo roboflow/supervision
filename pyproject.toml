@@ -62,11 +62,11 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "av>=14.2",
+  "av>=15.1",
   "defusedxml>=0.7.1",
   "matplotlib>=3.6",
   "numpy>=1.21.2",
-  "pillow>=9.4",
+  "pillow>=10.4",
   "pydeprecate>=0.9,<0.16",
   "pyyaml>=5.3",
   "requests>=2.26",

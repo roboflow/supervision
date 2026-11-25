@@ -17,6 +17,10 @@ date_modified: 2026-11-18
 
 - `sv.LineZone` now treats a `tracker_id` repeated within one frame as one observation, keeping the first copy, as `sv.PolygonZone` already does. Previously each copy counted separately, so a single frame could satisfy `minimum_crossing_threshold`, and copies on both sides of the line produced an in and an out from the same frame. ([#3015](https://github.com/roboflow/supervision/pull/3015))
 
+- The minimum `pillow` is now `10.4` (was `9.4`) and the minimum `av` is now `15.1` (was `14.2`). The CI job that installs every dependency at its declared minimum showed that cropping to an empty region and drawing on 16-bit images fail with older Pillow, and that measuring the frame rate of a video with variable frame timing reads `VideoFrame.duration`, which PyAV `14.2` and `15.0` do not provide. [#3068](https://github.com/roboflow/supervision/pull/3068)
+
+- `sv.DepthMap.from_png16` raises `ValueError` for a truncated PNG with NumPy older than 1.25, as it does with newer NumPy. It raised `TypeError` there. [#3068](https://github.com/roboflow/supervision/pull/3068)
+
 ### 0.32.2 <small>Nov 25, 2026</small>
 
 - **VLM parsing**: Qwen finds its detection array wherever it sits, Gemini keeps valid boxes and confidence, and DeepSeek-VL2 validates `resolution_wh`.

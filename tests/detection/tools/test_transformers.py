@@ -167,7 +167,7 @@ class TestProcessTransformersDetectionResult:
             out = process_transformers_detection_result(result, None)
 
         assert out["class_id"] is None
-        np.testing.assert_array_equal(out["data"][CLASS_NAME_DATA_FIELD], phrases)
+        assert out["data"][CLASS_NAME_DATA_FIELD].tolist() == phrases
 
     def test_phrase_labels_without_text_labels_become_class_names(self) -> None:
         """Phrase `labels` from releases without `text_labels` still name detections."""
