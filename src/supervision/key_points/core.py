@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -33,6 +33,14 @@ from supervision.validators import _validate_data, _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    _AnyInteger: TypeAlias = np.integer[Any]
+else:
+    try:
+        _AnyInteger = np.integer[Any]
+    except TypeError:  # NumPy < 1.22 cannot subscript scalar types.
+        _AnyInteger = np.integer
+
 
 def _is_joint_aligned_covariance(
     value: _DetectionDataValueType, shape: tuple[int, int]
@@ -46,7 +54,7 @@ def _is_joint_aligned_covariance(
 
 Index1D = (
     int
-    | np.integer[Any]
+    | _AnyInteger
     | slice
     | list[int]
     | list[bool]
@@ -54,7 +62,7 @@ Index1D = (
     | npt.NDArray[np.bool_]
 )
 Index2D = tuple[Index1D, Index1D]
-_RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
+_RowIndexInput = int | _AnyInteger | npt.NDArray[np.generic] | list[Any] | slice
 _NormalizedRowIndex = npt.NDArray[np.generic] | list[Any] | slice
 
 
