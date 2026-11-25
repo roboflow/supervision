@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import io
 from collections.abc import Mapping, Sequence
+from fractions import Fraction
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -848,3 +850,89 @@ def create_predictions_with_class_iou_tests(
     return _create_detections(
         xyxy=pred_boxes, class_id=pred_classes, confidence=pred_confs
     )
+
+
+def write_browser_recorded_webm(
+    path: str,
+    frame_count: int = 60,
+    audio_seconds: float = 0.0,
+    slow_after: int | None = None,
+    gap_after: int | None = None,
+) -> None:
+    """Write a ~30 fps VP8 WebM laid out like a browser `MediaRecorder` file.
+
+    The header holds no frame rate and the timestamps are 1 ms ticks with uneven spacing
+    (38, 28, 33 ms), so OpenCV reports the 1 kHz timebase as the rate. A positive
+    `audio_seconds` adds a silent Opus track of that length, as a recording with a
+    microphone has.
+    """
+    import av
+
+    with av.open(path, mode="w", format="webm") as container:
+        stream = container.add_stream("libvpx")
+        stream.width = 64
+        stream.height = 48
+        stream.pix_fmt = "yuv420p"
+        stream.codec_context.framerate = Fraction(0, 1)
+        stream.time_base = Fraction(1, 1000)
+        # Every stream must exist before the first packet writes the header.
+        audio_stream = None
+        if audio_seconds > 0:
+            audio_stream = container.add_stream("libopus", rate=48000)
+            audio_stream.layout = "mono"
+            audio_stream.time_base = Fraction(1, 48000)
+        for index in range(frame_count):
+            frame = av.VideoFrame.from_ndarray(
+                np.full((48, 64, 3), index * 4 % 256, dtype=np.uint8), format="bgr24"
+            )
+            jitter_ms = 5 if index % 3 == 1 else 0
+            frame.pts = index * 33 + jitter_ms
+            if slow_after is not None and index >= slow_after:
+                frame.pts += (index - slow_after) * 66
+            if gap_after is not None and index >= gap_after:
+                frame.pts += 1000
+            frame.time_base = Fraction(1, 1000)
+            for packet in stream.encode(frame):
+                container.mux(packet)
+        for packet in stream.encode():
+            container.mux(packet)
+        if audio_stream is not None:
+            _write_silent_opus(container, audio_stream, audio_seconds)
+    _void_matroska_default_duration(path)
+
+
+def _write_silent_opus(container: Any, stream: Any, seconds: float) -> None:
+    """Mux `seconds` of silence into a 48 kHz mono Opus `stream` of `container`."""
+    import av
+
+    samples_per_frame = 960
+    silence = np.zeros((1, samples_per_frame), dtype=np.int16)
+    for index in range(round(seconds * 48000 / samples_per_frame)):
+        frame = av.AudioFrame.from_ndarray(silence, format="s16", layout="mono")
+        frame.sample_rate = 48000
+        frame.time_base = Fraction(1, 48000)
+        frame.pts = index * samples_per_frame
+        for packet in stream.encode(frame):
+            container.mux(packet)
+    for packet in stream.encode():
+        container.mux(packet)
+
+
+def _void_matroska_default_duration(path: str) -> None:
+    """Blank the track's `DefaultDuration`, the frame rate a browser never writes.
+
+    PyAV before 19 writes a 24 fps `DefaultDuration` even when the frame rate is zero.
+    The element is overwritten in place by an EBML `Void` element of the same length, so
+    no parent size changes.
+    """
+    data = bytearray(Path(path).read_bytes())
+    # DefaultDuration ID followed by a one-byte size of a 1-8 byte unsigned int.
+    start = data.find(b"\x23\xe3\x83")
+    if start < 0:
+        return
+    length = 4 + (data[start + 3] & 0x7F)
+    # Void element: ID 0xEC, one-byte size, zero payload.
+    data[start : start + length] = bytes([0xEC, 0x80 | (length - 2)]) + bytes(
+        length - 2
+    )
+    Path(path).write_bytes(data)

@@ -325,10 +325,13 @@ class PolygonZone:
     sequence of a tracked object gives the same counts. As there, a detection
     with a non-finite anchor, for example one a `coord_transform` cannot map, has
     no known side, so it neither crosses nor resets its track's state or dwell.
-    They differ in that a `tracker_id` repeated within one frame is a single
-    observation, whose side is unknown when its copies disagree, ids that are
-    not finite non-negative integers are skipped rather than used as keys, and
-    frames without a `tracker_id` emit no warning.
+    For tracked counts, both treat a `tracker_id` repeated within one frame as a
+    single observation. Unlike `LineZone`, which considers only the first copy,
+    `PolygonZone` treats the side as unknown when located copies disagree. The
+    same rule applies to dwell time; `current_count` still counts detections
+    individually. `PolygonZone` also skips ids that are not finite non-negative
+    integers rather than using them as keys, and emits no warning for frames
+    without a `tracker_id`.
 
     Call :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`
     exactly once per frame for each zone; frame-mode dwell,

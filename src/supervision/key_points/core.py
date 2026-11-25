@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -33,6 +33,14 @@ from supervision.validators import _validate_data, _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    _AnyInteger: TypeAlias = np.integer[Any]
+else:
+    try:
+        _AnyInteger = np.integer[Any]
+    except TypeError:  # NumPy < 1.22 cannot subscript scalar types.
+        _AnyInteger = np.integer
+
 
 def _is_joint_aligned_covariance(
     value: _DetectionDataValueType, shape: tuple[int, int]
@@ -46,7 +54,7 @@ def _is_joint_aligned_covariance(
 
 Index1D = (
     int
-    | np.integer[Any]
+    | _AnyInteger
     | slice
     | list[int]
     | list[bool]
@@ -54,7 +62,7 @@ Index1D = (
     | npt.NDArray[np.bool_]
 )
 Index2D = tuple[Index1D, Index1D]
-_RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
+_RowIndexInput = int | _AnyInteger | npt.NDArray[np.generic] | list[Any] | slice
 _NormalizedRowIndex = npt.NDArray[np.generic] | list[Any] | slice
 
 
@@ -978,7 +986,8 @@ class KeyPoints:
 
         Raises:
             ValueError: If `num_keypoints` is not positive or cannot contain the
-                retained joint labels.
+                retained joint labels, or if a pose has a negative or repeated
+                joint label.
 
         Examples:
             ```python
@@ -1051,6 +1060,13 @@ class KeyPoints:
                     if "labels" in result
                     else np.arange(len(points))
                 )
+                # Labels index the joint axis directly: NumPy would wrap a negative
+                # label onto a valid joint, and a repeated label would overwrite an
+                # earlier prediction for the same joint.
+                if np.any(labels < 0):
+                    raise ValueError("Joint labels must be non-negative.")
+                if np.unique(labels).size != labels.size:
+                    raise ValueError("Joint labels must not repeat within a pose.")
                 result_data.append((points, pose_to_numpy(result["scores"]), labels))
             keypoint_count = max(
                 (int(labels.max()) + 1 for _, _, labels in result_data if labels.size),
@@ -1822,6 +1838,11 @@ class KeyPoints:
         Returns:
             detections: The converted detections object.
 
+        Raises:
+            IndexError: If an index in `selected_keypoint_indices` is out of range
+                for the number of key points, also when there are no skeletons. A
+                zero-length key point axis is exempt from this check.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -1835,17 +1856,43 @@ class KeyPoints:
 
             ```
         """
-        # Inference can retain objects after every keypoint is omitted; an empty
-        # keypoint axis has no coordinates from which to construct a detection box.
-        if self.is_empty() or self.xy.shape[1] == 0:
-            return Detections.empty()
-
-        xy = self.xy[..., :2]
         indices: npt.NDArray[np.intp] | None = None
         if selected_keypoint_indices is not None:
             candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
             if candidate.size > 0:
                 indices = candidate
+        keypoint_count = self.xy.shape[1]
+        # Check indices before the empty return, so a frame without poses rejects
+        # the same indices as a frame with poses. A zero-length key point axis is
+        # exempt: Inference returns it when every joint was omitted.
+        if indices is not None and keypoint_count > 0:
+            out_of_range = (indices < -keypoint_count) | (indices >= keypoint_count)
+            if out_of_range.any():
+                raise IndexError(
+                    f"selected_keypoint_indices {indices[out_of_range].tolist()} "
+                    f"are out of range for {keypoint_count} key points."
+                )
+
+        # Inference can retain objects after every keypoint is omitted; an empty
+        # keypoint axis has no coordinates from which to construct a detection box.
+        if self.is_empty() or keypoint_count == 0:
+            # Drop every row but keep `data` keys and the class_id dtype, as for
+            # skeletons whose key points are all invalid. A missing class_id and the
+            # confidence stay empty arrays, as in `Detections.empty()`, so existing
+            # callers see the same fields as before.
+            count = len(self)
+            class_id = self.class_id
+            if class_id is None:
+                class_id = np.zeros(count, dtype=int)
+            detections = Detections(
+                xyxy=np.zeros((count, 4), dtype=np.float32),
+                confidence=np.zeros(count, dtype=np.float32),
+                class_id=class_id,
+                data=self.data,
+            )
+            return detections.select(np.zeros(count, dtype=bool))
+
+        xy = self.xy[..., :2]
         if indices is not None:
             xy = xy[:, indices, :]
 

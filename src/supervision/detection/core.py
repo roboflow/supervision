@@ -60,6 +60,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
+    oriented_box_soft_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -2601,7 +2602,13 @@ class Detections:
                 data=data,
                 metadata=dict(self.metadata),
             )
-        if isinstance(index, (int, np.integer)):
+        # A 0-d integer array is a scalar index in NumPy, so it must keep the row
+        # axis like an int; indexing with it directly would drop that axis.
+        if isinstance(index, (int, np.integer)) or (
+            isinstance(index, np.ndarray)
+            and index.ndim == 0
+            and np.issubdtype(index.dtype, np.integer)
+        ):
             index = [int(index)]
         array_index = cast(
             slice | list[int] | npt.NDArray[np.integer | np.bool_], index
@@ -3065,9 +3072,9 @@ class Detections:
     ) -> Detections:
         """Performs Gaussian Soft Non-Maximum Suppression on detection set.
 
-        Dispatch order: (1) if mask data present, IoU mask is used; (2) otherwise,
-        axis-aligned box IoU is used. Oriented-box detections are not given
-        dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
+        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
+        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Unlike :meth:`~supervision.detection.core.Detections.with_nms`, which
         discards overlapping detections outright,
@@ -3143,6 +3150,13 @@ class Detections:
                 masks=self.mask,
                 sigma=sigma,
             )
+        elif ORIENTED_BOX_COORDINATES in self.data:
+            predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
+            decayed_confidence = oriented_box_soft_non_max_suppression(
+                predictions=predictions,
+                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
+                sigma=sigma,
+            )
         else:
             categories = self._resolve_nms_categories(class_agnostic, "Soft-NMS")
             decayed_confidence = _box_soft_non_max_suppression_from_arrays(
@@ -3170,6 +3184,12 @@ class Detections:
         Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
         oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
         oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
+
+        Merged axis-aligned boxes use the common dtype of their coordinates.
+        Integer dtypes are retained and floating dtypes widen to at least
+        float32. Other dtypes produce float32 unions. Singleton groups are
+        unchanged before stacking; the final array follows NumPy's common dtype
+        promotion, which can round integer coordinates when promoted to float.
 
         Compact masks remain compressed while forming candidate and output unions;
         no full-image mask stack is allocated for merging. Overlap evaluation still
@@ -3433,7 +3453,9 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     highest-confidence detection is the
     "winner" whose class_id, tracker_id, and data fields are preserved. Box
     extents are widened before subtraction to keep confidence weights finite
-    and avoid integer wraparound.
+    and avoid integer wraparound. Multi-member axis-aligned unions retain the
+    common integer dtype or the common floating dtype widened to at least
+    float32. Other dtypes produce float32 unions. Singleton groups are unchanged.
 
     Args:
         detections: List of Detections, each containing exactly one object.
@@ -3498,10 +3520,12 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         xyxy = xyxyxyxy_to_xyxy(merged_corners[np.newaxis])
         data = {**winner.data, ORIENTED_BOX_COORDINATES: merged_corners[np.newaxis]}
     else:
-        # AABB path: union bounding box across all group members
-        union_dtype: npt.DTypeLike = (
-            all_xyxy.dtype if np.issubdtype(all_xyxy.dtype, np.integer) else np.float32
-        )
+        # Preserve integer coordinates and widen low-precision floating unions.
+        union_dtype = all_xyxy.dtype
+        if np.issubdtype(union_dtype, np.floating):
+            union_dtype = np.promote_types(union_dtype, np.float32)
+        elif not np.issubdtype(union_dtype, np.integer):
+            union_dtype = np.dtype(np.float32)
         xyxy = np.array(
             [
                 [
