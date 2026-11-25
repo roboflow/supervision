@@ -210,7 +210,8 @@ class Classifications:
             A tuple containing the top k class IDs and confidences.
 
         Raises:
-            ValueError: If confidence is missing or `k` is negative.
+            ValueError: If confidence is missing.
+            ValueError: If `k` is negative.
 
         Example:
             ```pycon

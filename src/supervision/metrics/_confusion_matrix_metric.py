@@ -17,16 +17,21 @@ from __future__ import annotations
 from abc import abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.utils.converters import xyxy_to_xywh
 from supervision.detection.utils.iou_and_nms import (
+    _has_coordinates_beyond_float64_exact_int,
+    _large_integer_box_areas,
     box_iou_batch,
+    box_iou_batch_with_jaccard,
     mask_iou_batch,
     oriented_box_iou_batch,
 )
@@ -35,6 +40,11 @@ from supervision.detection.utils.matching import (
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.mean_average_precision import (
+    _mask_iou_with_jaccard,
+    _MaskRow,
+    _oriented_box_iou_with_jaccard,
+)
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -57,6 +67,82 @@ def _validate_confusion_matrix(confusion_matrix: npt.NDArray[np.float64]) -> Non
         raise ValueError(
             f"Confusion matrix must have shape (..., 3), got {confusion_matrix.shape}"
         )
+
+
+def _ignore_region_masks(
+    targets: Detections,
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+    """Return which targets are COCO crowd regions and which are ignore regions.
+
+    A target is an ignore region when ``data["iscrowd"]`` or ``data["ignore"]`` is
+    set for it, the rule
+    :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision` and
+    :class:`~supervision.metrics.mean_average_recall.MeanAverageRecall` apply.
+    Crowd regions are the subset that any number of predictions may match.
+
+    Args:
+        targets: The target detections of one image.
+
+    Returns:
+        Two boolean arrays of shape ``(N,)``: crowd regions and ignore regions.
+    """
+    crowd = np.zeros(len(targets), dtype=bool)
+    if ISCROWD_DATA_FIELD in targets.data:
+        crowd |= np.asarray(targets.data[ISCROWD_DATA_FIELD]).astype(bool)
+    ignored = crowd.copy()
+    if "ignore" in targets.data:
+        ignored |= np.asarray(targets.data["ignore"]).astype(bool)
+    return crowd, ignored
+
+
+def _mask_rows(
+    masks: npt.NDArray[Any] | CompactMask, indices: npt.NDArray[np.intp]
+) -> list[_MaskRow]:
+    """Return the selected masks as rows the COCO mask overlap helper accepts.
+
+    Compact masks stay compact as ``(CompactMask, index)`` references, so no full-image
+    array is decoded.
+    """
+    if isinstance(masks, CompactMask):
+        return [(masks, int(index)) for index in indices]
+    return [np.asarray(masks[index], dtype=bool) for index in indices]
+
+
+def _match_unscored_targets(
+    matched_target_indices: npt.NDArray[np.int32],
+    prediction_class_ids: npt.NDArray[np.int32],
+    prediction_confidence: npt.NDArray[np.float32],
+    target_class_ids: npt.NDArray[np.int32],
+    iou: npt.NDArray[np.floating],
+    iou_thresholds: npt.NDArray[np.float32],
+    target_scored: npt.NDArray[np.bool_],
+    target_crowd: npt.NDArray[np.bool_],
+) -> None:
+    """Assign remaining predictions to unscored targets in confidence order.
+
+    Non-crowd targets are consumed once per threshold; crowd targets remain available.
+    Scored targets have already had priority in the first round.
+    """
+    unscored = np.flatnonzero(~target_scored)
+    prediction_order = np.argsort(-prediction_confidence, kind="stable")
+    for threshold_index, threshold in enumerate(iou_thresholds):
+        available = np.ones(len(unscored), dtype=bool)
+        for prediction_index in prediction_order:
+            if matched_target_indices[prediction_index, threshold_index] >= 0:
+                continue
+            overlaps = iou[unscored, prediction_index]
+            eligible = (
+                available
+                & (target_class_ids[unscored] == prediction_class_ids[prediction_index])
+                & (overlaps >= threshold)
+            )
+            if not np.any(eligible):
+                continue
+            best = int(np.argmax(np.where(eligible, overlaps, -1.0)))
+            target_index = unscored[best]
+            matched_target_indices[prediction_index, threshold_index] = target_index
+            if not target_crowd[target_index]:
+                available[best] = False
 
 
 class _ConfusionMatrixMetric(Metric[_ResultT]):
@@ -169,6 +255,9 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                         f"{self._metric_name} metric requires `class_id` on both "
                         "predictions and targets."
                     )
+                target_crowd, target_ignored = _ignore_region_masks(targets)
+                # COCO ignore regions never count as objects to find, in any bucket.
+                target_size_mask = target_size_mask & ~target_ignored
                 if len(predictions) == 0:
                     target_class_ids = np.asarray(targets.class_id, dtype=np.int32)[
                         target_size_mask
@@ -220,24 +309,43 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    # None keeps the matcher on its single-round fast path
-                    # when no size bucket is scored.
-                    target_scored_mask = (
-                        target_size_mask
-                        if size_category != ObjectSizeCategory.ANY
-                        else None
-                    )
+                    has_unscored_targets = size_category != (
+                        ObjectSizeCategory.ANY
+                    ) or bool(np.any(target_ignored))
+                    if np.any(target_crowd):
+                        # As in COCO, a prediction overlaps a crowd region by the
+                        # share of its own area inside it. Assigning in the IoU
+                        # dtype rounds it like every other overlap, so an exact
+                        # 0.6 still meets the float32 threshold 0.6.
+                        iou[target_crowd] = self._crowd_overlaps(
+                            target_contents, prediction_contents, target_crowd
+                        ).astype(np.float32)
+                    # Match scored targets first, then resolve ignored targets in
+                    # confidence order so reusable crowds do not consume a slot.
+                    scored_iou = iou
+                    if has_unscored_targets:
+                        scored_iou = np.where(target_size_mask[:, None], iou, -1.0)
                     matches, matched_target_indices = (
                         _match_detection_batch_with_target_indices(
                             prediction_class_ids,
                             target_class_ids,
-                            iou,
+                            scored_iou,
                             iou_thresholds,
-                            target_scored_mask=target_scored_mask,
                         )
                     )
+                    if has_unscored_targets:
+                        _match_unscored_targets(
+                            matched_target_indices,
+                            prediction_class_ids,
+                            prediction_confidence,
+                            target_class_ids,
+                            iou,
+                            iou_thresholds,
+                            target_size_mask,
+                            target_crowd,
+                        )
                     ignored_matches = np.zeros_like(matches, dtype=bool)
-                    if size_category != ObjectSizeCategory.ANY:
+                    if has_unscored_targets:
                         valid_target_match = matched_target_indices >= 0
                         matched_scored_target = np.zeros_like(matches, dtype=bool)
                         if np.any(valid_target_match):
@@ -447,6 +555,84 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                 return result_obb
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    def _crowd_overlaps(
+        self,
+        target_contents: npt.NDArray[Any] | CompactMask,
+        prediction_contents: npt.NDArray[Any] | CompactMask,
+        target_crowd: npt.NDArray[np.bool_],
+    ) -> npt.NDArray[np.float64]:
+        """Return the COCO overlap of each crowd target with each prediction.
+
+        For a crowd region COCO divides the intersection by the prediction's own
+        area instead of the union, so a prediction inside the region overlaps it
+        fully however large the region is. The same helpers as
+        :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
+        compute it.
+
+        Args:
+            target_contents: Boxes, masks or oriented boxes of all targets.
+            prediction_contents: Boxes, masks or oriented boxes of all predictions.
+            target_crowd: Which targets are crowd regions, shape ``(N,)``.
+
+        Returns:
+            Overlaps of shape ``(number of crowd targets, P)``.
+        """
+        crowd_count = int(np.count_nonzero(target_crowd))
+        always_crowd = [True] * crowd_count
+        if self._metric_target == MetricTarget.MASKS:
+            crowd_indices = np.flatnonzero(target_crowd)
+            target_rows = _mask_rows(target_contents, crowd_indices)
+            prediction_rows = _mask_rows(
+                prediction_contents, np.arange(len(prediction_contents))
+            )
+            overlaps = _mask_iou_with_jaccard(
+                target_rows, prediction_rows, always_crowd
+            )
+        elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            overlaps = _oriented_box_iou_with_jaccard(
+                np.asarray(target_contents)[target_crowd],
+                np.asarray(prediction_contents),
+                always_crowd,
+            )
+        else:
+            crowd_boxes = np.asarray(target_contents)[target_crowd]
+            prediction_boxes = np.asarray(prediction_contents)
+            if (
+                (
+                    _has_coordinates_beyond_float64_exact_int(crowd_boxes)
+                    or _has_coordinates_beyond_float64_exact_int(prediction_boxes)
+                )
+                and np.isfinite(crowd_boxes).all()
+                and np.isfinite(prediction_boxes).all()
+            ):
+                # Mixed integer/float inputs need exact comparisons too: casting the
+                # large integer corner to float would erase a narrow intersection.
+                if not np.issubdtype(crowd_boxes.dtype, np.integer):
+                    crowd_boxes = np.vectorize(Fraction, otypes=[object])(crowd_boxes)
+                if not np.issubdtype(prediction_boxes.dtype, np.integer):
+                    prediction_boxes = np.vectorize(Fraction, otypes=[object])(
+                        prediction_boxes
+                    )
+                intersection, _, prediction_area = _large_integer_box_areas(
+                    crowd_boxes, prediction_boxes
+                )
+                return np.divide(
+                    intersection,
+                    prediction_area[None, :],
+                    out=np.zeros_like(intersection),
+                    where=prediction_area[None, :] > 0,
+                )
+            overlaps = box_iou_batch_with_jaccard(
+                xyxy_to_xywh(crowd_boxes).tolist(),
+                xyxy_to_xywh(prediction_boxes).tolist(),
+                always_crowd,
+            )
+        # The helpers return `(predictions, targets)`.
+        crowd_overlaps: npt.NDArray[np.float64] = np.asarray(
+            overlaps, dtype=np.float64
+        ).T
+        return crowd_overlaps
 
     def _make_empty_content(self) -> npt.NDArray[Any]:
         """Return the empty content array matching the configured metric target."""

@@ -23,10 +23,13 @@ def process_transformers_detection_result(
     class names instead of `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo give the index
     of the matched text query in `labels`, used as the class ID. Grounding DINO gives
     the matched phrases in `labels` instead, so its class IDs are `None`.
+    Class-agnostic results, such as SAM 3 `post_process_object_detection`, which has
+    no `labels`, and OWL-ViT and OWLv2 `post_process_image_guided_detection`, which
+    set them to `None`, also give `None` class IDs.
 
     Args:
         detection_result: Dictionary containing detection results with keys
-            'boxes', 'labels', and 'scores', and optionally 'text_labels'.
+            'boxes' and 'scores', and optionally 'labels' and 'text_labels'.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -37,9 +40,11 @@ def process_transformers_detection_result(
     """
     # Grounding DINO warns on reading `labels`, which repeats its `text_labels`;
     # the base `dict` lookup reads the entry without that warning.
-    labels = dict.__getitem__(detection_result, "labels")
+    labels = dict.get(detection_result, "labels")
     text_labels = detection_result.get("text_labels")
-    if isinstance(labels, list):
+    if labels is None:
+        class_ids, data = None, {}
+    elif isinstance(labels, list):
         # Phrases rather than query indices, so there is no class ID to give.
         class_ids = None
         phrases = labels if text_labels is None else text_labels
@@ -64,11 +69,12 @@ def process_transformers_v4_segmentation_result(
 ) -> dict[str, Any]:
     """Process the result of Transformers segmentation functions such as
     `post_process_panoptic`, `post_process_segmentation`, and `post_process_instance`
-    (v4).
+    (v4), and of SAM 3 `post_process_instance_segmentation`, whose `(N, H, W)` masks
+    come with boxes but without `labels`, so its class IDs are `None`.
 
     Args:
         segmentation_result: Dictionary containing segmentation results with keys
-            'masks', 'labels', and 'scores'.
+            'masks' and 'scores', and optionally 'labels'.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -86,14 +92,21 @@ def process_transformers_v4_segmentation_result(
         if "boxes" in segmentation_result:
             boxes = _to_numpy(segmentation_result["boxes"].detach())
         masks = _to_numpy(segmentation_result["masks"].detach()).astype(bool)
-        class_ids = _to_numpy(segmentation_result["labels"].detach()).astype(int)
+        if boxes is not None and masks.ndim == 4:
+            masks = np.squeeze(masks, axis=1)
+        labels = segmentation_result.get("labels")
+        class_ids = None
+        data: dict[str, Any] = {}
+        if labels is not None:
+            class_ids = _to_numpy(labels.detach()).astype(int)
+            data = append_class_names_to_data(class_ids, id2label, data)
 
         return dict(
             xyxy=boxes if boxes is not None else mask_to_xyxy(masks),
-            mask=np.squeeze(masks, axis=1) if boxes is not None else masks,
+            mask=masks,
             confidence=_to_numpy(segmentation_result["scores"].detach()),
             class_id=class_ids,
-            data=append_class_names_to_data(class_ids, id2label, {}),
+            data=data,
         )
 
 

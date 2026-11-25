@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -33,6 +33,14 @@ from supervision.validators import _validate_data, _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    _AnyInteger: TypeAlias = np.integer[Any]
+else:
+    try:
+        _AnyInteger = np.integer[Any]
+    except TypeError:  # NumPy < 1.22 cannot subscript scalar types.
+        _AnyInteger = np.integer
+
 
 def _is_joint_aligned_covariance(
     value: _DetectionDataValueType, shape: tuple[int, int]
@@ -46,7 +54,7 @@ def _is_joint_aligned_covariance(
 
 Index1D = (
     int
-    | np.integer[Any]
+    | _AnyInteger
     | slice
     | list[int]
     | list[bool]
@@ -54,7 +62,7 @@ Index1D = (
     | npt.NDArray[np.bool_]
 )
 Index2D = tuple[Index1D, Index1D]
-_RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
+_RowIndexInput = int | _AnyInteger | npt.NDArray[np.generic] | list[Any] | slice
 _NormalizedRowIndex = npt.NDArray[np.generic] | list[Any] | slice
 
 
@@ -452,7 +460,9 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: Any) -> KeyPoints:
+    def from_inference(
+        cls, inference_result: Any, *, num_keypoints: int | None = None
+    ) -> KeyPoints:
         """
         Create a :class:`~supervision.key_points.core.KeyPoints` object from the
         [Roboflow](https://roboflow.com/)
@@ -462,6 +472,12 @@ class KeyPoints:
         Args:
             inference_result: The result from the
                 Roboflow API or Inference package containing predictions with keypoints.
+            num_keypoints: Full skeleton size, when known. Inference leaves out key
+                points scored below the request's `keypoint_confidence`, so without
+                it the key point axis ends at the largest key point index any
+                object kept. Supply it to keep trailing key points that every
+                object lost, so frames load with the same number of key points,
+                including when no objects are detected.
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
@@ -471,7 +487,14 @@ class KeyPoints:
                 prediction has a non-`None` object confidence; if any prediction
                 omits it or sets it to `None`, the field is `None` for the batch and
                 `as_detections()` uses keypoint-confidence means for all predictions.
-                Two-value keypoints have `keypoint_confidence=None`.
+                Two-value keypoints have `keypoint_confidence=None`. Omitted key
+                points are zero-filled slots.
+
+        Raises:
+            ValueError: If `inference_result` is a list.
+            ValueError: If `num_keypoints` is not positive.
+            ValueError: If `num_keypoints` cannot contain the retained key point
+                indices.
 
         Examples:
             ```python
@@ -498,7 +521,7 @@ class KeyPoints:
             )
 
             result = client.infer(image, model_id="<POSE_MODEL_ID>")
-            key_points = sv.KeyPoints.from_inference(result)
+            key_points = sv.KeyPoints.from_inference(result, num_keypoints=17)
             ```
         """
         if isinstance(inference_result, list):
@@ -506,13 +529,22 @@ class KeyPoints:
                 "from_inference() operates on a single result at a time."
                 "You can retrieve it like so:  inference_result = model.infer(image)[0]"
             )
+        if num_keypoints is not None and num_keypoints <= 0:
+            raise ValueError("num_keypoints must be positive.")
 
         if hasattr(inference_result, "dict"):
             inference_result = inference_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(inference_result, "json"):
             inference_result = inference_result.json()
         if not inference_result.get("predictions"):
-            return cls.empty()
+            if num_keypoints is None:
+                return cls.empty()
+            return cls(
+                xy=np.empty((0, num_keypoints, 2), dtype=np.float32),
+                class_id=np.array([], dtype=int),
+                keypoint_confidence=np.empty((0, num_keypoints), dtype=np.float32),
+                detection_confidence=np.array([], dtype=np.float32),
+            )
 
         predictions = inference_result["predictions"]
 
@@ -533,6 +565,10 @@ class KeyPoints:
             (max(object_slots) + 1 for object_slots in slots if object_slots),
             default=0,
         )
+        if num_keypoints is not None:
+            if keypoint_count > num_keypoints:
+                raise ValueError("num_keypoints must include all retained key points.")
+            keypoint_count = num_keypoints
 
         xy = np.zeros((len(predictions), keypoint_count, 2), dtype=np.float32)
         confidence = np.zeros((len(predictions), keypoint_count), dtype=np.float32)
@@ -977,9 +1013,10 @@ class KeyPoints:
                 keypoint list order.
 
         Raises:
-            ValueError: If `num_keypoints` is not positive or cannot contain the
-                retained joint labels, or if a pose has a negative or repeated
-                joint label.
+            ValueError: If `num_keypoints` is not positive.
+            ValueError: If `num_keypoints` cannot contain the retained joint
+                labels.
+            ValueError: If a pose has a negative or repeated joint label.
 
         Examples:
             ```python
@@ -1116,9 +1153,10 @@ class KeyPoints:
             containing only the keypoints selected by the mask for each object.
 
         Raises:
-            ValueError: If `mask.shape[0]` does not match the number of objects, if
-                `mask.shape[1]` does not match the number of keypoints, or if
-                different rows of the mask select different numbers of `True` values.
+            ValueError: If `mask.shape[0]` does not match the number of objects.
+            ValueError: If `mask.shape[1]` does not match the number of keypoints.
+            ValueError: If different rows of the mask select different numbers of
+                `True` values.
         """
         n = len(self.xy)
         if mask.shape[0] != n:
@@ -1830,6 +1868,11 @@ class KeyPoints:
         Returns:
             detections: The converted detections object.
 
+        Raises:
+            IndexError: If an index in `selected_keypoint_indices` is out of range
+                for the number of key points, also when there are no skeletons. A
+                zero-length key point axis is exempt from this check.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -1843,17 +1886,43 @@ class KeyPoints:
 
             ```
         """
-        # Inference can retain objects after every keypoint is omitted; an empty
-        # keypoint axis has no coordinates from which to construct a detection box.
-        if self.is_empty() or self.xy.shape[1] == 0:
-            return Detections.empty()
-
-        xy = self.xy[..., :2]
         indices: npt.NDArray[np.intp] | None = None
         if selected_keypoint_indices is not None:
             candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
             if candidate.size > 0:
                 indices = candidate
+        keypoint_count = self.xy.shape[1]
+        # Check indices before the empty return, so a frame without poses rejects
+        # the same indices as a frame with poses. A zero-length key point axis is
+        # exempt: Inference returns it when every joint was omitted.
+        if indices is not None and keypoint_count > 0:
+            out_of_range = (indices < -keypoint_count) | (indices >= keypoint_count)
+            if out_of_range.any():
+                raise IndexError(
+                    f"selected_keypoint_indices {indices[out_of_range].tolist()} "
+                    f"are out of range for {keypoint_count} key points."
+                )
+
+        # Inference can retain objects after every keypoint is omitted; an empty
+        # keypoint axis has no coordinates from which to construct a detection box.
+        if self.is_empty() or keypoint_count == 0:
+            # Drop every row but keep `data` keys and the class_id dtype, as for
+            # skeletons whose key points are all invalid. A missing class_id and the
+            # confidence stay empty arrays, as in `Detections.empty()`, so existing
+            # callers see the same fields as before.
+            count = len(self)
+            class_id = self.class_id
+            if class_id is None:
+                class_id = np.zeros(count, dtype=int)
+            detections = Detections(
+                xyxy=np.zeros((count, 4), dtype=np.float32),
+                confidence=np.zeros(count, dtype=np.float32),
+                class_id=class_id,
+                data=self.data,
+            )
+            return detections.select(np.zeros(count, dtype=bool))
+
+        xy = self.xy[..., :2]
         if indices is not None:
             xy = xy[:, indices, :]
 

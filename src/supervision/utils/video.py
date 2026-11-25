@@ -352,11 +352,12 @@ def get_video_frames_generator(
 
     Raises:
         Exception: If `end` exceeds a positive frame count reported by the
-            container (raised on first iteration), or capture release fails without
-            an earlier decoding error. Both are wrapped in `RuntimeError` when
+            container (raised on first iteration). Wrapped in `RuntimeError` when
             `prefetch` > 0.
-        ValueError: If `stride` is less than 1 or `prefetch` is negative,
-            raised on first iteration.
+        Exception: If capture release fails without an earlier decoding error.
+            Wrapped in `RuntimeError` when `prefetch` > 0.
+        ValueError: If `stride` is less than 1, raised on first iteration.
+        ValueError: If `prefetch` is negative, raised on first iteration.
         RuntimeError: If `prefetch` is greater than 0 and the background reader
             thread encounters a decode/open error, raised as
             `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
@@ -584,9 +585,9 @@ def process_video(
     Raises:
         RuntimeError: If the reader thread fails to open or decode the source
             video, raised as `RuntimeError(f"Reader thread raised: {exc!r}")`
-            from the original exception. If writing a processed frame to
-            `target_path` fails, raised as
-            `RuntimeError(f"Writer thread raised: {exc!r}")` from the original
+            from the original exception.
+        RuntimeError: If writing a processed frame to `target_path` fails, raised
+            as `RuntimeError(f"Writer thread raised: {exc!r}")` from the original
             exception. Exceptions raised by `callback` are re-raised unchanged.
         TypeError: If `callback` returns `None` instead of the processed frame.
 
