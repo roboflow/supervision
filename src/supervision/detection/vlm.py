@@ -300,7 +300,9 @@ def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
 
 #: Brackets and quoted ``bbox_2d`` keys, matched in document order to find the
 #: array that a Qwen detection object sits in.
-_QWEN_ARRAY_TOKENS = re.compile(r"""[\[\]{}]|["']bbox_2d["']\s*:""")
+_QWEN_ARRAY_TOKENS = re.compile(
+    r'[\[\]{}]|"(?:\\.|[^"\\])*"\s*:?|(?<!\w)\'(?:\\.|[^\'\\])*\'\s*:?'
+)
 
 
 def _find_qwen_detection_array(text: str) -> int:
@@ -338,9 +340,9 @@ def _find_qwen_detection_array(text: str) -> int:
         ):
             return bracket.start()
 
-    # Brackets are paired without tracking quotes. The key belongs to the
-    # innermost open object, and its array is the nearest ``[`` opened before
-    # that object, so a stray ``[`` inside a label preceding the key is ignored.
+    # Consume quoted strings as tokens so their brackets are not structural. The key
+    # belongs to the innermost open object, and its array is the nearest ``[`` opened
+    # before that object, so a stray ``[`` inside a label preceding the key is ignored.
     # A key outside every array (e.g. quoted in prose) defers to the next key.
     open_brackets: list[re.Match[str]] = []
     for token in _QWEN_ARRAY_TOKENS.finditer(text):
@@ -350,7 +352,10 @@ def _find_qwen_detection_array(text: str) -> int:
         elif symbol in ("]", "}"):
             if open_brackets:
                 open_brackets.pop()
-        else:
+        elif symbol.rstrip().endswith(":") and symbol.rstrip()[:-1].rstrip() in (
+            '"bbox_2d"',
+            "'bbox_2d'",
+        ):
             past_object = all(opened.group() != "{" for opened in open_brackets)
             for opened in reversed(open_brackets):
                 if opened.group() == "{":

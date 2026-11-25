@@ -663,6 +663,38 @@ class TestFromYoloClassNames:
 
         assert dataset.classes == ["cat", "bird"]
 
+    @pytest.mark.parametrize(
+        "data_yaml",
+        [
+            pytest.param(
+                "base: &base {1: cat, 1: dog}\nnames: {<<: *base}\n", id="names-merge"
+            ),
+            pytest.param(
+                "base: &base {names: {1: cat, 1: dog}}\n<<: *base\n", id="root-merge"
+            ),
+        ],
+    )
+    def test_rejects_duplicate_keys_in_merge_sources(
+        self, tmp_path: Path, data_yaml: str
+    ) -> None:
+        """Duplicate class IDs in inherited mappings are rejected."""
+        paths = _write_yolo_dataset(tmp_path, "1 0.5 0.5 0.2 0.4\n", data_yaml)
+
+        with pytest.raises(ValueError, match=r"duplicate.*class.*1"):
+            DetectionDataset.from_yolo(*paths)
+
+    def test_root_names_override_ignores_shadowed_mapping(self, tmp_path: Path) -> None:
+        """An explicit names mapping overrides an unused inherited mapping."""
+        paths = _write_yolo_dataset(
+            tmp_path,
+            "1 0.5 0.5 0.2 0.4\n",
+            "base: &base {names: {1: cat, 1: dog}}\n<<: *base\nnames: {1: bird}\n",
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        assert dataset.classes == ["bird"]
+
     def test_split_preserves_sparse_mapping(self, tmp_path: Path) -> None:
         """A split can export labels against the original class mapping."""
         paths = _write_yolo_dataset(

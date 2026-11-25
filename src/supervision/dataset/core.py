@@ -226,8 +226,9 @@ def _prepare_yolo_export(
     names, source_ids = mapping
     if tuple(dataset.classes) != names:
         raise ValueError("YOLO classes changed; export a new data.yaml.")
-    source_path = dataset._yolo_source_path
-    if source_path is not None and Path(source_path).exists():
+    for source_path in dataset._yolo_source_paths:
+        if not Path(source_path).exists():
+            continue
         source_data = _read_data_yaml(source_path)
         current_names = _extract_class_names_from_data(source_data, source_path)
         current_ids = _extract_class_ids_from_data(source_data)
@@ -269,6 +270,8 @@ def _shared_yolo_mapping(
     if any(id_to_name != id_to_names[0] for id_to_name in id_to_names):
         return None
     name_to_id = {name: class_id for class_id, name in id_to_names[0].items()}
+    if len(name_to_id) != len(id_to_names[0]):
+        return None
     if set(classes) != set(name_to_id):
         return None
     return tuple(classes), tuple(name_to_id[name] for name in classes)
@@ -293,11 +296,11 @@ def _inherit_yolo_mapping(
         merged._yolo_mapping_ambiguous = True
         return
     merged._yolo_source_mapping = mapping
-    # A single shared source file can still be checked for later edits; with
-    # several files there is no one YAML to compare, so that check is skipped.
-    source_paths = {dataset._yolo_source_path for dataset in datasets}
-    if len(source_paths) == 1:
-        merged._yolo_source_path = source_paths.pop()
+    merged._yolo_source_paths = tuple(
+        dict.fromkeys(
+            path for dataset in datasets for path in dataset._yolo_source_paths
+        )
+    )
 
 
 def _save_source_yolo_yaml(
@@ -347,7 +350,7 @@ class DetectionDataset(BaseDataset):
     ) -> None:
         self.classes = classes
         self._yolo_source_mapping: tuple[tuple[str, ...], tuple[int, ...]] | None = None
-        self._yolo_source_path: str | None = None
+        self._yolo_source_paths: tuple[str, ...] = ()
         self._yolo_mapping_ambiguous = False
         self._yolo_export_class_ids: list[int] | None = None
         self._yolo_normalized_export = False
@@ -502,7 +505,7 @@ class DetectionDataset(BaseDataset):
         )
         for subset in (train_dataset, test_dataset):
             subset._yolo_source_mapping = self._yolo_source_mapping
-            subset._yolo_source_path = self._yolo_source_path
+            subset._yolo_source_paths = self._yolo_source_paths
             subset._yolo_mapping_ambiguous = self._yolo_mapping_ambiguous
         if self._images_in_memory:
             train_dataset._images_in_memory = {
@@ -860,7 +863,7 @@ class DetectionDataset(BaseDataset):
             classes,
             data_yaml_path,
         )
-        dataset._yolo_source_path = str(Path(data_yaml_path).resolve())
+        dataset._yolo_source_paths = (str(Path(data_yaml_path).resolve()),)
         return dataset
 
     def as_yolo(
@@ -1522,7 +1525,7 @@ class KeyPointsDataset(BaseDataset):
         # object that the loader's safe YAML reader refuses.
         self.keypoint_count = int(keypoint_count)
         self._yolo_source_mapping: tuple[tuple[str, ...], tuple[int, ...]] | None = None
-        self._yolo_source_path: str | None = None
+        self._yolo_source_paths: tuple[str, ...] = ()
         self._yolo_mapping_ambiguous = False
         self._yolo_export_class_ids: list[int] | None = None
         self._yolo_normalized_export = False
@@ -1662,7 +1665,7 @@ class KeyPointsDataset(BaseDataset):
         )
         for subset in (train_dataset, test_dataset):
             subset._yolo_source_mapping = self._yolo_source_mapping
-            subset._yolo_source_path = self._yolo_source_path
+            subset._yolo_source_paths = self._yolo_source_paths
             subset._yolo_mapping_ambiguous = self._yolo_mapping_ambiguous
         return train_dataset, test_dataset
 
@@ -1832,7 +1835,7 @@ class KeyPointsDataset(BaseDataset):
             classes,
             data_yaml_path,
         )
-        dataset._yolo_source_path = str(Path(data_yaml_path).resolve())
+        dataset._yolo_source_paths = (str(Path(data_yaml_path).resolve()),)
         return dataset
 
     def as_yolo(

@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- Merged YOLO datasets now check every contributing source mapping before annotation-only export and reject ambiguous duplicate class names for partial exports. Duplicate class keys inherited through YAML merges are also rejected. Qwen fallback parsing now ignores brackets inside quoted strings. ([#3066](https://github.com/roboflow/supervision/pull/3066))
+
 - `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now finds the detection array wherever it sits in the reply. Previously bracketed text before it, such as `Boxes are in [x1, y1, x2, y2] format:`, or an earlier unrelated JSON array made the parser return no detections. ([#3011](https://github.com/roboflow/supervision/pull/3011))
 
 - `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` and a `classes` filter now keeps confidence when every kept detection has a score, even if an item removed by that filter has no `confidence`. Previously that one item set `confidence` to `None` for every detection. ([#3009](https://github.com/roboflow/supervision/pull/3009))

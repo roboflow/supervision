@@ -321,6 +321,39 @@ _SHARED_SPARSE_NAMES = [
 class TestMergeYoloSourceMapping:
     """Tests that YOLO merges compare id-to-name pairs, not paths or class order."""
 
+    @pytest.mark.parametrize("changed_source", [0, 1])
+    def test_changed_source_blocks_partial_export(
+        self, tmp_path: Path, with_key_points: bool, changed_source: int
+    ) -> None:
+        """A changed contributing YAML blocks annotation-only export."""
+        first = _write_one_image_yolo_dataset(
+            tmp_path / "first", "  1: cat\n  2: dog\n", 2, with_key_points
+        )
+        second = _write_one_image_yolo_dataset(
+            tmp_path / "second", "  1: cat\n  2: dog\n", 2, with_key_points
+        )
+        sources = [first, second]
+        merged = _merge_from_yolo(sources, with_key_points)
+        Path(sources[changed_source][2]).write_text("names:\n  1: cat\n  2: bird\n")
+
+        with pytest.raises(ValueError, match="mapping changed"):
+            merged.as_yolo(annotations_directory_path=str(tmp_path / "out"))
+
+    def test_duplicate_names_block_partial_export(
+        self, tmp_path: Path, with_key_points: bool
+    ) -> None:
+        """Duplicate source names cannot silently collapse distinct IDs."""
+        first = _write_one_image_yolo_dataset(
+            tmp_path / "first", "  1: cat\n  2: cat\n", 1, with_key_points
+        )
+        second = _write_one_image_yolo_dataset(
+            tmp_path / "second", "  1: cat\n  2: cat\n", 2, with_key_points
+        )
+        merged = _merge_from_yolo([first, second], with_key_points)
+
+        with pytest.raises(ValueError, match="mappings differ"):
+            merged.as_yolo(data_yaml_path=str(tmp_path / "out.yaml"))
+
     @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
     def test_annotation_only_export_keeps_shared_sparse_ids(
         self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str

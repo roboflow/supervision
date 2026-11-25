@@ -2940,6 +2940,15 @@ class TestQwenNonDetectionItems:
                 "'bbox_2d': [100, 200, 300, 400]}]\n```",
                 id="python-literal-label-bracket-before-box",
             ),
+            pytest.param(
+                "```json\n[{'note': 'range ]0, 1[', "
+                "'bbox_2d': [100, 200, 300, 400], 'label': 'cat'}]\n```",
+                id="python-literal-quoted-delimiters",
+            ),
+            pytest.param(
+                "Here's [] then [{'bbox_2d': [100, 200, 300, 400], 'label': 'cat'}]",
+                id="prose-apostrophe-before-python-literal",
+            ),
         ],
     )
     def test_keeps_detection(

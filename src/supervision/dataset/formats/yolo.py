@@ -204,18 +204,6 @@ def _with_seg_mask(lines: list[str]) -> bool:
     return any(len(line.split()) > 6 for line in lines)
 
 
-def _explicit_scalar_keys(loader: yaml.SafeLoader, node: yaml.MappingNode) -> list[Any]:
-    """Return the constructed scalar keys a YAML mapping node writes out, in order.
-
-    A ``<<`` merge key is skipped, since explicit keys may override merged ones.
-    """
-    return [
-        loader.construct_object(key_node)
-        for key_node, _ in node.value
-        if isinstance(key_node, yaml.ScalarNode) and key_node.tag != _YAML_MERGE_TAG
-    ]
-
-
 def _check_names_keys_unique(
     loader: yaml.SafeLoader, root: yaml.Node, file_path: str
 ) -> None:
@@ -231,24 +219,69 @@ def _check_names_keys_unique(
     """
     if not isinstance(root, yaml.MappingNode):
         return
-    names_nodes = [
-        value_node
-        for key_node, value_node in root.value
-        if isinstance(key_node, yaml.ScalarNode)
-        and key_node.tag == _YAML_STR_TAG
-        and key_node.value == "names"
-    ]
-    if len(names_nodes) > 1:
-        raise ValueError(f"Found duplicate key 'names' in data.yaml at '{file_path}'.")
-    if not names_nodes or not isinstance(names_nodes[0], yaml.MappingNode):
-        return
-    seen: set[Any] = set()
-    for key in _explicit_scalar_keys(loader=loader, node=names_nodes[0]):
-        if key in seen:
+    visited: set[int] = set()
+
+    def merged_mappings(node: yaml.MappingNode) -> list[yaml.MappingNode]:
+        """Return merge sources in YAML precedence order."""
+        result: list[yaml.MappingNode] = []
+        for key, value in node.value:
+            if key.tag == _YAML_MERGE_TAG:
+                values = (
+                    value.value if isinstance(value, yaml.SequenceNode) else [value]
+                )
+                result.extend(
+                    item for item in values if isinstance(item, yaml.MappingNode)
+                )
+        return result
+
+    def check_names(node: yaml.MappingNode) -> None:
+        """Reject duplicate explicit keys in each contributing names mapping."""
+        if id(node) in visited:
+            return
+        visited.add(id(node))
+        seen: set[Any] = set()
+        for key_node, _ in node.value:
+            if (
+                isinstance(key_node, yaml.ScalarNode)
+                and key_node.tag != _YAML_MERGE_TAG
+            ):
+                key = loader.construct_object(key_node)
+                if key in seen:
+                    raise ValueError(
+                        f"Found duplicate class key {key!r} in 'names' "
+                        f"at '{file_path}'."
+                    )
+                seen.add(key)
+        for source in merged_mappings(node):
+            check_names(source)
+
+    def find_names(node: yaml.MappingNode, seen: set[int]) -> yaml.Node | None:
+        """Find the effective names node while allowing overrides."""
+        if id(node) in seen:
+            return None
+        seen.add(id(node))
+        values = [
+            value
+            for key, value in node.value
+            if isinstance(key, yaml.ScalarNode)
+            and key.tag == _YAML_STR_TAG
+            and key.value == "names"
+        ]
+        if len(values) > 1:
             raise ValueError(
-                f"Found duplicate class key {key!r} in 'names' at '{file_path}'."
+                f"Found duplicate key 'names' in data.yaml at '{file_path}'."
             )
-        seen.add(key)
+        if values:
+            return cast(yaml.Node, values[0])
+        for source in merged_mappings(node):
+            value = find_names(source, seen)
+            if value is not None:
+                return value
+        return None
+
+    names_node = find_names(root, set())
+    if isinstance(names_node, yaml.MappingNode):
+        check_names(names_node)
 
 
 def _load_data_yaml(file_path: str) -> Any:
