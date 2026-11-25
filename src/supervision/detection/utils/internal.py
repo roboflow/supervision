@@ -665,7 +665,8 @@ def decode_semantic_label_map(
         payload: Base64 PNG string without a data-URI prefix, as Roboflow Inference
             returns it, or an ``(H, W)`` integer array or tensor.
         field: Name of the argument being decoded, used in error messages.
-        accept_one_bit: Read a one-bit PNG as values ``0`` and ``1``. Pass ``False``
+        accept_one_bit: Read 1-, 2-, and 4-bit grayscale PNGs as their stored
+            sample values, so a one-bit PNG holds ``0`` and ``1``. Pass ``False``
             for maps on another scale, such as 8-bit confidence, where ``1`` would
             not mean the maximum.
 
@@ -694,10 +695,18 @@ def decode_semantic_label_map(
                 if image.format != "PNG":
                     raise ValueError(f"{field} must be a PNG image.")
                 array = np.asarray(image)
-                if accept_one_bit and image.mode == "1":
-                    # Pillow exposes a one-bit PNG as booleans; its pixels are the
-                    # class IDs 0 and 1, so read them as integers.
-                    array = array.astype(np.uint8)
+                if accept_one_bit:
+                    # The PNG header (IHDR) stores bit depth and color type here.
+                    # Pillow returns bool for 1-bit grayscale and expands 2- and
+                    # 4-bit grayscale to 8-bit intensities. Recover the stored
+                    # sample values, which are the class IDs; indexed-color PNGs
+                    # already return their palette indices.
+                    bit_depth, color_type = png_bytes[24:26]
+                    if color_type == 0:
+                        if bit_depth == 1:
+                            array = array.astype(np.uint8)
+                        elif bit_depth in (2, 4):
+                            array = array >> (8 - bit_depth)
         except OSError as error:
             raise ValueError(f"{field} is not a decodable PNG.") from error
     else:
