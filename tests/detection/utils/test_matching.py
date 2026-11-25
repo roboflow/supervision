@@ -144,6 +144,27 @@ class TestMatchDetections:
         matched_pairs, _, _ = match_detections(a, b, iou_threshold=0.3)
         assert matched_pairs.tolist() == [[0, 0]]
 
+    def test_zero_threshold_does_not_pair_disjoint_detections(self) -> None:
+        """At threshold 0, overlapping boxes pair and non-overlapping ones do not."""
+        a = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [200, 200, 210, 210]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+        b = Detections(
+            xyxy=np.array(
+                [[100, 100, 110, 110], [205, 205, 215, 215]], dtype=np.float32
+            ),
+            class_id=np.array([0, 0]),
+        )
+
+        matched_pairs, unmatched_a, unmatched_b = match_detections(
+            a, b, iou_threshold=0.0
+        )
+
+        assert matched_pairs.tolist() == [[1, 1]]
+        assert unmatched_a.tolist() == [0]
+        assert unmatched_b.tolist() == [0]
+
     def test_assignment_is_one_to_one(self) -> None:
         """A prediction contested by two targets goes to the higher IoU."""
         a = Detections(
