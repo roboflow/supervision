@@ -60,15 +60,25 @@ def _validate_manifest(manifest: Path) -> None:
 
 
 def _run_installed_wheel_probe(python: Path) -> None:
-    """Exercise the installed fallback without allowing the source tree on sys.path."""
+    """Exercise the installed fallback without allowing the source tree on sys.path.
+
+    The clean environment resolves the newest dependency releases the wheel allows, as a
+    fresh ``pip install supervision`` does, so the probe also fails when importing
+    supervision raises a ``FutureWarning``, such as a deprecation that a newer
+    dependency starts warning about.
+    """
     source = """
 import importlib.util
+import warnings
 from importlib import metadata
 from pathlib import Path
 
 import av
 import numpy as np
-import supervision
+
+with warnings.catch_warnings():
+    warnings.simplefilter("error", FutureWarning)
+    import supervision
 from supervision import _cv2
 
 package_path = Path(supervision.__file__).resolve()

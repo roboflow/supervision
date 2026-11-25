@@ -177,7 +177,8 @@ def _validate_uniform_image_shape(
         The ``image_shape`` shared by every mask in ``masks_list``.
 
     Raises:
-        ValueError: If ``masks_list`` is empty or image shapes differ.
+        ValueError: If ``masks_list`` is empty.
+        ValueError: If image shapes differ.
     """
     if not masks_list:
         raise ValueError(f"Cannot {action} an empty list of CompactMask objects.")
@@ -385,7 +386,8 @@ def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
         containing a single tight union mask.
 
     Raises:
-        ValueError: If ``masks_list`` is empty or image shapes differ.
+        ValueError: If ``masks_list`` is empty.
+        ValueError: If image shapes differ.
     """
     image_shape = _validate_uniform_image_shape(masks_list, action="union")
 
@@ -1003,8 +1005,10 @@ class CompactMask:
             A new :class:`~supervision.detection.compact_mask.CompactMask` instance.
 
         Raises:
-            ValueError: If the RLE payloads are malformed, are not aligned with
-                ``xyxy``, or their sizes/counts do not match ``image_shape``.
+            ValueError: If the RLE payloads are malformed.
+            ValueError: If the RLE payloads are not aligned with ``xyxy``.
+            ValueError: If the RLE payload sizes/counts do not match
+                ``image_shape``.
 
         Examples:
             ```pycon
@@ -1654,7 +1658,8 @@ class CompactMask:
             containing every mask from the inputs, in order.
 
         Raises:
-            ValueError: If ``masks_list`` is empty or image shapes differ.
+            ValueError: If ``masks_list`` is empty.
+            ValueError: If image shapes differ.
 
         Examples:
             ```pycon
