@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
+import yaml
 from tqdm.auto import tqdm
 
 from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
@@ -32,7 +33,6 @@ from supervision.detection.utils.polygons import merge_multi_segment
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
-    read_yaml_file,
     save_text_file,
     save_yaml_file,
 )
@@ -55,6 +55,12 @@ _YOLO_IMAGE_EXTENSIONS: tuple[str, ...] = (
     "tiff",
     "webp",
 )
+
+#: YAML tag of a ``<<`` merge key, whose merged entries explicit keys may override.
+_YAML_MERGE_TAG = "tag:yaml.org,2002:merge"
+
+#: YAML tag of a string scalar, used to find the ``names`` key in data.yaml.
+_YAML_STR_TAG = "tag:yaml.org,2002:str"
 
 
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
@@ -198,6 +204,107 @@ def _with_seg_mask(lines: list[str]) -> bool:
     return any(len(line.split()) > 6 for line in lines)
 
 
+def _check_names_keys_unique(
+    loader: yaml.SafeLoader, root: yaml.Node, file_path: str
+) -> None:
+    """Reject a data.yaml that declares ``names`` twice or repeats a key inside it.
+
+    PyYAML keeps only the last value of a repeated mapping key, so either repeat
+    would silently relabel annotations. Keys are compared after construction:
+    ``1``, ``01``, ``1.0``, and ``true`` all collapse to one dict key.
+
+    Raises:
+        ValueError: If the root repeats ``names`` or a ``names`` mapping repeats
+            a key.
+    """
+    if not isinstance(root, yaml.MappingNode):
+        return
+    visited: set[int] = set()
+
+    def merged_mappings(node: yaml.MappingNode) -> list[yaml.MappingNode]:
+        """Return merge sources in YAML precedence order."""
+        result: list[yaml.MappingNode] = []
+        for key, value in node.value:
+            if key.tag == _YAML_MERGE_TAG:
+                values = (
+                    value.value if isinstance(value, yaml.SequenceNode) else [value]
+                )
+                result.extend(
+                    item for item in values if isinstance(item, yaml.MappingNode)
+                )
+        return result
+
+    def check_names(node: yaml.MappingNode) -> None:
+        """Reject duplicate explicit keys in each contributing names mapping."""
+        if id(node) in visited:
+            return
+        visited.add(id(node))
+        seen: set[Any] = set()
+        for key_node, _ in node.value:
+            if (
+                isinstance(key_node, yaml.ScalarNode)
+                and key_node.tag != _YAML_MERGE_TAG
+            ):
+                key = loader.construct_object(key_node)
+                if key in seen:
+                    raise ValueError(
+                        f"Found duplicate class key {key!r} in 'names' "
+                        f"at '{file_path}'."
+                    )
+                seen.add(key)
+        for source in merged_mappings(node):
+            check_names(source)
+
+    def find_names(node: yaml.MappingNode, seen: set[int]) -> yaml.Node | None:
+        """Find the effective names node while allowing overrides."""
+        if id(node) in seen:
+            return None
+        seen.add(id(node))
+        values = [
+            value
+            for key, value in node.value
+            if isinstance(key, yaml.ScalarNode)
+            and key.tag == _YAML_STR_TAG
+            and key.value == "names"
+        ]
+        if len(values) > 1:
+            raise ValueError(
+                f"Found duplicate key 'names' in data.yaml at '{file_path}'."
+            )
+        if values:
+            return cast(yaml.Node, values[0])
+        for source in merged_mappings(node):
+            value = find_names(source, seen)
+            if value is not None:
+                return value
+        return None
+
+    names_node = find_names(root, set())
+    if isinstance(names_node, yaml.MappingNode):
+        check_names(names_node)
+
+
+def _load_data_yaml(file_path: str) -> Any:
+    """Parse a YOLO data.yaml file, rejecting repeated ``names`` keys.
+
+    The node tree is checked before construction, because the constructed dict
+    has already dropped all but the last value of a repeated key.
+
+    Raises:
+        ValueError: If ``names`` is declared twice or repeats a key.
+    """
+    with open(file_path, encoding="utf-8") as file:
+        loader = yaml.SafeLoader(file)
+        try:
+            root = loader.get_single_node()
+            if root is None:
+                return None
+            _check_names_keys_unique(loader=loader, root=root, file_path=file_path)
+            return loader.construct_document(root)
+        finally:
+            loader.dispose()
+
+
 def _read_data_yaml(file_path: str) -> dict[str, Any]:
     """Read a YOLO data.yaml file and check that its root is a mapping.
 
@@ -208,9 +315,10 @@ def _read_data_yaml(file_path: str) -> dict[str, Any]:
         The parsed data.yaml content.
 
     Raises:
-        ValueError: If the YAML root is not a mapping.
+        ValueError: If the YAML root is not a mapping, if ``names`` is declared
+            twice, or if a ``names`` mapping repeats a key.
     """
-    data: dict[str, Any] = read_yaml_file(file_path=file_path)
+    data: dict[str, Any] = _load_data_yaml(file_path=file_path)
     if not isinstance(data, dict):
         raise ValueError(
             f"Expected mapping in data.yaml at '{file_path}',"
