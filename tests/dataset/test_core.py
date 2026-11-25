@@ -1,4 +1,5 @@
 import warnings
+from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
@@ -13,6 +14,7 @@ from supervision import (
     Classifications,
     DetectionDataset,
     Detections,
+    KeyPointsDataset,
 )
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.utils.internal import SupervisionWarnings
@@ -242,6 +244,231 @@ class TestMergeUnlabeledDetections:
             first.annotations["unlabeled.png"].xyxy,
         )
         np.testing.assert_array_equal(merged.annotations["labeled.png"].class_id, [1])
+
+
+def _write_one_image_yolo_dataset(
+    root: Path, names: str, class_id: int, with_key_points: bool
+) -> tuple[str, str, str]:
+    """Write a one-image YOLO dataset named after ``root`` and return its paths."""
+    images_dir = root / "images"
+    labels_dir = root / "labels"
+    images_dir.mkdir(parents=True)
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / f"{root.name}.png")
+    label = f"{class_id} 0.5 0.5 0.2 0.4"
+    data_yaml = f"names:\n{names}"
+    if with_key_points:
+        label += " 0.45 0.3 2 0.55 0.6 0"
+        data_yaml += "kpt_shape: [2, 3]\n"
+    (labels_dir / f"{root.name}.txt").write_text(label + "\n")
+    (root / "data.yaml").write_text(data_yaml)
+    return str(images_dir), str(labels_dir), str(root / "data.yaml")
+
+
+def _load_from_yolo(
+    source: tuple[str, str, str], with_key_points: bool
+) -> DetectionDataset | KeyPointsDataset:
+    """Load one YOLO source with the dataset type the test exercises."""
+    if with_key_points:
+        return KeyPointsDataset.from_yolo(*source)
+    return DetectionDataset.from_yolo(*source)
+
+
+def _merge(
+    datasets: Sequence[DetectionDataset | KeyPointsDataset],
+) -> DetectionDataset | KeyPointsDataset:
+    """Merge loaded datasets with the merge method of their dataset type."""
+    key_points = [
+        dataset for dataset in datasets if isinstance(dataset, KeyPointsDataset)
+    ]
+    if key_points:
+        return KeyPointsDataset.merge(key_points)
+    return DetectionDataset.merge(
+        [dataset for dataset in datasets if isinstance(dataset, DetectionDataset)]
+    )
+
+
+def _merge_from_yolo(
+    sources: list[tuple[str, str, str]], with_key_points: bool
+) -> DetectionDataset | KeyPointsDataset:
+    """Load each YOLO source with the matching dataset type and merge them."""
+    return _merge([_load_from_yolo(source, with_key_points) for source in sources])
+
+
+def _class_names(dataset: DetectionDataset | KeyPointsDataset) -> list[str]:
+    """Return the class name of every label in ``dataset``, in image order."""
+    names: list[str] = []
+    for _, _, annotation in dataset:
+        assert annotation.class_id is not None
+        names.extend(dataset.classes[class_id] for class_id in annotation.class_id)
+    return names
+
+
+#: Source ``names`` blocks whose label id ``2`` names the paired class.
+_SHARED_SPARSE_NAMES = [
+    pytest.param("  1: cat\n  2: dog\n", "dog", id="sorted-names"),
+    pytest.param("  1: dog\n  2: cat\n", "cat", id="unsorted-names"),
+]
+
+
+@pytest.mark.parametrize(
+    "with_key_points",
+    [
+        pytest.param(False, id="detection"),
+        pytest.param(True, id="key-points"),
+    ],
+)
+class TestMergeYoloSourceMapping:
+    """Tests that YOLO merges compare id-to-name pairs, not paths or class order."""
+
+    @pytest.mark.parametrize("changed_source", [0, 1])
+    def test_changed_source_blocks_partial_export(
+        self, tmp_path: Path, with_key_points: bool, changed_source: int
+    ) -> None:
+        """A changed contributing YAML blocks annotation-only export."""
+        first = _write_one_image_yolo_dataset(
+            tmp_path / "first", "  1: cat\n  2: dog\n", 2, with_key_points
+        )
+        second = _write_one_image_yolo_dataset(
+            tmp_path / "second", "  1: cat\n  2: dog\n", 2, with_key_points
+        )
+        sources = [first, second]
+        merged = _merge_from_yolo(sources, with_key_points)
+        Path(sources[changed_source][2]).write_text("names:\n  1: cat\n  2: bird\n")
+
+        with pytest.raises(ValueError, match="mapping changed"):
+            merged.as_yolo(annotations_directory_path=str(tmp_path / "out"))
+
+    def test_duplicate_names_block_partial_export(
+        self, tmp_path: Path, with_key_points: bool
+    ) -> None:
+        """Duplicate source names cannot silently collapse distinct IDs."""
+        first = _write_one_image_yolo_dataset(
+            tmp_path / "first", "  1: cat\n  2: cat\n", 1, with_key_points
+        )
+        second = _write_one_image_yolo_dataset(
+            tmp_path / "second", "  1: cat\n  2: cat\n", 2, with_key_points
+        )
+        merged = _merge_from_yolo([first, second], with_key_points)
+
+        with pytest.raises(ValueError, match="mappings differ"):
+            merged.as_yolo(data_yaml_path=str(tmp_path / "out.yaml"))
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_annotation_only_export_keeps_shared_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """Equal sparse mappings from separate YAML files export the source IDs."""
+        sources = [
+            _write_one_image_yolo_dataset(tmp_path / name, names, 2, with_key_points)
+            for name in ("first", "second")
+        ]
+        merged = _merge_from_yolo(sources, with_key_points)
+        output_dir = tmp_path / "labels"
+
+        merged.as_yolo(annotations_directory_path=str(output_dir))
+
+        written_ids = [
+            label_file.read_text().split()[0]
+            for label_file in sorted(output_dir.iterdir())
+        ]
+        assert written_ids == ["2", "2"]
+        assert _class_names(merged) == [expected_name, expected_name]
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_yaml_only_export_keeps_shared_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """A YAML exported from equal sparse mappings still reads the source labels."""
+        sources = [
+            _write_one_image_yolo_dataset(tmp_path / name, names, 2, with_key_points)
+            for name in ("first", "second")
+        ]
+        merged = _merge_from_yolo(sources, with_key_points)
+        exported_yaml = str(tmp_path / "exported.yaml")
+
+        merged.as_yolo(data_yaml_path=exported_yaml)
+
+        reloaded = DetectionDataset.from_yolo(
+            sources[0][0], sources[0][1], exported_yaml
+        )
+        assert _class_names(reloaded) == [expected_name]
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_full_export_normalizes_shared_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """Exporting labels and a new YAML together keeps every label's class name."""
+        sources = [
+            _write_one_image_yolo_dataset(tmp_path / name, names, 2, with_key_points)
+            for name in ("first", "second")
+        ]
+        merged = _merge_from_yolo(sources, with_key_points)
+        output = (
+            str(tmp_path / "out" / "images"),
+            str(tmp_path / "out" / "labels"),
+            str(tmp_path / "out" / "data.yaml"),
+        )
+
+        merged.as_yolo(*output)
+
+        reloaded = DetectionDataset.from_yolo(*output)
+        assert reloaded.classes == ["cat", "dog"]
+        assert _class_names(reloaded) == [expected_name, expected_name]
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_unmerged_annotation_only_export_keeps_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """A single loaded dataset writes labels its source YAML still reads."""
+        source = _write_one_image_yolo_dataset(
+            tmp_path / "first", names, 2, with_key_points
+        )
+        dataset = _load_from_yolo(source, with_key_points)
+
+        dataset.as_yolo(annotations_directory_path=source[1])
+
+        assert Path(source[1], "first.txt").read_text().split()[0] == "2"
+        assert _class_names(DetectionDataset.from_yolo(*source)) == [expected_name]
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_merged_splits_of_one_source_keep_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """Splits of one source merge back and still match the unchanged YAML."""
+        source = _write_one_image_yolo_dataset(
+            tmp_path / "first", names, 2, with_key_points
+        )
+        dataset = _load_from_yolo(source, with_key_points)
+        merged = _merge(dataset.split(split_ratio=1, shuffle=False))
+
+        merged.as_yolo(annotations_directory_path=source[1])
+
+        assert Path(source[1], "first.txt").read_text().split()[0] == "2"
+        assert _class_names(DetectionDataset.from_yolo(*source)) == [expected_name]
+
+    @pytest.mark.parametrize(
+        "second_names",
+        [
+            pytest.param("  1: cat\n  3: dog\n", id="sparse-ids-differ"),
+            pytest.param("  0: cat\n  1: dog\n", id="sparse-vs-contiguous"),
+            pytest.param("  1: dog\n  2: cat\n", id="sparse-ids-swapped"),
+        ],
+    )
+    def test_differing_mappings_require_new_yaml(
+        self, tmp_path: Path, with_key_points: bool, second_names: str
+    ) -> None:
+        """Mappings that disagree still block annotation-only export."""
+        first = _write_one_image_yolo_dataset(
+            tmp_path / "first", "  1: cat\n  2: dog\n", 2, with_key_points
+        )
+        second = _write_one_image_yolo_dataset(
+            tmp_path / "second", second_names, 1, with_key_points
+        )
+        merged = _merge_from_yolo([first, second], with_key_points)
+
+        with pytest.raises(ValueError, match="mappings differ"):
+            merged.as_yolo(annotations_directory_path=str(tmp_path / "labels"))
 
 
 class TestClassNamePopulation:
@@ -765,6 +992,12 @@ class TestDetectionDatasetSplit:
         train, test = ds.split(split_ratio=0.7, random_state=0)
         assert set(train.image_paths).isdisjoint(set(test.image_paths))
 
+    def test_split_ratio_keeps_image_that_float_rounding_drops(self) -> None:
+        """90 images at 0.7 split 63 / 27, not the 62 / 28 float flooring gives."""
+        ds = _make_detection_dataset(90)
+        train, test = ds.split(split_ratio=0.7, random_state=0)
+        assert (len(train), len(test)) == (63, 27)
+
     def test_split_ratio_zero_empties_train(self) -> None:
         """split_ratio=0.0 sends all images to the test set."""
         ds = _make_detection_dataset(6)
@@ -838,6 +1071,12 @@ def _make_classification_dataset(n: int) -> ClassificationDataset:
 
 class TestClassificationDatasetSplit:
     """ClassificationDataset.split() partitions images correctly."""
+
+    def test_split_ratio_keeps_image_that_float_rounding_drops(self) -> None:
+        """90 images at 0.7 split 63 / 27, not the 62 / 28 float flooring gives."""
+        ds = _make_classification_dataset(90)
+        train, test = ds.split(split_ratio=0.7, random_state=0)
+        assert (len(train), len(test)) == (63, 27)
 
     def test_split_ratio_zero_empties_train(self) -> None:
         """split_ratio=0.0 sends all images to the test set."""

@@ -9,6 +9,7 @@ from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.utils.internal import _to_numpy
 
 
 def process_transformers_detection_result(
@@ -44,15 +45,15 @@ def process_transformers_detection_result(
         phrases = labels if text_labels is None else text_labels
         data = {CLASS_NAME_DATA_FIELD: np.array(phrases, dtype=str)}
     else:
-        class_ids = labels.cpu().detach().numpy().astype(int)
+        class_ids = _to_numpy(labels.detach()).astype(int)
         if text_labels is None:
             data = append_class_names_to_data(class_ids, id2label, {})
         else:
             data = {CLASS_NAME_DATA_FIELD: np.array(text_labels, dtype=str)}
 
     return dict(
-        xyxy=detection_result["boxes"].cpu().detach().numpy(),
-        confidence=detection_result["scores"].cpu().detach().numpy(),
+        xyxy=_to_numpy(detection_result["boxes"].detach()),
+        confidence=_to_numpy(detection_result["scores"].detach()),
         class_id=class_ids,
         data=data,
     )
@@ -83,14 +84,14 @@ def process_transformers_v4_segmentation_result(
     else:
         boxes = None
         if "boxes" in segmentation_result:
-            boxes = segmentation_result["boxes"].cpu().detach().numpy()
-        masks = segmentation_result["masks"].cpu().detach().numpy().astype(bool)
-        class_ids = segmentation_result["labels"].cpu().detach().numpy().astype(int)
+            boxes = _to_numpy(segmentation_result["boxes"].detach())
+        masks = _to_numpy(segmentation_result["masks"].detach()).astype(bool)
+        class_ids = _to_numpy(segmentation_result["labels"].detach()).astype(int)
 
         return dict(
             xyxy=boxes if boxes is not None else mask_to_xyxy(masks),
             mask=np.squeeze(masks, axis=1) if boxes is not None else masks,
-            confidence=segmentation_result["scores"].cpu().detach().numpy(),
+            confidence=_to_numpy(segmentation_result["scores"].detach()),
             class_id=class_ids,
             data=append_class_names_to_data(class_ids, id2label, {}),
         )
@@ -128,7 +129,7 @@ def process_transformers_v5_segmentation_result(
             cast(dict[str, Any], segmentation_result), id2label
         )
 
-    segmentation_array = semantic_map.cpu().detach().numpy()
+    segmentation_array = _to_numpy(semantic_map.detach())
     return process_transformers_v5_panoptic_segmentation_result(
         segmentation_array, id2label
     )
@@ -155,7 +156,7 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
             scores, class IDs, and data.
     """
     segments_info = segmentation_result["segments_info"]
-    segmentation_array = segmentation_result["segmentation"].cpu().detach().numpy()
+    segmentation_array = _to_numpy(segmentation_result["segmentation"].detach())
     scores = np.array([segment["score"] for segment in segments_info], dtype=float)
     class_ids = np.array([segment["label_id"] for segment in segments_info], dtype=int)
     if len(segments_info) == 0:

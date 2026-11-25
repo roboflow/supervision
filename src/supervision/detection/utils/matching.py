@@ -143,7 +143,9 @@ def match_detections(
     used by the metrics modules: each detection from ``detections_a`` can match
     at most one detection from ``detections_b``, and vice versa. It does not
     compute a globally optimal assignment. Pairs below ``iou_threshold`` are
-    never matched, and by default a pair also requires equal ``class_id``
+    never matched, nor are pairs that do not overlap (IoU of 0), so
+    any overlapping pair meets the IoU requirement at ``iou_threshold=0``.
+    By default a pair also requires equal ``class_id``
     values. ``confidence`` is ignored; callers that want metric-style score
     ordering should sort their detections first.
 
@@ -203,7 +205,9 @@ def match_detections(
         return matched_pairs, unmatched_a, unmatched_b
 
     iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)
-    candidates = iou >= iou_threshold
+    # The positive-overlap guard only matters at `iou_threshold=0`, where a plain
+    # `>=` would pair boxes that do not overlap at all (IoU of exactly 0).
+    candidates = (iou >= iou_threshold) & (iou > 0)
     if not class_agnostic:
         class_ids_a = detections_a.class_id
         class_ids_b = detections_b.class_id
