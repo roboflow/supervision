@@ -70,7 +70,7 @@ def get_detection_size_category(
 class MeanAverageRecallResult(MetricResult):
     """The results of the Mean Average Recall metric calculation.
 
-    Defaults to `0` if no detections or targets were provided.
+    Returns `-1` sentinel scores when no targets are present.
 
     Attributes:
         metric_target: the type of data used for the metric -
@@ -159,7 +159,7 @@ class MeanAverageRecallResult(MetricResult):
             Medium objects:
               MeanAverageRecallResult:
               Metric target:  MetricTarget.BOXES
-              mAR @ 1:    0.0000
+              mAR @ 1:    -1.0000
               ...
 
             ```
@@ -266,33 +266,34 @@ class MeanAverageRecallResult(MetricResult):
         ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt
+        from matplotlib import rc_context
 
         details = self._get_plot_details()
 
-        plt.rcParams["font.family"] = "monospace"
+        with rc_context({"font.family": "monospace"}):
+            _, ax = plt.subplots(figsize=(10, 6))
+            ax.set_ylim(0, 1)
+            ax.set_ylabel("Value", fontweight="bold")
+            ax.set_title(details.title, fontweight="bold")
 
-        _, ax = plt.subplots(figsize=(10, 6))
-        ax.set_ylim(0, 1)
-        ax.set_ylabel("Value", fontweight="bold")
-        ax.set_title(details.title, fontweight="bold")
-
-        x_positions = range(len(details.labels))
-        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
-
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels(details.labels, rotation=45, ha="right")
-
-        for bar in bars:
-            y_value = bar.get_height()
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                y_value + 0.02,
-                f"{y_value:.2f}",
-                ha="center",
-                va="bottom",
+            x_positions = range(len(details.labels))
+            bars = ax.bar(
+                x_positions, details.values, color=details.colors, align="center"
             )
 
-        plt.rcParams["font.family"] = "sans-serif"
+            ax.set_xticks(x_positions)
+            ax.set_xticklabels(details.labels, rotation=45, ha="right")
+
+            for bar in bars:
+                y_value = bar.get_height()
+                label = "N/A" if y_value == -1 else f"{y_value:.2f}"
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    max(y_value, 0) + 0.02,
+                    label,
+                    ha="center",
+                    va="bottom",
+                )
 
         plt.tight_layout()
         plt.show()
@@ -527,7 +528,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             max_detection_count = self.max_detections.shape[0]
             return MeanAverageRecallResult(
                 metric_target=self._metric_target,
-                recall_scores=np.zeros(max_detection_count),
+                recall_scores=np.full(max_detection_count, -1.0),
                 recall_per_class=np.zeros(
                     (max_detection_count, 0, iou_thresholds.shape[0])
                 ),
@@ -687,7 +688,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             max_detection_count = self.max_detections.shape[0]
             num_thresholds = matches.shape[1]
             return (
-                np.zeros(max_detection_count, dtype=np.float64),
+                np.full(max_detection_count, -1.0, dtype=np.float64),
                 np.zeros((max_detection_count, 0, num_thresholds), dtype=np.float64),
                 unique_classes,
             )
