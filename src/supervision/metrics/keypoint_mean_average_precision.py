@@ -461,7 +461,6 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
             ValueError: If `targets.data["area"]` is not of shape `(N,)`.
             ValueError: If `targets.data["area"]` holds a negative or non-finite
                 area.
-
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
