@@ -4573,31 +4573,41 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </ul>
 <h3 id="0322-nov-25-2026">0.32.2 <small>Nov 25, 2026</small><a class="headerlink" href="#0322-nov-25-2026" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>VLM parsing</strong>: Qwen finds its detection array wherever it sits, Gemini keeps valid boxes and confidence, and DeepSeek-VL2 validates <code>resolution_wh</code>.<ul>
+<li>
+<p><strong>VLM parsing</strong>: Qwen finds its detection array wherever it sits, Gemini keeps valid boxes and confidence, and DeepSeek-VL2 validates <code>resolution_wh</code>.</p>
+<ul>
 <li><code>sv.Detections.from_vlm</code> with <code>sv.VLM.QWEN_2_5_VL</code> or <code>sv.VLM.QWEN_3_VL</code> now finds the detection array wherever it sits in the reply. Previously bracketed text before it, such as <code>Boxes are in [x1, y1, x2, y2] format:</code>, or an earlier unrelated JSON array made the parser return no detections. The same holds when the array starts with <code>null</code> or <code>[]</code>, and brackets inside quoted strings no longer mislead the search in truncated or Python-literal replies. (<a href="https://github.com/roboflow/supervision/pull/3011">#3011</a>, <a href="https://github.com/roboflow/supervision/pull/3066">#3066</a>)</li>
 <li><code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_0</code>, <code>GOOGLE_GEMINI_2_5</code>, <code>GOOGLE_GEMINI_3_5</code>, <code>GOOGLE_GEMINI_3_6</code> or <code>GOOGLE_GEMINI_3_7</code> now skips an item whose <code>box_2d</code> cannot be converted to four finite coordinates or becomes non-finite when scaled, and keeps the valid detections from the same response. Float-convertible strings and booleans are accepted. (<a href="https://github.com/roboflow/supervision/pull/3005">#3005</a>)</li>
 <li><code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_5</code>, <code>GOOGLE_GEMINI_3_5</code>, <code>GOOGLE_GEMINI_3_6</code> or <code>GOOGLE_GEMINI_3_7</code> and a <code>classes</code> filter now keeps confidence when every kept detection has a score, even if an item removed by that filter has no <code>confidence</code>. Previously that one item set <code>confidence</code> to <code>None</code> for every detection. (<a href="https://github.com/roboflow/supervision/pull/3009">#3009</a>)</li>
 <li><code>sv.Detections.from_vlm(sv.VLM.DEEPSEEK_VL_2, ...)</code> now raises <code>ValueError</code> for a non-positive <code>resolution_wh</code> instead of returning mirrored or all-zero boxes. (<a href="https://github.com/roboflow/supervision/pull/3003">#3003</a>)</li>
 </ul>
 </li>
-<li><strong>Datasets</strong>: YOLO class ids follow the names <code>data.yaml</code> declares, and low-bit grayscale PNG class ids load correctly.<ul>
+<li>
+<p><strong>Datasets</strong>: YOLO class ids follow the names <code>data.yaml</code> declares, and low-bit grayscale PNG class ids load correctly.</p>
+<ul>
 <li><code>sv.DetectionDataset.from_yolo</code> and <code>sv.KeyPointsDataset.from_yolo</code> map each label's class id to the name <code>data.yaml</code> declares for it when <code>names</code> is a dict whose keys start above <code>0</code> or skip values, such as <code>{1: cat, 2: dog}</code>. Label ids were used as list indices, so labels loaded under the wrong class, or the load failed with an out-of-range <code>ValueError</code>. Loaded class ids index <code>classes</code>; annotation-only and YAML-only exports retain the source IDs, while exports writing both use normalized IDs. Undeclared label IDs, a class id repeated in <code>names</code> (including an exact repeat that PyYAML would collapse, or one inherited through a YAML merge key) and a <code>names</code> key declared twice raise <code>ValueError</code>. Exporting only annotations or only <code>data.yaml</code> from such a dataset raises <code>ValueError</code> when its classes changed after loading, when any source <code>data.yaml</code> of a merged dataset was edited since loading, or when merged datasets declare different mappings or two ids with one class name; export both to write normalized IDs. (<a href="https://github.com/roboflow/supervision/pull/2985">#2985</a>, <a href="https://github.com/roboflow/supervision/pull/3066">#3066</a>)</li>
 <li>Fixed semantic segmentation imports from 2- and 4-bit grayscale PNGs. Class IDs now match the stored PNG samples instead of Pillow's 8-bit display intensities, so low-bit class IDs retain their names. (<a href="https://github.com/roboflow/supervision/pull/2999">#2999</a>)</li>
 </ul>
 </li>
-<li><strong>Key points</strong>: ViTPose joints keep their skeleton slots, covariance follows joint selection and <code>__setitem__</code> checks lengths.<ul>
+<li>
+<p><strong>Key points</strong>: ViTPose joints keep their skeleton slots, covariance follows joint selection and <code>__setitem__</code> checks lengths.</p>
+<ul>
 <li>Fixed <code>sv.KeyPoints.from_transformers</code> to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. Pass <code>num_keypoints</code> to retain trailing slots when all poses omit the last joints. An empty first pose no longer hides later poses, and a pose with a negative or repeated joint label raises <code>ValueError</code> instead of overwriting another joint. (<a href="https://github.com/roboflow/supervision/pull/2978">#2978</a>)</li>
 <li><code>sv.KeyPoints.from_transformers</code> accepts a new keyword-only <code>num_keypoints</code> argument giving the full skeleton size, so trailing joints dropped by confidence filtering stay in the output as zero-filled slots. A value of 0 or less raises <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2978">#2978</a>)</li>
 <li>Fixed <code>KeyPoints</code> selection to keep per-joint covariance matrices aligned when subsetting or reordering joints. <code>sv.VertexEllipseAnnotator</code>, <code>sv.VertexEllipseOutlineAnnotator</code> and <code>sv.VertexEllipseHaloAnnotator</code> no longer raise on a joint subset or draw ellipses on the wrong joints after reordering. Covariance stored under <code>data["covariance"]</code> (<code>supervision.config.KEYPOINT_COVARIANCE_DATA_FIELD</code>) with shape <code>(N, K, 2, 2)</code> is selected along the joint axis; per-object covariance of another shape is preserved. (<a href="https://github.com/roboflow/supervision/pull/2979">#2979</a>)</li>
 <li><code>sv.KeyPoints.__setitem__</code> now raises <code>ValueError</code> when the value's length does not match the number of objects, as <code>sv.Detections.__setitem__</code> already does. Previously a wrong-length list or array was stored silently and only failed later, in <code>as_detections()</code>, <code>merge</code>, or when selecting objects. (<a href="https://github.com/roboflow/supervision/pull/2974">#2974</a>)</li>
 </ul>
 </li>
-<li><strong>Video</strong>: browser-recorded WebM reports its real frame rate and <code>sv.process_video</code> keeps delayed audio.<ul>
+<li>
+<p><strong>Video</strong>: browser-recorded WebM reports its real frame rate and <code>sv.process_video</code> keeps delayed audio.</p>
+<ul>
 <li><code>sv.VideoInfo.from_video_path</code> now reports the real frame rate of a browser-recorded WebM (<code>MediaRecorder</code>) instead of <code>1000.0</code>, and a frame count to match, so <code>sv.process_video</code> keeps the source's duration instead of writing a video that plays about 33x too fast. A rate above 240 fps is checked against the first frames; when it is more than twice their measured rate, the frame timestamps and count are measured across the file, or the count is scaled to the measured rate when that is not possible. Without OpenCV, the PyAV backend derives the rate from video packet timestamps, up to the end of the last frame, when the stream has no average rate, so both backends report the same rate. (<a href="https://github.com/roboflow/supervision/pull/3007">#3007</a>)</li>
 <li><code>sv.process_video(preserve_audio=True)</code> preserves audio delayed relative to the source video instead of moving it to the start of the output. Audio starting after a shortened output is omitted. (<a href="https://github.com/roboflow/supervision/pull/2988">#2988</a>)</li>
 </ul>
 </li>
-<li><strong>Detections and metrics</strong>: empty masks anchor at the box center, threshold 0 no longer merges or matches disjoint boxes, <code>from_ncnn</code> takes Python scalars, and metric plots and mask mAP behave.<ul>
+<li>
+<p><strong>Detections and metrics</strong>: empty masks anchor at the box center, threshold 0 no longer merges or matches disjoint boxes, <code>from_ncnn</code> takes Python scalars, and metric plots and mask mAP behave.</p>
+<ul>
 <li><code>sv.Detections.get_anchors_coordinates</code> with <code>sv.Position.CENTER_OF_MASS</code> now anchors a detection whose mask has no pixels at the center of its bounding box, for dense masks and <code>sv.CompactMask</code> alike, instead of the frame's top-left corner <code>(0, 0)</code>. The mask centroid of an empty mask is undefined and <code>sv.calculate_masks_centroids</code> reports <code>(0, 0)</code>, so a stationary object whose mask came out empty in one frame made <code>sv.LineZone</code> count a phantom crossing, made <code>sv.PolygonZone</code> report it in the zone when the zone contained the corner, and was drawn at the corner by <code>sv.DotAnnotator</code>, <code>sv.LabelAnnotator</code> and <code>sv.TraceAnnotator</code>. A batch with an empty mask returns floating-point anchors to preserve fractional and large box centers. Centroids of non-empty masks are unchanged, and <code>sv.calculate_masks_centroids</code> itself still returns <code>(0, 0)</code> for an empty mask. (<a href="https://github.com/roboflow/supervision/pull/2976">#2976</a>)</li>
 <li><code>sv.Detections.with_nmm</code>, <code>sv.box_non_max_merge</code>, <code>sv.mask_non_max_merge</code> and <code>sv.oriented_box_non_max_merge</code> with <code>threshold=0</code> (<code>iou_threshold=0</code>) no longer add a detection to a merge candidate when their overlap is zero. An overlap of exactly 0 satisfied <code>IoU &gt;= 0</code>, so every detection of a class entered one merge group. For example, <code>with_nmm</code> turned three disjoint boxes into a single <code>[0, 0, 210, 210]</code> union box, while <code>with_nms(threshold=0)</code> kept all of them. Merging now needs a positive overlap, matching non-max suppression; results for thresholds above 0 are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2972">#2972</a>)</li>
 <li><code>sv.match_detections</code> with <code>iou_threshold=0</code> no longer matches detections that do not overlap. A pair with an IoU of exactly 0 satisfied <code>IoU &gt;= 0</code>, so boxes far apart were reported as matched; a match now needs a positive overlap. Results for thresholds above 0 are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2992">#2992</a>)</li>
@@ -4606,10 +4616,15 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>The <code>plot</code> methods of <code>sv.metrics</code> results and <code>plot_aggregate_metric_results</code> now leave the user's Matplotlib font family unchanged. They drew in monospace by setting <code>plt.rcParams["font.family"]</code> globally and then set it to <code>"sans-serif"</code>, so a family the user had configured, such as <code>"serif"</code>, was replaced for every later figure. The monospace font is now applied only while the plot is drawn. (<a href="https://github.com/roboflow/supervision/pull/2991">#2991</a>)</li>
 </ul>
 </li>
-<li><strong>Classification and images</strong>: <code>get_top_k</code> orders ties and NaN predictably and <code>sv.crop_image</code> returns an empty Pillow image for an empty crop.<ul>
+<li>
+<p><strong>Classification and images</strong>: <code>get_top_k</code> orders ties and NaN predictably and <code>sv.crop_image</code> returns an empty Pillow image for an empty crop.</p>
+<ul>
 <li><code>sv.Classifications.get_top_k</code> now returns classes with equal confidence in their input order, so a tie for the best score goes to the first class, as <code>np.argmax</code> picks it. It reversed an ascending sort, which put the last tied class first, and with many classes, such as 1000 ImageNet scores in float16, returned tied classes in an arbitrary order. A NaN confidence now ranks last instead of first. <code>sv.ClassificationDataset.as_folder_structure</code> uses the top class to choose each image's folder, so it follows the same order. (<a href="https://github.com/roboflow/supervision/pull/2989">#2989</a>)</li>
 <li><code>sv.crop_image</code> returns an empty Pillow image, as it already returns an empty array for NumPy input, when the box has no pixels inside the image (outside it, or with no area). With the OpenCV backend, cropping an RGB, RGBA or palette Pillow image raised <code>cv2.error</code> from <code>cv2.cvtColor</code> in that case. (<a href="https://github.com/roboflow/supervision/pull/2970">#2970</a>)</li>
 </ul>
+</li>
+<li>
+<p>Annotators that draw with OpenCV directly, such as <code>sv.BoxAnnotator</code>, <code>sv.LabelAnnotator</code>, the key point annotators and the line zone annotators, now draw visibly on BGRA scenes, such as a PNG read with <code>cv2.IMREAD_UNCHANGED</code>, with antialiased edges composited using their coverage. They wrote only the B, G and R channels and left alpha at <code>0</code>, so boxes, labels, key points and the like were invisible on transparent pixels. The translucent fills of <code>sv.ColorAnnotator</code> and <code>sv.VertexEllipseAreaAnnotator</code> composite their coverage times <code>opacity</code> over the existing alpha and keep their own color instead of blending with the hidden color of transparent pixels. (<a href="https://github.com/roboflow/supervision/pull/3033">#3033</a>)</p>
 </li>
 </ul>
 <h3 id="0321-nov-24-2026">0.32.1 <small>Nov 24, 2026</small><a class="headerlink" href="#0321-nov-24-2026" title="Permanent link">&para;</a></h3>
@@ -7076,7 +7091,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 14:59:28 UTC">November 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 15:35:47 UTC">November 25, 2026</span>
   </span>
 
     
@@ -7104,9 +7119,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
+        <a href="https://github.com/Laihu08" class="md-author" title="@Laihu08">
           
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
+          <img src="https://avatars.githubusercontent.com/u/55731288?v=4&size=72" alt="Laihu08">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7114,21 +7129,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
+          
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
+        </a>
+      
         <a href="https://github.com/kari-pikkarainen" class="md-author" title="@kari-pikkarainen">
           
           <img src="https://avatars.githubusercontent.com/u/154351964?v=4&size=72" alt="kari-pikkarainen">
-        </a>
-      
-        <a href="https://github.com/SajjadPSavoji" class="md-author" title="@SajjadPSavoji">
-          
-          <img src="https://avatars.githubusercontent.com/u/44399382?v=4&size=72" alt="SajjadPSavoji">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +35
+            +37
           </a>
         
       
