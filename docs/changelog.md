@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.KeyPoints.as_detections()` keeps `data` keys and the `class_id` dtype on frames without skeletons or key points, as it already did when every key point is invalid. It returned `sv.Detections.empty()` there, so an unguarded version of the recipe for attaching tracker IDs to key points raised `KeyError: 'row'` on a frame without people. Out-of-range `selected_keypoint_indices` now raise `IndexError` when there are no skeletons but the key point axis is nonempty, instead of only when skeletons are present. ([#3026](https://github.com/roboflow/supervision/pull/3026))
+
 - `sv.plot_image` and `sv.plot_images_grid` now draw grayscale images shaped `(H, W, 1)` with `cmap`, as they already did for `(H, W)` images. Without OpenCV they raised `ValueError`, and with OpenCV they ignored `cmap`. ([#3024](https://github.com/roboflow/supervision/pull/3024))
 
 - `sv.Detections.with_soft_nms` now decays oriented-box detections by their rotated bodies (`data["xyxyxyxy"]`) instead of their axis-aligned envelope when masks are absent, like `with_nms` and `with_nmm`. Mask overlap takes precedence when both masks and oriented boxes are present. The new `sv.oriented_box_soft_non_max_suppression` does the same for raw arrays. ([#3023](https://github.com/roboflow/supervision/pull/3023))

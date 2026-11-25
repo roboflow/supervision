@@ -1830,6 +1830,11 @@ class KeyPoints:
         Returns:
             detections: The converted detections object.
 
+        Raises:
+            IndexError: If an index in `selected_keypoint_indices` is out of range
+                for the number of key points, also when there are no skeletons. A
+                zero-length key point axis is exempt from this check.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -1843,17 +1848,43 @@ class KeyPoints:
 
             ```
         """
-        # Inference can retain objects after every keypoint is omitted; an empty
-        # keypoint axis has no coordinates from which to construct a detection box.
-        if self.is_empty() or self.xy.shape[1] == 0:
-            return Detections.empty()
-
-        xy = self.xy[..., :2]
         indices: npt.NDArray[np.intp] | None = None
         if selected_keypoint_indices is not None:
             candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
             if candidate.size > 0:
                 indices = candidate
+        keypoint_count = self.xy.shape[1]
+        # Check indices before the empty return, so a frame without poses rejects
+        # the same indices as a frame with poses. A zero-length key point axis is
+        # exempt: Inference returns it when every joint was omitted.
+        if indices is not None and keypoint_count > 0:
+            out_of_range = (indices < -keypoint_count) | (indices >= keypoint_count)
+            if out_of_range.any():
+                raise IndexError(
+                    f"selected_keypoint_indices {indices[out_of_range].tolist()} "
+                    f"are out of range for {keypoint_count} key points."
+                )
+
+        # Inference can retain objects after every keypoint is omitted; an empty
+        # keypoint axis has no coordinates from which to construct a detection box.
+        if self.is_empty() or keypoint_count == 0:
+            # Drop every row but keep `data` keys and the class_id dtype, as for
+            # skeletons whose key points are all invalid. A missing class_id and the
+            # confidence stay empty arrays, as in `Detections.empty()`, so existing
+            # callers see the same fields as before.
+            count = len(self)
+            class_id = self.class_id
+            if class_id is None:
+                class_id = np.zeros(count, dtype=int)
+            detections = Detections(
+                xyxy=np.zeros((count, 4), dtype=np.float32),
+                confidence=np.zeros(count, dtype=np.float32),
+                class_id=class_id,
+                data=self.data,
+            )
+            return detections.select(np.zeros(count, dtype=bool))
+
+        xy = self.xy[..., :2]
         if indices is not None:
             xy = xy[:, indices, :]
 
