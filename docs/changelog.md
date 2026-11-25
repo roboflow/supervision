@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.LineZone` now treats a `tracker_id` repeated within one frame as one observation, keeping the first copy, as `sv.PolygonZone` already does. Previously each copy counted separately, so a single frame could satisfy `minimum_crossing_threshold`, and copies on both sides of the line produced an in and an out from the same frame. ([#3015](https://github.com/roboflow/supervision/pull/3015))
 
 ### 0.32.2 <small>Nov 25, 2026</small>
 
