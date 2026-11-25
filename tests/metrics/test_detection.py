@@ -1824,6 +1824,43 @@ class TestConfusionMatrixPlot:
         np.testing.assert_allclose(plotted, np.array(expected), atol=1e-6)
         plt.close(fig)
 
+    @pytest.mark.parametrize("num_counts", [200, 201])
+    def test_normalized_row_keeps_every_small_share_visible(
+        self, num_counts: int
+    ) -> None:
+        """A row of many single counts keeps every positive share in the heatmap."""
+        matrix = np.zeros((201, 201), dtype=np.int32)
+        matrix[0, :num_counts] = 1
+        confusion_matrix = ConfusionMatrix(
+            matrix=matrix,
+            classes=[f"class-{index}" for index in range(200)],
+            conf_threshold=0.3,
+            iou_threshold=0.5,
+        )
+
+        fig = confusion_matrix.plot(normalize=True)
+        plotted = np.asarray(fig.axes[0].images[0].get_array().filled(np.nan))
+
+        np.testing.assert_allclose(plotted[0, :num_counts], 1 / num_counts)
+        plt.close(fig)
+
+    def test_normalized_share_below_cutoff_has_no_text(self) -> None:
+        """A share too small to print stays in the heatmap without a text label."""
+        confusion_matrix = ConfusionMatrix(
+            matrix=np.array([[999, 1, 0], [0, 0, 0], [0, 0, 0]], dtype=np.int32),
+            classes=["cat", "dog"],
+            conf_threshold=0.3,
+            iou_threshold=0.5,
+        )
+
+        fig = confusion_matrix.plot(normalize=True)
+        ax = fig.axes[0]
+        plotted = np.asarray(ax.images[0].get_array().filled(np.nan))
+
+        assert plotted[0, 1] == pytest.approx(0.001)
+        assert [text.get_text() for text in ax.texts] == ["1.00"]
+        plt.close(fig)
+
 
 class TestConfusionMatrixMasks:
     """ConfusionMatrix scored on ``MetricTarget.MASKS``."""

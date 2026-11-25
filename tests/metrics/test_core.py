@@ -2,8 +2,20 @@
 
 from __future__ import annotations
 
-import pytest
+from typing import Any
 
+import numpy as np
+import pytest
+from matplotlib import pyplot as plt
+
+from supervision.detection.core import Detections
+from supervision.metrics import (
+    F1Score,
+    MeanAveragePrecision,
+    MeanAverageRecall,
+    Precision,
+    Recall,
+)
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 
 
@@ -82,3 +94,30 @@ class TestAveragingMethod:
     def test_member_value(self, member: AveragingMethod, value: str) -> None:
         """Each AveragingMethod member has the documented string value."""
         assert member.value == value
+
+
+class TestMetricResultPlot:
+    """Verify that plotting a metric result leaves global Matplotlib state alone."""
+
+    @pytest.mark.parametrize(
+        "metric",
+        [Precision, Recall, F1Score, MeanAveragePrecision, MeanAverageRecall],
+    )
+    def test_keeps_user_font_family(
+        self, metric: type[Metric[Any]], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A plot leaves the font family the user configured in rcParams."""
+        monkeypatch.setattr(plt, "show", lambda: None)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        result = metric().update(detections, detections).compute()
+
+        with plt.rc_context({"font.family": "serif"}):
+            result.plot()
+            font_family = plt.rcParams["font.family"]
+        plt.close("all")
+
+        assert font_family == ["serif"]

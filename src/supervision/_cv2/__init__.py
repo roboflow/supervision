@@ -60,6 +60,7 @@ from supervision._cv2.constants import (
     _CAP_PROP_FRAME_HEIGHT,
     _CAP_PROP_FRAME_WIDTH,
     _CAP_PROP_POS_FRAMES,
+    _CAP_PROP_POS_MSEC,
     _CC_STAT_AREA,
     _CHAIN_APPROX_SIMPLE,
     _COLOR_BGR2GRAY,
@@ -102,6 +103,7 @@ if _IS_CV2_AVAILABLE:
         CAP_PROP_FRAME_HEIGHT,
         CAP_PROP_FRAME_WIDTH,
         CAP_PROP_POS_FRAMES,
+        CAP_PROP_POS_MSEC,
         CC_STAT_AREA,
         COLOR_BGR2GRAY,
         COLOR_BGR2RGB,
@@ -175,14 +177,24 @@ if _IS_CV2_AVAILABLE:
         """
         if not _is_non_ascii_windows_path(filename):
             return cv2.imread(filename, flags)
-        # OpenCV opens Windows paths with the ANSI code page, so let NumPy read the
+        # OpenCV opens Windows paths with the ANSI code page, so let NumPy map the
         # file and decode the bytes, which gives the same pixels as `cv2.imread`.
+        # Mapping instead of reading loads only the pages OpenCV touches, so a large
+        # non-image file is rejected after its signature bytes alone.
+        buffer: npt.NDArray[np.uint8]
         try:
-            buffer = np.fromfile(filename, dtype=np.uint8)
+            buffer = np.memmap(filename, dtype=np.uint8, mode="r")
+        except ValueError:
+            # NumPy raises `ValueError` for an empty file, which cannot be mapped.
+            return None
         except OSError:
-            return None
-        if buffer.size == 0:
-            return None
+            # A file system that cannot map the file still lets NumPy read it.
+            try:
+                buffer = np.fromfile(filename, dtype=np.uint8)
+            except OSError:
+                return None
+            if buffer.size == 0:
+                return None
         return cv2.imdecode(buffer, flags)
 
     def imwrite(
@@ -221,6 +233,7 @@ else:
     CAP_PROP_FRAME_HEIGHT = _CAP_PROP_FRAME_HEIGHT
     CAP_PROP_FRAME_WIDTH = _CAP_PROP_FRAME_WIDTH
     CAP_PROP_POS_FRAMES = _CAP_PROP_POS_FRAMES
+    CAP_PROP_POS_MSEC = _CAP_PROP_POS_MSEC
     CC_STAT_AREA = _CC_STAT_AREA
     COLOR_BGR2GRAY = _COLOR_BGR2GRAY
     COLOR_BGR2RGB = _COLOR_BGR2RGB
@@ -297,6 +310,7 @@ __all__ = [
     "CAP_PROP_FRAME_HEIGHT",
     "CAP_PROP_FRAME_WIDTH",
     "CAP_PROP_POS_FRAMES",
+    "CAP_PROP_POS_MSEC",
     "CC_STAT_AREA",
     "COLOR_BGR2GRAY",
     "COLOR_BGR2RGB",
