@@ -7,7 +7,9 @@ date_modified: 2026-11-21
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.with_nmm` retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32, other coordinate dtypes retain float32 unions. Singleton groups are unchanged before stacking, but final dtype promotion can round integer coordinates. ([#3053](https://github.com/roboflow/supervision/pull/3053))
+- `sv.Detections.with_nmm`, `sv.Detections.with_nms`, `sv.Detections.with_soft_nms` and `sv.box_iou_batch` now preserve coordinate differences for narrow `int64` and `uint64` boxes at large coordinate origins above `2**53` when both box arrays are integer. Overlap scores are returned as floating-point values. `sv.Detections.with_nmm` also preserves integer coordinate dtypes on merged axis-aligned unions. Previously, converting coordinates to `float64` before subtracting corners collapsed distinct endpoints into zero-area boxes and caused overlapping detections to miss merging or suppression, while axis-aligned unions cast integer boxes to `float32`. ([#3057](https://github.com/roboflow/supervision/pull/3057))
+
+- `sv.Detections.with_nmm` retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32. Singleton groups are unchanged before stacking, but final dtype promotion can round integer coordinates. ([#3053](https://github.com/roboflow/supervision/pull/3053))
 
 - `sv.Detections.from_ultralytics` now resizes binary uint8 masks in floating point before applying the 0.5 threshold, avoiding extra foreground pixels along mask edges. ([#3041](https://github.com/roboflow/supervision/pull/3041))
 
