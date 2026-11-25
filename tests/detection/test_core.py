@@ -3811,9 +3811,9 @@ class TestDetectionsFromSemanticSegmentation:
         """Patches are ordered by the top then left of their box, not by raster scan.
 
         A raster scan meets the island at (row 0, column 2) before the diagonal patch,
-        whose first pixel is at column 6, yet the diagonal box starts further left.
-        The pixel at (row 2, column 0) shares that left edge, so ordering by
-        (left, top) would place it before the island.
+        whose first pixel is at column 6, yet the diagonal box starts further left. The
+        pixel at (row 2, column 0) shares that left edge, so ordering by (left, top)
+        would place it before the island.
         """
         label_map = np.zeros((7, 7), dtype=np.uint8)
         label_map[np.arange(7), 6 - np.arange(7)] = 1
@@ -3937,6 +3937,8 @@ class TestDetectionsFromSemanticSegmentation:
         assert np.allclose(compact.confidence, dense.confidence)
         assert np.array_equal(compact.mask.to_dense(), dense.mask)
         assert np.array_equal(compact.xyxy, dense.xyxy)
+        assert compact.class_id is not None
+        assert dense.class_id is not None
         assert np.array_equal(compact.class_id, dense.class_id)
 
     def test_split_components_on_non_square_map_boxes_single_pixels(self) -> None:
