@@ -25,6 +25,8 @@ date_modified: 2026-11-18
 
 - `sv.LineZone` now treats a `tracker_id` repeated within one frame as one observation, keeping the first copy, as `sv.PolygonZone` already does. Previously each copy counted separately, so a single frame could satisfy `minimum_crossing_threshold`, and copies on both sides of the line produced an in and an out from the same frame. ([#3015](https://github.com/roboflow/supervision/pull/3015))
 
+- `sv.DetectionsSmoother` now uses the first detection for each confirmed tracker ID per frame. Repeated IDs previously consumed multiple history slots and distorted the smoothed box and confidence. ([#3035](https://github.com/roboflow/supervision/pull/3035))
+
 ### 0.32.2 <small>Nov 25, 2026</small>
 
 - **VLM parsing**: Qwen finds its detection array wherever it sits, Gemini keeps valid boxes and confidence, and DeepSeek-VL2 validates `resolution_wh`.
