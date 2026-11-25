@@ -60,6 +60,7 @@ nav:
       - Use Compact Masks: how_to/use_compact_masks.md
       - Load Semantic Segmentation: how_to/semantic_segmentation.md
       - Visualize Depth Maps: how_to/visualize_depth.md
+      - Classify Images: how_to/classify_images.md
       - OpenCV Migration: how_to/opencv_migration.md
   - Reference:
       - Detection and Segmentation:
