@@ -120,8 +120,8 @@ def _match_unscored_targets(
 ) -> None:
     """Assign remaining predictions to unscored targets in confidence order.
 
-    Non-crowd targets are consumed once per threshold; crowd targets remain
-    available. Scored targets have already had priority in the first round.
+    Non-crowd targets are consumed once per threshold; crowd targets remain available.
+    Scored targets have already had priority in the first round.
     """
     unscored = np.flatnonzero(~target_scored)
     prediction_order = np.argsort(-prediction_confidence, kind="stable")
