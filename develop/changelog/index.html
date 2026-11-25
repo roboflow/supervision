@@ -4548,7 +4548,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
-<p>-</p>
+<ul>
+<li><code>sv.LineZone</code> now treats a <code>tracker_id</code> repeated within one frame as one observation, keeping the first copy, as <code>sv.PolygonZone</code> already does. Previously each copy counted separately, so a single frame could satisfy <code>minimum_crossing_threshold</code>, and copies on both sides of the line produced an in and an out from the same frame. (<a href="https://github.com/roboflow/supervision/pull/3015">#3015</a>)</li>
+</ul>
 <h3 id="0322-nov-25-2026">0.32.2 <small>Nov 25, 2026</small><a class="headerlink" href="#0322-nov-25-2026" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>VLM parsing</strong>: Qwen finds its detection array wherever it sits, Gemini keeps valid boxes and confidence, and DeepSeek-VL2 validates <code>resolution_wh</code>.<ul>
@@ -7054,7 +7056,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 09:14:13 UTC">November 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 10:18:42 UTC">November 25, 2026</span>
   </span>
 
     
@@ -7082,9 +7084,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/Pratik-Kumar-Dhakar" class="md-author" title="@Pratik-Kumar-Dhakar">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/184187788?v=4&size=72" alt="Pratik-Kumar-Dhakar">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7092,21 +7094,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/BahaaMattar" class="md-author" title="@BahaaMattar">
           
           <img src="https://avatars.githubusercontent.com/u/165836773?v=4&size=72" alt="BahaaMattar">
-        </a>
-      
-        <a href="https://github.com/Viranshul-P" class="md-author" title="@Viranshul-P">
-          
-          <img src="https://avatars.githubusercontent.com/u/203832072?v=4&size=72" alt="Viranshul-P">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +34
+            +35
           </a>
         
       
