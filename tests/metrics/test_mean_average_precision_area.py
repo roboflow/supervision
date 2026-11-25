@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
+from supervision.config import AREA_DATA_FIELD
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.utils._typing import _DetectionDataType
+from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.metrics.core import MetricTarget
 from supervision.metrics.mean_average_precision import MeanAveragePrecision
 
 
@@ -217,3 +222,99 @@ class TestMeanAveragePrecisionCoordinateDtypes:
         assert result.small_objects is not None
         assert result.map50_95 == pytest.approx(0.5)
         assert result.small_objects.map50_95 == pytest.approx(1.0)
+
+
+class TestCompactMaskAreaParity:
+    """Compact mask evaluation preserves dense object-size results."""
+
+    @pytest.mark.parametrize(
+        ("compact_targets", "compact_predictions"),
+        [
+            pytest.param(True, True, id="both-compact"),
+            pytest.param(True, False, id="compact-targets"),
+            pytest.param(False, True, id="compact-predictions"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("side", "target_area"),
+        [
+            pytest.param(31, None, id="below-small-boundary"),
+            pytest.param(32, None, id="small-boundary"),
+            pytest.param(33, None, id="above-small-boundary"),
+            pytest.param(95, None, id="below-large-boundary"),
+            pytest.param(96, None, id="large-boundary"),
+            pytest.param(97, None, id="above-large-boundary"),
+            pytest.param(20, 1024.0, id="target-area-override"),
+        ],
+    )
+    def test_size_bucket_scores_match_dense_masks(
+        self,
+        compact_targets: bool,
+        compact_predictions: bool,
+        side: int,
+        target_area: float | None,
+    ) -> None:
+        """Preserve area buckets for boundaries, metadata, and false positives."""
+        target_masks = np.zeros((1, 220, 220), dtype=bool)
+        target_masks[0, :side, :side] = True
+        prediction_masks = np.zeros((2, 220, 220), dtype=bool)
+        prediction_masks[0, 110 : 110 + side, 110 : 110 + side] = True
+        prediction_masks[1, :side, :side] = True
+        target_boxes = mask_to_xyxy(target_masks)
+        prediction_boxes = mask_to_xyxy(prediction_masks)
+        target_data: _DetectionDataType = (
+            {AREA_DATA_FIELD: np.array([target_area])}
+            if target_area is not None
+            else {}
+        )
+        targets = Detections(
+            xyxy=target_boxes,
+            mask=target_masks,
+            class_id=np.array([0]),
+            data=target_data,
+        )
+        predictions = Detections(
+            xyxy=prediction_boxes,
+            mask=prediction_masks,
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+        )
+        dense = (
+            MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+        targets.mask = (
+            CompactMask.from_dense(target_masks, target_boxes, (220, 220))
+            if compact_targets
+            else target_masks
+        )
+        predictions.mask = (
+            CompactMask.from_dense(prediction_masks, prediction_boxes, (220, 220))
+            if compact_predictions
+            else prediction_masks
+        )
+
+        result = (
+            MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        assert result.map50_95 == pytest.approx(0.5)
+        assert dense.map50_95 == pytest.approx(0.5)
+        assert result.small_objects is not None
+        assert dense.small_objects is not None
+        assert result.medium_objects is not None
+        assert dense.medium_objects is not None
+        assert result.large_objects is not None
+        assert dense.large_objects is not None
+        np.testing.assert_array_equal(
+            result.small_objects.mAP_scores, dense.small_objects.mAP_scores
+        )
+        np.testing.assert_array_equal(
+            result.medium_objects.mAP_scores, dense.medium_objects.mAP_scores
+        )
+        np.testing.assert_array_equal(
+            result.large_objects.mAP_scores, dense.large_objects.mAP_scores
+        )

@@ -3706,6 +3706,44 @@ class TestDetectionsFromSemanticSegmentation:
         assert isinstance(dense.mask, np.ndarray)
         assert np.array_equal(compact.mask.to_dense(), dense.mask)
 
+    @pytest.mark.parametrize(
+        ("label_png", "sample_ids"),
+        [
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABAQAAAADRRzJgAAAACklE"
+                "QVR4nGMIAAAAUgBR9yHZtwAAAABJRU5ErkJggg==",
+                [0, 1, 0, 1],
+                id="grayscale-1-bit",
+            ),
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABAgAAAACW50iwAAAACklE"
+                "QVR4nGOQBQAAHwAe5eoyzQAAAABJRU5ErkJggg==",
+                [0, 1, 3, 1],
+                id="grayscale-2-bit",
+            ),
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABBAAAAAAZp70QAAAAC0lE"
+                "QVR4nGNg/AgAAPYA85wqhk0AAAAASUVORK5CYII=",
+                [0, 1, 15, 1],
+                id="grayscale-4-bit",
+            ),
+        ],
+    )
+    def test_low_bit_depth_png_preserves_class_ids(
+        self, label_png: str, sample_ids: list[int]
+    ) -> None:
+        """Grayscale PNG label values survive display-intensity expansion."""
+        label_map = np.array([sample_ids], dtype=np.uint8)
+        class_ids = np.unique(label_map)
+        class_ids = class_ids[class_ids != 0]
+
+        detections = Detections.from_semantic_segmentation(label_png)
+
+        np.testing.assert_array_equal(detections.class_id, class_ids)
+        np.testing.assert_array_equal(
+            detections.mask, label_map == class_ids[:, None, None]
+        )
+
     def test_keeps_ids_above_255_from_a_16_bit_png(self) -> None:
         """A 16-bit PNG keeps class ids that do not fit in 8 bits."""
         label_map = np.array([[0, 300], [300, 7]], dtype=np.uint16)
