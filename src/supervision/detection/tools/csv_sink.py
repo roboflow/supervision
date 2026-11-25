@@ -178,10 +178,12 @@ class CSVSink:
         ``csv.writer`` calls ``str()``, which abbreviates arrays of more than 1000
         elements with ``...`` and uses a space-separated, multi-line layout.
         Arrays with at least one dimension are written as ``json.dumps`` of
-        ``tolist()``, matching
-        :class:`~supervision.detection.tools.json_sink.JSONSink`. Other values pass
-        through
-        unchanged, as do arrays JSON cannot represent (e.g. object arrays).
+        ``tolist()``, the list layout
+        :class:`~supervision.detection.tools.json_sink.JSONSink` uses, except that
+        non-finite values stay ``NaN``, ``Infinity`` or ``-Infinity`` where
+        :class:`~supervision.detection.tools.json_sink.JSONSink` writes ``null``.
+        Other values pass through unchanged, as do arrays JSON cannot represent
+        (e.g. object arrays).
 
         Args:
             value: Value of one cell in a detection row.

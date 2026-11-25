@@ -7,7 +7,7 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
-- **Behaviour change:** `sv.JSONSink` writes `NaN` and infinite values as `null`. It wrote them as `NaN`, `Infinity` or `-Infinity`, which are not valid JSON, so strict parsers such as `JSON.parse` in browsers raised `SyntaxError` on files with a missing value. Python's `json` module now reads these values as `None` instead of `float("nan")`. ([#3028](https://github.com/roboflow/supervision/pull/3028))
+- `sv.JSONSink` now writes `NaN` and infinite values as `null`. Previously it wrote them as `NaN`, `Infinity` or `-Infinity`, which are not valid JSON, so strict parsers such as `JSON.parse` in browsers raised `SyntaxError` on files with a missing value. Python's `json` module now reads these values as `None` instead of `float("nan")`. ([#3028](https://github.com/roboflow/supervision/pull/3028))
 
 ### 0.32.0 <small>Nov 18, 2026</small>
 
