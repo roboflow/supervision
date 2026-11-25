@@ -9,6 +9,7 @@ from supervision.config import (
     KEYPOINT_COVARIANCE_DATA_FIELD,
     KEYPOINT_VISIBILITY_DATA_FIELD,
 )
+from supervision.detection.core import Detections
 from supervision.key_points.annotators import EdgeAnnotator
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import Skeleton
@@ -1223,6 +1224,148 @@ def test_key_points_as_detections_empty():
     empty_key_points = KeyPoints.empty()
     empty_detections = empty_key_points.as_detections()
     assert empty_detections.is_empty()
+
+
+class TestKeyPointsAsDetectionsKeepsFields:
+    """Inputs with nothing to box keep their fields, like all-invalid skeletons."""
+
+    @pytest.mark.parametrize(
+        ("count", "keypoint_count"),
+        [
+            pytest.param(0, 17, id="no-skeletons"),
+            pytest.param(0, 0, id="no-skeletons-no-keypoints"),
+            pytest.param(2, 0, id="skeletons-without-keypoints"),
+        ],
+    )
+    def test_data_class_id_and_confidence_kept(
+        self, count: int, keypoint_count: int
+    ) -> None:
+        """Data keys, class_id and confidence survive with zero rows and dtypes."""
+        key_points = KeyPoints(
+            xy=np.zeros((count, keypoint_count, 2), dtype=np.float32),
+            class_id=np.arange(count, dtype=np.int64),
+            detection_confidence=np.full(count, 0.9, dtype=np.float64),
+            data={"track": np.arange(count, dtype=np.int32)},
+        )
+
+        detections = key_points.as_detections()
+
+        assert len(detections) == 0
+        assert detections.class_id is not None
+        assert detections.class_id.dtype == np.int64
+        assert detections.confidence is not None
+        assert detections.confidence.dtype == np.float32
+        assert list(detections.data) == ["track"]
+        assert detections.data["track"].dtype == np.int32
+        assert detections.data["track"].shape == (0,)
+
+    def test_matches_all_invalid_skeletons(self) -> None:
+        """No skeletons gives the same data keys and dtypes as all-[0, 0] skeletons."""
+        fields: dict[str, Any] = {
+            "class_id": np.array([3]),
+            "keypoint_confidence": np.array([[0.4, 0.6]], dtype=np.float32),
+            "data": {"track": np.array([7])},
+        }
+        all_invalid = KeyPoints(xy=np.zeros((1, 2, 2), dtype=np.float32), **fields)
+        no_skeletons = all_invalid[np.array([], dtype=int)]
+
+        expected = all_invalid.as_detections()
+        result = no_skeletons.as_detections()
+
+        assert len(expected) == 0
+        assert len(result) == 0
+        assert result.class_id is not None
+        assert expected.class_id is not None
+        assert result.class_id.dtype == expected.class_id.dtype
+        assert result.confidence is not None
+        assert expected.confidence is not None
+        assert result.confidence.dtype == expected.confidence.dtype
+        assert list(result.data) == list(expected.data)
+
+    @pytest.mark.parametrize(
+        ("count", "keypoint_count"),
+        [
+            pytest.param(0, 17, id="no-skeletons"),
+            pytest.param(2, 0, id="skeletons-without-keypoints"),
+        ],
+    )
+    def test_no_optional_fields_match_detections_empty(
+        self, count: int, keypoint_count: int
+    ) -> None:
+        """Without optional fields, the result equals `Detections.empty()`."""
+        key_points = KeyPoints(
+            xy=np.zeros((count, keypoint_count, 2), dtype=np.float32)
+        )
+
+        detections = key_points.as_detections()
+
+        assert detections == Detections.empty()
+
+    def test_input_unchanged(self) -> None:
+        """The result does not alias the input's data arrays."""
+        track = np.arange(2, dtype=np.int32)
+        key_points = KeyPoints(
+            xy=np.zeros((2, 0, 2), dtype=np.float32), data={"track": track}
+        )
+
+        detections = key_points.as_detections()
+
+        assert not np.shares_memory(detections.data["track"], track)
+        np.testing.assert_array_equal(key_points.data["track"], [0, 1])
+
+    @pytest.mark.parametrize(
+        ("count", "indices"),
+        [
+            pytest.param(0, [17], id="no-skeletons-past-end"),
+            pytest.param(0, [0, -18], id="no-skeletons-negative-past-start"),
+            pytest.param(2, [17], id="skeletons-past-end"),
+            pytest.param(2, [-18], id="skeletons-negative-past-start"),
+        ],
+    )
+    def test_out_of_range_indices_raise(self, count: int, indices: list[int]) -> None:
+        """Out-of-range indices raise with and without skeletons."""
+        key_points = KeyPoints(xy=np.ones((count, 17, 2), dtype=np.float32))
+
+        with pytest.raises(IndexError, match="out of range for 17 key points"):
+            key_points.as_detections(selected_keypoint_indices=indices)
+
+    @pytest.mark.parametrize("indices", [[0, 16], [-17, -1]])
+    def test_in_range_indices_on_no_skeletons(self, indices: list[int]) -> None:
+        """In-range indices on a frame without skeletons give zero rows."""
+        key_points = KeyPoints(
+            xy=np.zeros((0, 17, 2), dtype=np.float32),
+            data={"row": np.array([], dtype=int)},
+        )
+
+        detections = key_points.as_detections(selected_keypoint_indices=indices)
+
+        assert len(detections) == 0
+        assert list(detections.data) == ["row"]
+
+    def test_indices_on_empty_keypoint_axis_give_zero_rows(self) -> None:
+        """Without a key point axis, any indices give zero rows instead of raising."""
+        key_points = KeyPoints(
+            xy=np.zeros((2, 0, 2), dtype=np.float32),
+            data={"row": np.arange(2)},
+        )
+
+        detections = key_points.as_detections(selected_keypoint_indices=[5])
+
+        assert len(detections) == 0
+        assert list(detections.data) == ["row"]
+
+    def test_list_data_kept_as_empty_list(self) -> None:
+        """A list-valued data field is kept as a new empty list."""
+        names = ["left", "right"]
+        key_points = KeyPoints(
+            xy=np.zeros((2, 0, 2), dtype=np.float32), data={"name": names}
+        )
+
+        detections = key_points.as_detections()
+
+        assert detections.data["name"] == []
+        assert detections.data["name"] is not names
+        assert names == ["left", "right"]
 
 
 def test_key_points_as_detections_ignores_missing_keypoints():

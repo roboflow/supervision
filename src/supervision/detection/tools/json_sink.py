@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import os
 from copy import deepcopy
 from types import TracebackType
@@ -35,6 +36,8 @@ class JSONSink:
         is broadcast to all rows.
         NumPy scalars (e.g. ``np.int64``, ``np.float32``) are serialized as
         JSON numbers; NumPy arrays are serialized as JSON arrays.
+        Non-finite floats (``NaN``, ``inf``, ``-inf``) are written as ``null``,
+        so the file stays valid JSON for strict parsers.
 
     Args:
         file_name: The name of the JSON file where the detections will be stored.
@@ -97,12 +100,14 @@ class JSONSink:
     def _json_default(value: Any) -> Any:
         """Return a JSON-serializable equivalent of a NumPy scalar or array.
 
-        Called as the ``default`` hook by :func:`json.dump`. Converts
+        Called by
+        :meth:`~supervision.detection.tools.json_sink.JSONSink._replace_non_finite`
+        before writing. Converts
         :class:`numpy.generic` scalars via ``.item()`` and
         :class:`numpy.ndarray` instances via ``.tolist()``.
 
         Args:
-            value: Object the standard JSON encoder could not serialize.
+            value: NumPy scalar or array to convert.
 
         Returns:
             A Python scalar or nested list equivalent of ``value``.
@@ -118,6 +123,55 @@ class JSONSink:
             f"Object of type {type(value).__name__} is not JSON serializable"
         )
 
+    @staticmethod
+    def _replace_non_finite(value: Any) -> Any:
+        """Return ``value`` as JSON types, with non-finite floats as ``None``.
+
+        :func:`json.dump` writes Python floats itself, so its ``default`` hook never
+        sees them and ``NaN`` or ``Infinity`` would reach the file as tokens that
+        strict JSON parsers reject. NumPy scalars and arrays are converted first.
+
+        Args:
+            value: Row data, possibly nested in dictionaries, lists or tuples.
+
+        Returns:
+            The same structure with NumPy values converted and every non-finite
+            float replaced by ``None``. Other objects are returned unchanged.
+        """
+        if isinstance(value, (np.generic, np.ndarray)):
+            value = JSONSink._json_default(value)
+        if isinstance(value, float):
+            return value if math.isfinite(value) else None
+        if isinstance(value, dict):
+            return {
+                JSONSink._json_key(key): JSONSink._replace_non_finite(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [JSONSink._replace_non_finite(item) for item in value]
+        return value
+
+    @staticmethod
+    def _json_key(key: Any) -> Any:
+        """Return a non-finite float key as the string :func:`json.dump` wrote for it.
+
+        JSON object keys are strings, so a ``NaN`` key was always written as the valid
+        key ``"NaN"``; ``allow_nan=False`` would now reject it, so it is converted
+        here to keep that output.
+
+        Args:
+            key: Dictionary key from row data.
+
+        Returns:
+            ``"NaN"``, ``"Infinity"`` or ``"-Infinity"`` for a non-finite float key,
+            otherwise ``key`` unchanged.
+        """
+        if isinstance(key, float) and not math.isfinite(key):
+            if math.isnan(key):
+                return "NaN"
+            return "Infinity" if key > 0 else "-Infinity"
+        return key
+
     def write_and_close(self) -> None:
         """Write and close the JSON file.
 
@@ -127,7 +181,12 @@ class JSONSink:
         if self.file is None or self.file.closed:
             return
         try:
-            json.dump(self.data, self.file, indent=4, default=JSONSink._json_default)
+            json.dump(
+                JSONSink._replace_non_finite(self.data),
+                self.file,
+                indent=4,
+                allow_nan=False,
+            )
         finally:
             self.file.close()
 
