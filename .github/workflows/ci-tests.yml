@@ -106,7 +106,7 @@ jobs:
         run: uv cache prune --ci
 
   minimum-numpy:
-    name: Minimum dependencies import
+    name: Testing w/ minimum dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -126,14 +126,19 @@ jobs:
         # Python 3.12 only parses pyproject.toml; the package itself installs on 3.10 below.
         run: uv run --no-project --python 3.12 .github/scripts/pin_minimum_dependencies.py > minimum-requirements.txt
 
-      - name: 🚀 Install package with minimum dependencies
-        run: uv pip install -r minimum-requirements.txt --group test .
+      - name: 🚀 Install test dependencies
+        # The dev group cannot resolve next to the minimum pins (some tools need newer
+        # Pillow or NumPy), so it is installed first and the pins are applied on top.
+        run: uv pip install -e . --group dev
+
+      - name: 📉 Downgrade the package dependencies to their minimum versions
+        run: uv pip install -r minimum-requirements.txt
 
       - name: 📋 Print installed packages
         run: uv pip list
 
-      - name: 🧪 Check import and annotation introspection
-        run: python -m pytest tests/key_points/test_numpy_compatibility.py -q
+      - name: 🧪 Run the Test
+        run: python -m pytest src/ tests/ -m "not metrics" --strict-markers -rs
 
   with-torch:
     name: Testing w/ tensors (CPU)
