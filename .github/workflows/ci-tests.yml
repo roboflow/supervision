@@ -106,7 +106,7 @@ jobs:
         run: uv cache prune --ci
 
   minimum-numpy:
-    name: Minimum NumPy import
+    name: Minimum dependencies import
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -122,8 +122,15 @@ jobs:
           activate-environment: true
           enable-cache: true # zizmor: ignore[cache-poisoning] -- Test-only workflow; publishing jobs do not restore this cache.
 
-      - name: 🚀 Install package with NumPy 1.21
-        run: uv pip install "numpy==1.21.6" "pytest>=7.2.2,<10" .
+      - name: 📌 Pin dependencies to their declared minimum versions
+        # Python 3.12 only parses pyproject.toml; the package itself installs on 3.10 below.
+        run: uv run --no-project --python 3.12 .github/scripts/pin_minimum_dependencies.py > minimum-requirements.txt
+
+      - name: 🚀 Install package with minimum dependencies
+        run: uv pip install -r minimum-requirements.txt "pytest>=7.2.2,<10" .
+
+      - name: 📋 Print installed packages
+        run: uv pip list
 
       - name: 🧪 Check import and annotation introspection
         run: python -m pytest tests/key_points/test_numpy_compatibility.py -q
