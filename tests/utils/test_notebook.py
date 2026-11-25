@@ -43,3 +43,57 @@ def test_plot_images_grid_draws_each_image_in_its_own_cell(
     plt.close(figure)
     assert drawn[0] == (1, "frame")
     assert all(images == 0 for images, _ in drawn[1:])
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [
+        pytest.param((4, 4), id="two-dimensional"),
+        pytest.param((4, 4, 1), id="trailing-channel-axis"),
+    ],
+)
+def test_plot_image_draws_single_channel_image_with_colormap(
+    monkeypatch: pytest.MonkeyPatch, shape: tuple[int, ...]
+) -> None:
+    """A grayscale image is drawn with the colormap, with or without a channel axis."""
+    import matplotlib.pyplot as plt
+
+    from supervision.utils.notebook import plot_image
+
+    monkeypatch.setattr(plt, "show", lambda: None)
+    image = np.arange(16, dtype=np.uint8).reshape(shape)
+
+    plot_image(image=image, cmap="gray")
+
+    figure = plt.gcf()
+    (drawn,) = figure.axes[0].get_images()
+    plt.close(figure)
+    assert np.array_equal(drawn.get_array(), image.reshape(4, 4))
+    assert drawn.get_cmap().name == "gray"
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [
+        pytest.param((4, 4), id="two-dimensional"),
+        pytest.param((4, 4, 1), id="trailing-channel-axis"),
+    ],
+)
+def test_plot_images_grid_draws_single_channel_image_with_colormap(
+    monkeypatch: pytest.MonkeyPatch, shape: tuple[int, ...]
+) -> None:
+    """A grayscale grid cell uses the colormap, with or without a channel axis."""
+    import matplotlib.pyplot as plt
+
+    from supervision.utils.notebook import plot_images_grid
+
+    monkeypatch.setattr(plt, "show", lambda: None)
+    image = np.arange(16, dtype=np.uint8).reshape(shape)
+
+    plot_images_grid(images=[image], grid_size=(1, 1), cmap="gray")
+
+    figure = plt.gcf()
+    (drawn,) = figure.axes[0].get_images()
+    plt.close(figure)
+    assert np.array_equal(drawn.get_array(), image.reshape(4, 4))
+    assert drawn.get_cmap().name == "gray"

@@ -5,11 +5,13 @@ import os
 import warnings
 from collections.abc import Sequence
 from decimal import Decimal, InvalidOperation
+from itertools import pairwise
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
+import yaml
 from tqdm.auto import tqdm
 
 from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
@@ -31,7 +33,6 @@ from supervision.detection.utils.polygons import merge_multi_segment
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
-    read_yaml_file,
     save_text_file,
     save_yaml_file,
 )
@@ -54,6 +55,12 @@ _YOLO_IMAGE_EXTENSIONS: tuple[str, ...] = (
     "tiff",
     "webp",
 )
+
+#: YAML tag of a ``<<`` merge key, whose merged entries explicit keys may override.
+_YAML_MERGE_TAG = "tag:yaml.org,2002:merge"
+
+#: YAML tag of a string scalar, used to find the ``names`` key in data.yaml.
+_YAML_STR_TAG = "tag:yaml.org,2002:str"
 
 
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
@@ -197,6 +204,107 @@ def _with_seg_mask(lines: list[str]) -> bool:
     return any(len(line.split()) > 6 for line in lines)
 
 
+def _check_names_keys_unique(
+    loader: yaml.SafeLoader, root: yaml.Node, file_path: str
+) -> None:
+    """Reject a data.yaml that declares ``names`` twice or repeats a key inside it.
+
+    PyYAML keeps only the last value of a repeated mapping key, so either repeat
+    would silently relabel annotations. Keys are compared after construction:
+    ``1``, ``01``, ``1.0``, and ``true`` all collapse to one dict key.
+
+    Raises:
+        ValueError: If the root repeats ``names`` or a ``names`` mapping repeats
+            a key.
+    """
+    if not isinstance(root, yaml.MappingNode):
+        return
+    visited: set[int] = set()
+
+    def merged_mappings(node: yaml.MappingNode) -> list[yaml.MappingNode]:
+        """Return merge sources in YAML precedence order."""
+        result: list[yaml.MappingNode] = []
+        for key, value in node.value:
+            if key.tag == _YAML_MERGE_TAG:
+                values = (
+                    value.value if isinstance(value, yaml.SequenceNode) else [value]
+                )
+                result.extend(
+                    item for item in values if isinstance(item, yaml.MappingNode)
+                )
+        return result
+
+    def check_names(node: yaml.MappingNode) -> None:
+        """Reject duplicate explicit keys in each contributing names mapping."""
+        if id(node) in visited:
+            return
+        visited.add(id(node))
+        seen: set[Any] = set()
+        for key_node, _ in node.value:
+            if (
+                isinstance(key_node, yaml.ScalarNode)
+                and key_node.tag != _YAML_MERGE_TAG
+            ):
+                key = loader.construct_object(key_node)
+                if key in seen:
+                    raise ValueError(
+                        f"Found duplicate class key {key!r} in 'names' "
+                        f"at '{file_path}'."
+                    )
+                seen.add(key)
+        for source in merged_mappings(node):
+            check_names(source)
+
+    def find_names(node: yaml.MappingNode, seen: set[int]) -> yaml.Node | None:
+        """Find the effective names node while allowing overrides."""
+        if id(node) in seen:
+            return None
+        seen.add(id(node))
+        values = [
+            value
+            for key, value in node.value
+            if isinstance(key, yaml.ScalarNode)
+            and key.tag == _YAML_STR_TAG
+            and key.value == "names"
+        ]
+        if len(values) > 1:
+            raise ValueError(
+                f"Found duplicate key 'names' in data.yaml at '{file_path}'."
+            )
+        if values:
+            return cast(yaml.Node, values[0])
+        for source in merged_mappings(node):
+            value = find_names(source, seen)
+            if value is not None:
+                return value
+        return None
+
+    names_node = find_names(root, set())
+    if isinstance(names_node, yaml.MappingNode):
+        check_names(names_node)
+
+
+def _load_data_yaml(file_path: str) -> Any:
+    """Parse a YOLO data.yaml file, rejecting repeated ``names`` keys.
+
+    The node tree is checked before construction, because the constructed dict
+    has already dropped all but the last value of a repeated key.
+
+    Raises:
+        ValueError: If ``names`` is declared twice or repeats a key.
+    """
+    with open(file_path, encoding="utf-8") as file:
+        loader = yaml.SafeLoader(file)
+        try:
+            root = loader.get_single_node()
+            if root is None:
+                return None
+            _check_names_keys_unique(loader=loader, root=root, file_path=file_path)
+            return loader.construct_document(root)
+        finally:
+            loader.dispose()
+
+
 def _read_data_yaml(file_path: str) -> dict[str, Any]:
     """Read a YOLO data.yaml file and check that its root is a mapping.
 
@@ -207,9 +315,10 @@ def _read_data_yaml(file_path: str) -> dict[str, Any]:
         The parsed data.yaml content.
 
     Raises:
-        ValueError: If the YAML root is not a mapping.
+        ValueError: If the YAML root is not a mapping, if ``names`` is declared
+            twice, or if a ``names`` mapping repeats a key.
     """
-    data: dict[str, Any] = read_yaml_file(file_path=file_path)
+    data: dict[str, Any] = _load_data_yaml(file_path=file_path)
     if not isinstance(data, dict):
         raise ValueError(
             f"Expected mapping in data.yaml at '{file_path}',"
@@ -237,6 +346,52 @@ def _extract_class_names(file_path: str) -> list[str]:
     )
 
 
+def _is_int_like(key: Any) -> bool:
+    """Return whether a data.yaml ``names`` key is an int or a digit string."""
+    # bool subclasses int; YAML `true`/`false` must not become class indices
+    if isinstance(key, bool):
+        return False
+    if isinstance(key, int):
+        return True
+    if isinstance(key, str):
+        stripped = key.strip()
+        return stripped.isdigit()
+    return False
+
+
+def _extract_class_ids_from_data(data: dict[str, Any]) -> list[int]:
+    """Return the class ids data.yaml declares, aligned with its class names.
+
+    A ``names`` list declares ids ``0`` to ``N - 1``. A dict with numeric keys
+    declares exactly its keys, which may start above ``0`` or skip values. A
+    dict with non-numeric keys is read by position. Call this only after
+    :func:`~supervision.dataset.formats.yolo._extract_class_names_from_data`
+    has validated ``names``.
+    """
+    names = data["names"]
+    if isinstance(names, dict) and all(_is_int_like(key) for key in names):
+        return sorted(int(key) for key in names)
+    return list(range(len(names)))
+
+
+def _class_ids_to_indices(
+    class_id: npt.NDArray[np.integer], declared_class_ids: list[int]
+) -> npt.NDArray[np.intp]:
+    """Map label class ids to positions in the class-name list of data.yaml.
+
+    Raises:
+        ValueError: If a class id is not declared in data.yaml ``names``.
+    """
+    declared = np.asarray(declared_class_ids, dtype=int)
+    unknown = class_id[~np.isin(class_id, declared)]
+    if unknown.size:
+        raise ValueError(
+            f"class id {int(unknown[0])} is not declared in data.yaml 'names'."
+        )
+    # `declared` is sorted, so each id's insertion point is its name's position.
+    return np.searchsorted(declared, class_id)
+
+
 def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list[str]:
     """Return class names from parsed YOLO data.yaml content ordered by class index.
 
@@ -261,18 +416,6 @@ def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
-
-        def _is_int_like(key: Any) -> bool:
-            # bool subclasses int; YAML `true`/`false` must not become class indices
-            if isinstance(key, bool):
-                return False
-            if isinstance(key, int):
-                return True
-            if isinstance(key, str):
-                stripped = key.strip()
-                return stripped.isdigit()
-            return False
-
         int_like = [_is_int_like(k) for k in keys]
         if any(int_like) and not all(int_like):
             mixed_numeric = [k for k, il in zip(keys, int_like) if il][:3]
@@ -284,6 +427,12 @@ def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list
             )
         if all(int_like):
             sorted_keys = sorted(keys, key=lambda k: int(k))
+            numeric_ids = [int(key) for key in sorted_keys]
+            for left, right in pairwise(numeric_ids):
+                if left == right:
+                    raise ValueError(
+                        f"Found duplicate class id {left} in 'names' at '{file_path}'."
+                    )
         else:
             sorted_keys = sorted(keys, key=str)
         return [str(names[key]) for key in sorted_keys]
@@ -519,6 +668,15 @@ def yolo_annotations_to_detections(
     return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
 
 
+def _remap_yolo_export_lines(lines: list[str], class_ids: list[int]) -> list[str]:
+    """Restore source class IDs in serialized YOLO rows."""
+    remapped = []
+    for line in lines:
+        class_id, values = line.split(" ", 1)
+        remapped.append(f"{class_ids[int(class_id)]} {values}")
+    return remapped
+
+
 def load_yolo_annotations(
     images_directory_path: str,
     annotations_directory_path: str,
@@ -557,13 +715,16 @@ def load_yolo_annotations(
     Returns:
         A tuple containing class names, image file paths, and a dictionary mapping
         image paths to :class:`~supervision.detection.core.Detections` instances.
+            Each `class_id` indexes the class names, so a `names` dict such as
+            `{1: cat, 2: dog}` loads label id `1` as class `0`.
 
     Raises:
         ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
             not a list or dict, or a dict mixing numeric and non-numeric keys;
             or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
             `kpt_shape: null` included. Also if an annotation file contains an
-            invalid line; the message names the offending file.
+            invalid line or a class id that `names` does not declare; the
+            message names the offending file.
 
     Example:
         ```python
@@ -592,7 +753,9 @@ def load_yolo_annotations(
         )
     ]
 
-    classes = _extract_class_names(file_path=data_yaml_path)
+    data = _read_data_yaml(file_path=data_yaml_path)
+    classes = _extract_class_names_from_data(data=data, file_path=data_yaml_path)
+    class_ids = _extract_class_ids_from_data(data=data)
     pose_value_count = _extract_pose_value_count(file_path=data_yaml_path)
     if is_obb:
         # OBB rows are never pose labels, yet a nine-token OBB row would match
@@ -628,6 +791,12 @@ def load_yolo_annotations(
                 is_obb=is_obb,
                 compact_masks=compact_masks,
             )
+            if annotation.class_id is not None:
+                # data.yaml may declare ids such as {1: cat, 2: dog}; `classes`
+                # is indexed by position, so class ids are remapped to match it.
+                annotation.class_id = _class_ids_to_indices(
+                    class_id=annotation.class_id, declared_class_ids=class_ids
+                )
         except ValueError as error:
             # One bad label among thousands of files must be traceable to its file.
             raise ValueError(
@@ -900,6 +1069,11 @@ def save_yolo_annotations(
 
         ```
     """
+    if not dataset._yolo_normalized_export:
+        # The dataset module imports this writer, so resolve the circular boundary here.
+        from supervision.dataset.core import _prepare_yolo_export
+
+        dataset = cast("DetectionDataset", _prepare_yolo_export(dataset))
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: _image_name_to_annotation_name(Path(image_path).name),
@@ -927,6 +1101,9 @@ def save_yolo_annotations(
             ignore_crowd=ignore_crowd,
             merge_segments=merge_segments,
         )
+        export_ids = getattr(dataset, "_yolo_export_class_ids", None)
+        if export_ids is not None:
+            lines = _remap_yolo_export_lines(lines, export_ids)
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
