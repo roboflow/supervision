@@ -7,6 +7,8 @@ date_modified: 2026-11-21
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionDataset.from_pascal_voc` now gives class ids in sorted class-name order. It used to number classes in the order they first appeared in the annotation files, so train and valid splits with the same classes could get different ids, and exporting both with `as_yolo` wrote one split's labels under the other split's class names. Datasets whose classes did not already appear in sorted order load with different `class_id` values. ([#3069](https://github.com/roboflow/supervision/pull/3069))
+
 - `sv.Detections.with_nmm` retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32, other coordinate dtypes retain float32 unions. Singleton groups are unchanged before stacking, but final dtype promotion can round integer coordinates. ([#3053](https://github.com/roboflow/supervision/pull/3053))
 
 - `sv.Detections.from_ultralytics` now resizes binary uint8 masks in floating point before applying the 0.5 threshold, avoiding extra foreground pixels along mask edges. ([#3041](https://github.com/roboflow/supervision/pull/3041))
