@@ -29,8 +29,8 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 
 @dataclass
 class Classifications:
-    """
-    Class to standardize results from myriad image classifier models to a consistent format
+    """Class to standardize results from myriad image classifier models to a consistent
+    format.
 
     One instance describes one image. Model connectors return every class id with its corresponding confidence score. By comparison, :class:`~supervision.dataset.core.ClassificationDataset` stores a label as class ids WITHOUT confidence scores. Class names are not stored, only id values for each class.
 

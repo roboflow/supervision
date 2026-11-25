@@ -28,68 +28,76 @@ image = sv.pillow_to_cv2(pil_image)
 
 Ultralytics classification models return class probabilities and class names respectively in the forms `Results.probs` and and `Results.names`. Use `sv.Classifications.from_ultralytics` to read the probabilities.
 
-    ```python
-    from ultralytics import YOLO
+````
+```python
+from ultralytics import YOLO
 
-    model = YOLO("yolov8n-cls.pt")
-    result = model(pil_image)[0]
+model = YOLO("yolov8n-cls.pt")
+result = model(pil_image)[0]
 
-    classifications = sv.Classifications.from_ultralytics(result)
-    class_names = result.names
-    ```
+classifications = sv.Classifications.from_ultralytics(result)
+class_names = result.names
+```
+````
 
 ### timm
 
 timm models return raw logits. Use `sv.Classifications.from_timm` to apply softmax to logits so confidence scores sum to 1.
 
-    ```python
-    import timm
-    import torch
-    from timm.data import create_transform, resolve_data_config
+````
+```python
+import timm
+import torch
+from timm.data import create_transform, resolve_data_config
 
-    model = timm.create_model(
-        "hf-hub:nateraw/resnet50-oxford-iiit-pet", pretrained=True
-    ).eval()
-    transform = create_transform(**resolve_data_config({}, model=model))
+model = timm.create_model(
+    "hf-hub:nateraw/resnet50-oxford-iiit-pet", pretrained=True
+).eval()
+transform = create_transform(**resolve_data_config({}, model=model))
 
-    with torch.no_grad():
-        output = model(transform(pil_image).unsqueeze(0))
+with torch.no_grad():
+    output = model(transform(pil_image).unsqueeze(0))
 
-    classifications = sv.Classifications.from_timm(output)
-    class_names = model.pretrained_cfg["label_names"]
-    ```
+classifications = sv.Classifications.from_timm(output)
+class_names = model.pretrained_cfg["label_names"]
+```
+````
 
 ### CLIP
 
 CLIP scores an image against text prompts, with prompts being class names. Much like `from_timm`, use `sv.Classifications.from_clip` to apply softmax to image logits.
 
-    ```python
-    import clip
-    import torch
+````
+```python
+import clip
+import torch
 
-    model, preprocess = clip.load("ViT-B/32", device="cpu")
-    class_names = ["a diagram", "a dog", "a cat"]
+model, preprocess = clip.load("ViT-B/32", device="cpu")
+class_names = ["a diagram", "a dog", "a cat"]
 
-    with torch.no_grad():
-        logits_per_image, _ = model(
-            preprocess(pil_image).unsqueeze(0), clip.tokenize(class_names)
-        )
+with torch.no_grad():
+    logits_per_image, _ = model(
+        preprocess(pil_image).unsqueeze(0), clip.tokenize(class_names)
+    )
 
-    classifications = sv.Classifications.from_clip(logits_per_image)
-    ```
+classifications = sv.Classifications.from_clip(logits_per_image)
+```
+````
 
 ### Other models
 
 For a model without a connector, you need to pass one score per class as a NumPy array.
 
-    ```python
-    import numpy as np
+````
+```python
+import numpy as np
 
-    scores = np.array([0.1, 0.7, 0.2])
-    class_names = ["cat", "dog", "fox"]
+scores = np.array([0.1, 0.7, 0.2])
+class_names = ["cat", "dog", "fox"]
 
-    classifications = sv.Classifications(class_id=np.arange(len(scores)), confidence=scores)
-    ```
+classifications = sv.Classifications(class_id=np.arange(len(scores)), confidence=scores)
+```
+````
 
 ## Read Top Classes
 
