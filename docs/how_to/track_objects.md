@@ -8,12 +8,28 @@ authors:
   - name: Soumik Mandal
     role: ML Engineer, Roboflow
     github: https://github.com/soumik12345
-date_modified: 2026-11-18
+date_modified: 2026-11-25
 ---
 
 # Track Objects
 
 Leverage Supervision's advanced capabilities for enhancing your video analysis by seamlessly tracking objects recognized by a multitude of object detection, segmentation and keypoint models. This comprehensive guide will take you through the steps to perform inference using native [RF-DETR](https://github.com/roboflow/rf-detr), with [Inference](https://github.com/roboflow/inference) and [Ultralytics](https://github.com/ultralytics/ultralytics) alternatives. Following this, you'll discover how to track these objects efficiently and annotate your video content for a deeper analysis.
+
+## Prerequisites
+
+This tutorial requires Python 3.10 or later. Install Supervision and the external `trackers` package, which provides `ByteTrackTracker`:
+
+```bash
+pip install "supervision>=0.31.0" "trackers>=2.7.0"
+```
+
+Then install the inference framework you plan to use. The examples for each framework are alternatives, so you only need one:
+
+- RF-DETR: `pip install "rfdetr>=1.8.0"` (provides `RFDETRMedium` and `RFDETRKeypointPreview`; the keypoint preview model was added in 1.8.0)
+- Inference: `pip install inference` (supports Python 3.10 to 3.13)
+- Ultralytics: `pip install ultralytics`
+
+The Inference examples need a Roboflow API key. Replace `<ROBOFLOW_API_KEY>` with your key, which you can [find in your Roboflow settings](https://docs.roboflow.com/developer/authentication/find-your-roboflow-api-key). Keep the key private and do not commit it to source control. The RF-DETR and Ultralytics examples do not need an API key.
 
 ## Object Detection & Segmentation
 
@@ -953,7 +969,8 @@ The samples above track boxes. For per-person pose analysis you need the tracker
         detections = tracker.update(key_points.as_detections())
 
         key_points.data["tracker_id"] = np.full(len(key_points), -1)
-        key_points.data["tracker_id"][detections.data["row"]] = detections.tracker_id
+        if len(detections):
+            key_points.data["tracker_id"][detections.data["row"]] = detections.tracker_id
         key_points = key_points[key_points.data["tracker_id"] != -1]
 
         annotated_frame = edge_annotator.annotate(
@@ -990,7 +1007,8 @@ The samples above track boxes. For per-person pose analysis you need the tracker
         detections = tracker.update(key_points.as_detections())
 
         key_points.data["tracker_id"] = np.full(len(key_points), -1)
-        key_points.data["tracker_id"][detections.data["row"]] = detections.tracker_id
+        if len(detections):
+            key_points.data["tracker_id"][detections.data["row"]] = detections.tracker_id
         key_points = key_points[key_points.data["tracker_id"] != -1]
 
         # Inference may omit trailing joints, so keep only edges within the array.
@@ -1031,7 +1049,8 @@ The samples above track boxes. For per-person pose analysis you need the tracker
         detections = tracker.update(key_points.as_detections())
 
         key_points.data["tracker_id"] = np.full(len(key_points), -1)
-        key_points.data["tracker_id"][detections.data["row"]] = detections.tracker_id
+        if len(detections):
+            key_points.data["tracker_id"][detections.data["row"]] = detections.tracker_id
         key_points = key_points[key_points.data["tracker_id"] != -1]
 
         annotated_frame = edge_annotator.annotate(
@@ -1046,7 +1065,7 @@ The samples above track boxes. For per-person pose analysis you need the tracker
     )
     ```
 
-On frames without people, `as_detections()` returns zero rows that still carry the `row` field, and the tracker keeps it (`trackers` 2.7.0 and later), so the assignment changes nothing. Each skeleton in `key_points` now has its ID in `key_points.data["tracker_id"]`; new tracks start with `tracker_id=-1`. With these tracker settings, a track started by a detection that meets the activation threshold can receive an ID on its next successfully matched frame. The filter keeps only skeletons that have been assigned an ID. Inference can omit low-confidence joints, including the last COCO joint; the example filters the COCO edges to the available keypoint indices so that the remaining edges can still be drawn.
+On frames without tracked detections, the assignment is skipped because older Supervision releases can omit the `row` field from empty results. Each skeleton in `key_points` now has its ID in `key_points.data["tracker_id"]`; new tracks start with `tracker_id=-1`. With these tracker settings, a track started by a detection that meets the activation threshold can receive an ID on its next successfully matched frame. The filter keeps only skeletons that have been assigned an ID. Inference can omit low-confidence joints, including the last COCO joint; the example filters the COCO edges to the available keypoint indices so that the remaining edges can still be drawn.
 
 This structured walkthrough should give a detailed pathway to annotate videos effectively using Supervision’s various functionalities, including object tracking and trace annotations.
 
