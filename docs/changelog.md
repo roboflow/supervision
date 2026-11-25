@@ -5,6 +5,10 @@ date_modified: 2026-11-18
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+-
+
 ### 0.32.2 <small>Nov 25, 2026</small>
 
 - **VLM parsing**: Qwen finds its detection array wherever it sits, Gemini keeps valid boxes and confidence, and DeepSeek-VL2 validates `resolution_wh`.
