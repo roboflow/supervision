@@ -161,7 +161,6 @@ plugins:
       kernel_name: python3
       execute: false
       include_source: True
-      include_requirejs: true
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -229,19 +228,12 @@ markdown_extensions:
             strip_prompt: true
             strip_continuation_prompt: true
 
-  - pymdownx.arithmatex:
-      generic: true
-
 extra_javascript:
   - "javascripts/version-banner.js"
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "javascripts/pycon_copy.js"
   - "https://app.roboflow.com/scripts/utm.js"
-  - "javascripts/segment.js"
-  - "javascripts/mathjax.js"
-  - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
-  - "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"
 
 validation:
   nav:
