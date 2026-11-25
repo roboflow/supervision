@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from supervision import (
+    CompactMask,
     Detections,
     LineZone,
     LineZoneAnnotator,
@@ -795,6 +796,35 @@ class TestLineZoneSubThresholdFlicker:
                     xyxy=[flickering_box, crossing_box], tracker_id=[1, 2]
                 )
             )
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    @pytest.mark.parametrize("copies", [2, 3])
+    def test_repeated_tracker_id_is_one_observation(self, copies: int) -> None:
+        """Copies of one id in a frame cannot satisfy the threshold on their own."""
+        line_zone = self._line_zone(minimum_crossing_threshold=copies)
+        line_zone.trigger(
+            _create_detections(xyxy=_boxes_from_sides("A"), tracker_id=[0])
+        )
+        duplicates = _create_detections(
+            xyxy=_boxes_from_sides("B" * copies), tracker_id=[0] * copies
+        )
+
+        line_zone.trigger(duplicates)
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+    def test_repeated_tracker_id_on_both_sides_keeps_first_copy(self) -> None:
+        """Copies of one id on both sides of the line give one crossing, not two."""
+        line_zone = self._line_zone(minimum_crossing_threshold=1)
+        line_zone.trigger(
+            _create_detections(xyxy=_boxes_from_sides("A"), tracker_id=[0])
+        )
+        split_copies = _create_detections(
+            xyxy=_boxes_from_sides("BA"), tracker_id=[0, 0]
+        )
+
+        line_zone.trigger(split_copies)
 
         assert (line_zone.in_count, line_zone.out_count) == (0, 1)
 
@@ -2119,3 +2149,33 @@ class TestLineZoneAnnotatorWithCoordTransform:
             LineZoneAnnotator().annotate(
                 frame, line_zone, coord_transform=_WrongShapeTransform()
             )
+
+
+class TestLineZoneCenterOfMassEmptyMask:
+    """`LineZone` with `Position.CENTER_OF_MASS` and detections with empty masks."""
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_stationary_object_with_empty_mask_is_not_counted(
+        self, compact: bool
+    ) -> None:
+        """An object that never moves is not counted when one frame's mask is empty."""
+        line_zone = LineZone(
+            Point(0, 50), Point(160, 50), triggering_anchors=[Position.CENTER_OF_MASS]
+        )
+        xyxy = np.array([[90.0, 80.0, 110.0, 100.0]], dtype=np.float32)
+        full_mask = np.zeros((1, 120, 160), dtype=bool)
+        full_mask[0, 80:100, 90:110] = True
+        empty_mask = np.zeros((1, 120, 160), dtype=bool)
+        frames = []
+        for dense_mask in (full_mask, full_mask, empty_mask, full_mask, full_mask):
+            mask = (
+                CompactMask.from_dense(dense_mask, xyxy, (120, 160))
+                if compact
+                else dense_mask
+            )
+            frames.append(Detections(xyxy=xyxy, mask=mask, tracker_id=np.array([7])))
+
+        for frame in frames:
+            line_zone.trigger(frame)
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)

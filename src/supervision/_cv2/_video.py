@@ -21,6 +21,7 @@ from supervision._cv2.constants import (
     _CAP_PROP_FRAME_HEIGHT,
     _CAP_PROP_FRAME_WIDTH,
     _CAP_PROP_POS_FRAMES,
+    _CAP_PROP_POS_MSEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,25 @@ def _opencv_encoder_options(
     }
 
 
+def _timed_frame_rate(
+    count: int, span: float, last_interval: float, last_duration: float
+) -> float:
+    """Return the rate of `count` frames from the first frame's start to the last's end.
+
+    `span` is the time from the first to the last frame's timestamp, in seconds. The
+    last frame's duration is added to it, so `count` divided by the rate is the video's
+    duration and every backend reports the same rate for one file. Returns 0 when fewer
+    than two frames or no positive span are given.
+    """
+    if count < 2 or span <= 0:
+        return 0.0
+    # Some containers omit the last frame duration; use its preceding interval as an
+    # estimate, which may be inaccurate when the final cadence changes abruptly.
+    if last_duration <= 0:
+        last_duration = last_interval if last_interval > 0 else span / (count - 1)
+    return count / (span + last_duration)
+
+
 def _quarter_turns(rotation: int) -> int:
     """Return the counterclockwise quarter turns OpenCV applies for a display rotation.
 
@@ -123,6 +143,8 @@ class _VideoCapture:
         self._source = source
         self._position = 0
         self._frame_count_cache: int | None = None
+        self._timestamp_fps_cache: float | None = None
+        self._position_msec = 0.0
         self._rotation_cache: int | None = None
         self._opened = False
         self._error: Exception | None = None
@@ -167,6 +189,59 @@ class _VideoCapture:
         self._frame_count_cache = count
         return count
 
+    def _fps(self) -> float:
+        """Return the stream's average frame rate, else the rate of its timestamps.
+
+        A browser-recorded WebM has no average rate, and its base rate is the
+        container's 1 kHz timebase rather than a frame rate, so the video packets'
+        timestamps are measured before falling back to the base rate.
+        """
+        rate = getattr(self._stream, "average_rate", None)
+        if rate:
+            return float(rate)
+        if self._timestamp_fps_cache is None:
+            self._timestamp_fps_cache = self._timestamp_fps()
+        if self._timestamp_fps_cache > 0:
+            return self._timestamp_fps_cache
+        rate = getattr(self._stream, "base_rate", None)
+        return float(rate) if rate is not None else 0.0
+
+    def _timestamp_fps(self) -> float:
+        """Return frames per second of the video stream's packet timestamps, or 0.
+
+        The rate runs to the end of the last frame, as the decoded timing the OpenCV
+        path uses for a browser WebM does, so both backends report the same rate and the
+        frame count over it keeps the video's duration. Only the video stream is
+        demuxed, on a second handle, so a longer audio track or a missing container
+        duration does not change the result.
+        """
+        import av
+
+        container = av.open(str(self._source), mode="r")
+        try:
+            stream = container.streams.video[0]
+            time_base = stream.time_base
+            # Sort by presentation time: the last frame shown is the one whose
+            # duration ends the video, whatever order the packets are stored in.
+            packets = sorted(
+                (packet.pts, packet.duration or 0)
+                for packet in container.demux(stream)
+                if packet.pts is not None and packet.size > 0
+            )
+        finally:
+            container.close()
+        if len(packets) < 2:
+            return 0.0
+        first_pts = packets[0][0]
+        previous_pts = packets[-2][0]
+        last_pts, last_duration = packets[-1]
+        return _timed_frame_rate(
+            count=len(packets),
+            span=float((last_pts - first_pts) * time_base),
+            last_interval=float((last_pts - previous_pts) * time_base),
+            last_duration=float(last_duration * time_base),
+        )
+
     def _rotation(self) -> int:
         """Return the stream's display rotation, decoding one frame on a second handle.
 
@@ -201,14 +276,13 @@ class _VideoCapture:
                 width, height = height, width
             return float(width if property_id == _CAP_PROP_FRAME_WIDTH else height)
         if property_id == _CAP_PROP_FPS:
-            rate = getattr(self._stream, "average_rate", None) or getattr(
-                self._stream, "base_rate", None
-            )
-            return float(rate) if rate is not None else 0.0
+            return self._fps()
         if property_id == _CAP_PROP_FRAME_COUNT:
             return float(self._frame_count())
         if property_id == _CAP_PROP_POS_FRAMES:
             return float(self._position)
+        if property_id == _CAP_PROP_POS_MSEC:
+            return self._position_msec
         return 0.0
 
     def _reset(self) -> None:
@@ -216,6 +290,7 @@ class _VideoCapture:
         self._container.seek(0, stream=self._stream, backward=True)
         self._frames = iter(self._container.decode(video=0))
         self._position = 0
+        self._position_msec = 0.0
 
     def set(self, property_id: int, value: float) -> bool:
         """Set the supported frame-position property using exact frame decoding."""
@@ -245,6 +320,8 @@ class _VideoCapture:
             return False, None
 
         self._position += 1
+        if frame.time is not None:
+            self._position_msec = frame.time * 1000.0
         image = frame.to_ndarray(format="bgr24")
         quarter_turns = _quarter_turns(int(frame.rotation))
         if quarter_turns:
@@ -314,6 +391,9 @@ class _VideoWriter:
             codec, pixel_format = _codec_details(fourcc)
             self._container = av.open(str(filename), mode="w")
             rate = Fraction(str(fps)).limit_denominator(100_000)
+            # MPEG-4 limits the time-base denominator, which is the rate numerator.
+            if codec == "mpeg4" and rate.numerator > 65_535 and fps <= 65_535:
+                rate = rate.limit_denominator(max(1, int(65_535 / fps)))
             self._stream = self._container.add_stream(codec, rate=rate)
             self._stream.width = self._width
             self._stream.height = self._height
@@ -390,7 +470,7 @@ def _best_effort_cleanup(action: Callable[[], None], description: str) -> None:
 
 
 def _mux_audio(source_path: str, video_path: str) -> None:
-    """Remux the source's first audio stream into the processed video with PyAV."""
+    """Remux audio relative to the source video start, preserving its delay."""
     source_container: Any = None
     video_container: Any = None
     output_container: Any = None
@@ -437,9 +517,16 @@ def _mux_audio(source_path: str, video_path: str) -> None:
                 if packet_seconds is not None:
                     video_duration = max(video_duration or 0.0, packet_seconds)
 
-        # Rebase audio independently and stop at the processed video duration, matching
-        # ffmpeg's `-shortest` behavior without requiring a system executable.
+        # The processed video starts at zero. Use the source video origin for audio
+        # too, converting its time base, rather than erasing the audio's delay.
         audio_base: int | None = None
+        if source_container.streams.video:
+            source_video = source_container.streams.video[0]
+            audio_base = round(
+                (source_video.start_time or 0)
+                * source_video.time_base
+                / source_audio.time_base
+            )
         for packet in source_container.demux(source_audio):
             if packet.pts is None and packet.dts is None:
                 continue
@@ -452,7 +539,7 @@ def _mux_audio(source_path: str, video_path: str) -> None:
             if (
                 video_duration is not None
                 and relative_seconds is not None
-                and relative_seconds > video_duration
+                and relative_seconds >= video_duration
             ):
                 break
             packet.pts = relative_pts
