@@ -266,34 +266,34 @@ class MeanAverageRecallResult(MetricResult):
         ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt
+        from matplotlib import rc_context
 
         details = self._get_plot_details()
 
-        plt.rcParams["font.family"] = "monospace"
+        with rc_context({"font.family": "monospace"}):
+            _, ax = plt.subplots(figsize=(10, 6))
+            ax.set_ylim(0, 1)
+            ax.set_ylabel("Value", fontweight="bold")
+            ax.set_title(details.title, fontweight="bold")
 
-        _, ax = plt.subplots(figsize=(10, 6))
-        ax.set_ylim(0, 1)
-        ax.set_ylabel("Value", fontweight="bold")
-        ax.set_title(details.title, fontweight="bold")
-
-        x_positions = range(len(details.labels))
-        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
-
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels(details.labels, rotation=45, ha="right")
-
-        for bar in bars:
-            y_value = bar.get_height()
-            label = "N/A" if y_value == -1 else f"{y_value:.2f}"
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                max(y_value, 0) + 0.02,
-                label,
-                ha="center",
-                va="bottom",
+            x_positions = range(len(details.labels))
+            bars = ax.bar(
+                x_positions, details.values, color=details.colors, align="center"
             )
 
-        plt.rcParams["font.family"] = "sans-serif"
+            ax.set_xticks(x_positions)
+            ax.set_xticklabels(details.labels, rotation=45, ha="right")
+
+            for bar in bars:
+                y_value = bar.get_height()
+                label = "N/A" if y_value == -1 else f"{y_value:.2f}"
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    max(y_value, 0) + 0.02,
+                    label,
+                    ha="center",
+                    va="bottom",
+                )
 
         plt.tight_layout()
         plt.show()

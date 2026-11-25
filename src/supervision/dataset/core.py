@@ -130,8 +130,10 @@ def _validate_and_name_class_ids(
         kind: Annotation noun for error messages, such as ``"Detection"``.
 
     Raises:
-        ValueError: If an annotation carries non-integer class ids, or a class id
-            outside the range of ``classes``; the message names the image.
+        ValueError: If an annotation carries non-integer class ids; the message
+            names the image.
+        ValueError: If an annotation carries a class id outside the range of
+            ``classes``; the message names the image.
     """
     np_classes = np.array(classes)
     for image_path, annotation in annotations.items():
@@ -181,6 +183,28 @@ def _check_key_points_carry_class_id(annotations: dict[str, KeyPoints]) -> None:
             )
 
 
+def _in_memory_images_equal(
+    images_a: dict[str, npt.NDArray[np.uint8]],
+    images_b: dict[str, npt.NDArray[np.uint8]],
+) -> bool:
+    """Compare in-memory dataset images path by path.
+
+    Each pair is compared on its own, so images of different sizes or channel
+    counts within one dataset can still be equal; stacking them into one array
+    fails for mixed shapes, and `np.array_equal` reports that failure as `False`.
+
+    Args:
+        images_a: Images keyed by image path.
+        images_b: Images keyed by image path.
+
+    Returns:
+        `True` if both hold the same paths with equal pixels, `False` otherwise.
+    """
+    return images_a.keys() == images_b.keys() and all(
+        np.array_equal(image, images_b[path]) for path, image in images_a.items()
+    )
+
+
 class BaseDataset(ABC):
     @abstractmethod
     def __len__(self) -> int:
@@ -226,12 +250,14 @@ def _prepare_yolo_export(
     names, source_ids = mapping
     if tuple(dataset.classes) != names:
         raise ValueError("YOLO classes changed; export a new data.yaml.")
-    source_path = dataset._yolo_source_path
-    if source_path is not None and Path(source_path).exists():
+    for source_path in dataset._yolo_source_paths:
+        if not Path(source_path).exists():
+            continue
         source_data = _read_data_yaml(source_path)
         current_names = _extract_class_names_from_data(source_data, source_path)
         current_ids = _extract_class_ids_from_data(source_data)
-        if (tuple(current_names), tuple(current_ids)) != mapping:
+        # Compare id-to-name pairs, since a merged mapping follows merged class order.
+        if dict(zip(current_ids, current_names)) != dict(zip(source_ids, names)):
             raise ValueError(
                 "Source YOLO class mapping changed; export a new data.yaml."
             )
@@ -248,27 +274,57 @@ def _prepare_yolo_export(
     return export_dataset
 
 
+def _shared_yolo_mapping(
+    classes: list[str],
+    datasets: Sequence[DetectionDataset] | Sequence[KeyPointsDataset],
+) -> tuple[tuple[str, ...], tuple[int, ...]] | None:
+    """Re-key the source mapping every dataset shares to ``classes`` order.
+
+    Returns ``None`` when any dataset lacks a source mapping, when the id-to-name pairs
+    differ between datasets, or when ``classes`` names a class without a source id.
+    """
+    id_to_names: list[dict[int, str]] = []
+    for dataset in datasets:
+        mapping = dataset._yolo_source_mapping
+        # Classes edited after loading no longer show which source id a label had.
+        if mapping is None or tuple(dataset.classes) != mapping[0]:
+            return None
+        names, source_ids = mapping
+        id_to_names.append(dict(zip(source_ids, names)))
+    if any(id_to_name != id_to_names[0] for id_to_name in id_to_names):
+        return None
+    name_to_id = {name: class_id for class_id, name in id_to_names[0].items()}
+    if len(name_to_id) != len(id_to_names[0]):
+        return None
+    if set(classes) != set(name_to_id):
+        return None
+    return tuple(classes), tuple(name_to_id[name] for name in classes)
+
+
 def _inherit_yolo_mapping(
     merged: DetectionDataset | KeyPointsDataset,
     datasets: Sequence[DetectionDataset] | Sequence[KeyPointsDataset],
 ) -> None:
-    """Preserve compatible source mappings or require a fresh YAML after merging."""
-    mappings = [dataset._yolo_source_mapping for dataset in datasets]
+    """Preserve compatible source mappings or require a fresh YAML after merging.
+
+    Compatibility compares id-to-name pairs, never the ``data.yaml`` path or the class-
+    list order, so equal mappings stay reusable after merge sorts the classes.
+    """
     if any(dataset._yolo_mapping_ambiguous for dataset in datasets):
         merged._yolo_mapping_ambiguous = True
-    elif any(mapping is not None for mapping in mappings):
-        if (
-            all(mapping == mappings[0] for mapping in mappings)
-            and all(dataset.classes == merged.classes for dataset in datasets)
-            and all(
-                dataset._yolo_source_path == datasets[0]._yolo_source_path
-                for dataset in datasets
-            )
-        ):
-            merged._yolo_source_mapping = mappings[0]
-            merged._yolo_source_path = datasets[0]._yolo_source_path
-        else:
-            merged._yolo_mapping_ambiguous = True
+        return
+    if all(dataset._yolo_source_mapping is None for dataset in datasets):
+        return
+    mapping = _shared_yolo_mapping(merged.classes, datasets)
+    if mapping is None:
+        merged._yolo_mapping_ambiguous = True
+        return
+    merged._yolo_source_mapping = mapping
+    merged._yolo_source_paths = tuple(
+        dict.fromkeys(
+            path for dataset in datasets for path in dataset._yolo_source_paths
+        )
+    )
 
 
 def _save_source_yolo_yaml(
@@ -279,7 +335,9 @@ def _save_source_yolo_yaml(
     if mapping is None:
         raise ValueError("Source YOLO class mapping is unavailable.")
     names, source_ids = mapping
-    data: dict[str, Any] = {"nc": len(names), "names": dict(zip(source_ids, names))}
+    # A merged mapping follows merged class order; write the source id order.
+    source_names = dict(sorted(zip(source_ids, names)))
+    data: dict[str, Any] = {"nc": len(names), "names": source_names}
     if isinstance(dataset, KeyPointsDataset):
         data["kpt_shape"] = [dataset.keypoint_count, dataset.value_dim]
         if dataset.flip_idx is not None:
@@ -316,7 +374,7 @@ class DetectionDataset(BaseDataset):
     ) -> None:
         self.classes = classes
         self._yolo_source_mapping: tuple[tuple[str, ...], tuple[int, ...]] | None = None
-        self._yolo_source_path: str | None = None
+        self._yolo_source_paths: tuple[str, ...] = ()
         self._yolo_mapping_ambiguous = False
         self._yolo_export_class_ids: list[int] | None = None
         self._yolo_normalized_export = False
@@ -389,12 +447,8 @@ class DetectionDataset(BaseDataset):
         if self.image_paths != other.image_paths:
             return False
 
-        if self._images_in_memory or other._images_in_memory:
-            if not np.array_equal(
-                list(self._images_in_memory.values()),
-                list(other._images_in_memory.values()),
-            ):
-                return False
+        if not _in_memory_images_equal(self._images_in_memory, other._images_in_memory):
+            return False
 
         if self.annotations != other.annotations:
             return False
@@ -424,8 +478,8 @@ class DetectionDataset(BaseDataset):
                 the training and testing datasets.
 
         Raises:
-            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
-                number.
+            ValueError: If `split_ratio` is outside `[0, 1]`.
+            ValueError: If `split_ratio` is not a finite number.
 
         Examples:
             ```pycon
@@ -471,7 +525,7 @@ class DetectionDataset(BaseDataset):
         )
         for subset in (train_dataset, test_dataset):
             subset._yolo_source_mapping = self._yolo_source_mapping
-            subset._yolo_source_path = self._yolo_source_path
+            subset._yolo_source_paths = self._yolo_source_paths
             subset._yolo_mapping_ambiguous = self._yolo_mapping_ambiguous
         if self._images_in_memory:
             train_dataset._images_in_memory = {
@@ -625,7 +679,10 @@ class DetectionDataset(BaseDataset):
 
         Raises:
             ValueError: If two image paths share the same basename (when
-                images_directory_path is set) or the same stem (when
+                images_directory_path is set), which would cause one
+                output file to overwrite another. Rename images to ensure
+                unique basenames before exporting a merged dataset.
+            ValueError: If two image paths share the same stem (when
                 annotations_directory_path is set), which would cause one
                 output file to overwrite another. Rename images to ensure
                 unique basenames before exporting a merged dataset.
@@ -740,6 +797,11 @@ class DetectionDataset(BaseDataset):
         supported and are parsed as before. A `kpt_shape` other than `[K, 2]`
         or `[K, 3]` raises `ValueError`.
 
+        Loaded `class_id` values index `classes`. When `names` is a dict whose
+        keys start above `0` or skip values, such as `{1: cat, 2: dog}`, each
+        label id is mapped to the name declared for it, so label id `1` loads
+        as class `0`.
+
         Args:
             images_directory_path: The path to the
                 directory containing the images.
@@ -770,13 +832,17 @@ class DetectionDataset(BaseDataset):
                 containing the loaded images and annotations.
 
         Raises:
-            ValueError: If `data.yaml` is not a mapping; if its `names` is
-                missing, not a list or dict, or a dict mixing numeric and
-                non-numeric keys; or if its `kpt_shape` is present but not
-                `[K, 2]` or `[K, 3]`, `kpt_shape: null` included. Also if an
-                annotation file contains an invalid line, such as one with too
-                few tokens, a class id that is not a whole number, a
-                non-numeric coordinate, or a box with a negative width or
+            ValueError: If `data.yaml` is not a mapping.
+            ValueError: If `data.yaml` `names` is missing, not a list or dict, a
+                dict mixing numeric and non-numeric keys, declared twice, or a
+                dict repeating a class id.
+            ValueError: If `data.yaml` `kpt_shape` is present but not
+                `[K, 2]` or `[K, 3]`, `kpt_shape: null` included.
+            ValueError: If a label uses a class id that `names` does not
+                declare; the message names the offending file.
+            ValueError: If an annotation file contains an invalid line, such as
+                one with too few tokens, a class id that is not a whole number,
+                a non-numeric coordinate, or a box with a negative width or
                 height; the message names the offending file.
 
         Examples:
@@ -822,7 +888,7 @@ class DetectionDataset(BaseDataset):
             classes,
             data_yaml_path,
         )
-        dataset._yolo_source_path = str(Path(data_yaml_path).resolve())
+        dataset._yolo_source_paths = (str(Path(data_yaml_path).resolve()),)
         return dataset
 
     def as_yolo(
@@ -887,10 +953,13 @@ class DetectionDataset(BaseDataset):
 
         Raises:
             ValueError: If two image paths share the same basename (when
-                images_directory_path is set) or the same annotation
+                images_directory_path is set), which would cause one output
+                file to overwrite another.
+            ValueError: If two image paths share the same annotation
                 file name (when annotations_directory_path is set),
-                which would cause one output file to overwrite another, or if
-                source class mapping cannot be safely reused without a new YAML.
+                which would cause one output file to overwrite another.
+            ValueError: If source class mapping cannot be safely reused
+                without a new YAML.
         """
         export_dataset = self
         if (data_yaml_path is None) != (annotations_directory_path is None):
@@ -983,10 +1052,12 @@ class DetectionDataset(BaseDataset):
                 the loaded images and annotations.
 
         Raises:
-            ValueError: If an annotation is malformed - for example
-                ``imagePath`` is empty or resolves to ``..``, a shape is
-                missing its ``label`` or ``points``, or a mask is required but
-                ``imageWidth`` / ``imageHeight`` are missing or zero.
+            ValueError: If an annotation's ``imagePath`` is empty or resolves
+                to ``..``.
+            ValueError: If a supported shape is missing its ``label`` or ``points``,
+                or has malformed points or too few vertices.
+            ValueError: If a mask is required but ``imageWidth`` /
+                ``imageHeight`` are missing or zero.
 
         Examples:
             ```python
@@ -1454,15 +1525,18 @@ class KeyPointsDataset(BaseDataset):
                 stored as a list of Python ``int``.
 
         Raises:
-            ValueError: If the image paths and annotation keys differ, if
-                ``keypoint_count`` is not a positive integer, if ``value_dim`` is
-                neither 2 nor 3, if ``flip_idx`` is not a permutation of the
+            ValueError: If the image paths and annotation keys differ.
+            ValueError: If ``keypoint_count`` is not a positive integer.
+            ValueError: If ``value_dim`` is neither 2 nor 3.
+            ValueError: If ``flip_idx`` is not a permutation of the
                 keypoint indices given as integers (booleans and floats are
-                refused, as the YOLO pose loader refuses them), if a non-empty
-                annotation carries no ``class_id``, or if an
-                annotation carries a non-integer class id, a
-                class id outside the range of ``classes``, or a keypoint count
-                other than ``keypoint_count``.
+                refused, as the YOLO pose loader refuses them).
+            ValueError: If a non-empty annotation carries no ``class_id``.
+            ValueError: If an annotation carries a non-integer class id.
+            ValueError: If an annotation carries a class id outside the range
+                of ``classes``.
+            ValueError: If an annotation carries a keypoint count other than
+                ``keypoint_count``.
         """
         if set(images) != set(annotations):
             raise ValueError(
@@ -1484,7 +1558,7 @@ class KeyPointsDataset(BaseDataset):
         # object that the loader's safe YAML reader refuses.
         self.keypoint_count = int(keypoint_count)
         self._yolo_source_mapping: tuple[tuple[str, ...], tuple[int, ...]] | None = None
-        self._yolo_source_path: str | None = None
+        self._yolo_source_paths: tuple[str, ...] = ()
         self._yolo_mapping_ambiguous = False
         self._yolo_export_class_ids: list[int] | None = None
         self._yolo_normalized_export = False
@@ -1595,8 +1669,8 @@ class KeyPointsDataset(BaseDataset):
             A tuple containing the training and testing datasets.
 
         Raises:
-            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
-                number.
+            ValueError: If `split_ratio` is outside `[0, 1]`.
+            ValueError: If `split_ratio` is not a finite number.
         """
         train_paths, test_paths = train_test_split(
             data=self.image_paths,
@@ -1624,7 +1698,7 @@ class KeyPointsDataset(BaseDataset):
         )
         for subset in (train_dataset, test_dataset):
             subset._yolo_source_mapping = self._yolo_source_mapping
-            subset._yolo_source_path = self._yolo_source_path
+            subset._yolo_source_paths = self._yolo_source_paths
             subset._yolo_mapping_ambiguous = self._yolo_mapping_ambiguous
         return train_dataset, test_dataset
 
@@ -1644,9 +1718,10 @@ class KeyPointsDataset(BaseDataset):
             The merged dataset.
 
         Raises:
-            ValueError: If the list is empty, if the datasets disagree on
-                ``keypoint_count``, ``value_dim`` or ``flip_idx``, or if an
-                image path appears in more than one dataset.
+            ValueError: If the list is empty.
+            ValueError: If the datasets disagree on ``keypoint_count``,
+                ``value_dim`` or ``flip_idx``.
+            ValueError: If an image path appears in more than one dataset.
         """
         if not dataset_list:
             raise ValueError("Cannot merge an empty list of datasets.")
@@ -1730,6 +1805,10 @@ class KeyPointsDataset(BaseDataset):
         coordinates are normalized; they are denormalized against each image's
         own resolution while loading.
 
+        Loaded ``class_id`` values index ``classes``. When ``names`` is a dict
+        whose keys start above ``0`` or skip values, such as ``{1: person}``,
+        each label id is mapped to the name declared for it.
+
         Args:
             images_directory_path: Directory holding the images.
             annotations_directory_path: Directory holding the ``.txt`` labels.
@@ -1746,8 +1825,12 @@ class KeyPointsDataset(BaseDataset):
                 directory still loads, with empty key points.
             NotADirectoryError: If the images or labels path names a file.
             ValueError: If data.yaml declares no valid ``kpt_shape`` or an
-                invalid ``flip_idx``, or if a label file holds an invalid line;
-                the message names the file.
+                invalid ``flip_idx``.
+            ValueError: If data.yaml declares ``names`` twice or repeats a
+                class id in it.
+            ValueError: If a label file holds an invalid line or a
+                class id that ``names`` does not declare; the message names the
+                file.
 
         Examples:
             ```python
@@ -1788,7 +1871,7 @@ class KeyPointsDataset(BaseDataset):
             classes,
             data_yaml_path,
         )
-        dataset._yolo_source_path = str(Path(data_yaml_path).resolve())
+        dataset._yolo_source_paths = (str(Path(data_yaml_path).resolve()),)
         return dataset
 
     def as_yolo(
@@ -1824,13 +1907,20 @@ class KeyPointsDataset(BaseDataset):
 
         Raises:
             ValueError: Before any file is written, if two images would share an
-                output file name, or if labels are requested and a non-empty
-                annotation, for instance one replaced after construction, carries
-                missing, misaligned or invalid class IDs, non-finite planar
-                coordinates, or a ``data['xyxy']`` not of shape
+                output file name.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation, for instance one replaced after
+                construction, carries missing, misaligned or invalid class IDs.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation carries non-finite planar coordinates.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation carries a ``data['xyxy']`` not of shape
                 ``(N, 4)`` or a ``data['keypoint_visibility']`` not of shape
-                ``(N, K)``, either holding a non-finite value, or a negative
-                visibility value.
+                ``(N, K)``.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation carries non-finite box coordinates or visibility.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation carries a negative visibility value.
 
         Examples:
             ```python
@@ -1979,12 +2069,8 @@ class ClassificationDataset(BaseDataset):
         if self.image_paths != other.image_paths:
             return False
 
-        if self._images_in_memory or other._images_in_memory:
-            if not np.array_equal(
-                list(self._images_in_memory.values()),
-                list(other._images_in_memory.values()),
-            ):
-                return False
+        if not _in_memory_images_equal(self._images_in_memory, other._images_in_memory):
+            return False
 
         if self.annotations != other.annotations:
             return False
@@ -2014,8 +2100,8 @@ class ClassificationDataset(BaseDataset):
             the training and testing datasets.
 
         Raises:
-            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
-                number.
+            ValueError: If `split_ratio` is outside `[0, 1]`.
+            ValueError: If `split_ratio` is not a finite number.
 
         Examples:
             ```pycon

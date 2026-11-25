@@ -739,7 +739,8 @@ def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
         Hex color string in the format "#RRGGBBAA".
 
     Raises:
-        ValueError: If `rgba` is not a 4-tuple or contains values outside 0-255.
+        ValueError: If `rgba` is not a 4-tuple.
+        ValueError: If `rgba` contains values outside 0-255.
 
     Examples:
         ```pycon

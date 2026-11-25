@@ -592,6 +592,29 @@ class TestGetItem:
         assert result.dtype == bool
         np.testing.assert_array_equal(result, masks[1])
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pytest.param(np.array(1), id="int64-1"),
+            pytest.param(np.array(1, dtype=np.uint8), id="uint8-1"),
+            pytest.param(np.array(-1, dtype=np.int32), id="int32-negative-1"),
+        ],
+    )
+    def test_zero_dimensional_int_array_returns_2d_dense(
+        self, index: np.ndarray
+    ) -> None:
+        """A 0-d integer array indexes like the equivalent int, as in NumPy."""
+        img_h, img_w = 30, 40
+        rng = np.random.default_rng(1)
+        masks = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
+        cm = _make_cm(masks, (img_h, img_w))
+
+        result = cm[index]
+
+        assert isinstance(result, np.ndarray)
+        assert result.shape == (img_h, img_w)
+        np.testing.assert_array_equal(result, masks[index])
+
     def test_list_returns_compact_mask(self) -> None:
         """List of indices returns a new CompactMask with the selected detections."""
         img_h, img_w = 20, 20
