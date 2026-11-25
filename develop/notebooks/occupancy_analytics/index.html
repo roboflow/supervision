@@ -4891,7 +4891,7 @@ zones = [
 <span class="n">slicer</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">InferenceSlicer</span><span class="p">(</span>
     <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span>
     <span class="n">slice_wh</span><span class="o">=</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span> <span class="mi">800</span><span class="p">),</span>
-    <span class="n">overlap_ratio_wh</span><span class="o">=</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">),</span>
+    <span class="n">overlap_wh</span><span class="o">=</span><span class="p">(</span><span class="mi">160</span><span class="p">,</span> <span class="mi">160</span><span class="p">),</span>
     <span class="n">thread_workers</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
     <span class="n">iou_threshold</span><span class="o">=</span><span class="mf">0.2</span>
 <span class="p">)</span>
@@ -4901,14 +4901,11 @@ zones = [
 <span class="p">)</span>
 <span class="n">heat_map_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">HeatMapAnnotator</span><span class="p">()</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">setup_zones</span><span class="p">(</span><span class="n">frame_wh</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_zones</span><span class="p">():</span>
   <span class="k">if</span> <span class="n">zones</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="n">zones</span><span class="p">:</span>
       <span class="n">zone</span><span class="p">[</span><span class="s1">'history'</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="n">zone</span><span class="p">[</span><span class="s1">'PolygonZone'</span><span class="p">]</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">PolygonZone</span><span class="p">(</span>
-          <span class="n">polygon</span><span class="o">=</span><span class="n">zone</span><span class="p">[</span><span class="s1">'polygon'</span><span class="p">],</span>
-          <span class="n">frame_resolution_wh</span><span class="o">=</span><span class="n">frame_wh</span>
-      <span class="p">)</span>
+      <span class="n">zone</span><span class="p">[</span><span class="s1">'PolygonZone'</span><span class="p">]</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">PolygonZone</span><span class="p">(</span><span class="n">polygon</span><span class="o">=</span><span class="n">zone</span><span class="p">[</span><span class="s1">'polygon'</span><span class="p">])</span>
       <span class="n">zone</span><span class="p">[</span><span class="s1">'PolygonZoneAnnotator'</span><span class="p">]</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">PolygonZoneAnnotator</span><span class="p">(</span>
         <span class="n">zone</span><span class="o">=</span><span class="n">zone</span><span class="p">[</span><span class="s1">'PolygonZone'</span><span class="p">],</span>
         <span class="n">color</span><span class="o">=</span><span class="n">sv</span><span class="o">.</span><span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span>
@@ -4963,7 +4960,7 @@ tracker = ByteTrackTracker(track_activation_threshold=0.25)
 slicer = sv.InferenceSlicer(
     callback=callback,
     slice_wh=(800, 800),
-    overlap_ratio_wh=(0.2, 0.2),
+    overlap_wh=(160, 160),
     thread_workers=10,
     iou_threshold=0.2
 )
@@ -4973,14 +4970,11 @@ triangle_annotator = sv.TriangleAnnotator(
 )
 heat_map_annotator = sv.HeatMapAnnotator()
 
-def setup_zones(frame_wh):
+def setup_zones():
   if zones:
     for zone in zones:
       zone['history'] = []
-      zone['PolygonZone'] = sv.PolygonZone(
-          polygon=zone['polygon'],
-          frame_resolution_wh=frame_wh
-      )
+      zone['PolygonZone'] = sv.PolygonZone(polygon=zone['polygon'])
       zone['PolygonZoneAnnotator'] = sv.PolygonZoneAnnotator(
         zone=zone['PolygonZone'],
         color=sv.Color.WHITE,
@@ -5065,8 +5059,7 @@ def process_frame(frame,heatmap=None):
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">"./frames/5.jpg"</span><span class="p">)</span>
-<span class="n">image_wh</span> <span class="o">=</span> <span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">setup_zones</span><span class="p">(</span><span class="n">image_wh</span><span class="p">)</span>
+<span class="n">setup_zones</span><span class="p">()</span>
 
 <span class="n">annotated_image</span><span class="p">,</span> <span class="n">heatmap</span> <span class="o">=</span> <span class="n">process_frame</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 
@@ -5074,8 +5067,7 @@ def process_frame(frame,heatmap=None):
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">heatmap</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-12">image = cv2.imread("./frames/5.jpg")
-image_wh = (image.shape[1],image.shape[0])
-setup_zones(image_wh)
+setup_zones()
 
 annotated_image, heatmap = process_frame(image)
 
@@ -5151,7 +5143,7 @@ sv.plot_image(heatmap)</div>
 <span class="k">def</span><span class="w"> </span><span class="nf">generate_graphs</span><span class="p">(</span><span class="n">max_frames</span><span class="p">):</span>
   <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
   <span class="c1"># Plot Styles</span>
-  <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">"seaborn-dark"</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">"seaborn-v0_8-dark"</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">'figure.facecolor'</span><span class="p">,</span> <span class="s1">'axes.facecolor'</span><span class="p">,</span> <span class="s1">'savefig.facecolor'</span><span class="p">]:</span>
       <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'#212946'</span>
 
@@ -5219,7 +5211,7 @@ from io import BytesIO
 def generate_graphs(max_frames):
   plt.ioff()
   # Plot Styles
-  plt.style.use("seaborn-dark")
+  plt.style.use("seaborn-v0_8-dark")
   for param in ['figure.facecolor', 'axes.facecolor', 'savefig.facecolor']:
       plt.rcParams[param] = '#212946'
 
@@ -5355,7 +5347,7 @@ def generate_graphs(max_frames):
 <span class="n">frames_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=</span><span class="n">VIDEO_PATH</span><span class="p">)</span>
 <span class="n">video_info</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="n">video_path</span><span class="o">=</span><span class="n">VIDEO_PATH</span><span class="p">)</span>
 
-<span class="n">setup_zones</span><span class="p">(</span><span class="n">video_info</span><span class="o">.</span><span class="n">resolution_wh</span><span class="p">)</span>
+<span class="n">setup_zones</span><span class="p">()</span>
 
 
 <span class="k">with</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoSink</span><span class="p">(</span><span class="n">target_path</span><span class="o">=</span><span class="n">MAIN_OUTPUT_PATH</span><span class="p">,</span> <span class="n">video_info</span><span class="o">=</span><span class="n">video_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">sink</span><span class="p">:</span>
@@ -5384,7 +5376,7 @@ MAIN_OUTPUT_PATH = "/content/parkinglot_annotated.mp4"
 frames_generator = sv.get_video_frames_generator(source_path=VIDEO_PATH)
 video_info = sv.VideoInfo.from_video_path(video_path=VIDEO_PATH)
 
-setup_zones(video_info.resolution_wh)
+setup_zones()
 
 
 with sv.VideoSink(target_path=MAIN_OUTPUT_PATH, video_info=video_info) as sink:
@@ -6222,7 +6214,7 @@ for filename in os.listdir("frames"):
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 25, 2026 22:17:33 UTC">November 25, 2026</span>
   </span>
 
     
