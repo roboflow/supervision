@@ -8,12 +8,28 @@ authors:
   - name: Soumik Mandal
     role: ML Engineer, Roboflow
     github: https://github.com/soumik12345
-date_modified: 2026-11-18
+date_modified: 2026-11-25
 ---
 
 # Track Objects
 
 Leverage Supervision's advanced capabilities for enhancing your video analysis by seamlessly tracking objects recognized by a multitude of object detection, segmentation and keypoint models. This comprehensive guide will take you through the steps to perform inference using native [RF-DETR](https://github.com/roboflow/rf-detr), with [Inference](https://github.com/roboflow/inference) and [Ultralytics](https://github.com/ultralytics/ultralytics) alternatives. Following this, you'll discover how to track these objects efficiently and annotate your video content for a deeper analysis.
+
+## Prerequisites
+
+This tutorial requires Python 3.10 or later. Install Supervision and the external `trackers` package, which provides `ByteTrackTracker`:
+
+```bash
+pip install "supervision>=0.31.0" "trackers>=2.7.0"
+```
+
+Then install the inference framework you plan to use. The examples for each framework are alternatives, so you only need one:
+
+- RF-DETR: `pip install "rfdetr>=1.8.0"` (provides `RFDETRMedium` and `RFDETRKeypointPreview`; the keypoint preview model was added in 1.8.0)
+- Inference: `pip install inference` (supports Python 3.10 to 3.13)
+- Ultralytics: `pip install ultralytics`
+
+The Inference examples need a Roboflow API key. Replace `<ROBOFLOW_API_KEY>` with your key, which you can [find in your Roboflow settings](https://docs.roboflow.com/developer/authentication/find-your-roboflow-api-key). Keep the key private and do not commit it to source control. The RF-DETR and Ultralytics examples do not need an API key.
 
 ## Object Detection & Segmentation
 
