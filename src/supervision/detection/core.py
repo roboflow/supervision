@@ -975,10 +975,13 @@ class Detections:
                 the requested kind, and `confidence` follows the rule above.
 
         Raises:
-            ValueError: If the input is a list or holds no map, a map is not valid
-                base64, not a PNG, not a single-channel integer `(H, W)` map, or the
-                two maps differ in shape, a class ID exceeds the `int64` range, or
-                confidence values are outside 0-255.
+            ValueError: If the input is a list or holds no map.
+            ValueError: If a map is not valid base64.
+            ValueError: If a map is not a PNG.
+            ValueError: If a map is not a single-channel integer `(H, W)` map.
+            ValueError: If the two maps differ in shape.
+            ValueError: If a class ID exceeds the `int64` range.
+            ValueError: If confidence values are outside 0-255.
 
         Example:
             ```python
@@ -1398,8 +1401,9 @@ class Detections:
             A new Detections object.
 
         Raises:
-            ValueError: If the VLM is invalid, required arguments are missing, or
-                disallowed arguments are provided.
+            ValueError: If the VLM is invalid.
+            ValueError: If required arguments are missing.
+            ValueError: If disallowed arguments are provided.
             ValueError: If the specified VLM is not supported.
 
         !!! example "PaliGemma"
@@ -2435,8 +2439,9 @@ class Detections:
             returns floating-point coordinates so its box center is preserved.
 
         Raises:
-            ValueError: If the provided `anchor` is not supported, or if `anchor` is
-                ``Position.CENTER_OF_MASS`` and a non-empty batch has no mask.
+            ValueError: If the provided `anchor` is not supported.
+            ValueError: If `anchor` is ``Position.CENTER_OF_MASS`` and a non-empty
+                batch has no mask.
 
         Examples:
             Axis-aligned detection:
@@ -3031,7 +3036,7 @@ class Detections:
 
         Raises:
             ValueError: If `confidence` is None and class_agnostic is False.
-                If `class_id` is None and class_agnostic is False.
+            ValueError: If `class_id` is None and class_agnostic is False.
         """
         if len(self) == 0:
             return self
@@ -3115,8 +3120,8 @@ class Detections:
 
         Raises:
             ValueError: If `confidence` is None.
-                If `class_id` is None and class_agnostic is False.
-                If `sigma` is not greater than `0`.
+            ValueError: If `class_id` is None and class_agnostic is False.
+            ValueError: If `sigma` is not greater than `0`.
 
         Example:
             Two identical boxes show that Soft-NMS decays the lower score but
@@ -3225,8 +3230,8 @@ class Detections:
             Groups of size 1 keep the original OBB unchanged.
 
         Raises:
-            ValueError: If `confidence` is None or `class_id` is None and
-                class_agnostic is False.
+            ValueError: If `confidence` is None.
+            ValueError: If `class_id` is None and class_agnostic is False.
 
         ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width="800" }
         """  # noqa: E501 // docs
@@ -3298,12 +3303,14 @@ class Detections:
             is not modified.
 
         Raises:
-            ValueError: If ``data`` has no ``class_name`` entry, ``classes`` holds
-                duplicate names, or ``class_name_mapping`` maps to a name that is
-                not in ``classes``. Class names must have shape ``(N,)`` or
-                ``(N, 1)`` for ``N`` detections.
-            TypeError: If ``class_name_mapping`` is not a mapping or has keys that
-                are not strings.
+            ValueError: If ``data`` has no ``class_name`` entry.
+            ValueError: If ``classes`` holds duplicate names.
+            ValueError: If ``class_name_mapping`` maps to a name that is not in
+                ``classes``.
+            ValueError: If class names do not have shape ``(N,)`` or ``(N, 1)`` for
+                ``N`` detections.
+            TypeError: If ``class_name_mapping`` is not a mapping.
+            TypeError: If ``class_name_mapping`` has keys that are not strings.
 
         Example:
             ```pycon

@@ -130,8 +130,10 @@ def _validate_and_name_class_ids(
         kind: Annotation noun for error messages, such as ``"Detection"``.
 
     Raises:
-        ValueError: If an annotation carries non-integer class ids, or a class id
-            outside the range of ``classes``; the message names the image.
+        ValueError: If an annotation carries non-integer class ids; the message
+            names the image.
+        ValueError: If an annotation carries a class id outside the range of
+            ``classes``; the message names the image.
     """
     np_classes = np.array(classes)
     for image_path, annotation in annotations.items():
@@ -476,8 +478,8 @@ class DetectionDataset(BaseDataset):
                 the training and testing datasets.
 
         Raises:
-            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
-                number.
+            ValueError: If `split_ratio` is outside `[0, 1]`.
+            ValueError: If `split_ratio` is not a finite number.
 
         Examples:
             ```pycon
@@ -677,7 +679,10 @@ class DetectionDataset(BaseDataset):
 
         Raises:
             ValueError: If two image paths share the same basename (when
-                images_directory_path is set) or the same stem (when
+                images_directory_path is set), which would cause one
+                output file to overwrite another. Rename images to ensure
+                unique basenames before exporting a merged dataset.
+            ValueError: If two image paths share the same stem (when
                 annotations_directory_path is set), which would cause one
                 output file to overwrite another. Rename images to ensure
                 unique basenames before exporting a merged dataset.
@@ -827,15 +832,17 @@ class DetectionDataset(BaseDataset):
                 containing the loaded images and annotations.
 
         Raises:
-            ValueError: If `data.yaml` is not a mapping; if its `names` is
-                missing, not a list or dict, a dict mixing numeric and
-                non-numeric keys, declared twice, or a dict repeating a class
-                id; if a label uses a class id that `names` does not declare;
-                or if its `kpt_shape` is present but not
-                `[K, 2]` or `[K, 3]`, `kpt_shape: null` included. Also if an
-                annotation file contains an invalid line, such as one with too
-                few tokens, a class id that is not a whole number, a
-                non-numeric coordinate, or a box with a negative width or
+            ValueError: If `data.yaml` is not a mapping.
+            ValueError: If `data.yaml` `names` is missing, not a list or dict, a
+                dict mixing numeric and non-numeric keys, declared twice, or a
+                dict repeating a class id.
+            ValueError: If `data.yaml` `kpt_shape` is present but not
+                `[K, 2]` or `[K, 3]`, `kpt_shape: null` included.
+            ValueError: If a label uses a class id that `names` does not
+                declare; the message names the offending file.
+            ValueError: If an annotation file contains an invalid line, such as
+                one with too few tokens, a class id that is not a whole number,
+                a non-numeric coordinate, or a box with a negative width or
                 height; the message names the offending file.
 
         Examples:
@@ -946,10 +953,13 @@ class DetectionDataset(BaseDataset):
 
         Raises:
             ValueError: If two image paths share the same basename (when
-                images_directory_path is set) or the same annotation
+                images_directory_path is set), which would cause one output
+                file to overwrite another.
+            ValueError: If two image paths share the same annotation
                 file name (when annotations_directory_path is set),
-                which would cause one output file to overwrite another, or if
-                source class mapping cannot be safely reused without a new YAML.
+                which would cause one output file to overwrite another.
+            ValueError: If source class mapping cannot be safely reused
+                without a new YAML.
         """
         export_dataset = self
         if (data_yaml_path is None) != (annotations_directory_path is None):
@@ -1042,10 +1052,11 @@ class DetectionDataset(BaseDataset):
                 the loaded images and annotations.
 
         Raises:
-            ValueError: If an annotation is malformed - for example
-                ``imagePath`` is empty or resolves to ``..``, a shape is
-                missing its ``label`` or ``points``, or a mask is required but
-                ``imageWidth`` / ``imageHeight`` are missing or zero.
+            ValueError: If an annotation's ``imagePath`` is empty or resolves
+                to ``..``.
+            ValueError: If a shape is missing its ``label`` or ``points``.
+            ValueError: If a mask is required but ``imageWidth`` /
+                ``imageHeight`` are missing or zero.
 
         Examples:
             ```python
@@ -1513,15 +1524,18 @@ class KeyPointsDataset(BaseDataset):
                 stored as a list of Python ``int``.
 
         Raises:
-            ValueError: If the image paths and annotation keys differ, if
-                ``keypoint_count`` is not a positive integer, if ``value_dim`` is
-                neither 2 nor 3, if ``flip_idx`` is not a permutation of the
+            ValueError: If the image paths and annotation keys differ.
+            ValueError: If ``keypoint_count`` is not a positive integer.
+            ValueError: If ``value_dim`` is neither 2 nor 3.
+            ValueError: If ``flip_idx`` is not a permutation of the
                 keypoint indices given as integers (booleans and floats are
-                refused, as the YOLO pose loader refuses them), if a non-empty
-                annotation carries no ``class_id``, or if an
-                annotation carries a non-integer class id, a
-                class id outside the range of ``classes``, or a keypoint count
-                other than ``keypoint_count``.
+                refused, as the YOLO pose loader refuses them).
+            ValueError: If a non-empty annotation carries no ``class_id``.
+            ValueError: If an annotation carries a non-integer class id.
+            ValueError: If an annotation carries a class id outside the range
+                of ``classes``.
+            ValueError: If an annotation carries a keypoint count other than
+                ``keypoint_count``.
         """
         if set(images) != set(annotations):
             raise ValueError(
@@ -1654,8 +1668,8 @@ class KeyPointsDataset(BaseDataset):
             A tuple containing the training and testing datasets.
 
         Raises:
-            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
-                number.
+            ValueError: If `split_ratio` is outside `[0, 1]`.
+            ValueError: If `split_ratio` is not a finite number.
         """
         train_paths, test_paths = train_test_split(
             data=self.image_paths,
@@ -1703,9 +1717,10 @@ class KeyPointsDataset(BaseDataset):
             The merged dataset.
 
         Raises:
-            ValueError: If the list is empty, if the datasets disagree on
-                ``keypoint_count``, ``value_dim`` or ``flip_idx``, or if an
-                image path appears in more than one dataset.
+            ValueError: If the list is empty.
+            ValueError: If the datasets disagree on ``keypoint_count``,
+                ``value_dim`` or ``flip_idx``.
+            ValueError: If an image path appears in more than one dataset.
         """
         if not dataset_list:
             raise ValueError("Cannot merge an empty list of datasets.")
@@ -1809,8 +1824,10 @@ class KeyPointsDataset(BaseDataset):
                 directory still loads, with empty key points.
             NotADirectoryError: If the images or labels path names a file.
             ValueError: If data.yaml declares no valid ``kpt_shape`` or an
-                invalid ``flip_idx``, declares ``names`` twice or repeats a
-                class id in it, or if a label file holds an invalid line or a
+                invalid ``flip_idx``.
+            ValueError: If data.yaml declares ``names`` twice or repeats a
+                class id in it.
+            ValueError: If a label file holds an invalid line or a
                 class id that ``names`` does not declare; the message names the
                 file.
 
@@ -1889,13 +1906,18 @@ class KeyPointsDataset(BaseDataset):
 
         Raises:
             ValueError: Before any file is written, if two images would share an
-                output file name, or if labels are requested and a non-empty
-                annotation, for instance one replaced after construction, carries
-                missing, misaligned or invalid class IDs, non-finite planar
-                coordinates, or a ``data['xyxy']`` not of shape
+                output file name.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation, for instance one replaced after
+                construction, carries missing, misaligned or invalid class IDs.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation carries non-finite planar coordinates.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation carries a ``data['xyxy']`` not of shape
                 ``(N, 4)`` or a ``data['keypoint_visibility']`` not of shape
-                ``(N, K)``, either holding a non-finite value, or a negative
-                visibility value.
+                ``(N, K)``, either holding a non-finite value.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation carries a negative visibility value.
 
         Examples:
             ```python
@@ -2075,8 +2097,8 @@ class ClassificationDataset(BaseDataset):
             the training and testing datasets.
 
         Raises:
-            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
-                number.
+            ValueError: If `split_ratio` is outside `[0, 1]`.
+            ValueError: If `split_ratio` is not a finite number.
 
         Examples:
             ```pycon
