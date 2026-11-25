@@ -340,8 +340,8 @@ def get_detection_areas(
         Per-detection pixel areas shaped ``(N,)``.
 
     Raises:
-        ValueError: If area metadata is malformed, or the content required by
-            ``metric_target`` is missing.
+        ValueError: If area metadata is malformed.
+        ValueError: If the content required by ``metric_target`` is missing.
     """
     area_data = detections.data.get(AREA_DATA_FIELD)
     if area_data is not None:
@@ -389,8 +389,8 @@ def get_detection_size_category(
         the enum values of ObjectSizeCategory. Shaped (N,).
 
     Raises:
-        ValueError: If area metadata is not one-dimensional or is not aligned
-            with the detections.
+        ValueError: If area metadata is not one-dimensional.
+        ValueError: If area metadata is not aligned with the detections.
 
     Example:
         ```pycon

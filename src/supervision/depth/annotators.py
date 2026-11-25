@@ -96,7 +96,9 @@ class DepthAnnotator:
                 disparity map with a camera.
 
         Raises:
-            ValueError: If `colormap`, `scale` or `display_range` is invalid.
+            ValueError: If `colormap` is invalid.
+            ValueError: If `scale` is invalid.
+            ValueError: If `display_range` is invalid.
         """
         self.colormap = DepthColormap.from_value(colormap)
         self.scale = DepthScale.from_value(scale)
@@ -124,9 +126,10 @@ class DepthAnnotator:
 
         Raises:
             TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
-            ValueError: If `scene` is not a 3-channel `uint8` image, if the scale
-                is impossible for this map, for example `"metric"` for a relative
-                map, or if `display_range` gives no usable colour range for this
+            ValueError: If `scene` is not a 3-channel `uint8` image.
+            ValueError: If the scale is impossible for this map, for example
+                `"metric"` for a relative map.
+            ValueError: If `display_range` gives no usable colour range for this
                 map's kind, such as a `depth_m` range with `low <= 0`.
 
         Examples:
@@ -285,8 +288,9 @@ class DepthClipRange:
 
         Raises:
             ValueError: If the percentiles are not
-                `0 <= low_percentile < high_percentile <= 100`, or the maps mix kinds
-                or hold no depth at all.
+                `0 <= low_percentile < high_percentile <= 100`.
+            ValueError: If the maps mix kinds.
+            ValueError: If the maps hold no depth at all.
         """
         _check_percentiles(low_percentile, high_percentile)
         kind: DepthKind | None = None
@@ -397,8 +401,9 @@ def _convert_display_range(
 
     Raises:
         ValueError: If the kind is coloured as a reciprocal and
-            `low + inner_offset <= 0`, or the converted range is not finite or its
-            span does not fit in float32.
+            `low + inner_offset <= 0`.
+        ValueError: If the converted range is not finite.
+        ValueError: If the converted range's span does not fit in float32.
     """
     low, high = display_range
     # A reciprocal sends low + inner_offset <= 0 to infinity or flips its sign, so

@@ -62,9 +62,11 @@ def _read_pfm(path: str | Path) -> npt.NDArray[np.float32]:
     this format, with `+inf` for unknown disparity.
 
     Raises:
-        ValueError: If the file is not a grayscale PFM, its header is incomplete or
-            malformed, its width or height is not positive, its scale is zero or
-            not finite, or it is truncated.
+        ValueError: If the file is not a grayscale PFM.
+        ValueError: If the header is incomplete or malformed.
+        ValueError: If the width or height is not positive.
+        ValueError: If the scale is zero or not finite.
+        ValueError: If the file is truncated.
     """
     data = Path(path).read_bytes()
     header: list[bytes] = []

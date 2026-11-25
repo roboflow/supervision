@@ -701,8 +701,9 @@ def draw_image(
     Raises:
         FileNotFoundError: If the image path does not exist.
         OSError: If the image path exists but cannot be decoded.
-        ValueError: If the image is not 3-D with 3 (BGR) or 4 (BGRA) channels, or
-            for invalid opacity or rectangle dimensions.
+        ValueError: If the image is not 3-D with 3 (BGR) or 4 (BGRA) channels.
+        ValueError: If the opacity is invalid.
+        ValueError: If the rectangle dimensions are invalid.
 
     Example:
         ```pycon
