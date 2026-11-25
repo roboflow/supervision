@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-11-18
+date_modified: 2026-11-21
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.Detections.from_ultralytics` now resizes binary uint8 masks in floating point before applying the 0.5 threshold, avoiding extra foreground pixels along mask edges. ([#3041](https://github.com/roboflow/supervision/pull/3041))
 
 - Annotators now draw on non-contiguous NumPy views, such as a channel flip `frame[..., ::-1]`, a column step `frame[:, ::2]`, flips or a transpose, when OpenCV is installed. Before, OpenCV raised a layout error while the NumPy fallback drew the same pixels; both backends now annotate the view in place. ([#3036](https://github.com/roboflow/supervision/pull/3036))
 
