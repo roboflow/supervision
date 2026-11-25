@@ -1659,7 +1659,7 @@ class CompactMask:
 
         Raises:
             ValueError: If ``masks_list`` is empty.
-        ValueError: If image shapes differ.
+            ValueError: If image shapes differ.
 
         Examples:
             ```pycon

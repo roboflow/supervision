@@ -1054,7 +1054,8 @@ class DetectionDataset(BaseDataset):
         Raises:
             ValueError: If an annotation's ``imagePath`` is empty or resolves
                 to ``..``.
-            ValueError: If a shape is missing its ``label`` or ``points``.
+            ValueError: If a supported shape is missing its ``label`` or ``points``,
+                or has malformed points or too few vertices.
             ValueError: If a mask is required but ``imageWidth`` /
                 ``imageHeight`` are missing or zero.
 
@@ -1915,7 +1916,9 @@ class KeyPointsDataset(BaseDataset):
             ValueError: Before any file is written, if labels are requested and a
                 non-empty annotation carries a ``data['xyxy']`` not of shape
                 ``(N, 4)`` or a ``data['keypoint_visibility']`` not of shape
-                ``(N, K)``, either holding a non-finite value.
+                ``(N, K)``.
+            ValueError: Before any file is written, if labels are requested and a
+                non-empty annotation carries non-finite box coordinates or visibility.
             ValueError: Before any file is written, if labels are requested and a
                 non-empty annotation carries a negative visibility value.
 

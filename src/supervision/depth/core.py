@@ -649,7 +649,8 @@ class DepthMap:
             A `relative_inverse` :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the result is a list or carries no `normalized_depth`.
+            ValueError: If the result is a list.
+            ValueError: If the result carries no `normalized_depth`.
             ValueError: If the depth is not a decodable single (H, W) map.
 
         Examples:
@@ -709,7 +710,8 @@ class DepthMap:
             A `depth_m` :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the result is a list or carries no depth map.
+            ValueError: If the result is a list.
+            ValueError: If the result carries no depth map.
             ValueError: If the depth is not a single (H, W) map.
 
         Examples:
@@ -766,7 +768,8 @@ class DepthMap:
             A float32 :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the result is a list or has no `predicted_depth`.
+            ValueError: If the result is a list.
+            ValueError: If the result has no `predicted_depth`.
             ValueError: If the depth is not a single (H, W) map.
             ValueError: If `kind` names no kind.
 

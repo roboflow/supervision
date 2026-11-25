@@ -976,8 +976,8 @@ class Detections:
 
         Raises:
             ValueError: If the input is a list or holds no map.
-            ValueError: If a map is not valid base64.
-            ValueError: If a map is not a PNG.
+            ValueError: If a string map is not valid base64.
+            ValueError: If a decoded string map is not a PNG.
             ValueError: If a map is not a single-channel integer `(H, W)` map.
             ValueError: If the two maps differ in shape.
             ValueError: If a class ID exceeds the `int64` range.

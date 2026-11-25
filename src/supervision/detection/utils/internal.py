@@ -675,8 +675,8 @@ def decode_semantic_label_map(
 
     Raises:
         ValueError: If the payload is not a string, array or tensor.
-        ValueError: If the payload is not valid base64.
-        ValueError: If the payload is not a decodable PNG.
+        ValueError: If a string payload is not valid base64.
+        ValueError: If a decoded string payload is not a decodable PNG.
         ValueError: If the payload is not a single-channel integer ``(H, W)`` map.
     """
     if not _is_semantic_map_payload(payload):

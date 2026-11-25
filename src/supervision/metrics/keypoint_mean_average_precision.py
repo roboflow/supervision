@@ -435,6 +435,8 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
     ) -> KeyPointMeanAveragePrecision:
         """Add predictions and targets of one or more images to the metric.
 
+        A rejected update leaves the metric unchanged.
+
         Args:
             predictions: The predicted key points, one
                 :class:`~supervision.key_points.core.KeyPoints` per image.
@@ -460,7 +462,6 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
             ValueError: If `targets.data["area"]` holds a negative or non-finite
                 area.
 
-            A rejected update leaves the metric unchanged.
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
