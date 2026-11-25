@@ -8,13 +8,14 @@ VERTEX = [50.0, 50.0]
 JOINT = JointAngle(name="joint", a=0, b=1, c=2)
 
 
-def _single_joint(
-    a: list[float], c: list[float], visible: list[list[bool]] | None = None
-) -> sv.KeyPoints:
+#: A 90-degree joint, a then vertex then c, used where the angle itself is irrelevant.
+RIGHT_ANGLE = [[90.0, 50.0], VERTEX, [50.0, 10.0]]
+
+
+def _single_joint(a: list[float], c: list[float]) -> sv.KeyPoints:
     """Build one skeleton whose points 0, 1 and 2 form the rays b -> a and b -> c."""
-    visibility = None if visible is None else np.array(visible)
     xy = np.array([[a, VERTEX, c]], dtype=np.float32)
-    return sv.KeyPoints(xy=xy, visible=visibility)
+    return sv.KeyPoints(xy=xy)
 
 
 class TestJointAngle:
@@ -105,21 +106,46 @@ class TestJointAngles:
 
         np.testing.assert_allclose(angles, [[90, 180], [90, 90]], atol=1e-5)
 
+    @pytest.mark.parametrize("position", [0, 1, 2])
     @pytest.mark.parametrize(
-        ("a", "visible"),
+        "coordinate",
         [
-            pytest.param([np.nan, 50.0], None, id="nan"),
-            pytest.param([np.inf, 50.0], None, id="inf"),
-            pytest.param([0.0, 0.0], None, id="zero-marker"),
-            pytest.param([90.0, 50.0], [[False, True, True]], id="hidden"),
-            pytest.param([50.0, 50.0], None, id="zero-length-segment"),
+            pytest.param([np.nan, 50.0], id="nan"),
+            pytest.param([np.inf, 50.0], id="inf"),
+            pytest.param([0.0, 0.0], id="zero-marker"),
         ],
     )
-    def test_unusable_point_gives_nan(
-        self, a: list[float], visible: list[list[bool]] | None
+    def test_missing_point_gives_nan(
+        self, position: int, coordinate: list[float]
     ) -> None:
-        """A missing, hidden or degenerate point yields NaN instead of an angle."""
-        key_points = _single_joint(a, [50.0, 10.0], visible=visible)
+        """A NaN, infinite or [0, 0] end point or vertex yields NaN, not an angle."""
+        xy = np.array([RIGHT_ANGLE], dtype=np.float32)
+        xy[0, position] = coordinate
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        assert np.isnan(angles).all()
+
+    @pytest.mark.parametrize("position", [0, 1, 2])
+    def test_hidden_point_gives_nan(self, position: int) -> None:
+        """Hiding any one of the three points through `visible` yields NaN."""
+        visible = np.ones((1, 3), dtype=bool)
+        visible[0, position] = False
+        key_points = sv.KeyPoints(
+            xy=np.array([RIGHT_ANGLE], dtype=np.float32), visible=visible
+        )
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        assert np.isnan(angles).all()
+
+    @pytest.mark.parametrize("position", [0, 2])
+    def test_end_point_on_vertex_gives_nan(self, position: int) -> None:
+        """An end point on the vertex leaves no ray to measure, so the angle is NaN."""
+        xy = np.array([RIGHT_ANGLE], dtype=np.float32)
+        xy[0, position] = VERTEX
+        key_points = sv.KeyPoints(xy=xy)
 
         angles = sv.joint_angles(key_points, [JOINT])
 
