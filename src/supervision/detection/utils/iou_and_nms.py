@@ -1734,7 +1734,9 @@ def _update_mask_candidate(
     """Union newly matched masks into the candidate, retaining compact storage."""
     if isinstance(masks, CompactMask):
         compact_candidate = cast(CompactMask, candidate)
-        return _compact_mask_union([masks[above_idx], compact_candidate])
+        # `above_idx` is one-dimensional, so indexing returns a CompactMask.
+        matched_masks = cast(CompactMask, masks[above_idx])
+        return _compact_mask_union([matched_masks, compact_candidate])
     dense_candidate = cast(npt.NDArray[Any], candidate)
     dense_union: npt.NDArray[Any] = np.logical_or.reduce(
         np.concatenate([masks[above_idx], dense_candidate]),

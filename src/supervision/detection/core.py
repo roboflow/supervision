@@ -2602,7 +2602,13 @@ class Detections:
                 data=data,
                 metadata=dict(self.metadata),
             )
-        if isinstance(index, (int, np.integer)):
+        # A 0-d integer array is a scalar index in NumPy, so it must keep the row
+        # axis like an int; indexing with it directly would drop that axis.
+        if isinstance(index, (int, np.integer)) or (
+            isinstance(index, np.ndarray)
+            and index.ndim == 0
+            and np.issubdtype(index.dtype, np.integer)
+        ):
             index = [int(index)]
         array_index = cast(
             slice | list[int] | npt.NDArray[np.integer | np.bool_], index

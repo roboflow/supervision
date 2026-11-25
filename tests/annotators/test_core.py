@@ -652,7 +652,7 @@ class TestPolygonAnnotator:
             | list[bool]
             | npt.NDArray[np.int_]
             | npt.NDArray[np.bool_],
-        ) -> CompactMask:
+        ) -> npt.NDArray[np.bool_] | CompactMask:
             """Reject dense integer indexing while allowing compact selections."""
             if isinstance(index, (int, np.integer)):
                 raise AssertionError("PolygonAnnotator must use CompactMask.crop")
