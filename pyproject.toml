@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.32.1"
+version = "0.32.2"
 description = "Model-agnostic computer vision toolkit: load detections, annotate, filter, count, evaluate, manage data"
 readme = "README.md"
 keywords = [
@@ -273,6 +273,7 @@ overrides = [
     "tests.detection.test_line_counter",
     "tests.detection.test_polygon_zone_annotator",
     "tests.detection.test_polygonzone",
+    "tests.detection.test_transform",
     "tests.detection.test_ultralytics_arrays",
     "tests.detection.test_vlm",
     "tests.detection.tools.test_inference_slicer",
