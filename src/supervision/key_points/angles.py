@@ -143,19 +143,28 @@ def joint_angles(
     xy = key_points.xy[..., :2].astype(np.float64)
     # Same rule as `as_detections`: [0, 0] marks a missing point, non-finite values
     # cannot be measured, and `visible` hides points the caller does not trust.
-    usable = ~np.all(xy == 0, axis=-1) & np.isfinite(xy).all(axis=-1)
-    if key_points.visible is not None:
-        usable &= key_points.visible.astype(bool)
+    usable = key_points._usable_mask()
 
     for column, angle in enumerate(angles):
-        ray_a = xy[:, angle.a] - xy[:, angle.b]
-        ray_c = xy[:, angle.c] - xy[:, angle.b]
-        measurable = usable[:, angle.a] & usable[:, angle.b] & usable[:, angle.c]
-        measurable &= np.any(ray_a != 0, axis=1) & np.any(ray_c != 0, axis=1)
+        # Rays are formed only on rows whose three points are usable, so no
+        # subtraction ever touches a non-finite coordinate.
+        rows = np.flatnonzero(
+            usable[:, angle.a] & usable[:, angle.b] & usable[:, angle.c]
+        )
+        vertex = xy[rows, angle.b]
+        ray_a = xy[rows, angle.a] - vertex
+        ray_c = xy[rows, angle.c] - vertex
+        # An end point on the vertex leaves no direction to measure from.
+        has_length = np.any(ray_a != 0, axis=1) & np.any(ray_c != 0, axis=1)
+        rows, ray_a, ray_c = rows[has_length], ray_a[has_length], ray_c[has_length]
+        # Scaling each ray so its largest component is 1 keeps the angle and stops
+        # cross and dot from overflowing or underflowing at extreme coordinates;
+        # zero-length rays are already gone, so no divisor is 0.
+        ray_a /= np.abs(ray_a).max(axis=1, keepdims=True)
+        ray_c /= np.abs(ray_c).max(axis=1, keepdims=True)
         # atan2(|cross|, dot) stays accurate near 0 and 180 degrees, where arccos of
         # the normalised dot product loses precision.
-        ray_a, ray_c = ray_a[measurable], ray_c[measurable]
         cross = np.abs(ray_a[:, 0] * ray_c[:, 1] - ray_a[:, 1] * ray_c[:, 0])
         dot = np.einsum("ij,ij->i", ray_a, ray_c)
-        result[measurable, column] = np.degrees(np.arctan2(cross, dot))
+        result[rows, column] = np.degrees(np.arctan2(cross, dot))
     return result

@@ -150,6 +150,27 @@ class TestJointAngles:
 
         np.testing.assert_allclose(angles, [[90.0], [np.nan]], atol=1e-5)
 
+    @pytest.mark.filterwarnings("error")
+    def test_same_infinity_at_end_point_and_vertex_gives_nan_quietly(self) -> None:
+        """An end point and vertex at the same infinity give NaN without a warning."""
+        xy = np.array([[[np.inf, 50.0], [np.inf, 50.0], [50.0, 10.0]]])
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        assert np.isnan(angles).all()
+
+    @pytest.mark.filterwarnings("error")
+    @pytest.mark.parametrize("scale", [1e200, 1e-170])
+    def test_extreme_coordinate_scale_keeps_angle(self, scale: float) -> None:
+        """Coordinates near the float64 limits give the angle of ordinary ones."""
+        xy = scale * np.array([[[2.0, 1.0], [1.0, 1.0], [2.0, 1.1]]])
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        np.testing.assert_allclose(angles, [[np.degrees(np.arctan(0.1))]], rtol=1e-6)
+
     @pytest.mark.parametrize("depth", [0.5, np.nan, np.inf])
     def test_third_coordinate_is_ignored(self, depth: float) -> None:
         """Angles use x/y only, so depth never changes or invalidates them."""

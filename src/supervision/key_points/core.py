@@ -1677,6 +1677,24 @@ class KeyPoints:
             data=data,
         )
 
+    def _usable_mask(self) -> npt.NDArray[np.bool_]:
+        """Return the ``(n, m)`` mask of key points whose x/y position can be used.
+
+        A key point is usable when its x/y coordinates are finite, are not exactly
+        ``[0, 0]`` (the marker some frameworks use for a missing point), and, when
+        ``visible`` is set, it is marked visible; callers hide unreliable key points
+        that way instead of removing them. An extra coordinate such as depth is
+        ignored. :meth:`~supervision.key_points.core.KeyPoints.with_nms`,
+        :meth:`~supervision.key_points.core.KeyPoints.as_detections` and
+        :func:`~supervision.key_points.angles.joint_angles` share this rule.
+        """
+        xy = self.xy[..., :2]
+        not_missing = ~np.all(xy == 0, axis=-1)
+        usable: npt.NDArray[np.bool_] = not_missing & np.isfinite(xy).all(axis=-1)
+        if self.visible is not None:
+            usable &= self.visible.astype(bool)
+        return usable
+
     def with_nms(
         self,
         threshold: float = 0.5,
@@ -1766,11 +1784,8 @@ class KeyPoints:
         # A non-finite keypoint marks an undetected joint, so it must not reach the
         # box: `xy == 0` does not catch it and `np.min`/`np.max` propagate it into
         # every corner, leaving an all-`NaN` box that compares False against every
-        # IoU threshold and therefore suppresses nothing. `as_detections` applies
-        # the same rule.
-        valid = ~np.all(xy == 0, axis=-1) & np.isfinite(xy).all(axis=-1)
-        if self.visible is not None:
-            valid = valid & self.visible
+        # IoU threshold and therefore suppresses nothing.
+        valid = self._usable_mask()
         has_valid = valid.any(axis=1)
         x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1, initial=np.inf)
         y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1, initial=np.inf)
@@ -1846,17 +1861,11 @@ class KeyPoints:
             candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
             if candidate.size > 0:
                 indices = candidate
+        valid = self._usable_mask()  # (N, M)
         if indices is not None:
             xy = xy[:, indices, :]
-
-        # [0, 0] is used by some frameworks to indicate a missing keypoint. Non-finite
-        # coordinates cannot form a valid detection box, so both cases are excluded.
-        valid = ~np.all(xy == 0, axis=2) & np.isfinite(xy).all(axis=2)  # (N, M)
-        # Callers hide unreliable keypoints through `visible` instead of removing
-        # them; `with_nms` already builds its boxes from visible keypoints only.
-        if self.visible is not None:
-            valid &= self.visible if indices is None else self.visible[:, indices]
-        has_valid = valid.any(axis=1)  # (N,)
+            valid = valid[:, indices]
+        has_valid = cast(npt.NDArray[np.bool_], valid.any(axis=1))  # (N,)
 
         x, y = xy[:, :, 0], xy[:, :, 1]
         x_min = np.where(valid, x, np.inf).min(axis=1)

@@ -16,7 +16,11 @@ from supervision.config import KEYPOINT_COVARIANCE_DATA_FIELD
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_rounded_rectangle, draw_text
+from supervision.draw.utils import (
+    _color_for_scene,
+    draw_rounded_rectangle,
+    draw_text,
+)
 from supervision.geometry.core import Point, Rect
 from supervision.key_points.angles import JointAngle, joint_angles
 from supervision.key_points.core import KeyPoints
@@ -1289,7 +1293,9 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
     unreliable points before annotating. Joints narrower than one degree get no
     arc, only their label when ``show_value`` is set. Because the interior angle
     never exceeds 180 degrees, the arc of a joint that bends through straight moves
-    to the other side.
+    to the other side. On a BGRA scene, arcs and labels are drawn opaque, as
+    :func:`~supervision.draw.utils.draw_image` draws, and other pixels keep their
+    alpha.
     """
 
     def __init__(
@@ -1389,23 +1395,22 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
 
         values = joint_angles(key_points, self.angles)
         xy = key_points.xy[..., :2].astype(np.float64)
-        # Drawing with BGR colors writes zero alpha on BGRA canvases. Keep the
-        # existing transparency while both the arc and text modify color channels.
-        alpha = (
-            scene[..., 3].copy() if scene.ndim == 3 and scene.shape[2] == 4 else None
-        )
-        for skeleton_index, angle_index in zip(*np.nonzero(np.isfinite(values))):
+        measured = list(zip(*np.nonzero(np.isfinite(values))))
+        # Resolve every color before the first draw, as VertexLabelAnnotator does,
+        # so a lookup that raises leaves the caller's scene untouched.
+        joint_colors = [
+            self._resolve_joint_colors(
+                key_points, int(skeleton_index), self.angles[angle_index].b
+            )
+            for skeleton_index, angle_index in measured
+        ]
+        for (skeleton_index, angle_index), (color, text_color) in zip(
+            measured, joint_colors
+        ):
             angle = self.angles[angle_index]
             vertex = xy[skeleton_index, angle.b]
             heading_a = self._heading(xy[skeleton_index, angle.a] - vertex)
             heading_c = self._heading(xy[skeleton_index, angle.c] - vertex)
-            color = _resolve_keypoint_color(
-                color=self.color,
-                color_lookup=self.color_lookup,
-                key_points=key_points,
-                instance_idx=int(skeleton_index),
-                keypoint_idx=angle.b,
-            )
             # The interior angle never exceeds 180 degrees, so the arc follows the
             # shorter way round from ray a to ray c. Both backends draw an arc
             # clockwise from the smaller to the larger angle in image coordinates.
@@ -1414,6 +1419,8 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             # Both backends draw whole degrees, so a sub-degree arc would collapse
             # into a dot on the joint; such joints keep only their label.
             if end_angle - start_angle >= 1.0:
+                # On a BGRA scene the color carries an opaque alpha, so the arc
+                # shows over transparent pixels, as the label from `draw_text` does.
                 cv2.ellipse(
                     scene,
                     (int(vertex[0]), int(vertex[1])),
@@ -1421,18 +1428,11 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
                     0.0,
                     start_angle,
                     end_angle,
-                    color.as_bgr(),
+                    _color_for_scene(color, scene),
                     self.thickness,
                     cv2.LINE_AA,
                 )
-            if self.show_value:
-                text_color = _resolve_keypoint_color(
-                    color=self.text_color,
-                    color_lookup=self.color_lookup,
-                    key_points=key_points,
-                    instance_idx=int(skeleton_index),
-                    keypoint_idx=angle.b,
-                )
+            if text_color is not None:
                 self._draw_value(
                     scene=scene,
                     text=f"{values[skeleton_index, angle_index]:.0f}",
@@ -1441,9 +1441,35 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
                     vertex=vertex,
                     bisector=np.radians(heading_a + sweep / 2.0),
                 )
-        if alpha is not None:
-            scene[..., 3] = alpha
         return scene
+
+    def _resolve_joint_colors(
+        self, key_points: KeyPoints, skeleton_index: int, vertex_index: int
+    ) -> tuple[Color, Color | None]:
+        """Return the arc color of a joint and its text color, or ``None`` for the text
+        color when no label is shown.
+
+        Both follow ``color_lookup``; under ``KEYPOINT`` a joint takes the colors of its
+        vertex. A label that is not shown never resolves its text color, so an unused
+        ``text_color`` palette cannot raise.
+        """
+        color = _resolve_keypoint_color(
+            color=self.color,
+            color_lookup=self.color_lookup,
+            key_points=key_points,
+            instance_idx=skeleton_index,
+            keypoint_idx=vertex_index,
+        )
+        if not self.show_value:
+            return color, None
+        text_color = _resolve_keypoint_color(
+            color=self.text_color,
+            color_lookup=self.color_lookup,
+            key_points=key_points,
+            instance_idx=skeleton_index,
+            keypoint_idx=vertex_index,
+        )
+        return color, text_color
 
     @staticmethod
     def _heading(ray: npt.NDArray[np.float64]) -> float:

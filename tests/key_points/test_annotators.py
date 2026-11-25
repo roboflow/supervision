@@ -1154,6 +1154,10 @@ def _right_angle(visible: list[list[bool]] | None = None) -> sv.KeyPoints:
     return sv.KeyPoints(xy=xy, visible=visibility)
 
 
+#: Bisector of the :func:`_right_angle` joint, in radians: up and to the right.
+_RIGHT_ANGLE_BISECTOR = np.radians(-45.0)
+
+
 def _joint_from_headings(heading_a: float, heading_c: float) -> sv.KeyPoints:
     """One skeleton with its vertex at (50, 50) and rays at the given headings.
 
@@ -1353,18 +1357,60 @@ class TestJointAngleAnnotator:
         assert np.atleast_3d(result)[..., 0].max() == color.as_bgr()[0]
 
     @pytest.mark.parametrize("show_value", [False, True])
-    def test_bgra_annotation_preserves_alpha(self, show_value: bool) -> None:
-        """Arc and label change color without changing BGRA transparency."""
+    def test_bgra_drawing_turns_opaque_and_keeps_other_alpha(
+        self, show_value: bool
+    ) -> None:
+        """Drawn BGRA pixels become opaque; pixels away from the joint keep alpha."""
         scene = np.zeros((100, 100, 4), dtype=np.uint8)
         scene[..., 3] = np.arange(100, dtype=np.uint8)[:, None] + 100
-        original = scene.copy()
-        annotator = sv.JointAngleAnnotator(angles=[JOINT], show_value=show_value)
+        original_alpha = scene[..., 3].copy()
+        rows, cols = np.indices(scene.shape[:2])
+        far_from_joint = np.hypot(rows - 50, cols - 50) >= 60
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT], thickness=3, show_value=show_value
+        )
 
         result = annotator.annotate(scene=scene, key_points=_right_angle())
 
+        alpha = result[..., 3]
         assert result is scene
-        np.testing.assert_array_equal(result[..., 3], original[..., 3])
-        assert np.any(result[..., :3] != original[..., :3])
+        assert np.all(alpha >= original_alpha)
+        assert _patch_at(alpha, _RIGHT_ANGLE_BISECTOR, 20.0).max() == 255
+        np.testing.assert_array_equal(
+            alpha[far_from_joint], original_alpha[far_from_joint]
+        )
+
+    def test_transparent_bgra_scene_shows_arc_and_label(self) -> None:
+        """Black arc and label on a fully transparent black scene become visible."""
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        rows, cols = np.indices(scene.shape[:2])
+        beyond_arc = np.hypot(rows - 50, cols - 50) > 20 + 3 + 2
+        far_from_joint = np.hypot(rows - 50, cols - 50) >= 60
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.BLACK,
+            text_color=sv.Color.BLACK,
+            thickness=3,
+        )
+
+        result = annotator.annotate(scene=scene, key_points=_right_angle())
+
+        # The drawing has the color of the canvas, so only alpha can reveal it.
+        alpha = result[..., 3]
+        assert _patch_at(alpha, _RIGHT_ANGLE_BISECTOR, 20.0).max() == 255
+        assert np.any(alpha[beyond_arc] == 255)
+        assert not alpha[far_from_joint].any()
+
+    def test_opaque_bgra_scene_stays_opaque(self) -> None:
+        """Annotating an opaque BGRA scene leaves every pixel opaque."""
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        scene[..., 3] = 255
+        annotator = sv.JointAngleAnnotator(angles=[JOINT])
+
+        result = annotator.annotate(scene=scene.copy(), key_points=_right_angle())
+
+        assert np.all(result[..., 3] == 255)
+        assert result[..., :3].any()
 
     def test_grayscale_pil_scene_is_annotated_in_place(self) -> None:
         """A single-channel PIL scene is drawn on in place and keeps its mode."""
@@ -1454,6 +1500,23 @@ class TestJointAngleAnnotatorColorPalette:
 
         assert _has_color(result[:, :100], _PALETTE.by_idx(0))
         assert _has_color(result[:, 100:], _PALETTE.by_idx(1))
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    def test_unresolvable_text_color_raises_before_drawing(self, channels: int) -> None:
+        """A text palette CLASS lookup cannot resolve raises before any drawing."""
+        scene = np.full((100, 200, channels), 100, dtype=np.uint8)
+        original = scene.copy()
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.WHITE,
+            text_color=_PALETTE,
+            color_lookup=sv.ColorLookup.CLASS,
+        )
+
+        with pytest.raises(ValueError, match="class_id is not available"):
+            annotator.annotate(scene, _two_right_angles())
+
+        np.testing.assert_array_equal(scene, original)
 
     def test_track_lookup_rejected_at_construction(self) -> None:
         """TRACK is rejected when the annotator is created, as for other annotators."""
