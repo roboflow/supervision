@@ -460,7 +460,9 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: Any) -> KeyPoints:
+    def from_inference(
+        cls, inference_result: Any, *, num_keypoints: int | None = None
+    ) -> KeyPoints:
         """
         Create a :class:`~supervision.key_points.core.KeyPoints` object from the
         [Roboflow](https://roboflow.com/)
@@ -470,6 +472,12 @@ class KeyPoints:
         Args:
             inference_result: The result from the
                 Roboflow API or Inference package containing predictions with keypoints.
+            num_keypoints: Full skeleton size, when known. Inference leaves out key
+                points scored below the request's `keypoint_confidence`, so without
+                it the key point axis ends at the largest key point index any
+                object kept. Supply it to keep trailing key points that every
+                object lost, so frames load with the same number of key points,
+                including when no objects are detected.
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
@@ -479,7 +487,12 @@ class KeyPoints:
                 prediction has a non-`None` object confidence; if any prediction
                 omits it or sets it to `None`, the field is `None` for the batch and
                 `as_detections()` uses keypoint-confidence means for all predictions.
-                Two-value keypoints have `keypoint_confidence=None`.
+                Two-value keypoints have `keypoint_confidence=None`. Omitted key
+                points are zero-filled slots.
+
+        Raises:
+            ValueError: If `inference_result` is a list, or if `num_keypoints` is
+                not positive or cannot contain the retained key point indices.
 
         Examples:
             ```python
@@ -506,7 +519,7 @@ class KeyPoints:
             )
 
             result = client.infer(image, model_id="<POSE_MODEL_ID>")
-            key_points = sv.KeyPoints.from_inference(result)
+            key_points = sv.KeyPoints.from_inference(result, num_keypoints=17)
             ```
         """
         if isinstance(inference_result, list):
@@ -514,13 +527,22 @@ class KeyPoints:
                 "from_inference() operates on a single result at a time."
                 "You can retrieve it like so:  inference_result = model.infer(image)[0]"
             )
+        if num_keypoints is not None and num_keypoints <= 0:
+            raise ValueError("num_keypoints must be positive.")
 
         if hasattr(inference_result, "dict"):
             inference_result = inference_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(inference_result, "json"):
             inference_result = inference_result.json()
         if not inference_result.get("predictions"):
-            return cls.empty()
+            if num_keypoints is None:
+                return cls.empty()
+            return cls(
+                xy=np.empty((0, num_keypoints, 2), dtype=np.float32),
+                class_id=np.array([], dtype=int),
+                keypoint_confidence=np.empty((0, num_keypoints), dtype=np.float32),
+                detection_confidence=np.array([], dtype=np.float32),
+            )
 
         predictions = inference_result["predictions"]
 
@@ -541,6 +563,10 @@ class KeyPoints:
             (max(object_slots) + 1 for object_slots in slots if object_slots),
             default=0,
         )
+        if num_keypoints is not None:
+            if keypoint_count > num_keypoints:
+                raise ValueError("num_keypoints must include all retained key points.")
+            keypoint_count = num_keypoints
 
         xy = np.zeros((len(predictions), keypoint_count, 2), dtype=np.float32)
         confidence = np.zeros((len(predictions), keypoint_count), dtype=np.float32)
