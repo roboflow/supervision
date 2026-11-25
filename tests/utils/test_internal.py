@@ -1,4 +1,3 @@
-import inspect
 import json
 import os
 import subprocess
@@ -11,13 +10,10 @@ from typing import Any
 
 import numpy as np
 import pytest
-from deprecate import deprecated
 
 from supervision.detection.core import Detections
 from supervision.utils.internal import (
-    _DEPRECATION_TEMPLATE_KEYWORD,
     SupervisionWarnings,
-    _deprecation_template,
     format_warning,
     get_instance_variables,
 )
@@ -272,15 +268,6 @@ def test_supervision_warning_env_var_controls_deprecation_warnings(
 
 
 class TestDeprecationTemplate:
-    def test_template_uses_a_keyword_deprecated_accepts(self) -> None:
-        """The template is passed under a keyword the installed pydeprecate takes."""
-        template = "%(source_name)s moved"
-
-        result = _deprecation_template(template)
-
-        assert result == {_DEPRECATION_TEMPLATE_KEYWORD: template}
-        assert _DEPRECATION_TEMPLATE_KEYWORD in inspect.signature(deprecated).parameters
-
     def test_import_raises_no_future_warning(self) -> None:
         """Importing supervision succeeds with ``FutureWarning`` as an error."""
         command = [

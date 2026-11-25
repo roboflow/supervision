@@ -66,8 +66,8 @@ from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
 from supervision.utils.file import save_yaml_file
 from supervision.utils.internal import (
+    _DEPRECATION_TEMPLATE_KEYWORD,
     _DEPRECATION_WARNING_STREAM,
-    _deprecation_template,
     warn_deprecated,
 )
 from supervision.utils.iterables import find_duplicates
@@ -90,7 +90,7 @@ _COCO_LOADER_MODULE_DEPRECATION = (
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    **_deprecation_template(_COCO_LOADER_MODULE_DEPRECATION),
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _COCO_LOADER_MODULE_DEPRECATION},
 )
 def load_coco_annotations(
     images_directory_path: str,

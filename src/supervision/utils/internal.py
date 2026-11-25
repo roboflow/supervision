@@ -89,30 +89,6 @@ _DEPRECATION_TEMPLATE_KEYWORD = (
 )
 
 
-def _deprecation_template(template: str) -> dict[str, str]:
-    """Return a custom warning template as keyword arguments for ``deprecated``.
-
-    Spread into the decorator call as ``**_deprecation_template(template)``, it passes
-    the template under the name the installed pydeprecate reads, so importing
-    supervision warns about nothing on any supported pydeprecate release.
-
-    Args:
-        template: Warning message template with pydeprecate's ``%(...)s`` fields.
-
-    Returns:
-        A one-item mapping from the template keyword to ``template``.
-
-    Examples:
-        ```pycon
-        >>> from supervision.utils.internal import _deprecation_template
-        >>> list(_deprecation_template("%(source_name)s moved").values())
-        ['%(source_name)s moved']
-
-        ```
-    """
-    return {_DEPRECATION_TEMPLATE_KEYWORD: template}
-
-
 def deprecated_parameter(
     old_parameter: str,
     new_parameter: str,

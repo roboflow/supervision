@@ -13,8 +13,8 @@ from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 from supervision.utils.internal import (
+    _DEPRECATION_TEMPLATE_KEYWORD,
     _DEPRECATION_WARNING_STREAM,
-    _deprecation_template,
 )
 
 PENDING_TRACK_COLOR = Color.GREY
@@ -197,7 +197,7 @@ def _resolve_detection_color_idx(
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    **_deprecation_template(_DETECTION_COLOR_HELPER_DEPRECATION),
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _DETECTION_COLOR_HELPER_DEPRECATION},
 )
 def resolve_color_idx(
     detections: Detections,
@@ -285,7 +285,7 @@ def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    **_deprecation_template(_PALETTE_COLOR_HELPER_DEPRECATION),
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _PALETTE_COLOR_HELPER_DEPRECATION},
 )
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     """Deprecated: pick the color drawn for a palette index."""
@@ -330,7 +330,7 @@ def _resolve_detection_color(
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    **_deprecation_template(_DETECTION_COLOR_HELPER_DEPRECATION),
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _DETECTION_COLOR_HELPER_DEPRECATION},
 )
 def resolve_color(
     color: Color | ColorPalette,
