@@ -9,8 +9,6 @@ date_modified: 2026-11-18
 
 - `sv.Detections` and `CompactMask` now accept a 0-d integer NumPy array, such as `np.array(1)` or `np.asarray(detections.confidence.argmax())`, as a row index and select the same row as the equivalent `int`, as NumPy does. `sv.Detections` raised `ValueError: xyxy must be a 2D np.ndarray` or, with list `data`, `TypeError: iteration over a 0-d array`, and `CompactMask` raised the `TypeError`. ([#3034](https://github.com/roboflow/supervision/pull/3034))
 
-- The `plot` methods of `sv.metrics` results and `plot_aggregate_metric_results` now leave the user's Matplotlib font family unchanged. They drew in monospace by setting `plt.rcParams["font.family"]` globally and then set it to `"sans-serif"`, so a family the user had configured, such as `"serif"`, was replaced for every later figure. The monospace font is now applied only while the plot is drawn. ([#2991](https://github.com/roboflow/supervision/pull/2991))
-
 - `sv.DetectionDataset` and `sv.ClassificationDataset` built from in-memory images now compare those images one by one. A dataset holding images of different sizes or channel counts was unequal even to itself, because the images could not be stacked into a single array. ([#3029](https://github.com/roboflow/supervision/pull/3029))
 
 - `sv.JSONSink` now writes `NaN` and infinite values as `null`. Previously it wrote them as `NaN`, `Infinity` or `-Infinity`, which are not valid JSON, so strict parsers such as `JSON.parse` in browsers raised `SyntaxError` on files with a missing value. Python's `json` module now reads these values as `None` instead of `float("nan")`. ([#3028](https://github.com/roboflow/supervision/pull/3028))
