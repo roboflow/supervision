@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- Annotators now draw on non-contiguous NumPy views, such as a channel flip `frame[..., ::-1]`, a column step `frame[:, ::2]`, flips or a transpose, when OpenCV is installed. Before, OpenCV raised a layout error while the NumPy fallback drew the same pixels; both backends now annotate the view in place. ([#3036](https://github.com/roboflow/supervision/pull/3036))
+
 - `sv.Detections` and `CompactMask` now accept a 0-d integer NumPy array, such as `np.array(1)` or `np.asarray(detections.confidence.argmax())`, as a row index and select the same row as the equivalent `int`, as NumPy does. `sv.Detections` raised `ValueError: xyxy must be a 2D np.ndarray` or, with list `data`, `TypeError: iteration over a 0-d array`, and `CompactMask` raised the `TypeError`. ([#3034](https://github.com/roboflow/supervision/pull/3034))
 
 - `sv.DetectionDataset` and `sv.ClassificationDataset` built from in-memory images now compare those images one by one. A dataset holding images of different sizes or channel counts was unequal even to itself, because the images could not be stacked into a single array. ([#3029](https://github.com/roboflow/supervision/pull/3029))
