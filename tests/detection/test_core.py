@@ -4012,13 +4012,20 @@ class TestDetectionsFromSemanticSegmentation:
         label_map = np.zeros((600, 600), dtype=np.uint8)
         label_map[::8, ::8][:15, :20] = 1
         dense_masks_bytes = 300 * label_map.size
-        tracemalloc.start()
+        started_tracing = not tracemalloc.is_tracing()
+        if started_tracing:
+            tracemalloc.start()
+        try:
+            baseline_bytes = tracemalloc.get_traced_memory()[0]
+            tracemalloc.reset_peak()
 
-        detections = Detections.from_semantic_segmentation(
-            label_map, split_components=True
-        )
-        peak_bytes = tracemalloc.get_traced_memory()[1]
-        tracemalloc.stop()
+            detections = Detections.from_semantic_segmentation(
+                label_map, split_components=True
+            )
+            peak_bytes = tracemalloc.get_traced_memory()[1] - baseline_bytes
+        finally:
+            if started_tracing:
+                tracemalloc.stop()
 
         assert len(detections) == 300
         assert peak_bytes < dense_masks_bytes * 3 // 2
