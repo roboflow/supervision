@@ -298,6 +298,75 @@ def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
         return None
 
 
+#: Brackets and quoted ``bbox_2d`` keys, matched in document order to find the
+#: array that a Qwen detection object sits in.
+_QWEN_ARRAY_TOKENS = re.compile(
+    r'[\[\]{}]|"(?:\\.|[^"\\])*"\s*:?|(?<!\w)\'(?:\\.|[^\'\\])*\'\s*:?'
+)
+
+
+def _find_qwen_detection_array(text: str) -> int:
+    """Return the index of the ``[`` that opens the Qwen detection array.
+
+    The leftmost ``[`` that decodes as a JSON list holding a ``bbox_2d`` object
+    wins, so the outer array is chosen over any inner ``[]`` item or field, and
+    coordinates in surrounding prose never decode as detections. Truncated JSON
+    and Python literals cannot be decoded whole; for them the innermost ``[``
+    still open at the first enclosed ``bbox_2d`` key marks the array. Without a
+    key, the first ``[`` that opens an object or an empty array is returned, or
+    ``0`` when there is none.
+
+    Args:
+        text: Raw model response, possibly with prose and Markdown fences.
+
+    Returns:
+        Index into ``text`` where decoding of the detection array should start.
+    """
+    decoder = json.JSONDecoder()
+    decoded_until = 0
+    for bracket in re.finditer(r"\[", text):
+        # Arrays nested in a list already decoded without detections are left
+        # to the key scan below, which keeps deeply nested input linear.
+        if bracket.start() < decoded_until:
+            continue
+        try:
+            decoded, decoded_until = decoder.raw_decode(text, bracket.start())
+        except json.JSONDecodeError:
+            continue
+        except RecursionError:
+            break
+        if isinstance(decoded, list) and any(
+            isinstance(item, dict) and "bbox_2d" in item for item in decoded
+        ):
+            return bracket.start()
+
+    # Consume quoted strings as tokens so their brackets are not structural. The key
+    # belongs to the innermost open object, and its array is the nearest ``[`` opened
+    # before that object, so a stray ``[`` inside a label preceding the key is ignored.
+    # A key outside every array (e.g. quoted in prose) defers to the next key.
+    open_brackets: list[re.Match[str]] = []
+    for token in _QWEN_ARRAY_TOKENS.finditer(text):
+        symbol = token.group()
+        if symbol in ("[", "{"):
+            open_brackets.append(token)
+        elif symbol in ("]", "}"):
+            if open_brackets:
+                open_brackets.pop()
+        elif symbol.rstrip().endswith(":") and symbol.rstrip()[:-1].rstrip() in (
+            '"bbox_2d"',
+            "'bbox_2d'",
+        ):
+            past_object = all(opened.group() != "{" for opened in open_brackets)
+            for opened in reversed(open_brackets):
+                if opened.group() == "{":
+                    past_object = True
+                elif past_object:
+                    return opened.start()
+
+    first_array = re.search(r"\[\s*(?=\{|\])", text)
+    return first_array.start() if first_array else 0
+
+
 def from_qwen_2_5_vl(
     result: str,
     input_wh: tuple[int, int],
@@ -335,22 +404,20 @@ def from_qwen_2_5_vl(
     out_w, out_h = _validate_resolution(resolution_wh)
 
     text = result.strip()
-    text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
-    text = re.sub(r"```$", "", text).strip()
+    # Decode from the detection array itself so Markdown fences and backticks
+    # inside JSON strings never become payload delimiters.
+    start = _find_qwen_detection_array(text)
+    text = re.sub(r"```$", "", text[start:]).strip()
 
-    # A response cut off inside a box's `bbox_2d` array ends in that array's
-    # elements, so the last `]` below belongs to the previous object's box and the
-    # slice drops that complete object. Recovery therefore reads the unsliced text
-    # first, and the slice when that fails (e.g. a `}` in trailing prose or in a
-    # label). `ast.literal_eval` keeps reading the slice.
+    # Recovery reads the unsliced response first: the last closing bracket can
+    # belong to an unfinished box rather than the outer array.
     unsliced = text
-    start = text.find("[")
     end = text.rfind("]")
-    if start != -1 and end != -1 and end > start:
-        text = text[start : end + 1].strip()
+    if end != -1:
+        text = text[: end + 1].strip()
 
     try:
-        data = json.loads(text)
+        data, _ = json.JSONDecoder().raw_decode(unsliced)
     except json.JSONDecodeError:
         repaired = recover_truncated_qwen_2_5_vl_response(unsliced)
         if repaired is None:
@@ -358,14 +425,15 @@ def from_qwen_2_5_vl(
         if repaired is not None:
             data = repaired
         else:
-            try:
-                data = ast.literal_eval(text)
-            except (ValueError, SyntaxError, TypeError):
-                return (
-                    np.empty((0, 4)),
-                    np.empty((0,), dtype=int),
-                    np.empty((0,), dtype=str),
-                )
+            # A Python-style list may be followed by prose with more brackets.
+            # Try each closing bracket until a complete literal is found.
+            data = None
+            for match in re.finditer(r"\]", text):
+                try:
+                    data = ast.literal_eval(text[: match.end()])
+                    break
+                except (ValueError, SyntaxError, TypeError):
+                    continue
 
     if not isinstance(data, list):
         return (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str))
@@ -795,8 +863,9 @@ def _parse_gemini_boxes(
             `class_id` is an array of shape `(n,)` with class indices,
             `class_name` is an array of shape `(n,)` with class labels,
             `confidence` is an optional array of shape `(n,)` with confidence
-            scores, and `keep_mask` is a boolean array of shape `(len(items),)`
-            marking the items kept by the `classes` filter.
+            scores, `None` when a kept item has no `confidence` (items removed by
+            `classes` do not count), and `keep_mask` is a boolean array of shape
+            `(len(items),)` marking the items kept by the `classes` filter.
     """
     w, h = _validate_resolution(resolution_wh)
 
@@ -811,7 +880,6 @@ def _parse_gemini_boxes(
 
     boxes_list: list[npt.NDArray[Any]] = []
     labels_list: list[str] = []
-    confidence_list: list[float] | None = []
 
     for item in items:
         labels_list.append(item["label"])
@@ -823,12 +891,6 @@ def _parse_gemini_boxes(
             normalization_factor=1000,
         )
         boxes_list.append(_sort_box_corners(absolute_box)[0])
-
-        if "confidence" in item:
-            if confidence_list is not None:
-                confidence_list.append(item["confidence"])
-        else:
-            confidence_list = None
 
     xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list)
@@ -842,18 +904,19 @@ def _parse_gemini_boxes(
         # `dtype=int` matters only when every item is filtered out: an empty list
         # would otherwise make NumPy pick `float64` for an array of class indices.
         class_id = np.array([classes.index(name) for name in class_name], dtype=int)
-        if confidence_list is not None:
-            confidence_list = [
-                score for score, keep in zip(confidence_list, keep_mask) if keep
-            ]
     else:
         keep_mask = np.ones(len(items), dtype=bool)
         unique_labels = sorted(set(class_name))
         label_to_id = {label: index for index, label in enumerate(unique_labels)}
         class_id = np.array([label_to_id[name] for name in class_name])
 
+    # Confidence is all-or-nothing like the masks, and over the same population: an
+    # item dropped by `classes` must not null the scores of the items that were kept.
+    kept_items = [item for item, keep in zip(items, keep_mask) if keep]
     confidence = (
-        np.array(confidence_list, dtype=float) if confidence_list is not None else None
+        np.array([item["confidence"] for item in kept_items], dtype=float)
+        if all("confidence" in item for item in kept_items)
+        else None
     )
     return xyxy, class_id, class_name, confidence, keep_mask
 

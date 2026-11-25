@@ -2209,6 +2209,86 @@ def test_from_vlm_google_gemini_3_6_class_filter_partial_keeps_masks_aligned() -
     assert not detections.mask[1, 20, 80]
 
 
+class TestGeminiConfidenceWithClassFilter:
+    """Gemini confidence scores survive items that the `classes` filter removes."""
+
+    @pytest.mark.parametrize("vlm", [VLM.GOOGLE_GEMINI_2_5, VLM.GOOGLE_GEMINI_3_5])
+    def test_keeps_scores_when_filtered_item_lacks_confidence(self, vlm: VLM) -> None:
+        """A filtered-out item without a score does not blank the kept scores."""
+        result = json.dumps(
+            [
+                {"box_2d": [0, 0, 500, 500], "label": "cat", "confidence": 0.9},
+                {"box_2d": [500, 500, 1000, 1000], "label": "tree"},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(100, 100), classes=["cat"]
+        )
+
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.9])
+
+    @pytest.mark.parametrize("vlm", [VLM.GOOGLE_GEMINI_3_6, VLM.GOOGLE_GEMINI_3_7])
+    def test_structured_keeps_scores_when_filtered_item_lacks_confidence(
+        self, vlm: VLM
+    ) -> None:
+        """The structured `boxes` format keeps the scores past a filtered item."""
+        result = json.dumps(
+            {
+                "boxes": [
+                    {"box_2d": [0, 0, 500, 500], "label": "cat", "confidence": 0.9},
+                    {"box_2d": [500, 500, 1000, 1000], "label": "tree"},
+                ]
+            }
+        )
+
+        detections = Detections.from_vlm(
+            vlm=vlm, result=result, resolution_wh=(100, 100), classes=["cat"]
+        )
+
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.9])
+
+    def test_keeps_scores_aligned_after_partial_filter(self) -> None:
+        """Each kept detection keeps its own score after a partial class filter."""
+        result = json.dumps(
+            [
+                {"box_2d": [0, 0, 500, 500], "label": "cat", "confidence": 0.9},
+                {"box_2d": [0, 500, 500, 1000], "label": "tree"},
+                {"box_2d": [500, 0, 1000, 500], "label": "cat", "confidence": 0.4},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=VLM.GOOGLE_GEMINI_2_5,
+            result=result,
+            resolution_wh=(100, 100),
+            classes=["cat"],
+        )
+
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.9, 0.4])
+
+    def test_kept_item_without_confidence_still_drops_scores(self) -> None:
+        """A kept item without a score still leaves the whole response unscored."""
+        result = json.dumps(
+            [
+                {"box_2d": [0, 0, 500, 500], "label": "cat", "confidence": 0.9},
+                {"box_2d": [500, 500, 1000, 1000], "label": "cat"},
+            ]
+        )
+
+        detections = Detections.from_vlm(
+            vlm=VLM.GOOGLE_GEMINI_2_5,
+            result=result,
+            resolution_wh=(100, 100),
+            classes=["cat"],
+        )
+
+        assert detections.confidence is None
+
+
 @pytest.mark.parametrize(
     "mask_value",
     [
@@ -2314,6 +2394,28 @@ def test_from_vlm_empty_outcome_keeps_class_id_integer(
     assert len(detections) == 0
     assert detections.class_id is not None
     assert detections.class_id.dtype == int
+
+
+@pytest.mark.parametrize(
+    ("vlm", "result"),
+    [
+        pytest.param(VLM.GOOGLE_GEMINI_2_5, _GEMINI_BOX_RESULT, id="gemini-2.5"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_5, _GEMINI_BOX_RESULT, id="gemini-3.5"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_6, _GEMINI_STRUCTURED_RESULT, id="gemini-3.6"),
+        pytest.param(VLM.GOOGLE_GEMINI_3_7, _GEMINI_STRUCTURED_RESULT, id="gemini-3.7"),
+    ],
+)
+def test_gemini_all_filtered_items_return_empty_confidence(
+    vlm: VLM, result: str
+) -> None:
+    """Filtering unscored items returns an empty floating-point confidence array."""
+    detections = Detections.from_vlm(
+        vlm=vlm, result=result, resolution_wh=(100, 100), classes=["dog"]
+    )
+
+    assert detections.confidence is not None
+    assert detections.confidence.shape == (0,)
+    assert detections.confidence.dtype == float
 
 
 class TestFromVlmCornerOrdering:
@@ -2656,6 +2758,209 @@ class TestPaliGemmaPunctuatedLabels:
         np.testing.assert_array_equal(boxes, [[0, 0, 50, 50], [0, 0, 25, 25]])
         assert class_ids is None
         np.testing.assert_array_equal(names, ["cat/dog", "person (left)"])
+
+
+QWEN_FENCED_ANSWER = (
+    "```json\n"
+    "[\n"
+    '    {"bbox_2d": [100, 200, 300, 400], "label": "cat"},\n'
+    '    {"bbox_2d": [500, 200, 700, 400], "label": "dog"}\n'
+    "]\n"
+    "```"
+)
+
+
+class TestQwenTextBeforeFence:
+    """Text before the ```json fence does not hide the fenced detections."""
+
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pytest.param(QWEN_FENCED_ANSWER, id="fence_only"),
+            pytest.param("Here are the objects:\n" + QWEN_FENCED_ANSWER, id="sentence"),
+            pytest.param(
+                "Boxes are in [x1, y1, x2, y2] format:\n" + QWEN_FENCED_ANSWER,
+                id="sentence_with_brackets",
+            ),
+            pytest.param(
+                "<think>\nThe cat spans about [100, 200] to [300, 400].\n</think>\n\n"
+                + QWEN_FENCED_ANSWER,
+                id="reasoning_with_brackets",
+            ),
+            pytest.param(
+                QWEN_FENCED_ANSWER + "\nBoth boxes use [x1, y1, x2, y2].",
+                id="sentence_with_brackets_after_fence",
+            ),
+        ],
+    )
+    def test_parses_fenced_detections(self, result: str) -> None:
+        """Detections inside the fence are returned whatever text surrounds it."""
+        boxes, _, names = from_qwen_2_5_vl(
+            result, input_wh=(1000, 1000), resolution_wh=(1000, 1000)
+        )
+
+        np.testing.assert_allclose(boxes, [[100, 200, 300, 400], [500, 200, 700, 400]])
+        np.testing.assert_array_equal(names, ["cat", "dog"])
+
+    def test_qwen_3_vl_parses_after_reasoning(self) -> None:
+        """Qwen3-VL output with bracketed reasoning keeps its fenced detections."""
+        result = (
+            "<think>\nThe dog is right of the cat, near [500, 200].\n</think>\n\n"
+            + QWEN_FENCED_ANSWER
+        )
+
+        boxes, _, names = from_qwen_3_vl(result, resolution_wh=(1000, 1000))
+
+        np.testing.assert_allclose(boxes, [[100, 200, 300, 400], [500, 200, 700, 400]])
+        np.testing.assert_array_equal(names, ["cat", "dog"])
+
+
+class TestQwenUnrelatedFences:
+    """Preserve detection payloads around unrelated fences and quoted backticks."""
+
+    @pytest.mark.parametrize(
+        ("result", "label"),
+        [
+            pytest.param(
+                "```text\nnotes\n```\n```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```',
+                "cat",
+                id="earlier-unrelated-fence",
+            ),
+            pytest.param(
+                "```json\n[{'bbox_2d': [1, 2, 3, 4], 'label': 'cat'}]\n```\nSee [note]",
+                "cat",
+                id="python-literal-with-trailing-brackets",
+            ),
+            pytest.param(
+                "Thinking []\n```json\n"
+                "[{'bbox_2d': [1, 2, 3, 4], 'label': 'cat'}]\n```",
+                "cat",
+                id="earlier-empty-array-python-literal",
+            ),
+            pytest.param(
+                "Thinking []\n```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}, '
+                '{"bbox_2d": [5, 6',
+                "cat",
+                id="earlier-empty-array-truncated-json",
+            ),
+            pytest.param(
+                '```json\n[{"example": "not a detection"}]\n```\n'
+                '```json\n[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```',
+                "cat",
+                id="earlier-unrelated-json-array",
+            ),
+            pytest.param(
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "cat"}]\n```text\nnotes\n```',
+                "cat",
+                id="later-unrelated-fence",
+            ),
+            pytest.param(
+                "```json\n"
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "literal ``` marker"}]\n```',
+                "literal ``` marker",
+                id="fenced-label-backticks",
+            ),
+            pytest.param(
+                '[{"bbox_2d": [1, 2, 3, 4], "label": "literal ``` marker"}]',
+                "literal ``` marker",
+                id="unfenced-label-backticks",
+            ),
+        ],
+    )
+    def test_preserves_detection(self, result: str, label: str) -> None:
+        """Return the detection and complete label for both Qwen parsers."""
+        boxes_2, _, names_2 = from_qwen_2_5_vl(result, (1000, 1000), (1000, 1000))
+        boxes_3, _, names_3 = from_qwen_3_vl(result, (1000, 1000))
+
+        np.testing.assert_allclose(boxes_2, [[1, 2, 3, 4]])
+        np.testing.assert_array_equal(names_2, [label])
+        np.testing.assert_allclose(boxes_3, [[1, 2, 3, 4]])
+        np.testing.assert_array_equal(names_3, [label])
+
+
+QWEN_CAT_JSON = '{"bbox_2d": [100, 200, 300, 400], "label": "cat"}'
+QWEN_CAT_LITERAL = "{'bbox_2d': [100, 200, 300, 400], 'label': 'cat'}"
+
+
+class TestQwenNonDetectionItems:
+    """Non-detection items never hide the Qwen detection array that holds them."""
+
+    @pytest.mark.parametrize(
+        ("vlm", "kwargs"),
+        [
+            pytest.param(VLM.QWEN_2_5_VL, {"input_wh": (1000, 1000)}, id="qwen-2.5-vl"),
+            pytest.param(VLM.QWEN_3_VL, {}, id="qwen-3-vl"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pytest.param(f"```json\n[[], {QWEN_CAT_JSON}]\n```", id="empty-list-first"),
+            pytest.param(
+                f"```json\n[null, [], {QWEN_CAT_JSON}]\n```",
+                id="null-then-empty-list",
+            ),
+            pytest.param(
+                '```json\n[null, {"tags": [], "bbox_2d": [100, 200, 300, 400], '
+                '"label": "cat"}]\n```',
+                id="empty-list-field-before-box",
+            ),
+            pytest.param(
+                f"```json\n[[], {QWEN_CAT_LITERAL}]\n```",
+                id="python-literal-empty-list-first",
+            ),
+            pytest.param(
+                "```json\n[{'tags': [], 'bbox_2d': [100, 200, 300, 400], "
+                "'label': 'cat'}]\n```",
+                id="python-literal-empty-list-field-before-box",
+            ),
+            pytest.param(
+                f'```json\n[[], {QWEN_CAT_JSON}, {{"bbox_2d": [5, 6',
+                id="truncated-empty-list-first",
+            ),
+            pytest.param(
+                '```json\n[{"tags": [], "bbox_2d": [100, 200, 300, 400], '
+                '"label": "cat"}, {"bbox_2d": [5, 6',
+                id="truncated-empty-list-field-before-box",
+            ),
+            pytest.param(
+                "Thinking [] about [x1, y1]\n"
+                f"```json\n[null, [], {QWEN_CAT_JSON}]\n```",
+                id="prose-empty-list-before-fence",
+            ),
+            pytest.param(
+                "Each item has 'bbox_2d': [x1, y1, x2, y2].\n"
+                f"```json\n[[], {QWEN_CAT_LITERAL}]\n```",
+                id="prose-key-before-python-literal",
+            ),
+            pytest.param(
+                "```json\n[{'label': 'cat', 'note': 'see [left', "
+                "'bbox_2d': [100, 200, 300, 400]}]\n```",
+                id="python-literal-label-bracket-before-box",
+            ),
+            pytest.param(
+                "```json\n[{'note': 'range ]0, 1[', "
+                "'bbox_2d': [100, 200, 300, 400], 'label': 'cat'}]\n```",
+                id="python-literal-quoted-delimiters",
+            ),
+            pytest.param(
+                "Here's [] then [{'bbox_2d': [100, 200, 300, 400], 'label': 'cat'}]",
+                id="prose-apostrophe-before-python-literal",
+            ),
+        ],
+    )
+    def test_keeps_detection(
+        self, result: str, vlm: VLM, kwargs: dict[str, Any]
+    ) -> None:
+        """The valid detection survives null, empty-list and nested-list items."""
+        detections = Detections.from_vlm(
+            vlm, result, resolution_wh=(1000, 1000), **kwargs
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[100, 200, 300, 400]])
+        np.testing.assert_array_equal(detections[CLASS_NAME_DATA_FIELD], ["cat"])
 
 
 class TestQwenMalformedBoxes:

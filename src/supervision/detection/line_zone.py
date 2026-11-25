@@ -207,6 +207,11 @@ class LineZone:
         Frames without tracker IDs are skipped for counting but age existing
         crossing history like empty frames.
 
+        When a confirmed `tracker_id` appears more than once in a frame, only
+        its first detection is considered. Later copies have `False` entries in
+        both returned arrays, even if the first detection is outside the line
+        limits, straddles the line, or has a non-finite mapped anchor.
+
         Args:
             detections: A Detections object for which to update the counts.
             coord_transform: Optional per-frame camera motion. Anchors are mapped
@@ -278,6 +283,15 @@ class LineZone:
         self._evict_stale_crossing_history(current_keys)
         self._update_class_id_to_name(detections)
 
+        # An id repeated within one frame, for example after merging overlapping
+        # sources, is one observation, as in PolygonZone; counting each copy would
+        # let a single frame satisfy minimum_crossing_threshold. The first copy is
+        # kept.
+        confirmed = np.flatnonzero(~unconfirmed)
+        _, first_copies = np.unique(detections.tracker_id[confirmed], return_index=True)
+        is_first_copy = np.zeros(len(detections), dtype=bool)
+        is_first_copy[confirmed[first_copies]] = True
+
         in_limits, has_any_left_trigger, has_any_right_trigger = (
             self._compute_anchor_sides(detections, coord_transform)
         )
@@ -285,7 +299,7 @@ class LineZone:
         for i, (class_id, tracker_id) in enumerate(
             zip(class_ids, detections.tracker_id)
         ):
-            if unconfirmed[i]:
+            if unconfirmed[i] or not is_first_copy[i]:
                 continue
 
             if not in_limits[i]:
