@@ -21,8 +21,9 @@ def _render_docs_theme(
     version: str,
     github_stars: int | None = 49848,
     is_latest_release: bool = False,
+    template_name: str = "main.html",
 ) -> str:
-    """Render the custom theme with the same config transformation Mike deploys."""
+    """Render a theme template with the same config transformation Mike deploys."""
     if version:
         monkeypatch.setenv("MIKE_DOCS_VERSION", version)
     else:
@@ -34,7 +35,7 @@ def _render_docs_theme(
 
     config = mike_mkdocs_utils.load_config()
     config.extra["github_stars"] = github_stars
-    template = config.theme.get_env().get_template("main.html")
+    template = config.theme.get_env().get_template(template_name)
     page = SimpleNamespace(
         abs_url=f"{config.site_url}/test/",
         content="",
@@ -272,3 +273,16 @@ def test_software_application_star_metadata(
         interaction = software["interactionStatistic"]
         assert interaction["userInteractionCount"] == expected_count
         assert isinstance(interaction["userInteractionCount"], int)
+
+
+def test_cookbooks_page_loads_the_vendored_dompurify(
+    monkeypatch: pytest.MonkeyPatch, repo_root: Path
+) -> None:
+    """Load DOMPurify on the cookbooks page from the docs tree, not from a CDN."""
+    html = _render_docs_theme(monkeypatch, "latest", template_name="cookbooks.html")
+
+    sources = re.findall(r'<script src="([^"]*purify[^"]*)"', html)
+
+    assert sources == ["../javascripts/vendor/purify.min.js"]
+    vendored = repo_root / "docs" / "javascripts" / "vendor" / "purify.min.js"
+    assert vendored.read_bytes().startswith(b"/*! @license DOMPurify ")
