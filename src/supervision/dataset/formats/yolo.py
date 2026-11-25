@@ -214,8 +214,8 @@ def _check_names_keys_unique(
     ``1``, ``01``, ``1.0``, and ``true`` all collapse to one dict key.
 
     Raises:
-        ValueError: If the root repeats ``names`` or a ``names`` mapping repeats
-            a key.
+        ValueError: If the root repeats ``names``.
+        ValueError: If a ``names`` mapping repeats a key.
     """
     if not isinstance(root, yaml.MappingNode):
         return
@@ -291,7 +291,8 @@ def _load_data_yaml(file_path: str) -> Any:
     has already dropped all but the last value of a repeated key.
 
     Raises:
-        ValueError: If ``names`` is declared twice or repeats a key.
+        ValueError: If ``names`` is declared twice.
+        ValueError: If ``names`` repeats a key.
     """
     with open(file_path, encoding="utf-8") as file:
         loader = yaml.SafeLoader(file)
@@ -315,8 +316,9 @@ def _read_data_yaml(file_path: str) -> dict[str, Any]:
         The parsed data.yaml content.
 
     Raises:
-        ValueError: If the YAML root is not a mapping, if ``names`` is declared
-            twice, or if a ``names`` mapping repeats a key.
+        ValueError: If the YAML root is not a mapping.
+        ValueError: If ``names`` is declared twice.
+        ValueError: If a ``names`` mapping repeats a key.
     """
     data: dict[str, Any] = _load_data_yaml(file_path=file_path)
     if not isinstance(data, dict):
@@ -337,7 +339,8 @@ def _extract_class_names(file_path: str) -> list[str]:
         Class names in class-index order.
 
     Raises:
-        ValueError: If the YAML root is not a mapping, or if ``names`` is
+        ValueError: If the YAML root is not a mapping.
+        ValueError: If ``names`` is
             invalid as described in
             :func:`~supervision.dataset.formats.yolo._extract_class_names_from_data`.
     """
@@ -410,8 +413,8 @@ def _extract_class_names_from_data(data: dict[str, Any], file_path: str) -> list
         Class names in class-index order.
 
     Raises:
-        ValueError: If ``names`` is neither a list nor a dict, or if the dict
-            has mixed key types.
+        ValueError: If ``names`` is neither a list nor a dict.
+        ValueError: If the ``names`` dict has mixed key types.
     """
     names = data.get("names")
     if isinstance(names, dict):
@@ -467,7 +470,8 @@ def _extract_pose_value_count(file_path: str) -> int:
         ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
 
     Raises:
-        ValueError: If the YAML root is not a mapping, or if ``kpt_shape`` is
+        ValueError: If the YAML root is not a mapping.
+        ValueError: If ``kpt_shape`` is
             invalid as described in
             :func:`~supervision.dataset.formats.yolo._extract_pose_value_count_from_data`.
     """
@@ -592,9 +596,11 @@ def yolo_annotations_to_detections(
 
     Raises:
         ValueError: If a line has fewer than five tokens, or is not nine tokens
-            with ``is_obb=True``; or if a class id is not a whole number, a box
-            value is not finite, a box has a negative width or height, or a
-            coordinate token is not numeric.
+            with ``is_obb=True``.
+        ValueError: If a class id is not a whole number.
+        ValueError: If a box value is not finite, or a box has a negative width
+            or height.
+        ValueError: If a coordinate token is not numeric.
 
     Example:
         ```pycon
@@ -719,12 +725,13 @@ def load_yolo_annotations(
             `{1: cat, 2: dog}` loads label id `1` as class `0`.
 
     Raises:
-        ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
-            not a list or dict, or a dict mixing numeric and non-numeric keys;
-            or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
-            `kpt_shape: null` included. Also if an annotation file contains an
-            invalid line or a class id that `names` does not declare; the
-            message names the offending file.
+        ValueError: If `data.yaml` is not a mapping.
+        ValueError: If `data.yaml` `names` is missing, not a list or dict, or a
+            dict mixing numeric and non-numeric keys.
+        ValueError: If `data.yaml` `kpt_shape` is present but not `[K, 2]` or
+            `[K, 3]`, `kpt_shape: null` included.
+        ValueError: If an annotation file contains an invalid line or a class id
+            that `names` does not declare; the message names the offending file.
 
     Example:
         ```python
@@ -908,8 +915,8 @@ def detections_to_yolo_annotations(
         Contours excluded by the area filters remain omitted.
 
     Raises:
-        ValueError: If any detection has ``class_id=None`` or a non-integer
-            ``class_id``.
+        ValueError: If any detection has ``class_id=None``.
+        ValueError: If any detection has a non-integer ``class_id``.
         ValueError: If ``is_obb=True`` and any non-empty detection is missing
             ``'xyxyxyxy'`` in ``detections.data``.
 

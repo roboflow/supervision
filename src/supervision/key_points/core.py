@@ -491,8 +491,10 @@ class KeyPoints:
                 points are zero-filled slots.
 
         Raises:
-            ValueError: If `inference_result` is a list, or if `num_keypoints` is
-                not positive or cannot contain the retained key point indices.
+            ValueError: If `inference_result` is a list.
+            ValueError: If `num_keypoints` is not positive.
+            ValueError: If `num_keypoints` cannot contain the retained key point
+                indices.
 
         Examples:
             ```python
@@ -1011,9 +1013,10 @@ class KeyPoints:
                 keypoint list order.
 
         Raises:
-            ValueError: If `num_keypoints` is not positive or cannot contain the
-                retained joint labels, or if a pose has a negative or repeated
-                joint label.
+            ValueError: If `num_keypoints` is not positive.
+            ValueError: If `num_keypoints` cannot contain the retained joint
+                labels.
+            ValueError: If a pose has a negative or repeated joint label.
 
         Examples:
             ```python
@@ -1150,9 +1153,10 @@ class KeyPoints:
             containing only the keypoints selected by the mask for each object.
 
         Raises:
-            ValueError: If `mask.shape[0]` does not match the number of objects, if
-                `mask.shape[1]` does not match the number of keypoints, or if
-                different rows of the mask select different numbers of `True` values.
+            ValueError: If `mask.shape[0]` does not match the number of objects.
+            ValueError: If `mask.shape[1]` does not match the number of keypoints.
+            ValueError: If different rows of the mask select different numbers of
+                `True` values.
         """
         n = len(self.xy)
         if mask.shape[0] != n:

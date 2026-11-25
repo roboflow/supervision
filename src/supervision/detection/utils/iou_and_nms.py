@@ -859,7 +859,8 @@ def _resolve_keypoint_sigmas(
 
     Raises:
         ValueError: If `sigmas` is `None` for a skeleton that is not 17 points
-            long, or if `sigmas` does not hold one positive value per keypoint.
+            long.
+        ValueError: If `sigmas` does not hold one positive value per keypoint.
     """
     if sigmas is None:
         if num_keypoints != len(_COCO_KEYPOINT_SIGMAS):
@@ -922,8 +923,9 @@ def _keypoint_oks_batch(
             between `keypoints_true[i]` and `keypoints_detection[j]`.
 
     Raises:
-        ValueError: If the shapes are inconsistent, or `sigmas` is missing for a
-            skeleton that is not 17 points long.
+        ValueError: If the shapes are inconsistent.
+        ValueError: If `sigmas` is missing for a skeleton that is not 17 points
+            long.
 
     Examples:
         ```pycon
@@ -1247,7 +1249,8 @@ def mask_iou_batch(
 
     Raises:
         ValueError: If ``masks_true`` or ``masks_detection`` are not 3D
-            ``(N, H, W)`` arrays, or if they do not share the same
+            ``(N, H, W)`` arrays.
+        ValueError: If ``masks_true`` and ``masks_detection`` do not share the same
             spatial dimensions ``(H, W)``.
 
     Examples:
@@ -2195,8 +2198,8 @@ def _validate_fusion_boxes(boxes: npt.NDArray[np.number]) -> None:
             shape `(n, 4)`.
 
     Raises:
-        ValueError: If any box has a NaN or infinite coordinate, or has `x2 < x1`
-            or `y2 < y1`.
+        ValueError: If any box has a NaN or infinite coordinate.
+        ValueError: If any box has `x2 < x1` or `y2 < y1`.
     """
     finite = np.isfinite(boxes).all(axis=1)
     # A NaN corner fails both comparisons, so it is flagged even without `finite`.
@@ -2485,13 +2488,16 @@ def box_weighted_box_fusion(
 
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
-            from `0` to `1`, if `num_models` is not `None` and not a
-            positive integer, if `overlap_metric` is not a valid overlap
-            metric (checked even when no overlap needs computing), if
-            `predictions` is not a 2-D array with 5 or 6 columns (empty input
-            included), if any confidence is negative, NaN, or infinite, if any
-            box has a NaN or infinite coordinate or has `x2 < x1` or
-            `y2 < y1`, or if any class id is NaN or infinite.
+            from `0` to `1`.
+        ValueError: If `num_models` is not `None` and not a positive integer.
+        ValueError: If `overlap_metric` is not a valid overlap metric (checked even
+            when no overlap needs computing).
+        ValueError: If `predictions` is not a 2-D array with 5 or 6 columns (empty
+            input included).
+        ValueError: If any confidence is negative, NaN, or infinite.
+        ValueError: If any box has a NaN or infinite coordinate.
+        ValueError: If any box has `x2 < x1` or `y2 < y1`.
+        ValueError: If any class id is NaN or infinite.
 
     Examples:
         ```pycon
@@ -2650,7 +2656,8 @@ def oriented_box_non_max_suppression(
         ValueError: If ``iou_threshold`` is not within the closed range
             from 0 to 1.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
-            mismatched lengths or invalid shapes.
+            mismatched lengths.
+        ValueError: If ``predictions`` or ``oriented_boxes`` has an invalid shape.
 
     Examples:
         ```pycon
@@ -2722,7 +2729,8 @@ def oriented_box_soft_non_max_suppression(
     Raises:
         ValueError: If `sigma` is not greater than `0`.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
-            mismatched lengths or invalid shapes.
+            mismatched lengths.
+        ValueError: If ``predictions`` or ``oriented_boxes`` has an invalid shape.
 
     Examples:
         Two diamonds that only touch along an edge: their axis-aligned
@@ -2828,7 +2836,8 @@ def oriented_box_non_max_merge(
         ValueError: If ``iou_threshold`` is not within the closed range
             from 0 to 1.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
-            mismatched lengths or invalid shapes.
+            mismatched lengths.
+        ValueError: If ``predictions`` or ``oriented_boxes`` has an invalid shape.
 
     Examples:
         ```pycon
