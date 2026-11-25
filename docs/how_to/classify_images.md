@@ -10,7 +10,7 @@ date_modified: 2026-11-25
 
 # Classify Images
 
-An image classification model scores a whole image against a set of classes, such as *cat* or *dog*. Unlike object detection or segmentation, it returns no boxes or masks. `supervision` loads these scores into `[sv.Classifications][supervision.classification.core.Classifications]`, which holds a `class_id` integer and a `confidence` score for every class. It stores no class names, so each example below keeps them in `class_names`.
+An image classification model scores a whole image against a set of classes, such as *cat* or *dog*. Unlike object detection or segmentation, it returns no boxes or masks. `supervision` loads these scores into [sv.Classifications][supervision.classification.core.Classifications], which holds a `class_id` integer and a `confidence` score for every class. It stores no class names, so each example below keeps them in `class_names`.
 
 ## Load a Result
 
@@ -28,7 +28,6 @@ image = sv.pillow_to_cv2(pil_image)
 
 Ultralytics classification models return class probabilities and class names respectively in the forms `Results.probs` and and `Results.names`. Use `sv.Classifications.from_ultralytics` to read the probabilities.
 
-````
 ```python
 from ultralytics import YOLO
 
@@ -38,13 +37,11 @@ result = model(pil_image)[0]
 classifications = sv.Classifications.from_ultralytics(result)
 class_names = result.names
 ```
-````
 
 ### timm
 
 timm models return raw logits. Use `sv.Classifications.from_timm` to apply softmax to logits so confidence scores sum to 1.
 
-````
 ```python
 import timm
 import torch
@@ -61,13 +58,11 @@ with torch.no_grad():
 classifications = sv.Classifications.from_timm(output)
 class_names = model.pretrained_cfg["label_names"]
 ```
-````
 
 ### CLIP
 
 CLIP scores an image against text prompts, with prompts being class names. Much like `from_timm`, use `sv.Classifications.from_clip` to apply softmax to image logits.
 
-````
 ```python
 import clip
 import torch
@@ -82,13 +77,11 @@ with torch.no_grad():
 
 classifications = sv.Classifications.from_clip(logits_per_image)
 ```
-````
 
 ### Other models
 
 For a model without a connector, you need to pass one score per class as a NumPy array.
 
-````
 ```python
 import numpy as np
 
@@ -97,7 +90,6 @@ class_names = ["cat", "dog", "fox"]
 
 classifications = sv.Classifications(class_id=np.arange(len(scores)), confidence=scores)
 ```
-````
 
 ## Read Top Classes
 

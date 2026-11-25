@@ -32,11 +32,16 @@ class Classifications:
     """Class to standardize results from myriad image classifier models to a consistent
     format.
 
-    One instance describes one image. Model connectors return every class id with its corresponding confidence score. By comparison, :class:`~supervision.dataset.core.ClassificationDataset` stores a label as class ids WITHOUT confidence scores. Class names are not stored, only id values for each class.
+    One instance describes one image. Model connectors return every class id with its
+    corresponding confidence score. Annotations loaded by
+    :meth:`~supervision.dataset.core.ClassificationDataset.from_folder_structure`
+    contain class ids without confidence scores. Class names are not stored, only id
+    values for each class.
 
     Attributes:
         class_id: An array of shape `(n,)` containing class ids (ints)
-        confidence: An array of shape `(n,)` containing confidence scores (floats) for each class id, or `None` when confidence values are unavailable
+        confidence: An array of shape `(n,)` containing confidence scores (floats)
+            for each class id, or `None` when confidence values are unavailable
     """
 
     class_id: npt.NDArray[np.int_]
