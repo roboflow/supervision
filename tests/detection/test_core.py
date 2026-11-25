@@ -2054,6 +2054,93 @@ class TestDetectionsWithSoftNms:
 
         assert len(result) == 2
 
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.int64, 2**60, id="int64-2pow60"),
+            pytest.param(np.uint64, 2**60, id="uint64-2pow60"),
+        ],
+    )
+    def test_narrow_boxes_at_large_64bit_integer_origin(
+        self, dtype: type[np.integer], origin: int
+    ) -> None:
+        """Soft-NMS decays scores identically to origin=0 and keeps integer xyxy."""
+        boxes_zero = np.array([[0, 0, 10, 10], [1, 1, 11, 11]], dtype=dtype)
+        boxes_large = np.array(
+            [
+                [origin, origin, origin + 10, origin + 10],
+                [origin + 1, origin + 1, origin + 11, origin + 11],
+            ],
+            dtype=dtype,
+        )
+        confidence = np.array([0.9, 0.7], dtype=np.float32)
+        class_id = np.array([0, 0], dtype=int)
+
+        expected = Detections(
+            xyxy=boxes_zero, confidence=confidence, class_id=class_id
+        ).with_soft_nms(sigma=0.5)
+        result = Detections(
+            xyxy=boxes_large, confidence=confidence, class_id=class_id
+        ).with_soft_nms(sigma=0.5)
+
+        assert len(result) == 2
+        assert result.confidence is not None
+        assert expected.confidence is not None
+        np.testing.assert_allclose(result.confidence, expected.confidence)
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(result.xyxy, boxes_large)
+
+    def test_float32_boxes_and_scores_with_int64_class_id_keep_float64_decay_precision(
+        self,
+    ) -> None:
+        """Float32 boxes/scores with int64 class_id retain float64 decay precision."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9, 0.01], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=np.int64),
+        )
+
+        result = detections.with_soft_nms(sigma=0.01, score_threshold=0)
+
+        assert len(result) == 2
+        assert result.confidence is not None
+        assert result.confidence.dtype == np.float64
+        assert result.confidence[1] > 0.0
+
+
+class TestDetectionsWithNMS:
+    """NMS behaviour tests for 64-bit integer coordinates."""
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.int64, 2**60, id="int64-2pow60"),
+            pytest.param(np.uint64, 2**60, id="uint64-2pow60"),
+        ],
+    )
+    def test_narrow_boxes_at_large_64bit_integer_origin(
+        self, dtype: type[np.integer], origin: int
+    ) -> None:
+        """NMS suppresses overlapping narrow 64-bit boxes and keeps exact xyxy."""
+        boxes = np.array(
+            [
+                [origin, origin, origin + 10, origin + 10],
+                [origin + 1, origin + 1, origin + 11, origin + 11],
+            ],
+            dtype=dtype,
+        )
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.7], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+
+        result = detections.with_nms(threshold=0.5)
+
+        assert len(result) == 1
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(result.xyxy, boxes[:1])
+
 
 class TestGetAnchorsObbDispatch:
     """`get_anchors_coordinates` reads oriented corners when OBB data is present."""
@@ -3154,6 +3241,243 @@ class TestDetectionsWithNMM:
         assert len(result) == 2
         assert [0, 0, 19, 19] in result.xyxy.tolist()
         assert [100, 100, 110, 110] in result.xyxy.tolist()
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.int64, 2**60, id="int64-2pow60"),
+            pytest.param(np.int64, -(2**63), id="int64-min"),
+            pytest.param(np.uint64, 2**60, id="uint64-2pow60"),
+            pytest.param(np.uint64, 2**64 - 20, id="uint64-max"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "class_agnostic",
+        [
+            pytest.param(False, id="class-aware"),
+            pytest.param(True, id="class-agnostic"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "overlap_metric",
+        [
+            pytest.param(OverlapMetric.IOU, id="iou"),
+            pytest.param(OverlapMetric.IOS, id="ios"),
+        ],
+    )
+    def test_narrow_boxes_at_large_64bit_integer_origins(
+        self,
+        dtype: type[np.integer],
+        origin: int,
+        class_agnostic: bool,
+        overlap_metric: OverlapMetric,
+    ) -> None:
+        """NMM merges overlapping narrow 64-bit boxes identically to origin=0."""
+        boxes_zero = np.array([[0, 0, 10, 10], [1, 1, 11, 11]], dtype=dtype)
+        boxes_large = np.array(
+            [
+                [origin, origin, origin + 10, origin + 10],
+                [origin + 1, origin + 1, origin + 11, origin + 11],
+            ],
+            dtype=dtype,
+        )
+        confidence = np.array([0.9, 0.7], dtype=np.float32)
+        class_id = np.array([0, 0], dtype=int)
+
+        expected = Detections(
+            xyxy=boxes_zero, confidence=confidence, class_id=class_id
+        ).with_nmm(
+            threshold=0.5,
+            class_agnostic=class_agnostic,
+            overlap_metric=overlap_metric,
+        )
+        result = Detections(
+            xyxy=boxes_large, confidence=confidence, class_id=class_id
+        ).with_nmm(
+            threshold=0.5,
+            class_agnostic=class_agnostic,
+            overlap_metric=overlap_metric,
+        )
+
+        assert len(result) == 1
+        assert result.confidence is not None
+        assert expected.confidence is not None
+        np.testing.assert_allclose(result.confidence, expected.confidence)
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(
+            result.xyxy,
+            np.array([[origin, origin, origin + 11, origin + 11]], dtype=dtype),
+        )
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.int64, 2**60, id="int64"),
+            pytest.param(np.uint64, 2**60, id="uint64"),
+        ],
+    )
+    def test_distinct_area_narrow_boxes_merge_with_exact_area_weights(
+        self, dtype: type[np.integer], origin: int
+    ) -> None:
+        """Distinct-area narrow 64-bit boxes merge with exact area-weighted score."""
+        boxes = np.array(
+            [
+                [origin, origin, origin + 20, origin + 10],
+                [origin, origin, origin + 10, origin + 10],
+            ],
+            dtype=dtype,
+        )
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.6], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+
+        result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 1
+        assert result.confidence is not None
+        np.testing.assert_allclose(result.confidence, [0.8])
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(result.xyxy, boxes[:1])
+
+    def test_multi_origin_int64_clusters_merge_separately(self) -> None:
+        """Clusters at negative and positive large int64 origins merge separately."""
+        neg = -(2**60)
+        pos = 2**60
+        boxes = np.array(
+            [
+                [neg, 0, neg + 10, 10],
+                [neg + 1, 1, neg + 11, 11],
+                [pos, 0, pos + 10, 10],
+                [pos + 1, 1, pos + 11, 11],
+            ],
+            dtype=np.int64,
+        )
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.7, 0.85, 0.65], dtype=np.float32),
+            class_id=np.array([0, 0, 0, 0], dtype=int),
+        )
+
+        result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 2
+        assert result.xyxy.dtype == np.int64
+        np.testing.assert_array_equal(
+            result.xyxy,
+            np.array(
+                [[neg, 0, neg + 11, 11], [pos, 0, pos + 11, 11]],
+                dtype=np.int64,
+            ),
+        )
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [pytest.param(np.int64, id="int64"), pytest.param(np.uint64, id="uint64")],
+    )
+    @pytest.mark.parametrize(
+        "shift_x",
+        [
+            pytest.param(10, id="edge-touching"),
+            pytest.param(20, id="disjoint"),
+        ],
+    )
+    def test_disjoint_and_edge_touching_narrow_boxes_do_not_merge(
+        self, dtype: type[np.integer], shift_x: int
+    ) -> None:
+        """Edge-touching and disjoint narrow 64-bit boxes stay separate."""
+        origin = 2**60
+        boxes = np.array(
+            [
+                [origin, origin, origin + 10, origin + 10],
+                [origin + shift_x, origin, origin + shift_x + 10, origin + 10],
+            ],
+            dtype=dtype,
+        )
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.7], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+
+        result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 2
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(result.xyxy, boxes)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [pytest.param(np.int64, id="int64"), pytest.param(np.uint64, id="uint64")],
+    )
+    def test_merged_pair_and_singleton_at_large_origin_preserve_integer_xyxy(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Merged pairs and disjoint singletons both keep exact 64-bit integer xyxy."""
+        origin = 2**60
+        boxes = np.array(
+            [
+                [origin, origin, origin + 10, origin + 10],
+                [origin + 1, origin + 1, origin + 11, origin + 11],
+                [origin + 100, origin + 100, origin + 110, origin + 110],
+            ],
+            dtype=dtype,
+        )
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.7, 0.5], dtype=np.float32),
+            class_id=np.array([0, 0, 0], dtype=int),
+        )
+
+        result = detections.with_nmm(threshold=0.5)
+
+        expected_xyxy = np.array(
+            [
+                [origin, origin, origin + 11, origin + 11],
+                [origin + 100, origin + 100, origin + 110, origin + 110],
+            ],
+            dtype=dtype,
+        )
+        assert len(result) == 2
+        assert result.xyxy.dtype == dtype
+        np.testing.assert_array_equal(result.xyxy, expected_xyxy)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [pytest.param(np.int64, id="int64"), pytest.param(np.uint64, id="uint64")],
+    )
+    @pytest.mark.parametrize(
+        ("class_agnostic", "expected_len"),
+        [
+            pytest.param(False, 2, id="class-aware"),
+            pytest.param(True, 1, id="class-agnostic"),
+        ],
+    )
+    def test_different_class_overlapping_narrow_boxes_at_large_origin(
+        self,
+        dtype: type[np.integer],
+        class_agnostic: bool,
+        expected_len: int,
+    ) -> None:
+        """Different-class narrow 64-bit boxes merge only when class-agnostic."""
+        origin = 2**60
+        boxes = np.array(
+            [
+                [origin, origin, origin + 10, origin + 10],
+                [origin + 1, origin + 1, origin + 11, origin + 11],
+            ],
+            dtype=dtype,
+        )
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.7], dtype=np.float32),
+            class_id=np.array([0, 1], dtype=int),
+        )
+
+        result = detections.with_nmm(threshold=0.5, class_agnostic=class_agnostic)
+
+        assert len(result) == expected_len
 
 
 class TestDetectionsArea:

@@ -52,9 +52,9 @@ from supervision.detection.utils.internal import (
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_non_max_merge,
-    box_non_max_suppression,
-    box_soft_non_max_suppression,
+    _box_non_max_merge_from_arrays,
+    _box_non_max_suppression_from_arrays,
+    _box_soft_non_max_suppression_from_arrays,
     mask_non_max_merge,
     mask_non_max_suppression,
     mask_soft_non_max_suppression,
@@ -2958,6 +2958,20 @@ class Detections:
         )
         return new
 
+    def _resolve_nms_categories(
+        self, class_agnostic: bool, operation_name: str
+    ) -> npt.NDArray[np.integer] | None:
+        """Return class IDs for NMS/NMM/Soft-NMS or validate class-aware mode."""
+        if class_agnostic:
+            return None
+        if self.class_id is None:
+            raise ValueError(
+                f"Detections class_id must be given for {operation_name} to be "
+                f"executed. If you intended to perform class agnostic "
+                f"{operation_name} set class_agnostic=True."
+            )
+        return self.class_id
+
     def _build_nms_predictions(
         self, class_agnostic: bool, operation_name: str
     ) -> npt.NDArray[np.floating]:
@@ -2965,28 +2979,16 @@ class Detections:
 
         Callers must already have verified `self.confidence is not None`.
         """
-        if class_agnostic:
+        categories = self._resolve_nms_categories(class_agnostic, operation_name)
+        confidence = cast(np.ndarray, self.confidence).reshape(-1, 1)
+        if categories is None:
             return cast(
                 npt.NDArray[np.floating],
-                np.hstack(
-                    (self.xyxy, cast(np.ndarray, self.confidence).reshape(-1, 1))
-                ),
-            )
-        if self.class_id is None:
-            raise ValueError(
-                f"Detections class_id must be given for {operation_name} to be "
-                f"executed. If you intended to perform class agnostic "
-                f"{operation_name} set class_agnostic=True."
+                np.hstack((self.xyxy, confidence)),
             )
         return cast(
             npt.NDArray[np.floating],
-            np.hstack(
-                (
-                    self.xyxy,
-                    cast(np.ndarray, self.confidence).reshape(-1, 1),
-                    self.class_id.reshape(-1, 1),
-                )
-            ),
+            np.hstack((self.xyxy, confidence, categories.reshape(-1, 1))),
         )
 
     def with_nms(
@@ -3027,9 +3029,8 @@ class Detections:
                 "Detections confidence must be given for NMS to be executed."
             )
 
-        predictions = self._build_nms_predictions(class_agnostic, "NMS")
-
         if self.mask is not None:
+            predictions = self._build_nms_predictions(class_agnostic, "NMS")
             indices = mask_non_max_suppression(
                 predictions=predictions,
                 masks=self.mask,
@@ -3037,6 +3038,7 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
         elif ORIENTED_BOX_COORDINATES in self.data:
+            predictions = self._build_nms_predictions(class_agnostic, "NMS")
             indices = oriented_box_non_max_suppression(
                 predictions=predictions,
                 oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
@@ -3044,8 +3046,11 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
         else:
-            indices = box_non_max_suppression(
-                predictions=predictions,
+            categories = self._resolve_nms_categories(class_agnostic, "NMS")
+            indices = _box_non_max_suppression_from_arrays(
+                boxes=self.xyxy,
+                scores=self.confidence,
+                categories=categories,
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
@@ -3131,17 +3136,19 @@ class Detections:
                 "Detections confidence must be given for Soft-NMS to be executed."
             )
 
-        predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
-
         if self.mask is not None:
+            predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
             decayed_confidence = mask_soft_non_max_suppression(
                 predictions=predictions,
                 masks=self.mask,
                 sigma=sigma,
             )
         else:
-            decayed_confidence = box_soft_non_max_suppression(
-                predictions=predictions,
+            categories = self._resolve_nms_categories(class_agnostic, "Soft-NMS")
+            decayed_confidence = _box_soft_non_max_suppression_from_arrays(
+                boxes=self.xyxy,
+                scores=self.confidence,
+                categories=categories,
                 sigma=sigma,
             )
 
@@ -3206,9 +3213,8 @@ class Detections:
                 "Detections confidence must be given for NMM to be executed."
             )
 
-        predictions = self._build_nms_predictions(class_agnostic, "NMM")
-
         if self.mask is not None:
+            predictions = self._build_nms_predictions(class_agnostic, "NMM")
             merge_groups = mask_non_max_merge(
                 predictions=predictions,
                 masks=self.mask,
@@ -3216,6 +3222,7 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
         elif ORIENTED_BOX_COORDINATES in self.data:
+            predictions = self._build_nms_predictions(class_agnostic, "NMM")
             merge_groups = oriented_box_non_max_merge(
                 predictions=predictions,
                 oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
@@ -3223,8 +3230,11 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
         else:
-            merge_groups = box_non_max_merge(
-                predictions=predictions,
+            categories = self._resolve_nms_categories(class_agnostic, "NMM")
+            merge_groups = _box_non_max_merge_from_arrays(
+                boxes=self.xyxy,
+                scores=self.confidence,
+                categories=categories,
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
@@ -3489,6 +3499,9 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         data = {**winner.data, ORIENTED_BOX_COORDINATES: merged_corners[np.newaxis]}
     else:
         # AABB path: union bounding box across all group members
+        union_dtype: npt.DTypeLike = (
+            all_xyxy.dtype if np.issubdtype(all_xyxy.dtype, np.integer) else np.float32
+        )
         xyxy = np.array(
             [
                 [
@@ -3498,7 +3511,7 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
                     all_xyxy[:, 3].max(),
                 ]
             ],
-            dtype=np.float32,
+            dtype=union_dtype,
         )
         data = winner.data
 

@@ -7,6 +7,8 @@ date_modified: 2026-11-18
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.with_nmm`, `sv.Detections.with_nms`, `sv.Detections.with_soft_nms` and `sv.box_iou_batch` now preserve exact overlap for narrow `int64` and `uint64` boxes at large coordinate origins above `2**53`, and `sv.Detections.with_nmm` also preserves integer coordinate dtypes on merged axis-aligned unions. Previously, converting coordinates to `float64` before subtracting corners collapsed distinct endpoints into zero-area boxes and caused overlapping detections to miss merging or suppression, while axis-aligned unions cast integer boxes to `float32`. ([#3057](https://github.com/roboflow/supervision/pull/3057))
+
 - `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now finds detection JSON after surrounding text or unrelated code fences, and preserves backticks inside labels. Previously bracketed reasoning or unrelated fences could make the parser return no detections. ([#3011](https://github.com/roboflow/supervision/pull/3011))
 
 - `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_5`, `GOOGLE_GEMINI_3_5`, `GOOGLE_GEMINI_3_6` or `GOOGLE_GEMINI_3_7` and a `classes` filter now keeps confidence when every kept detection has a score, even if an item removed by that filter has no `confidence`. Previously that one item set `confidence` to `None` for every detection. ([#3009](https://github.com/roboflow/supervision/pull/3009))
