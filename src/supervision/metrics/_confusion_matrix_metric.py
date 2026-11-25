@@ -617,6 +617,7 @@ def _result_to_pandas(view: _ResultView) -> pd.DataFrame:
 def _plot_result(view: _ResultView) -> None:
     """Plot the metric value at IoU 0.5 and 0.75, split by object size."""
     from matplotlib import pyplot as plt
+    from matplotlib import rc_context
 
     result_labels = view.labels
     labels = [f"{result_labels.long}@50", f"{result_labels.long}@75"]
@@ -637,35 +638,32 @@ def _plot_result(view: _ResultView) -> None:
         values += [bucket.score_at_50, bucket.score_at_75]
         colors += [LEGACY_COLOR_PALETTE[palette_index]] * 2
 
-    plt.rcParams["font.family"] = "monospace"
-
-    _, ax = plt.subplots(figsize=(10, 6))
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("Value", fontweight="bold")
-    title = (
-        f"{result_labels.plot_title}, by Object Size"
-        f"\n(target: {view.metric_target.value},"
-        f" averaging: {view.averaging_method.value})"
-    )
-    ax.set_title(title, fontweight="bold")
-
-    x_positions = range(len(labels))
-    bars = ax.bar(x_positions, values, color=colors, align="center")
-
-    ax.set_xticks(x_positions)
-    ax.set_xticklabels(labels, rotation=45, ha="right")
-
-    for bar in bars:
-        y_value = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            y_value + 0.02,
-            f"{y_value:.2f}",
-            ha="center",
-            va="bottom",
+    with rc_context({"font.family": "monospace"}):
+        _, ax = plt.subplots(figsize=(10, 6))
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Value", fontweight="bold")
+        title = (
+            f"{result_labels.plot_title}, by Object Size"
+            f"\n(target: {view.metric_target.value},"
+            f" averaging: {view.averaging_method.value})"
         )
+        ax.set_title(title, fontweight="bold")
 
-    plt.rcParams["font.family"] = "sans-serif"
+        x_positions = range(len(labels))
+        bars = ax.bar(x_positions, values, color=colors, align="center")
+
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+
+        for bar in bars:
+            y_value = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                y_value + 0.02,
+                f"{y_value:.2f}",
+                ha="center",
+                va="bottom",
+            )
 
     plt.tight_layout()
     plt.show()

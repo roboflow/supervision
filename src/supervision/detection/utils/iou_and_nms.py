@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from enum import Enum
 from fractions import Fraction
 from typing import Any, cast
@@ -989,6 +989,27 @@ def compact_mask_iou_batch(
     pixel_count = masks_true.image_shape[0] * masks_true.image_shape[1]
     count_dtype = np.float32 if pixel_count <= 2**24 else np.float64
 
+    for idx_a, idx_b, pixel_overlap in _compact_mask_intersections(
+        masks_true, masks_detection
+    ):
+        inter = count_dtype(pixel_overlap)
+        area_a_i = count_dtype(areas_a[idx_a])
+        area_b_j = count_dtype(areas_b[idx_b])
+
+        if overlap_metric == OverlapMetric.IOU:
+            union = area_a_i + area_b_j - inter
+            result[idx_a, idx_b] = inter / union if union > 0 else 0.0
+        elif overlap_metric == OverlapMetric.IOS:
+            small = min(area_a_i, area_b_j)
+            result[idx_a, idx_b] = inter / small if small > 0 else 0.0
+
+    return result
+
+
+def _compact_mask_intersections(
+    masks_true: CompactMask, masks_detection: CompactMask
+) -> Iterator[tuple[int, int, int]]:
+    """Yield mask indexes and exact intersection counts for overlapping crops."""
     # Inclusive per-mask bounding boxes obtained from public accessors.
     # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
     bboxes_a: npt.NDArray[np.int32] = masks_true.bbox_xyxy.astype(np.int32)
@@ -1033,18 +1054,7 @@ def compact_mask_iou_batch(
         ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
         sub_b = crops_b[idx_b][ly1 - oy_b : ly2 - oy_b + 1, lx1 - ox_b : lx2 - ox_b + 1]
 
-        inter = count_dtype(np.logical_and(sub_a, sub_b).sum())
-        area_a_i = count_dtype(areas_a[idx_a])
-        area_b_j = count_dtype(areas_b[idx_b])
-
-        if overlap_metric == OverlapMetric.IOU:
-            union = area_a_i + area_b_j - inter
-            result[idx_a, idx_b] = inter / union if union > 0 else 0.0
-        elif overlap_metric == OverlapMetric.IOS:
-            small = min(area_a_i, area_b_j)
-            result[idx_a, idx_b] = inter / small if small > 0 else 0.0
-
-    return result
+        yield idx_a, idx_b, int(np.count_nonzero(sub_a & sub_b))
 
 
 def _mask_iou_batch_split(
@@ -2378,6 +2388,39 @@ def box_weighted_box_fusion(
     return result
 
 
+def _validate_oriented_nms_inputs(
+    predictions: npt.NDArray[np.floating],
+    oriented_boxes: npt.NDArray[np.floating],
+) -> None:
+    """Check that predictions and oriented boxes have valid, matching shapes."""
+    for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
+        if name == "predictions":
+            if arr.ndim != 2 or arr.shape[1] not in (5, 6):
+                raise ValueError(
+                    f"`{name}` has shape {arr.shape}; expected (N, 5) or (N, 6)."
+                )
+            continue
+        if arr.ndim == 3 and arr.shape[1:] != (4, 2):
+            raise ValueError(
+                f"`{name}` has shape {arr.shape}; expected (N, 4, 2) "
+                f"— each box must have exactly 4 corners with (x, y) coordinates."
+            )
+        elif arr.ndim == 2 and arr.shape[1] != 8:
+            raise ValueError(
+                f"`{name}` has shape {arr.shape}; expected (N, 8) for flat "
+                f"YOLO format or (N, 4, 2) for corner format."
+            )
+        elif arr.ndim not in (2, 3):
+            raise ValueError(
+                f"`{name}` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape {arr.shape}."
+            )
+    if len(predictions) != len(oriented_boxes):
+        raise ValueError(
+            f"`predictions` and `oriented_boxes` must have the same length, "
+            f"got {len(predictions)} and {len(oriented_boxes)}."
+        )
+
+
 def oriented_box_non_max_suppression(
     predictions: npt.NDArray[np.floating],
     oriented_boxes: npt.NDArray[np.floating],
@@ -2440,32 +2483,7 @@ def oriented_box_non_max_suppression(
         ```
     """
     _validate_iou_threshold(iou_threshold)
-    for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
-        if name == "predictions":
-            if arr.ndim != 2 or arr.shape[1] not in (5, 6):
-                raise ValueError(
-                    f"`{name}` has shape {arr.shape}; expected (N, 5) or (N, 6)."
-                )
-            continue
-        if arr.ndim == 3 and arr.shape[1:] != (4, 2):
-            raise ValueError(
-                f"`{name}` has shape {arr.shape}; expected (N, 4, 2) "
-                f"— each box must have exactly 4 corners with (x, y) coordinates."
-            )
-        elif arr.ndim == 2 and arr.shape[1] != 8:
-            raise ValueError(
-                f"`{name}` has shape {arr.shape}; expected (N, 8) for flat "
-                f"YOLO format or (N, 4, 2) for corner format."
-            )
-        elif arr.ndim not in (2, 3):
-            raise ValueError(
-                f"`{name}` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape {arr.shape}."
-            )
-    if len(predictions) != len(oriented_boxes):
-        raise ValueError(
-            f"`predictions` and `oriented_boxes` must have the same length, "
-            f"got {len(predictions)} and {len(oriented_boxes)}."
-        )
+    _validate_oriented_nms_inputs(predictions, oriented_boxes)
     sort_index, _, categories = _prepare_predictions_for_nms(predictions)
     oriented_boxes = oriented_boxes[sort_index]
     # same object intentional — triggers upper-triangle optimization
@@ -2473,6 +2491,81 @@ def oriented_box_non_max_suppression(
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
     result: npt.NDArray[np.bool_] = keep[sort_index.argsort()]
     return result
+
+
+def oriented_box_soft_non_max_suppression(
+    predictions: npt.NDArray[np.floating],
+    oriented_boxes: npt.NDArray[np.floating],
+    sigma: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> npt.NDArray[np.floating]:
+    """Perform Soft Non-Maximum Suppression on oriented bounding box predictions.
+
+    Same Gaussian decay as
+    :func:`~supervision.detection.utils.iou_and_nms.box_soft_non_max_suppression`,
+    but overlap is computed via
+    :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch` on
+    the four corners of each box, so a detection whose oriented body does not
+    overlap a higher-scoring one keeps its score even when their axis-aligned
+    bounding boxes overlap.
+
+    Args:
+        predictions: An array of object detection predictions in the
+            format ``(x_min, y_min, x_max, y_max, score)`` or
+            ``(x_min, y_min, x_max, y_max, score, class)``. Shape ``(N, 5)``
+            or ``(N, 6)``. Only the score (column 4) and optional class
+            (column 5) are read; the axis-aligned coordinates are not used.
+        oriented_boxes: Array of shape ``(N, 4, 2)`` containing the four
+            ``(x, y)`` corners of each oriented box, aligned with
+            ``predictions`` row-by-row.
+        sigma: Controls the strength of the confidence decay; must be greater
+            than `0`. A smaller `sigma` produces a stronger decay.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of oriented boxes (e.g., IoU, IoS).
+
+    Returns:
+        An array containing the updated (decayed) confidence scores, in the
+            same order as the input `predictions`.
+
+    Raises:
+        ValueError: If `sigma` is not greater than `0`.
+        ValueError: If ``predictions`` and ``oriented_boxes`` have
+            mismatched lengths or invalid shapes.
+
+    Examples:
+        Two diamonds that only touch along an edge: their axis-aligned
+        boxes overlap, their oriented bodies do not, so neither is decayed.
+
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> oriented_boxes = np.array([
+        ...     [[0, -10], [10, 0], [0, 10], [-10, 0]],
+        ...     [[10, 0], [20, 10], [10, 20], [0, 10]],
+        ... ], dtype=np.float32)
+        >>> predictions = np.array([
+        ...     [-10, -10, 10, 10, 0.9, 0],
+        ...     [0, 0, 20, 20, 0.8, 0],
+        ... ], dtype=np.float32)
+        >>> sv.oriented_box_soft_non_max_suppression(
+        ...     predictions=predictions,
+        ...     oriented_boxes=oriented_boxes,
+        ...     sigma=0.5,
+        ... ).round(3).tolist()
+        [0.9, 0.8]
+
+        ```
+    """
+    _validate_sigma(sigma)
+    _validate_oriented_nms_inputs(predictions, oriented_boxes)
+    sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
+    oriented_boxes = oriented_boxes[sort_index]
+    ious = oriented_box_iou_batch(oriented_boxes, oriented_boxes, overlap_metric)
+    decayed = _soft_nms_decay_from_iou_matrix(
+        ious, categories, predictions[:, 4], sigma
+    )
+    result_scores: npt.NDArray[np.floating] = decayed[sort_index.argsort()]
+    return result_scores
 
 
 def _group_overlapping_oriented_boxes(

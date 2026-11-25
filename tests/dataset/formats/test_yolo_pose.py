@@ -13,6 +13,7 @@ from supervision.config import (
     XYXY_DATA_FIELD,
 )
 from supervision.dataset.core import KeyPointsDataset
+from supervision.dataset.formats.yolo import _load_data_yaml
 from supervision.dataset.formats.yolo_pose import (
     _extract_kpt_shape,
     key_points_to_yolo_pose_annotations,
@@ -22,7 +23,6 @@ from supervision.dataset.formats.yolo_pose import (
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics import KeyPointMeanAveragePrecision
-from supervision.utils.file import read_yaml_file
 
 
 def _write_dataset(
@@ -380,7 +380,9 @@ class TestLoadYoloPoseAnnotations:
         assert kpt_shape == (2, 3)
         assert len(loaded[image_paths[0]]) == 1
 
-    @mock.patch("supervision.dataset.formats.yolo.read_yaml_file", wraps=read_yaml_file)
+    @mock.patch(
+        "supervision.dataset.formats.yolo._load_data_yaml", wraps=_load_data_yaml
+    )
     def test_reads_data_yaml_once(
         self, read_yaml: mock.MagicMock, tmp_path: Path
     ) -> None:
@@ -518,12 +520,22 @@ class TestYoloPoseRoundTrip:
         assert class_ids is not None
         assert reloaded.classes[class_ids[0]] == "dog"
 
-    def test_rejects_duplicate_numeric_names(self, tmp_path: Path) -> None:
-        """Pose datasets reject two keys that normalize to the same ID."""
+    @pytest.mark.parametrize(
+        "names_yaml",
+        [
+            pytest.param("names:\n  1: cat\n  '1': dog\n", id="int-and-digit-string"),
+            pytest.param("names:\n  1: cat\n  1: dog\n", id="repeated-block-key"),
+            pytest.param("names: {1: cat, 1: dog}\n", id="repeated-flow-key"),
+        ],
+    )
+    def test_rejects_duplicate_numeric_names(
+        self, tmp_path: Path, names_yaml: str
+    ) -> None:
+        """Pose datasets reject keys that resolve to the same class ID."""
         paths = _write_dataset(
             root=tmp_path,
             label_lines={"a": ["1 0.5 0.5 0.4 0.6 0.25 0.3 2"]},
-            data_yaml="names:\n  1: cat\n  '1': dog\nkpt_shape: [1, 3]\n",
+            data_yaml=names_yaml + "kpt_shape: [1, 3]\n",
         )
 
         with pytest.raises(ValueError, match=r"duplicate.*class.*1"):

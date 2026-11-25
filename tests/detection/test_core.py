@@ -2042,6 +2042,40 @@ class TestDetectionsWithSoftNms:
         assert result.confidence is not None
         np.testing.assert_almost_equal(result.confidence, [0.9], decimal=5)
 
+    def test_uses_obb_iou_when_oriented_box_coordinates_present(self) -> None:
+        """Edge-touching OBBs keep their score although their envelopes overlap."""
+        quad_a = _rotated_rect(0, 0, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        quad_b = _rotated_rect(10, 10, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.8], decimal=4)
+        assert len(detections.with_soft_nms(sigma=0.5, score_threshold=0.79)) == 2
+
+    def test_overlapping_obbs_are_decayed(self) -> None:
+        """OBBs whose rotated bodies overlap are still decayed."""
+        quad = _rotated_rect(50, 50, 100, 10, 30)
+        detections = _make_obb_detections([quad, quad], [0.9, 0.8], [0, 0])
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.10826823], decimal=4)
+
+    def test_mask_takes_precedence_over_oriented_box(self) -> None:
+        """With both a mask and OBB corners, the mask IoU drives the decay."""
+        quad_a = _rotated_rect(0, 0, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        quad_b = _rotated_rect(10, 10, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
+        detections.mask = np.ones((2, 4, 4), dtype=bool)
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.10826823], decimal=4)
+
     def test_none_score_threshold_keeps_all_detections(self) -> None:
         """Default `score_threshold=None` never drops a detection."""
         detections = Detections(
@@ -3671,6 +3705,44 @@ class TestDetectionsFromSemanticSegmentation:
         assert isinstance(compact.mask, CompactMask)
         assert isinstance(dense.mask, np.ndarray)
         assert np.array_equal(compact.mask.to_dense(), dense.mask)
+
+    @pytest.mark.parametrize(
+        ("label_png", "sample_ids"),
+        [
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABAQAAAADRRzJgAAAACklE"
+                "QVR4nGMIAAAAUgBR9yHZtwAAAABJRU5ErkJggg==",
+                [0, 1, 0, 1],
+                id="grayscale-1-bit",
+            ),
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABAgAAAACW50iwAAAACklE"
+                "QVR4nGOQBQAAHwAe5eoyzQAAAABJRU5ErkJggg==",
+                [0, 1, 3, 1],
+                id="grayscale-2-bit",
+            ),
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABBAAAAAAZp70QAAAAC0lE"
+                "QVR4nGNg/AgAAPYA85wqhk0AAAAASUVORK5CYII=",
+                [0, 1, 15, 1],
+                id="grayscale-4-bit",
+            ),
+        ],
+    )
+    def test_low_bit_depth_png_preserves_class_ids(
+        self, label_png: str, sample_ids: list[int]
+    ) -> None:
+        """Grayscale PNG label values survive display-intensity expansion."""
+        label_map = np.array([sample_ids], dtype=np.uint8)
+        class_ids = np.unique(label_map)
+        class_ids = class_ids[class_ids != 0]
+
+        detections = Detections.from_semantic_segmentation(label_png)
+
+        np.testing.assert_array_equal(detections.class_id, class_ids)
+        np.testing.assert_array_equal(
+            detections.mask, label_map == class_ids[:, None, None]
+        )
 
     def test_keeps_ids_above_255_from_a_16_bit_png(self) -> None:
         """A 16-bit PNG keeps class ids that do not fit in 8 bits."""
