@@ -308,19 +308,20 @@ def _large_integer_box_areas(
         x_min_true, y_min_true, x_max_true, y_max_true = true_obj.T
         x_min_det, y_min_det, x_max_det, y_max_det = det_obj.T
 
-    x_min_inter = np.maximum(x_min_true[:, None], x_min_det[None, :])
-    x_max_inter = np.minimum(x_max_true[:, None], x_max_det[None, :])
-    y_min_inter = np.maximum(y_min_true[:, None], y_min_det[None, :])
-    y_max_inter = np.minimum(y_max_true[:, None], y_max_det[None, :])
-
-    overlap = (x_max_inter > x_min_inter) & (y_max_inter > y_min_inter)
-    rows, cols = np.nonzero(overlap)
-
     count_true, count_det = boxes_true.shape[0], boxes_detection.shape[0]
     area_inter: npt.NDArray[np.float64] = np.zeros(
         (count_true, count_det), dtype=np.float64
     )
-    if len(rows) > 0:
+    # Bound object and index temporaries for dense overlap; the output itself
+    # remains quadratic because callers require every pairwise score.
+    for start in range(0, count_true, 128):
+        stop = min(start + 128, count_true)
+        x_min_inter = np.maximum(x_min_true[start:stop, None], x_min_det[None, :])
+        x_max_inter = np.minimum(x_max_true[start:stop, None], x_max_det[None, :])
+        y_min_inter = np.maximum(y_min_true[start:stop, None], y_min_det[None, :])
+        y_max_inter = np.minimum(y_max_true[start:stop, None], y_max_det[None, :])
+        overlap = (x_max_inter > x_min_inter) & (y_max_inter > y_min_inter)
+        rows, cols = np.nonzero(overlap)
         inter_w = np.asarray(
             x_max_inter[rows, cols].astype(object)
             - x_min_inter[rows, cols].astype(object),
@@ -331,7 +332,7 @@ def _large_integer_box_areas(
             - y_min_inter[rows, cols].astype(object),
             dtype=np.float64,
         )
-        area_inter[rows, cols] = inter_w * inter_h
+        area_inter[start + rows, cols] = inter_w * inter_h
 
     return area_inter, area_true, area_det
 

@@ -1788,218 +1788,236 @@ def test_box_iou_large_int64_origin_preserves_coordinate_differences(
     assert result == pytest.approx(expected, rel=1e-6)
 
 
-@pytest.mark.parametrize(
-    ("dtype", "origin", "overlap_metric", "expected"),
-    [
-        pytest.param(
-            np.int64, 2**60, OverlapMetric.IOU, 81.0 / 119.0, id="int64-pos-iou"
-        ),
-        pytest.param(
-            np.int64, 2**60, OverlapMetric.IOS, 81.0 / 100.0, id="int64-pos-ios"
-        ),
-        pytest.param(
-            np.int64, -(2**63), OverlapMetric.IOU, 81.0 / 119.0, id="int64-min-iou"
-        ),
-        pytest.param(
-            np.int64, -(2**63), OverlapMetric.IOS, 81.0 / 100.0, id="int64-min-ios"
-        ),
-        pytest.param(
-            np.uint64, 2**60, OverlapMetric.IOU, 81.0 / 119.0, id="uint64-pos-iou"
-        ),
-        pytest.param(
-            np.uint64, 2**60, OverlapMetric.IOS, 81.0 / 100.0, id="uint64-pos-ios"
-        ),
-        pytest.param(
-            np.uint64,
-            2**64 - 20,
-            OverlapMetric.IOU,
-            81.0 / 119.0,
-            id="uint64-max-iou",
-        ),
-        pytest.param(
-            np.uint64,
-            2**64 - 20,
-            OverlapMetric.IOS,
-            81.0 / 100.0,
-            id="uint64-max-ios",
-        ),
-    ],
-)
-def test_box_iou_batch_large_64bit_integer_origins_preserve_overlap(
-    dtype: type[np.integer],
-    origin: int,
-    overlap_metric: OverlapMetric,
-    expected: float,
-) -> None:
-    """Batch IoU/IoS preserves overlap for narrow 64-bit integer boxes."""
-    boxes_true = np.array(
-        [[origin, origin, origin + 10, origin + 10]],
-        dtype=dtype,
-    )
-    boxes_detection = np.array(
-        [[origin + 1, origin + 1, origin + 11, origin + 11]],
-        dtype=dtype,
-    )
+class TestBoxIouBatchLargeIntegerCoordinates:
+    """Check overlap behavior for large integer coordinates."""
 
-    result = box_iou_batch(boxes_true, boxes_detection, overlap_metric)
+    def test_dense_pairs_across_row_chunks_preserve_overlap(self) -> None:
+        """Dense large-coordinate pairs retain their overlaps across row chunks."""
+        origin = 2**60
+        boxes = np.tile(
+            np.array([[origin, origin, origin + 10, origin + 10]]), (129, 1)
+        )
 
-    assert result.shape == (1, 1)
-    assert result.dtype == np.float32
-    assert result[0, 0] == pytest.approx(expected, rel=1e-6)
-    assert result[0, 0] == pytest.approx(
-        box_iou(boxes_true[0], boxes_detection[0], overlap_metric),
-        rel=1e-6,
-    )
+        result = box_iou_batch(boxes, boxes)
 
+        np.testing.assert_array_equal(result, np.ones((129, 129), dtype=np.float32))
 
-@pytest.mark.parametrize(
-    ("overlap_metric", "expected"),
-    [
-        pytest.param(OverlapMetric.IOU, 81.0 / 119.0, id="iou"),
-        pytest.param(OverlapMetric.IOS, 81.0 / 100.0, id="ios"),
-    ],
-)
-def test_box_iou_batch_mixed_int64_and_uint64_at_large_origin(
-    overlap_metric: OverlapMetric,
-    expected: float,
-) -> None:
-    """Mixed int64 and uint64 batches avoid float64 promotion at large origins."""
-    origin = 2**60
-    boxes_true = np.array(
+    @pytest.mark.parametrize(
+        ("dtype", "origin", "overlap_metric", "expected"),
         [
-            [origin, origin, origin + 10, origin + 10],
-            [-(2**60), 0, -(2**60) + 10, 10],
+            pytest.param(
+                np.int64, 2**60, OverlapMetric.IOU, 81.0 / 119.0, id="int64-pos-iou"
+            ),
+            pytest.param(
+                np.int64, 2**60, OverlapMetric.IOS, 81.0 / 100.0, id="int64-pos-ios"
+            ),
+            pytest.param(
+                np.int64, -(2**63), OverlapMetric.IOU, 81.0 / 119.0, id="int64-min-iou"
+            ),
+            pytest.param(
+                np.int64, -(2**63), OverlapMetric.IOS, 81.0 / 100.0, id="int64-min-ios"
+            ),
+            pytest.param(
+                np.uint64, 2**60, OverlapMetric.IOU, 81.0 / 119.0, id="uint64-pos-iou"
+            ),
+            pytest.param(
+                np.uint64, 2**60, OverlapMetric.IOS, 81.0 / 100.0, id="uint64-pos-ios"
+            ),
+            pytest.param(
+                np.uint64,
+                2**64 - 20,
+                OverlapMetric.IOU,
+                81.0 / 119.0,
+                id="uint64-max-iou",
+            ),
+            pytest.param(
+                np.uint64,
+                2**64 - 20,
+                OverlapMetric.IOS,
+                81.0 / 100.0,
+                id="uint64-max-ios",
+            ),
         ],
-        dtype=np.int64,
     )
-    boxes_detection = np.array(
-        [[origin + 1, origin + 1, origin + 11, origin + 11]],
-        dtype=np.uint64,
-    )
+    def test_box_iou_batch_large_64bit_integer_origins_preserve_overlap(
+        self,
+        dtype: type[np.integer],
+        origin: int,
+        overlap_metric: OverlapMetric,
+        expected: float,
+    ) -> None:
+        """Batch IoU/IoS preserves overlap for narrow 64-bit integer boxes."""
+        boxes_true = np.array(
+            [[origin, origin, origin + 10, origin + 10]],
+            dtype=dtype,
+        )
+        boxes_detection = np.array(
+            [[origin + 1, origin + 1, origin + 11, origin + 11]],
+            dtype=dtype,
+        )
 
-    result = box_iou_batch(boxes_true, boxes_detection, overlap_metric)
+        result = box_iou_batch(boxes_true, boxes_detection, overlap_metric)
 
-    assert result.shape == (2, 1)
-    assert result[0, 0] == pytest.approx(expected, rel=1e-6)
-    assert result[0, 0] == pytest.approx(
-        box_iou(boxes_true[0], boxes_detection[0], overlap_metric),
-        rel=1e-6,
-    )
-    assert result[1, 0] == 0.0
+        assert result.shape == (1, 1)
+        assert result.dtype == np.float32
+        assert result[0, 0] == pytest.approx(expected, rel=1e-6)
+        assert result[0, 0] == pytest.approx(
+            box_iou(boxes_true[0], boxes_detection[0], overlap_metric),
+            rel=1e-6,
+        )
 
-
-def test_box_iou_batch_multi_origin_int64_pairs() -> None:
-    """Same-origin pairs match exactly while cross-origin pairs score zero."""
-    neg = -(2**60)
-    pos = 2**60
-    boxes_true = np.array(
+    @pytest.mark.parametrize(
+        ("overlap_metric", "expected"),
         [
-            [neg, 0, neg + 10, 10],
-            [pos, 0, pos + 10, 10],
+            pytest.param(OverlapMetric.IOU, 81.0 / 119.0, id="iou"),
+            pytest.param(OverlapMetric.IOS, 81.0 / 100.0, id="ios"),
         ],
-        dtype=np.int64,
     )
-    boxes_detection = np.array(
+    def test_box_iou_batch_mixed_int64_and_uint64_at_large_origin(
+        self,
+        overlap_metric: OverlapMetric,
+        expected: float,
+    ) -> None:
+        """Mixed int64 and uint64 batches avoid float64 promotion at large origins."""
+        origin = 2**60
+        boxes_true = np.array(
+            [
+                [origin, origin, origin + 10, origin + 10],
+                [-(2**60), 0, -(2**60) + 10, 10],
+            ],
+            dtype=np.int64,
+        )
+        boxes_detection = np.array(
+            [[origin + 1, origin + 1, origin + 11, origin + 11]],
+            dtype=np.uint64,
+        )
+
+        result = box_iou_batch(boxes_true, boxes_detection, overlap_metric)
+
+        assert result.shape == (2, 1)
+        assert result[0, 0] == pytest.approx(expected, rel=1e-6)
+        assert result[0, 0] == pytest.approx(
+            box_iou(
+                boxes_true[0].tolist(), boxes_detection[0].tolist(), overlap_metric
+            ),
+            rel=1e-6,
+        )
+        assert result[1, 0] == 0.0
+
+    def test_box_iou_batch_multi_origin_int64_pairs(self) -> None:
+        """Same-origin pairs match exactly while cross-origin pairs score zero."""
+        neg = -(2**60)
+        pos = 2**60
+        boxes_true = np.array(
+            [
+                [neg, 0, neg + 10, 10],
+                [pos, 0, pos + 10, 10],
+            ],
+            dtype=np.int64,
+        )
+        boxes_detection = np.array(
+            [
+                [neg + 1, 1, neg + 11, 11],
+                [pos + 1, 1, pos + 11, 11],
+            ],
+            dtype=np.int64,
+        )
+
+        result = box_iou_batch(boxes_true, boxes_detection, OverlapMetric.IOU)
+
+        expected = 81.0 / 119.0
+        assert result[0, 0] == pytest.approx(expected, rel=1e-6)
+        assert result[1, 1] == pytest.approx(expected, rel=1e-6)
+        assert result[0, 1] == 0.0
+        assert result[1, 0] == 0.0
+
+    @pytest.mark.parametrize(
+        ("overlap_metric", "expected"),
         [
-            [neg + 1, 1, neg + 11, 11],
-            [pos + 1, 1, pos + 11, 11],
+            pytest.param(OverlapMetric.IOU, 100.0 / float((2**64 - 1) * 10), id="iou"),
+            pytest.param(OverlapMetric.IOS, 1.0, id="ios"),
         ],
-        dtype=np.int64,
     )
+    def test_box_iou_batch_full_range_int64_span_does_not_overflow(
+        self,
+        overlap_metric: OverlapMetric,
+        expected: float,
+    ) -> None:
+        """Full-range int64 spans compute exact overlap without overflow."""
+        origin = 2**60
+        spanning = np.array([[-(2**63), 0, 2**63 - 1, 10]], dtype=np.int64)
+        small = np.array([[origin, 0, origin + 10, 10]], dtype=np.int64)
 
-    result = box_iou_batch(boxes_true, boxes_detection, OverlapMetric.IOU)
+        with np.errstate(over="raise", invalid="raise"):
+            result = box_iou_batch(spanning, small, overlap_metric)
 
-    expected = 81.0 / 119.0
-    assert result[0, 0] == pytest.approx(expected, rel=1e-6)
-    assert result[1, 1] == pytest.approx(expected, rel=1e-6)
-    assert result[0, 1] == 0.0
-    assert result[1, 0] == 0.0
+        assert result[0, 0] == pytest.approx(expected, rel=1e-6, abs=0.0)
 
-
-@pytest.mark.parametrize(
-    ("overlap_metric", "expected"),
-    [
-        pytest.param(OverlapMetric.IOU, 100.0 / float((2**64 - 1) * 10), id="iou"),
-        pytest.param(OverlapMetric.IOS, 1.0, id="ios"),
-    ],
-)
-def test_box_iou_batch_full_range_int64_span_does_not_overflow(
-    overlap_metric: OverlapMetric,
-    expected: float,
-) -> None:
-    """Full-range int64 spans compute exact overlap without overflow."""
-    origin = 2**60
-    spanning = np.array([[-(2**63), 0, 2**63 - 1, 10]], dtype=np.int64)
-    small = np.array([[origin, 0, origin + 10, 10]], dtype=np.int64)
-
-    with np.errstate(over="raise", invalid="raise"):
-        result = box_iou_batch(spanning, small, overlap_metric)
-
-    assert result[0, 0] == pytest.approx(expected, rel=1e-6, abs=0.0)
-
-
-@pytest.mark.parametrize(
-    "overlap_metric",
-    [
-        pytest.param(OverlapMetric.IOU, id="iou"),
-        pytest.param(OverlapMetric.IOS, id="ios"),
-    ],
-)
-def test_box_iou_batch_large_int64_edge_touching_and_zero_area_score_zero(
-    overlap_metric: OverlapMetric,
-) -> None:
-    """Edge-touching and zero-area boxes at large int64 origins score zero."""
-    origin = 2**60
-    reference = np.array([[origin, origin, origin + 10, origin + 10]], dtype=np.int64)
-    edge_and_zero = np.array(
+    @pytest.mark.parametrize(
+        "overlap_metric",
         [
-            [origin + 10, origin, origin + 20, origin + 10],
-            [origin, origin, origin, origin + 10],
+            pytest.param(OverlapMetric.IOU, id="iou"),
+            pytest.param(OverlapMetric.IOS, id="ios"),
         ],
-        dtype=np.int64,
     )
+    def test_box_iou_batch_large_int64_edge_touching_and_zero_area_score_zero(
+        self,
+        overlap_metric: OverlapMetric,
+    ) -> None:
+        """Edge-touching and zero-area boxes at large int64 origins score zero."""
+        origin = 2**60
+        reference = np.array(
+            [[origin, origin, origin + 10, origin + 10]], dtype=np.int64
+        )
+        edge_and_zero = np.array(
+            [
+                [origin + 10, origin, origin + 20, origin + 10],
+                [origin, origin, origin, origin + 10],
+            ],
+            dtype=np.int64,
+        )
 
-    scores = box_iou_batch(reference, edge_and_zero, overlap_metric)
+        scores = box_iou_batch(reference, edge_and_zero, overlap_metric)
 
-    np.testing.assert_array_equal(scores, np.zeros((1, 2), dtype=np.float32))
+        np.testing.assert_array_equal(scores, np.zeros((1, 2), dtype=np.float32))
 
+    def test_small_int64_boxes_skip_python_integer_areas(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Ordinary small int64 boxes stay on the vectorized float64 fast path."""
 
-def test_box_iou_batch_small_int64_uses_float64_fast_path(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Ordinary small int64 boxes stay on the vectorized float64 fast path."""
+        def _fail_if_called(*args: object, **kwargs: object) -> object:
+            raise AssertionError("_large_integer_box_areas should not be called")
 
-    def _fail_if_called(*args: object, **kwargs: object) -> object:
-        raise AssertionError("_large_integer_box_areas should not be called")
+        monkeypatch.setattr(iou_and_nms, "_large_integer_box_areas", _fail_if_called)
+        boxes_true = np.array([[0, 0, 10, 10]], dtype=np.int64)
+        boxes_detection = np.array([[5, 5, 15, 15]], dtype=np.int64)
 
-    monkeypatch.setattr(iou_and_nms, "_large_integer_box_areas", _fail_if_called)
-    boxes_true = np.array([[0, 0, 10, 10]], dtype=np.int64)
-    boxes_detection = np.array([[5, 5, 15, 15]], dtype=np.int64)
+        result = box_iou_batch(boxes_true, boxes_detection, OverlapMetric.IOU)
 
-    result = box_iou_batch(boxes_true, boxes_detection, OverlapMetric.IOU)
+        assert result[0, 0] == pytest.approx(25.0 / 175.0, rel=1e-6)
 
-    assert result[0, 0] == pytest.approx(25.0 / 175.0, rel=1e-6)
+    @pytest.mark.parametrize(
+        ("overlap_metric", "expected"),
+        [
+            pytest.param(OverlapMetric.IOU, 1.0 / 3.0, id="iou"),
+            pytest.param(OverlapMetric.IOS, 0.5, id="ios"),
+        ],
+    )
+    def test_coordinates_above_float64_exact_range_keep_unit_overlap(
+        self,
+        overlap_metric: OverlapMetric,
+        expected: float,
+    ) -> None:
+        """Coordinates beyond 2**53 dispatch to the large-integer path for exactness."""
+        origin = 2**53
+        boxes_true = np.array([[origin, 0, origin + 2, 2]], dtype=np.int64)
+        boxes_detection = np.array([[origin + 1, 0, origin + 3, 2]], dtype=np.int64)
 
+        result = box_iou_batch(boxes_true, boxes_detection, overlap_metric)
 
-@pytest.mark.parametrize(
-    ("overlap_metric", "expected"),
-    [
-        pytest.param(OverlapMetric.IOU, 1.0 / 3.0, id="iou"),
-        pytest.param(OverlapMetric.IOS, 0.5, id="ios"),
-    ],
-)
-def test_box_iou_batch_beyond_float64_exact_int_uses_large_int_path(
-    overlap_metric: OverlapMetric,
-    expected: float,
-) -> None:
-    """Coordinates beyond 2**53 dispatch to the large-integer path for exactness."""
-    origin = 2**53
-    boxes_true = np.array([[origin, 0, origin + 2, 2]], dtype=np.int64)
-    boxes_detection = np.array([[origin + 1, 0, origin + 3, 2]], dtype=np.int64)
-
-    result = box_iou_batch(boxes_true, boxes_detection, overlap_metric)
-
-    assert result[0, 0] == pytest.approx(expected, rel=1e-6)
+        assert result[0, 0] == pytest.approx(expected, rel=1e-6)
 
 
 @pytest.mark.parametrize(
