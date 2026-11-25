@@ -5,7 +5,7 @@ date_modified: 2026-11-18
 
 # Changelog
 
-### Unreleased <small>upcoming</small>
+### 0.32.2 <small>Nov 25, 2026</small>
 
 - `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now finds detection JSON after surrounding text or unrelated code fences, and preserves backticks inside labels. Previously bracketed reasoning or unrelated fences could make the parser return no detections. ([#3011](https://github.com/roboflow/supervision/pull/3011))
 
@@ -34,6 +34,8 @@ date_modified: 2026-11-18
 - Fixed `KeyPoints` selection to keep per-joint covariance matrices aligned when subsetting or reordering joints, preventing ellipse annotation errors and incorrect uncertainty ellipses, while preserving per-object covariance metadata. ([#2979](https://github.com/roboflow/supervision/pull/2979))
 
 - Fixed `sv.KeyPoints.from_transformers` to retain ViTPose joint indices after confidence filtering. Poses with different retained joints now load into zero-filled skeleton slots instead of raising a stacking error or connecting the wrong joints. Pass `num_keypoints` to retain trailing slots when all poses omit the last joints. An empty first pose no longer hides later poses. ([#2978](https://github.com/roboflow/supervision/pull/2978))
+
+- `sv.KeyPoints.from_transformers` accepts a new keyword-only `num_keypoints` argument giving the full skeleton size, so trailing joints dropped by confidence filtering stay in the output as zero-filled slots. A value of 0 or less raises `ValueError`. ([#2978](https://github.com/roboflow/supervision/pull/2978))
 
 - `sv.Detections.get_anchors_coordinates` with `sv.Position.CENTER_OF_MASS` now anchors a detection whose mask has no pixels at the center of its bounding box, for dense masks and `sv.CompactMask` alike, instead of the frame's top-left corner `(0, 0)`. The mask centroid of an empty mask is undefined and `sv.calculate_masks_centroids` reports `(0, 0)`, so a stationary object whose mask came out empty in one frame made `sv.LineZone` count a phantom crossing, made `sv.PolygonZone` report it in the zone when the zone contained the corner, and was drawn at the corner by `sv.DotAnnotator`, `sv.LabelAnnotator` and `sv.TraceAnnotator`. A batch with an empty mask returns floating-point anchors to preserve fractional and large box centers. Centroids of non-empty masks are unchanged, and `sv.calculate_masks_centroids` itself still returns `(0, 0)` for an empty mask. ([#2976](https://github.com/roboflow/supervision/pull/2976))
 
