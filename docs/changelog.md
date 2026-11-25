@@ -73,6 +73,8 @@ date_modified: 2026-11-21
 
 - Annotators that draw with OpenCV directly, such as `sv.BoxAnnotator`, `sv.LabelAnnotator`, the key point annotators and the line zone annotators, now draw visibly on BGRA scenes, such as a PNG read with `cv2.IMREAD_UNCHANGED`, with antialiased edges composited using their coverage. They wrote only the B, G and R channels and left alpha at `0`, so boxes, labels, key points and the like were invisible on transparent pixels. The translucent fills of `sv.ColorAnnotator` and `sv.VertexEllipseAreaAnnotator` composite their coverage times `opacity` over the existing alpha and keep their own color instead of blending with the hidden color of transparent pixels. ([#3033](https://github.com/roboflow/supervision/pull/3033))
 
+- `sv.Detections.from_transformers` now loads class-agnostic Transformers results, which carry no class labels, with `class_id=None`. SAM 3 `post_process_object_detection` and `post_process_instance_segmentation` results, which have no `labels` key, raised `KeyError: 'labels'`, and OWL-ViT and OWLv2 `post_process_image_guided_detection` results, whose `labels` is `None`, raised `AttributeError: 'NoneType' object has no attribute 'detach'`. SAM 3 instance masks keep their `(N, H, W)` shape. ([#3061](https://github.com/roboflow/supervision/pull/3061))
+
 ### 0.32.1 <small>Nov 24, 2026</small>
 
 - **BGRA scenes**: annotators, drawing helpers and image resizing handle `(H, W, 4)` arrays.
