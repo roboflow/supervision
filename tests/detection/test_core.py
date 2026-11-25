@@ -2424,6 +2424,44 @@ class TestMergeObbCorners:
 class TestMergeDetectionGroup:
     """_merge_detection_group."""
 
+    @pytest.mark.parametrize(
+        ("dtype", "expected_dtype"),
+        [
+            pytest.param(np.float16, np.float32, id="float16-widens"),
+            pytest.param(np.float32, np.float32, id="float32-unchanged"),
+            pytest.param(np.float64, np.float64, id="float64-retained"),
+            pytest.param(np.int64, np.float32, id="signed-integer-unchanged"),
+            pytest.param(np.uint64, np.float32, id="unsigned-integer-unchanged"),
+        ],
+    )
+    def test_aabb_union_dtype(
+        self, dtype: type[np.generic], expected_dtype: type[np.generic]
+    ) -> None:
+        """Only common real-floating coordinate dtypes retain wider precision."""
+        boxes = np.array([[0, 0, 20, 20], [2, 2, 22, 22]], dtype=dtype)
+        result = _merge_detection_group(
+            [Detections(xyxy=boxes[:1]), Detections(xyxy=boxes[1:])]
+        )
+        assert len(result) == 1
+        assert result.xyxy.dtype == expected_dtype
+        np.testing.assert_array_equal(result.xyxy, [[0, 0, 22, 22]])
+
+    def test_aabb_union_mixed_member_dtypes(self) -> None:
+        """Member arrays use their common floating dtype before union construction."""
+        boxes = [
+            np.array([[0, 0, 20, 20]], dtype=np.int64),
+            np.array([[2.125, 2.125, 22.125, 22.125]], dtype=np.float64),
+        ]
+        result = _merge_detection_group([Detections(xyxy=box) for box in boxes])
+        assert np.array([box[0] for box in boxes]).dtype == np.float64
+        assert result.xyxy.dtype == np.float64
+        np.testing.assert_array_equal(result.xyxy, [[0, 0, 22.125, 22.125]])
+
+    def test_aabb_singleton_retains_identity(self) -> None:
+        """A singleton is returned without coordinate conversion."""
+        detection = Detections(xyxy=np.array([[1, 2, 3, 4]], dtype=np.float16))
+        assert _merge_detection_group([detection]) is detection
+
     @pytest.mark.skipif(
         np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
         reason="longdouble has no extra precision on this platform",
@@ -2444,6 +2482,8 @@ class TestMergeDetectionGroup:
 
         assert result.confidence is not None
         np.testing.assert_allclose(result.confidence, [0.8])
+        assert result.xyxy.dtype == np.longdouble
+        np.testing.assert_array_equal(result.xyxy, boxes[:1])
 
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
     def test_preserves_area_weights_at_large_integer_origins(
@@ -2852,6 +2892,110 @@ def _make_rectangle_detections(kind: str, rectangles: list[list[int]]) -> Detect
 
 class TestDetectionsWithNMM:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
+
+    @pytest.mark.parametrize(
+        "origin",
+        [
+            pytest.param(1e9, id="large-origin"),
+            pytest.param(0.123456789123, id="decimal-extrema"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "class_agnostic",
+        [
+            pytest.param(False, id="class-aware"),
+            pytest.param(True, id="class-agnostic"),
+        ],
+    )
+    def test_float64_union(self, origin: float, class_agnostic: bool) -> None:
+        """Merging retains representable extrema and leaves singleton groups intact."""
+        boxes = np.array(
+            [
+                [origin, origin, origin + 20, origin + 20],
+                [origin + 2, origin + 2, origin + 22, origin + 22],
+                [origin + 100, origin + 100, origin + 120, origin + 120],
+            ],
+            dtype=np.float64,
+        )
+        before = boxes.copy()
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.8, 0.7]),
+            class_id=np.array([1, 2 if class_agnostic else 1, 3]),
+            tracker_id=np.array([10, 20, 30]),
+        )
+        result = detections.with_nmm(class_agnostic=class_agnostic)
+        assert len(result) == 2
+        assert result.xyxy.dtype == np.float64
+        assert result.tracker_id is not None
+        assert result.class_id is not None
+        merged = result[result.tracker_id == 10]
+        singleton = result[result.tracker_id == 30]
+        assert isinstance(merged, Detections)
+        assert isinstance(singleton, Detections)
+        assert len(merged) == len(singleton) == 1
+        np.testing.assert_array_equal(
+            merged.xyxy, [[origin, origin, origin + 22, origin + 22]]
+        )
+        np.testing.assert_array_equal(singleton.xyxy, boxes[2:])
+        np.testing.assert_array_equal(merged.class_id, [1])
+        np.testing.assert_array_equal(singleton.class_id, [3])
+        np.testing.assert_array_equal(detections.xyxy, before)
+
+    def test_float32_union_unchanged(self) -> None:
+        """Ordinary float32 boxes keep exact union coordinates and output dtype."""
+        boxes = np.array([[0, 0, 20, 20], [2, 2, 22, 22]], dtype=np.float32)
+        result = Detections(
+            xyxy=boxes, confidence=np.array([0.9, 0.8]), class_id=np.array([1, 1])
+        ).with_nmm()
+        assert len(result) == 1
+        assert result.xyxy.dtype == np.float32
+        np.testing.assert_array_equal(result.xyxy, [[0, 0, 22, 22]])
+
+    def test_class_aware_keeps_different_classes(self) -> None:
+        """Overlapping detections in different classes remain separate."""
+        boxes = np.array(
+            [[1e9, 1e9, 1e9 + 20, 1e9 + 20], [1e9 + 2, 1e9 + 2, 1e9 + 22, 1e9 + 22]]
+        )
+        result = Detections(
+            xyxy=boxes, confidence=np.array([0.9, 0.8]), class_id=np.array([1, 2])
+        ).with_nmm()
+        assert len(result) == 2
+        np.testing.assert_array_equal(result.xyxy, boxes)
+
+    @pytest.mark.parametrize(
+        "compact", [pytest.param(False, id="dense"), pytest.param(True, id="compact")]
+    )
+    def test_mask_union_retains_float64_boxes(self, compact: bool) -> None:
+        """Dense and compact masks keep their union alongside float64 coordinates."""
+        boxes = np.array([[2, 2, 12, 12], [3, 3, 13, 13]], dtype=np.float64)
+        masks = np.zeros((2, 16, 16), dtype=bool)
+        masks[0, 2:12, 2:12] = True
+        masks[1, 3:13, 3:13] = True
+        mask = (
+            CompactMask.from_dense(masks, boxes, image_shape=(16, 16))
+            if compact
+            else masks
+        )
+        result = Detections(
+            xyxy=boxes,
+            mask=mask,
+            confidence=np.array([0.9, 0.8]),
+            class_id=np.array([1, 1]),
+        ).with_nmm()
+        assert len(result) == 1
+        assert result.xyxy.dtype == np.float64
+        np.testing.assert_array_equal(result.xyxy, [[2, 2, 13, 13]])
+        assert result.mask is not None
+        actual = (
+            result.mask.to_dense()
+            if isinstance(result.mask, CompactMask)
+            else result.mask
+        )
+        np.testing.assert_array_equal(actual, masks.any(axis=0, keepdims=True))
+        np.testing.assert_array_equal(result.class_id, [1])
+        assert result.confidence is not None
+        np.testing.assert_allclose(result.confidence, [0.85])
 
     @pytest.mark.parametrize(
         ("dtype", "extent"),

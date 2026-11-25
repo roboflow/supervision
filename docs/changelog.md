@@ -7,6 +7,8 @@ date_modified: 2026-11-21
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.with_nmm` retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32, other coordinate dtypes retain float32 unions. Singleton groups are unchanged before stacking, but final dtype promotion can round integer coordinates. ([#3053](https://github.com/roboflow/supervision/pull/3053))
+
 - `sv.Detections.from_ultralytics` now resizes binary uint8 masks in floating point before applying the 0.5 threshold, avoiding extra foreground pixels along mask edges. ([#3041](https://github.com/roboflow/supervision/pull/3041))
 
 - Annotators now draw on non-contiguous NumPy views, such as a channel flip `frame[..., ::-1]`, a column step `frame[:, ::2]`, flips or a transpose, when OpenCV is installed. Before, OpenCV raised a layout error while the NumPy fallback drew the same pixels; both backends now annotate the view in place. ([#3036](https://github.com/roboflow/supervision/pull/3036))
