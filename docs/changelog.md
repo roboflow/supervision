@@ -7,7 +7,7 @@ date_modified: 2026-11-21
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.from_pascal_voc` now gives class ids in sorted class-name order. It used to number classes in the order they first appeared in the annotation files, so train and valid splits with the same classes could get different ids, and exporting both with `as_yolo` wrote one split's labels under the other split's class names. Datasets whose classes did not already appear in sorted order load with different `class_id` values. ([#3069](https://github.com/roboflow/supervision/pull/3069))
+- `sv.DetectionDataset.from_pascal_voc` now gives class ids in sorted class-name order. Previously, it processed images in sorted path order and appended newly encountered class names in sorted order within each file, so train and valid splits with the same classes could get different ids, and exporting both with `as_yolo` wrote one split's labels under the other split's class names. Datasets whose classes did not already appear in sorted order load with different `class_id` values. ([#3069](https://github.com/roboflow/supervision/pull/3069))
 
 - `import supervision` no longer prints six `FutureWarning`s with pyDeprecate 0.12 or newer, and no longer fails when `FutureWarning` is an error (`python -W error::FutureWarning`, or `filterwarnings = ["error"]` in pytest). pyDeprecate 0.12 renamed the `template_mgs` argument of `deprecated` to `message_template`; supervision now passes its deprecation messages under whichever name the installed pyDeprecate reads, so every release from 0.9 to 0.14 imports quietly. ([#3043](https://github.com/roboflow/supervision/pull/3043))
 
