@@ -14,7 +14,7 @@ import numpy.typing as npt
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
-from supervision._cv2._video import _mux_audio
+from supervision._cv2._video import _mux_audio, _timed_frame_rate
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -82,11 +82,7 @@ def _video_timing(video_path: str) -> tuple[float, int] | None:
     span = last_time - first_time
     if span <= 0:
         return None
-    # Some containers omit the last frame duration; use its preceding interval as an
-    # estimate, which may be inaccurate when the final cadence changes abruptly.
-    if last_duration <= 0:
-        last_duration = last_interval if last_interval > 0 else span / (count - 1)
-    return count / (span + last_duration), count
+    return _timed_frame_rate(count, span, last_interval, last_duration), count
 
 
 @dataclass

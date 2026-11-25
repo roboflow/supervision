@@ -298,6 +298,75 @@ def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
         return None
 
 
+#: Brackets and quoted ``bbox_2d`` keys, matched in document order to find the
+#: array that a Qwen detection object sits in.
+_QWEN_ARRAY_TOKENS = re.compile(
+    r'[\[\]{}]|"(?:\\.|[^"\\])*"\s*:?|(?<!\w)\'(?:\\.|[^\'\\])*\'\s*:?'
+)
+
+
+def _find_qwen_detection_array(text: str) -> int:
+    """Return the index of the ``[`` that opens the Qwen detection array.
+
+    The leftmost ``[`` that decodes as a JSON list holding a ``bbox_2d`` object
+    wins, so the outer array is chosen over any inner ``[]`` item or field, and
+    coordinates in surrounding prose never decode as detections. Truncated JSON
+    and Python literals cannot be decoded whole; for them the innermost ``[``
+    still open at the first enclosed ``bbox_2d`` key marks the array. Without a
+    key, the first ``[`` that opens an object or an empty array is returned, or
+    ``0`` when there is none.
+
+    Args:
+        text: Raw model response, possibly with prose and Markdown fences.
+
+    Returns:
+        Index into ``text`` where decoding of the detection array should start.
+    """
+    decoder = json.JSONDecoder()
+    decoded_until = 0
+    for bracket in re.finditer(r"\[", text):
+        # Arrays nested in a list already decoded without detections are left
+        # to the key scan below, which keeps deeply nested input linear.
+        if bracket.start() < decoded_until:
+            continue
+        try:
+            decoded, decoded_until = decoder.raw_decode(text, bracket.start())
+        except json.JSONDecodeError:
+            continue
+        except RecursionError:
+            break
+        if isinstance(decoded, list) and any(
+            isinstance(item, dict) and "bbox_2d" in item for item in decoded
+        ):
+            return bracket.start()
+
+    # Consume quoted strings as tokens so their brackets are not structural. The key
+    # belongs to the innermost open object, and its array is the nearest ``[`` opened
+    # before that object, so a stray ``[`` inside a label preceding the key is ignored.
+    # A key outside every array (e.g. quoted in prose) defers to the next key.
+    open_brackets: list[re.Match[str]] = []
+    for token in _QWEN_ARRAY_TOKENS.finditer(text):
+        symbol = token.group()
+        if symbol in ("[", "{"):
+            open_brackets.append(token)
+        elif symbol in ("]", "}"):
+            if open_brackets:
+                open_brackets.pop()
+        elif symbol.rstrip().endswith(":") and symbol.rstrip()[:-1].rstrip() in (
+            '"bbox_2d"',
+            "'bbox_2d'",
+        ):
+            past_object = all(opened.group() != "{" for opened in open_brackets)
+            for opened in reversed(open_brackets):
+                if opened.group() == "{":
+                    past_object = True
+                elif past_object:
+                    return opened.start()
+
+    first_array = re.search(r"\[\s*(?=\{|\])", text)
+    return first_array.start() if first_array else 0
+
+
 def from_qwen_2_5_vl(
     result: str,
     input_wh: tuple[int, int],
@@ -335,26 +404,9 @@ def from_qwen_2_5_vl(
     out_w, out_h = _validate_resolution(resolution_wh)
 
     text = result.strip()
-    # Detection arrays begin with an object (or are empty), unlike coordinate
-    # examples in surrounding prose. Decode the array directly so Markdown fences
-    # and backticks inside JSON strings never become payload delimiters.
-    starts = list(re.finditer(r"\[\s*(?=\{|\])", text))
-    start = starts[0].start() if starts else 0
-    for index, candidate in enumerate(starts):
-        next_start = starts[index + 1].start() if index + 1 < len(starts) else len(text)
-        if "bbox_2d" in text[candidate.start() : next_start]:
-            start = candidate.start()
-            break
-    for candidate in starts:
-        try:
-            decoded, _ = json.JSONDecoder().raw_decode(text[candidate.start() :])
-        except json.JSONDecodeError:
-            continue
-        if isinstance(decoded, list) and any(
-            isinstance(item, dict) and "bbox_2d" in item for item in decoded
-        ):
-            start = candidate.start()
-            break
+    # Decode from the detection array itself so Markdown fences and backticks
+    # inside JSON strings never become payload delimiters.
+    start = _find_qwen_detection_array(text)
     text = re.sub(r"```$", "", text[start:]).strip()
 
     # Recovery reads the unsliced response first: the last closing bracket can
