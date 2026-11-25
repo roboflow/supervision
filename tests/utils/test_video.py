@@ -18,9 +18,11 @@ from supervision.utils.video import (
     FPSMonitor,
     VideoInfo,
     VideoSink,
+    _video_timing,
     get_video_frames_generator,
     process_video,
 )
+from tests.helpers import write_browser_recorded_webm
 
 
 @pytest.fixture
@@ -1327,6 +1329,101 @@ def test_video_info_and_frames_follow_display_rotation(tmp_path: Path) -> None:
     assert video_info.resolution_wh == (16, 32)
     assert len(frames) == 3
     assert all(frame.shape == (32, 16, 3) for frame in frames)
+
+
+class TestVideoInfoFrameRate:
+    def test_reports_timestamp_rate_for_browser_recorded_webm(
+        self, tmp_path: Path
+    ) -> None:
+        """A browser WebM reports its ~30 fps and 60 frames, not the 1 kHz timebase."""
+        video_path = str(tmp_path / "browser.webm")
+        write_browser_recorded_webm(video_path, frame_count=60)
+
+        video_info = VideoInfo.from_video_path(video_path)
+
+        assert video_info.fps == pytest.approx(30.3, rel=0.03)
+        assert video_info.total_frames == pytest.approx(60, abs=2)
+
+    def test_variable_rate_preserves_duration_and_count(self, tmp_path: Path) -> None:
+        """Use the whole video timing when the recording cadence changes."""
+        source_path = str(tmp_path / "variable.webm")
+        target_path = str(tmp_path / "processed.mp4")
+        write_browser_recorded_webm(source_path, frame_count=152, slow_after=32)
+
+        video_info = VideoInfo.from_video_path(source_path)
+        process_video(source_path, target_path, callback=lambda frame, _: frame)
+        with av.open(target_path) as output:
+            frames = list(output.decode(video=0))
+            output_duration = len(frames) / float(output.streams.video[0].average_rate)
+
+        assert video_info.total_frames == 152
+        assert len(frames) == 152
+        assert output_duration == pytest.approx(12.9, abs=0.2)
+
+    def test_short_variable_rate_uses_last_frame_duration(self, tmp_path: Path) -> None:
+        """A long interval does not become the final frame's duration."""
+        source_path = str(tmp_path / "short-variable.webm")
+        write_browser_recorded_webm(source_path, frame_count=4, gap_after=2)
+
+        timing = _video_timing(source_path)
+
+        assert timing is not None
+        fps, count = timing
+        assert count == 4
+        assert count / fps == pytest.approx(1.132, abs=0.01)
+
+    def test_longer_audio_does_not_inflate_video_frame_count(
+        self, tmp_path: Path
+    ) -> None:
+        """Count video frames independently of a longer audio track."""
+        source_path = str(tmp_path / "audio.webm")
+        write_browser_recorded_webm(source_path, frame_count=60, audio_seconds=4)
+
+        video_info = VideoInfo.from_video_path(source_path)
+
+        assert video_info.total_frames == 60
+
+    def test_keeps_high_frame_rate_confirmed_by_timestamps(
+        self, tmp_path: Path
+    ) -> None:
+        """A genuine 480 fps video keeps its rate after the timestamp check."""
+        video_path = str(tmp_path / "high_speed.mp4")
+        writer = cv2.VideoWriter(
+            video_path, cv2.VideoWriter_fourcc(*"mp4v"), 480, (64, 48)
+        )
+        for _ in range(40):
+            writer.write(np.zeros((48, 64, 3), dtype=np.uint8))
+        writer.release()
+
+        video_info = VideoInfo.from_video_path(video_path)
+
+        assert video_info.fps == pytest.approx(480.0, rel=0.01)
+        assert video_info.total_frames == 40
+
+    def test_does_not_decode_frames_for_plausible_rate(
+        self, dummy_video_path: str
+    ) -> None:
+        """A 25 fps video is read from metadata alone, without sampling frames."""
+        with patch("supervision.utils.video._measure_fps") as measure_fps:
+            VideoInfo.from_video_path(dummy_video_path)
+
+        measure_fps.assert_not_called()
+
+    def test_process_video_keeps_browser_webm_duration(self, tmp_path: Path) -> None:
+        """Processing a browser WebM writes the output at ~30 fps, not 1000 fps."""
+        source_path = str(tmp_path / "browser.webm")
+        target_path = str(tmp_path / "processed.mp4")
+        write_browser_recorded_webm(source_path, frame_count=60)
+
+        process_video(
+            source_path=source_path,
+            target_path=target_path,
+            callback=lambda frame, _: frame,
+        )
+
+        assert VideoInfo.from_video_path(target_path).fps == pytest.approx(
+            30.3, rel=0.03
+        )
 
 
 def test_get_video_frames_generator(dummy_video_path: str) -> None:

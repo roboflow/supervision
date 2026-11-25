@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import warnings
 from typing import Any
 
+import numpy as np
 import numpy.typing as npt
 
 from supervision._cv2._color import _cvt_color, _merge, _split
@@ -58,6 +60,7 @@ from supervision._cv2.constants import (
     _CAP_PROP_FRAME_HEIGHT,
     _CAP_PROP_FRAME_WIDTH,
     _CAP_PROP_POS_FRAMES,
+    _CAP_PROP_POS_MSEC,
     _CC_STAT_AREA,
     _CHAIN_APPROX_SIMPLE,
     _COLOR_BGR2GRAY,
@@ -100,6 +103,7 @@ if _IS_CV2_AVAILABLE:
         CAP_PROP_FRAME_HEIGHT,
         CAP_PROP_FRAME_WIDTH,
         CAP_PROP_POS_FRAMES,
+        CAP_PROP_POS_MSEC,
         CC_STAT_AREA,
         COLOR_BGR2GRAY,
         COLOR_BGR2RGB,
@@ -144,8 +148,6 @@ if _IS_CV2_AVAILABLE:
         getTextSize,
         imdecode,
         imencode,
-        imread,
-        imwrite,
         intersectConvexConvex,
         line,
         mean,
@@ -162,6 +164,58 @@ if _IS_CV2_AVAILABLE:
     )
 
     BACKEND_NAME = "opencv"
+
+    def _is_non_ascii_windows_path(filename: str) -> bool:
+        """Return whether OpenCV would read the path in the ANSI code page."""
+        return os.name == "nt" and not str(filename).isascii()
+
+    def imread(filename: str, flags: int = IMREAD_COLOR) -> Any:
+        """Read an image like `cv2.imread`, also from non-ASCII paths on Windows.
+
+        Returns the array, or `None` when the file cannot be read. The return type is
+        left open, as OpenCV's own stubs do not mark the `None` either.
+        """
+        if not _is_non_ascii_windows_path(filename):
+            return cv2.imread(filename, flags)
+        # OpenCV opens Windows paths with the ANSI code page, so let NumPy map the
+        # file and decode the bytes, which gives the same pixels as `cv2.imread`.
+        # Mapping instead of reading loads only the pages OpenCV touches, so a large
+        # non-image file is rejected after its signature bytes alone.
+        buffer: npt.NDArray[np.uint8]
+        try:
+            buffer = np.memmap(filename, dtype=np.uint8, mode="r")
+        except ValueError:
+            # NumPy raises `ValueError` for an empty file, which cannot be mapped.
+            return None
+        except OSError:
+            # A file system that cannot map the file still lets NumPy read it.
+            try:
+                buffer = np.fromfile(filename, dtype=np.uint8)
+            except OSError:
+                return None
+            if buffer.size == 0:
+                return None
+        return cv2.imdecode(buffer, flags)
+
+    def imwrite(
+        filename: str, img: npt.NDArray[Any], params: Any | None = None
+    ) -> bool:
+        """Write an image like `cv2.imwrite`, also to non-ASCII paths on Windows."""
+        encoder_params = [] if params is None else params
+        if not _is_non_ascii_windows_path(filename):
+            return bool(cv2.imwrite(filename, img, encoder_params))
+        # `cv2.imwrite` would fail here or write a file with a garbled name, so
+        # encode in memory and let NumPy write the bytes to the real path.
+        success, buffer = cv2.imencode(
+            os.path.splitext(filename)[1], img, encoder_params
+        )
+        if not success:
+            return False
+        try:
+            buffer.tofile(filename)
+        except OSError:
+            return False
+        return True
 else:
     BACKEND_NAME = "fallback"
 
@@ -179,6 +233,7 @@ else:
     CAP_PROP_FRAME_HEIGHT = _CAP_PROP_FRAME_HEIGHT
     CAP_PROP_FRAME_WIDTH = _CAP_PROP_FRAME_WIDTH
     CAP_PROP_POS_FRAMES = _CAP_PROP_POS_FRAMES
+    CAP_PROP_POS_MSEC = _CAP_PROP_POS_MSEC
     CC_STAT_AREA = _CC_STAT_AREA
     COLOR_BGR2GRAY = _COLOR_BGR2GRAY
     COLOR_BGR2RGB = _COLOR_BGR2RGB
@@ -255,6 +310,7 @@ __all__ = [
     "CAP_PROP_FRAME_HEIGHT",
     "CAP_PROP_FRAME_WIDTH",
     "CAP_PROP_POS_FRAMES",
+    "CAP_PROP_POS_MSEC",
     "CC_STAT_AREA",
     "COLOR_BGR2GRAY",
     "COLOR_BGR2RGB",
