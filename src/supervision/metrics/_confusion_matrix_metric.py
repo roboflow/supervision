@@ -17,6 +17,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeVar, cast
 
 import numpy as np
@@ -27,6 +28,8 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import xyxy_to_xywh
 from supervision.detection.utils.iou_and_nms import (
+    _has_coordinates_beyond_float64_exact_int,
+    _large_integer_box_areas,
     box_iou_batch,
     box_iou_batch_with_jaccard,
     mask_iou_batch,
@@ -105,44 +108,41 @@ def _mask_rows(
     return [np.asarray(masks[index], dtype=bool) for index in indices]
 
 
-def _match_crowd_regions(
+def _match_unscored_targets(
     matched_target_indices: npt.NDArray[np.int32],
     prediction_class_ids: npt.NDArray[np.int32],
+    prediction_confidence: npt.NDArray[np.float32],
     target_class_ids: npt.NDArray[np.int32],
     iou: npt.NDArray[np.floating],
     iou_thresholds: npt.NDArray[np.float32],
+    target_scored: npt.NDArray[np.bool_],
     target_crowd: npt.NDArray[np.bool_],
 ) -> None:
-    """Match predictions left unmatched to the crowd region they overlap most.
+    """Assign remaining predictions to unscored targets in confidence order.
 
-    COCO lets a crowd region absorb any number of predictions, while the greedy
-    matcher pairs each target with one prediction at most. A prediction that found
-    no target at a threshold is assigned, in place, to the same-class crowd region
-    with the highest overlap at or above that threshold, so it is ignored rather
-    than counted as a false positive.
-
-    Args:
-        matched_target_indices: Matched target index per prediction and threshold,
-            shape ``(P, Th)``, ``-1`` where unmatched. Updated in place.
-        prediction_class_ids: Class id of each prediction, shape ``(P,)``.
-        target_class_ids: Class id of each target, shape ``(N,)``.
-        iou: Overlap of each target with each prediction, shape ``(N, P)``, where
-            crowd rows hold the crowd overlap.
-        iou_thresholds: The IoU thresholds, shape ``(Th,)``.
-        target_crowd: Which targets are crowd regions, shape ``(N,)``.
+    Non-crowd targets are consumed once per threshold; crowd targets remain
+    available. Scored targets have already had priority in the first round.
     """
-    crowd_indices = np.flatnonzero(target_crowd)
-    same_class = target_class_ids[crowd_indices, None] == prediction_class_ids
-    crowd_iou = np.where(same_class, iou[crowd_indices], -1.0)
-    best_crowd = np.argmax(crowd_iou, axis=0)
-    best_overlap = crowd_iou[best_crowd, np.arange(len(prediction_class_ids))]
+    unscored = np.flatnonzero(~target_scored)
+    prediction_order = np.argsort(-prediction_confidence, kind="stable")
     for threshold_index, threshold in enumerate(iou_thresholds):
-        absorbed = (matched_target_indices[:, threshold_index] < 0) & (
-            best_overlap >= threshold
-        )
-        matched_target_indices[absorbed, threshold_index] = crowd_indices[
-            best_crowd[absorbed]
-        ]
+        available = np.ones(len(unscored), dtype=bool)
+        for prediction_index in prediction_order:
+            if matched_target_indices[prediction_index, threshold_index] >= 0:
+                continue
+            overlaps = iou[unscored, prediction_index]
+            eligible = (
+                available
+                & (target_class_ids[unscored] == prediction_class_ids[prediction_index])
+                & (overlaps >= threshold)
+            )
+            if not np.any(eligible):
+                continue
+            best = int(np.argmax(np.where(eligible, overlaps, -1.0)))
+            target_index = unscored[best]
+            matched_target_indices[prediction_index, threshold_index] = target_index
+            if not target_crowd[target_index]:
+                available[best] = False
 
 
 class _ConfusionMatrixMetric(Metric[_ResultT]):
@@ -319,28 +319,29 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                         # 0.6 still meets the float32 threshold 0.6.
                         iou[target_crowd] = self._crowd_overlaps(
                             target_contents, prediction_contents, target_crowd
-                        )
-                    # None keeps the matcher on its single-round fast path
-                    # when every target is scored.
-                    target_scored_mask = (
-                        target_size_mask if has_unscored_targets else None
-                    )
+                        ).astype(np.float32)
+                    # Match scored targets first, then resolve ignored targets in
+                    # confidence order so reusable crowds do not consume a slot.
+                    scored_iou = iou
+                    if has_unscored_targets:
+                        scored_iou = np.where(target_size_mask[:, None], iou, -1.0)
                     matches, matched_target_indices = (
                         _match_detection_batch_with_target_indices(
                             prediction_class_ids,
                             target_class_ids,
-                            iou,
+                            scored_iou,
                             iou_thresholds,
-                            target_scored_mask=target_scored_mask,
                         )
                     )
-                    if np.any(target_crowd):
-                        _match_crowd_regions(
+                    if has_unscored_targets:
+                        _match_unscored_targets(
                             matched_target_indices,
                             prediction_class_ids,
+                            prediction_confidence,
                             target_class_ids,
                             iou,
                             iou_thresholds,
+                            target_size_mask,
                             target_crowd,
                         )
                     ignored_matches = np.zeros_like(matches, dtype=bool)
@@ -595,9 +596,36 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                 always_crowd,
             )
         else:
+            crowd_boxes = np.asarray(target_contents)[target_crowd]
+            prediction_boxes = np.asarray(prediction_contents)
+            if (
+                (
+                    _has_coordinates_beyond_float64_exact_int(crowd_boxes)
+                    or _has_coordinates_beyond_float64_exact_int(prediction_boxes)
+                )
+                and np.isfinite(crowd_boxes).all()
+                and np.isfinite(prediction_boxes).all()
+            ):
+                # Mixed integer/float inputs need exact comparisons too: casting the
+                # large integer corner to float would erase a narrow intersection.
+                if not np.issubdtype(crowd_boxes.dtype, np.integer):
+                    crowd_boxes = np.vectorize(Fraction, otypes=[object])(crowd_boxes)
+                if not np.issubdtype(prediction_boxes.dtype, np.integer):
+                    prediction_boxes = np.vectorize(Fraction, otypes=[object])(
+                        prediction_boxes
+                    )
+                intersection, _, prediction_area = _large_integer_box_areas(
+                    crowd_boxes, prediction_boxes
+                )
+                return np.divide(
+                    intersection,
+                    prediction_area[None, :],
+                    out=np.zeros_like(intersection),
+                    where=prediction_area[None, :] > 0,
+                )
             overlaps = box_iou_batch_with_jaccard(
-                xyxy_to_xywh(np.asarray(target_contents)[target_crowd]).tolist(),
-                xyxy_to_xywh(np.asarray(prediction_contents)).tolist(),
+                xyxy_to_xywh(crowd_boxes).tolist(),
+                xyxy_to_xywh(prediction_boxes).tolist(),
                 always_crowd,
             )
         # The helpers return `(predictions, targets)`.

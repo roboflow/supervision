@@ -6,6 +6,7 @@ import numpy.typing as npt
 import pytest
 
 from supervision.config import ISCROWD_DATA_FIELD
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
 from supervision.metrics.f1_score import F1Score
@@ -21,6 +22,18 @@ def _box_masks(xyxy: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]:
     masks = np.zeros((len(xyxy), _RESOLUTION, _RESOLUTION), dtype=bool)
     for index, (x_min, y_min, x_max, y_max) in enumerate(xyxy.astype(int)):
         masks[index, y_min:y_max, x_min:x_max] = True
+    return masks
+
+
+def _boundary_masks(
+    boxes: npt.NDArray[np.int64], compact: bool
+) -> npt.NDArray[np.bool_] | CompactMask:
+    """Build dense or compact masks for the crowd overlap boundary."""
+    masks = _box_masks(boxes)
+    if compact:
+        return CompactMask.from_dense(
+            masks, boxes, image_shape=(_RESOLUTION, _RESOLUTION)
+        )
     return masks
 
 
@@ -175,3 +188,88 @@ class TestConfusionMatrixMetricIgnoreRegions:
         np.testing.assert_allclose(
             getattr(result, scores_field), expected[reference_index]
         )
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_crowd_mask_overlap_at_threshold_is_ignored(self, compact: bool) -> None:
+        """A crowd overlap exactly at a threshold is ignored for both mask formats."""
+        target_boxes = np.array([[0, 0, 10, 10], [0, 10, 10, 16]])
+        prediction_boxes = np.array([[0, 0, 10, 10], [0, 10, 10, 20]])
+        target_masks = _boundary_masks(target_boxes, compact)
+        prediction_masks = _boundary_masks(prediction_boxes, compact)
+        targets = Detections(
+            xyxy=target_boxes,
+            mask=target_masks,
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        predictions = Detections(
+            xyxy=prediction_boxes,
+            mask=prediction_masks,
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+        )
+
+        result = Precision(MetricTarget.MASKS).update(predictions, targets).compute()
+
+        np.testing.assert_allclose(result.precision_scores[:4], [1.0, 1.0, 1.0, 0.5])
+
+    def test_crowd_box_preserves_large_integer_coordinates(self) -> None:
+        """An enclosed narrow integer box at a large origin is ignored."""
+        origin = 2**53
+        boxes = np.array([[0, 0, 10, 10], [origin, 0, origin + 1, 1]], dtype=np.int64)
+        targets = Detections(
+            xyxy=boxes,
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        predictions = Detections(
+            xyxy=boxes.copy(),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+        )
+
+        result = Precision().update(predictions, targets).compute()
+
+        np.testing.assert_allclose(result.precision_scores, 1.0)
+
+    def test_ignore_and_crowd_matching_uses_confidence_order(self) -> None:
+        """An ignore target does not steal a prediction that a crowd can absorb."""
+        targets = Detections(
+            xyxy=np.array([[30, 0, 40, 10], [0, 0, 10, 10], [5, 0, 10, 10]]),
+            class_id=np.array([0, 0, 0]),
+            data={
+                "ignore": np.array([0, 1, 0]),
+                ISCROWD_DATA_FIELD: np.array([0, 0, 1]),
+            },
+        )
+        predictions = Detections(
+            xyxy=np.array([[30, 0, 40, 10], [0, 0, 6, 10], [0, 0, 10, 10]]),
+            class_id=np.array([0, 0, 0]),
+            confidence=np.array([0.99, 0.9, 0.8]),
+        )
+
+        result = Precision().update(predictions, targets).compute()
+
+        assert result.precision_scores[0] == 1.0
+
+    def test_crowd_box_preserves_large_mixed_coordinates(self) -> None:
+        """Mixed float predictions and integer crowds preserve exact overlap."""
+        origin = 2**53
+        targets = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [origin + 1, 0, origin + 2, 1]], dtype=np.int64
+            ),
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        predictions = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [origin, 0, origin + 2, 1]], dtype=np.float64
+            ),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+        )
+
+        result = Precision().update(predictions, targets).compute()
+
+        np.testing.assert_allclose(result.precision_scores[:2], [1.0, 0.5])
