@@ -250,7 +250,7 @@ def load_pascal_voc_annotations(
         show_progress: If True, display a progress bar during loading.
 
     Returns:
-        A tuple with a list of class names, a sorted list of paths to images,
+        A tuple with a sorted list of class names, a sorted list of paths to images,
             and a dictionary with image paths as keys and corresponding
             Detections instances as values.
     """
@@ -291,7 +291,19 @@ def load_pascal_voc_annotations(
         )
         annotations[image_path] = annotation
 
-    return classes, image_paths, annotations
+    # Classes are collected in the order they first appear, which depends on
+    # which file each one is in. VOC has no class list, so give ids in sorted
+    # name order instead: train and valid splits that hold the same classes
+    # then get the same class ids.
+    sorted_classes = sorted(classes)
+    if sorted_classes != classes:
+        new_class_ids = np.array(
+            [sorted_classes.index(class_name) for class_name in classes], dtype=int
+        )
+        for detections in annotations.values():
+            detections.class_id = new_class_ids[detections.class_id]
+
+    return sorted_classes, image_paths, annotations
 
 
 def detections_from_xml_obj(
