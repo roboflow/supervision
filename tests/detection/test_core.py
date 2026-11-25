@@ -395,6 +395,63 @@ class TestDetectionsSelectBooleanList:
         assert result.data["some_key"] == [[1, 2, 3][i] for i in expected_rows]
 
 
+class TestDetectionsZeroDimensionalIndex:
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.int8, id="int8"),
+            pytest.param(np.uint8, id="uint8"),
+            pytest.param(np.int32, id="int32"),
+            pytest.param(np.int64, id="int64"),
+        ],
+    )
+    @pytest.mark.parametrize("row", [0, 2, -1])
+    def test_matches_python_int(self, dtype: type[np.integer], row: int) -> None:
+        """A 0-d integer array selects the same row as the equivalent Python int."""
+        if row < 0 and not np.issubdtype(dtype, np.signedinteger):
+            pytest.skip("unsigned dtypes cannot hold negative indices")
+        index = np.array(row, dtype=dtype)
+
+        result = TEST_DET_1[index]
+        expected = TEST_DET_1[row]
+
+        assert isinstance(result, Detections)
+        assert isinstance(expected, Detections)
+        assert result == expected
+        assert result.data["some_key"] == expected.data["some_key"]
+
+    def test_compact_mask_detections(self) -> None:
+        """A 0-d index keeps a CompactMask row selection aligned with the boxes."""
+        masks = np.zeros((3, 8, 8), dtype=bool)
+        for row in range(3):
+            masks[row, row : row + 2, row : row + 2] = True
+        detections = Detections(
+            xyxy=np.array([[0, 0, 2, 2], [1, 1, 3, 3], [2, 2, 4, 4]], dtype=float),
+            mask=masks,
+            class_id=np.array([0, 1, 2]),
+        ).to_compact_masks()
+
+        result = detections[np.array(1)]
+
+        assert isinstance(result, Detections)
+        assert isinstance(result.mask, CompactMask)
+        assert result == detections[1]
+        np.testing.assert_array_equal(np.asarray(result.mask), masks[[1]])
+
+    def test_empty_detections(self) -> None:
+        """A 0-d index on empty detections behaves like an int index."""
+        assert Detections.empty()[np.array(0)] == Detections.empty()[0]
+
+    def test_out_of_bounds_raises_index_error(self) -> None:
+        """An out-of-range 0-d index raises the same IndexError as an int."""
+        with pytest.raises(IndexError) as int_error:
+            TEST_DET_1[3]
+        with pytest.raises(IndexError) as array_error:
+            TEST_DET_1[np.array(3)]
+
+        assert str(array_error.value) == str(int_error.value)
+
+
 def test_select_empty_returns_fresh_metadata_dict() -> None:
     """Selecting empty detections returns a fresh metadata dictionary."""
     detections = Detections.empty()
@@ -2041,6 +2098,40 @@ class TestDetectionsWithSoftNms:
         assert len(result) == 1
         assert result.confidence is not None
         np.testing.assert_almost_equal(result.confidence, [0.9], decimal=5)
+
+    def test_uses_obb_iou_when_oriented_box_coordinates_present(self) -> None:
+        """Edge-touching OBBs keep their score although their envelopes overlap."""
+        quad_a = _rotated_rect(0, 0, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        quad_b = _rotated_rect(10, 10, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.8], decimal=4)
+        assert len(detections.with_soft_nms(sigma=0.5, score_threshold=0.79)) == 2
+
+    def test_overlapping_obbs_are_decayed(self) -> None:
+        """OBBs whose rotated bodies overlap are still decayed."""
+        quad = _rotated_rect(50, 50, 100, 10, 30)
+        detections = _make_obb_detections([quad, quad], [0.9, 0.8], [0, 0])
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.10826823], decimal=4)
+
+    def test_mask_takes_precedence_over_oriented_box(self) -> None:
+        """With both a mask and OBB corners, the mask IoU drives the decay."""
+        quad_a = _rotated_rect(0, 0, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        quad_b = _rotated_rect(10, 10, 10 * np.sqrt(2), 10 * np.sqrt(2), 45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
+        detections.mask = np.ones((2, 4, 4), dtype=bool)
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.10826823], decimal=4)
 
     def test_none_score_threshold_keeps_all_detections(self) -> None:
         """Default `score_threshold=None` never drops a detection."""

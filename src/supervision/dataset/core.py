@@ -181,6 +181,28 @@ def _check_key_points_carry_class_id(annotations: dict[str, KeyPoints]) -> None:
             )
 
 
+def _in_memory_images_equal(
+    images_a: dict[str, npt.NDArray[np.uint8]],
+    images_b: dict[str, npt.NDArray[np.uint8]],
+) -> bool:
+    """Compare in-memory dataset images path by path.
+
+    Each pair is compared on its own, so images of different sizes or channel
+    counts within one dataset can still be equal; stacking them into one array
+    fails for mixed shapes, and `np.array_equal` reports that failure as `False`.
+
+    Args:
+        images_a: Images keyed by image path.
+        images_b: Images keyed by image path.
+
+    Returns:
+        `True` if both hold the same paths with equal pixels, `False` otherwise.
+    """
+    return images_a.keys() == images_b.keys() and all(
+        np.array_equal(image, images_b[path]) for path, image in images_a.items()
+    )
+
+
 class BaseDataset(ABC):
     @abstractmethod
     def __len__(self) -> int:
@@ -423,12 +445,8 @@ class DetectionDataset(BaseDataset):
         if self.image_paths != other.image_paths:
             return False
 
-        if self._images_in_memory or other._images_in_memory:
-            if not np.array_equal(
-                list(self._images_in_memory.values()),
-                list(other._images_in_memory.values()),
-            ):
-                return False
+        if not _in_memory_images_equal(self._images_in_memory, other._images_in_memory):
+            return False
 
         if self.annotations != other.annotations:
             return False
@@ -2026,12 +2044,8 @@ class ClassificationDataset(BaseDataset):
         if self.image_paths != other.image_paths:
             return False
 
-        if self._images_in_memory or other._images_in_memory:
-            if not np.array_equal(
-                list(self._images_in_memory.values()),
-                list(other._images_in_memory.values()),
-            ):
-                return False
+        if not _in_memory_images_equal(self._images_in_memory, other._images_in_memory):
+            return False
 
         if self.annotations != other.annotations:
             return False
