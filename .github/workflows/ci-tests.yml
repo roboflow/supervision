@@ -127,7 +127,7 @@ jobs:
         run: uv run --no-project --python 3.12 .github/scripts/pin_minimum_dependencies.py > minimum-requirements.txt
 
       - name: 🚀 Install package with minimum dependencies
-        run: uv pip install -r minimum-requirements.txt "pytest>=7.2.2,<10" .
+        run: uv pip install -r minimum-requirements.txt --group test .
 
       - name: 📋 Print installed packages
         run: uv pip list

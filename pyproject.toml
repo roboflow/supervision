@@ -91,6 +91,7 @@ urls.Repository = "https://github.com/roboflow/supervision"
 
 [dependency-groups]
 dev = [
+  { include-group = "test" },
   "docutils!=0.21",
   "faster-coco-eval>=1.8",
   "ipywidgets>=8.1.1",
@@ -101,11 +102,13 @@ dev = [
   "packaging",
   "pre-commit>=3.8",
   "pycocotools>=2.0.11",
-  "pytest>=7.2.2,<10",
-  "pytest-cov>=4,<8",
   "scikit-learn>=1.7",
   "tox>=4.11.4",
   "types-tqdm",
+]
+test = [
+  "pytest>=7.2.2,<10",
+  "pytest-cov>=4,<8",
 ]
 docs = [
   "mike>=2",
