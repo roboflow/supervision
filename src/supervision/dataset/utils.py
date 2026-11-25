@@ -520,8 +520,9 @@ def map_detections_class_id(
         A copy of ``detections`` carrying the remapped ``class_id``.
 
     Raises:
-        ValueError: If ``detections.class_id`` is None, or if it contains a
-            class id not present in ``source_to_target_mapping``.
+        ValueError: If ``detections.class_id`` is None.
+        ValueError: If ``detections.class_id`` contains a class id not present
+            in ``source_to_target_mapping``.
 
     Examples:
         ```python
@@ -576,8 +577,8 @@ def map_key_points_class_id(
         A copy carrying the remapped ``class_id`` and no ``data['class_name']``.
 
     Raises:
-        ValueError: If the key points carry no ``class_id``, or hold a class id
-            missing from the mapping.
+        ValueError: If the key points carry no ``class_id``.
+        ValueError: If the key points hold a class id missing from the mapping.
     """
     if key_points.class_id is None:
         raise ValueError("KeyPoints must have class_id attribute.")
@@ -766,7 +767,8 @@ def train_test_split(
         The split data. The input list is copied and never mutated.
 
     Raises:
-        ValueError: If `train_ratio` is outside `[0, 1]` or is not a finite number.
+        ValueError: If `train_ratio` is outside `[0, 1]`.
+        ValueError: If `train_ratio` is not a finite number.
 
     Examples:
         ```pycon

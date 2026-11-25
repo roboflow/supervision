@@ -52,9 +52,9 @@ from supervision.detection.utils.internal import (
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_non_max_merge,
-    box_non_max_suppression,
-    box_soft_non_max_suppression,
+    _box_non_max_merge_from_arrays,
+    _box_non_max_suppression_from_arrays,
+    _box_soft_non_max_suppression_from_arrays,
     mask_non_max_merge,
     mask_non_max_suppression,
     mask_soft_non_max_suppression,
@@ -975,10 +975,13 @@ class Detections:
                 the requested kind, and `confidence` follows the rule above.
 
         Raises:
-            ValueError: If the input is a list or holds no map, a map is not valid
-                base64, not a PNG, not a single-channel integer `(H, W)` map, or the
-                two maps differ in shape, a class ID exceeds the `int64` range, or
-                confidence values are outside 0-255.
+            ValueError: If the input is a list or holds no map.
+            ValueError: If a string map is not valid base64.
+            ValueError: If a decoded string map is not a PNG.
+            ValueError: If a map is not a single-channel integer `(H, W)` map.
+            ValueError: If the two maps differ in shape.
+            ValueError: If a class ID exceeds the `int64` range.
+            ValueError: If confidence values are outside 0-255.
 
         Example:
             ```python
@@ -1398,8 +1401,9 @@ class Detections:
             A new Detections object.
 
         Raises:
-            ValueError: If the VLM is invalid, required arguments are missing, or
-                disallowed arguments are provided.
+            ValueError: If the VLM is invalid.
+            ValueError: If required arguments are missing.
+            ValueError: If disallowed arguments are provided.
             ValueError: If the specified VLM is not supported.
 
         !!! example "PaliGemma"
@@ -2435,8 +2439,9 @@ class Detections:
             returns floating-point coordinates so its box center is preserved.
 
         Raises:
-            ValueError: If the provided `anchor` is not supported, or if `anchor` is
-                ``Position.CENTER_OF_MASS`` and a non-empty batch has no mask.
+            ValueError: If the provided `anchor` is not supported.
+            ValueError: If `anchor` is ``Position.CENTER_OF_MASS`` and a non-empty
+                batch has no mask.
 
         Examples:
             Axis-aligned detection:
@@ -2970,6 +2975,20 @@ class Detections:
         )
         return new
 
+    def _resolve_nms_categories(
+        self, class_agnostic: bool, operation_name: str
+    ) -> npt.NDArray[np.integer] | None:
+        """Return class IDs for NMS/NMM/Soft-NMS or validate class-aware mode."""
+        if class_agnostic:
+            return None
+        if self.class_id is None:
+            raise ValueError(
+                f"Detections class_id must be given for {operation_name} to be "
+                f"executed. If you intended to perform class agnostic "
+                f"{operation_name} set class_agnostic=True."
+            )
+        return self.class_id
+
     def _build_nms_predictions(
         self, class_agnostic: bool, operation_name: str
     ) -> npt.NDArray[np.floating]:
@@ -2977,28 +2996,16 @@ class Detections:
 
         Callers must already have verified `self.confidence is not None`.
         """
-        if class_agnostic:
+        categories = self._resolve_nms_categories(class_agnostic, operation_name)
+        confidence = cast(np.ndarray, self.confidence).reshape(-1, 1)
+        if categories is None:
             return cast(
                 npt.NDArray[np.floating],
-                np.hstack(
-                    (self.xyxy, cast(np.ndarray, self.confidence).reshape(-1, 1))
-                ),
-            )
-        if self.class_id is None:
-            raise ValueError(
-                f"Detections class_id must be given for {operation_name} to be "
-                f"executed. If you intended to perform class agnostic "
-                f"{operation_name} set class_agnostic=True."
+                np.hstack((self.xyxy, confidence)),
             )
         return cast(
             npt.NDArray[np.floating],
-            np.hstack(
-                (
-                    self.xyxy,
-                    cast(np.ndarray, self.confidence).reshape(-1, 1),
-                    self.class_id.reshape(-1, 1),
-                )
-            ),
+            np.hstack((self.xyxy, confidence, categories.reshape(-1, 1))),
         )
 
     def with_nms(
@@ -3029,7 +3036,7 @@ class Detections:
 
         Raises:
             ValueError: If `confidence` is None and class_agnostic is False.
-                If `class_id` is None and class_agnostic is False.
+            ValueError: If `class_id` is None and class_agnostic is False.
         """
         if len(self) == 0:
             return self
@@ -3039,9 +3046,8 @@ class Detections:
                 "Detections confidence must be given for NMS to be executed."
             )
 
-        predictions = self._build_nms_predictions(class_agnostic, "NMS")
-
         if self.mask is not None:
+            predictions = self._build_nms_predictions(class_agnostic, "NMS")
             indices = mask_non_max_suppression(
                 predictions=predictions,
                 masks=self.mask,
@@ -3049,6 +3055,7 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
         elif ORIENTED_BOX_COORDINATES in self.data:
+            predictions = self._build_nms_predictions(class_agnostic, "NMS")
             indices = oriented_box_non_max_suppression(
                 predictions=predictions,
                 oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
@@ -3056,8 +3063,11 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
         else:
-            indices = box_non_max_suppression(
-                predictions=predictions,
+            categories = self._resolve_nms_categories(class_agnostic, "NMS")
+            indices = _box_non_max_suppression_from_arrays(
+                boxes=self.xyxy,
+                scores=self.confidence,
+                categories=categories,
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
@@ -3110,8 +3120,8 @@ class Detections:
 
         Raises:
             ValueError: If `confidence` is None.
-                If `class_id` is None and class_agnostic is False.
-                If `sigma` is not greater than `0`.
+            ValueError: If `class_id` is None and class_agnostic is False.
+            ValueError: If `sigma` is not greater than `0`.
 
         Example:
             Two identical boxes show that Soft-NMS decays the lower score but
@@ -3143,23 +3153,26 @@ class Detections:
                 "Detections confidence must be given for Soft-NMS to be executed."
             )
 
-        predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
-
         if self.mask is not None:
+            predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
             decayed_confidence = mask_soft_non_max_suppression(
                 predictions=predictions,
                 masks=self.mask,
                 sigma=sigma,
             )
         elif ORIENTED_BOX_COORDINATES in self.data:
+            predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
             decayed_confidence = oriented_box_soft_non_max_suppression(
                 predictions=predictions,
                 oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
                 sigma=sigma,
             )
         else:
-            decayed_confidence = box_soft_non_max_suppression(
-                predictions=predictions,
+            categories = self._resolve_nms_categories(class_agnostic, "Soft-NMS")
+            decayed_confidence = _box_soft_non_max_suppression_from_arrays(
+                boxes=self.xyxy,
+                scores=self.confidence,
+                categories=categories,
                 sigma=sigma,
             )
 
@@ -3183,8 +3196,8 @@ class Detections:
         oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Merged axis-aligned boxes use the common dtype of their coordinates.
-        A real-floating common dtype is retained, widened to at least float32;
-        every other common dtype produces float32 unions. Singleton groups are
+        Integer dtypes are retained and floating dtypes widen to at least
+        float32. Other dtypes produce float32 unions. Singleton groups are
         unchanged before stacking; the final array follows NumPy's common dtype
         promotion, which can round integer coordinates when promoted to float.
 
@@ -3217,8 +3230,8 @@ class Detections:
             Groups of size 1 keep the original OBB unchanged.
 
         Raises:
-            ValueError: If `confidence` is None or `class_id` is None and
-                class_agnostic is False.
+            ValueError: If `confidence` is None.
+            ValueError: If `class_id` is None and class_agnostic is False.
 
         ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width="800" }
         """  # noqa: E501 // docs
@@ -3230,9 +3243,8 @@ class Detections:
                 "Detections confidence must be given for NMM to be executed."
             )
 
-        predictions = self._build_nms_predictions(class_agnostic, "NMM")
-
         if self.mask is not None:
+            predictions = self._build_nms_predictions(class_agnostic, "NMM")
             merge_groups = mask_non_max_merge(
                 predictions=predictions,
                 masks=self.mask,
@@ -3240,6 +3252,7 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
         elif ORIENTED_BOX_COORDINATES in self.data:
+            predictions = self._build_nms_predictions(class_agnostic, "NMM")
             merge_groups = oriented_box_non_max_merge(
                 predictions=predictions,
                 oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
@@ -3247,8 +3260,11 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
         else:
-            merge_groups = box_non_max_merge(
-                predictions=predictions,
+            categories = self._resolve_nms_categories(class_agnostic, "NMM")
+            merge_groups = _box_non_max_merge_from_arrays(
+                boxes=self.xyxy,
+                scores=self.confidence,
+                categories=categories,
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
@@ -3287,12 +3303,14 @@ class Detections:
             is not modified.
 
         Raises:
-            ValueError: If ``data`` has no ``class_name`` entry, ``classes`` holds
-                duplicate names, or ``class_name_mapping`` maps to a name that is
-                not in ``classes``. Class names must have shape ``(N,)`` or
-                ``(N, 1)`` for ``N`` detections.
-            TypeError: If ``class_name_mapping`` is not a mapping or has keys that
-                are not strings.
+            ValueError: If ``data`` has no ``class_name`` entry.
+            ValueError: If ``classes`` holds duplicate names.
+            ValueError: If ``class_name_mapping`` maps to a name that is not in
+                ``classes``.
+            ValueError: If class names do not have shape ``(N,)`` or ``(N, 1)`` for
+                ``N`` detections.
+            TypeError: If ``class_name_mapping`` is not a mapping.
+            TypeError: If ``class_name_mapping`` has keys that are not strings.
 
         Example:
             ```pycon
@@ -3448,8 +3466,8 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     "winner" whose class_id, tracker_id, and data fields are preserved. Box
     extents are widened before subtraction to keep confidence weights finite
     and avoid integer wraparound. Multi-member axis-aligned unions retain the
-    common floating coordinate dtype, widened to at least float32; other
-    coordinate dtypes retain float32 output. Singleton groups are unchanged.
+    common integer dtype or the common floating dtype widened to at least
+    float32. Other dtypes produce float32 unions. Singleton groups are unchanged.
 
     Args:
         detections: List of Detections, each containing exactly one object.
@@ -3514,12 +3532,12 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         xyxy = xyxyxyxy_to_xyxy(merged_corners[np.newaxis])
         data = {**winner.data, ORIENTED_BOX_COORDINATES: merged_corners[np.newaxis]}
     else:
-        # AABB path: retain floating-point precision, widening to at least float32.
-        output_dtype = (
-            np.promote_types(all_xyxy.dtype, np.float32)
-            if np.issubdtype(all_xyxy.dtype, np.floating)
-            else np.dtype(np.float32)
-        )
+        # Preserve integer coordinates and widen low-precision floating unions.
+        union_dtype = all_xyxy.dtype
+        if np.issubdtype(union_dtype, np.floating):
+            union_dtype = np.promote_types(union_dtype, np.float32)
+        elif not np.issubdtype(union_dtype, np.integer):
+            union_dtype = np.dtype(np.float32)
         xyxy = np.array(
             [
                 [
@@ -3529,7 +3547,7 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
                     all_xyxy[:, 3].max(),
                 ]
             ],
-            dtype=output_dtype,
+            dtype=union_dtype,
         )
         data = winner.data
 
