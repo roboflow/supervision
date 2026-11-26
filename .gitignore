@@ -158,6 +158,7 @@ Desktop.ini
 examples/*/data/
 examples/*/outputs/
 examples/*/*.pt
+examples/compact_mask/results_*
 !src/supervision/_cv2/data/
 !src/supervision/_cv2/data/*
 *.mp4

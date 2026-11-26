@@ -3,8 +3,12 @@
 Run with:
     uv run python examples/compact_mask/bench_inference_api.py
 
-The benchmark downloads supervision assets, runs one segmentation inference per
-source image, then times dense vs compact parsing of that fixed inference result.
+``--asset`` runs one supervision image or video asset instead of all of them. For
+example, ``uv run python examples/compact_mask/bench_inference_api.py --asset soccer``.
+
+No GPU is required, but the benchmark downloads supervision assets, runs one
+segmentation inference per source image, then times dense vs compact parsing of that
+fixed inference result.
 """
 
 from __future__ import annotations
@@ -12,6 +16,7 @@ from __future__ import annotations
 import argparse
 import gc
 import os
+import shutil
 import statistics
 import time
 import tracemalloc
@@ -31,7 +36,12 @@ from supervision.assets import ImageAssets, VideoAssets, download_assets
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 
-console = Console(width=120, force_terminal=True)
+# Width of the results table; source rules and the table share it so they line up.
+REPORT_WIDTH = 111
+console = Console(
+    width=min(REPORT_WIDTH, shutil.get_terminal_size((REPORT_WIDTH, 24)).columns),
+    force_terminal=True,
+)
 
 # Default segmentation model; use an rfdetr-seg-* id so masks are returned.
 MODEL_ID = "rfdetr-seg-large"
@@ -395,6 +405,7 @@ def print_summary(results: list[ApiBenchmarkResult], reps: int, warmup: int) -> 
         box=box.ROUNDED,
         show_lines=False,
         header_style="bold cyan",
+        width=console.width,
     )
     table.add_column("src", style="bold", no_wrap=True)
     table.add_column("res", no_wrap=True)
