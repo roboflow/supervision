@@ -10,7 +10,7 @@ date_modified: 2026-11-22
 
 # Load Semantic Segmentation Results
 
-A semantic segmentation model labels every pixel with a class, such as *road*, *building* or *sky*, and does not separate two people standing side by side. Models return this as one dense map of shape `(H, W)` that holds a class id per pixel. supervision turns that map into [sv.Detections][supervision.detection.core.Detections] with **one detection per class present in the image**. Each detection has a mask over every pixel of its class, the tight box around that mask and the class name in `detections.data["class_name"]`.
+A semantic segmentation model labels every pixel with a class, such as *road*, *building* or *sky*, and does not separate two people standing side by side. Models return this as one dense map of shape `(H, W)` that holds a class id per pixel. supervision turns that map into [sv.Detections][supervision.detection.core.Detections] with **one detection per class present in the image by default**. Each detection has a mask over every pixel of its class, the tight box around that mask and the class name in `detections.data["class_name"]`.
 
 For a side-by-side comparison of several models on one image, see the [semantic segmentation cookbook](../notebooks/semantic-segmentation.ipynb).
 
@@ -86,6 +86,21 @@ image = sv.pillow_to_cv2(pil_image)
     detections = sv.Detections.from_semantic_segmentation(label_map, class_map=names)
     ```
 
+## Split a Class into Separate Patches
+
+Call [from_semantic_segmentation][supervision.detection.core.Detections.from_semantic_segmentation] directly with `split_components=True` to get one detection per 8-connected patch. Each patch keeps its class name and gets its own mask and tight box. Pixels that touch only at a corner belong to the same patch.
+
+```python
+import numpy as np
+import supervision as sv
+
+label_map = np.array([[1, 1, 0, 1]], dtype=np.uint8)
+patches = sv.Detections.from_semantic_segmentation(
+    label_map, class_map={1: "water"}, split_components=True
+)
+assert patches.area.tolist() == [2, 1]
+```
+
 ## Choose What Counts as Background
 
 [from_semantic_segmentation][supervision.detection.core.Detections.from_semantic_segmentation] leaves out class id `0` by default, because models served by Roboflow Inference use it for background. [from_inference][supervision.detection.core.Detections.from_inference] uses the same default.
@@ -108,7 +123,7 @@ detections = sv.Detections.from_semantic_segmentation(
 
 ## Read the Confidence
 
-When the result carries a per-pixel `confidence_mask`, as an Inference result does, each detection's `confidence` is the mean of that map over the pixels of its class, divided by 255. Without a confidence map, `confidence` is `None`.
+When the result carries a per-pixel `confidence_mask`, as an Inference result does, each detection's `confidence` is the mean of that map over its mask pixels, divided by 255. This covers the whole class by default and one patch with `split_components=True`. Without a confidence map, `confidence` is `None`.
 
 Pass a map of your own as `confidence_mask`, an 8-bit array or PNG with the same shape as the class map, to override the one in the result.
 
@@ -132,7 +147,7 @@ annotated_image = label_annotator.annotate(annotated_image, detections)
 
 Annotators pick a colour from the class id. Two models that number the same classes differently give different colours, so pass `custom_color_lookup` with ids that agree across models to compare them.
 
-Because the masks cover whole classes, `detections.area` is the pixel count of each class:
+`detections.area` gives the pixel count of each mask. That count covers the whole class by default and one patch with `split_components=True`.
 
 ```python
 coverage = detections.area / (image.shape[0] * image.shape[1])
@@ -140,7 +155,7 @@ coverage = detections.area / (image.shape[0] * image.shape[1])
 
 ## Keep Memory Low with Compact Masks
 
-A dense mask array holds one `(H, W)` boolean frame per class. On a large image with many classes, pass `compact_masks=True` to get a [CompactMask][supervision.detection.compact_mask.CompactMask] instead, built one class at a time. It decodes to the same pixels as the dense array; see [Use Compact Masks](use_compact_masks.md). This example also uses `label_map` and `names` from the **Class map** tab above.
+A dense mask array holds one `(H, W)` boolean frame per detection. On a large image with many classes or patches, pass `compact_masks=True` to get a [CompactMask][supervision.detection.compact_mask.CompactMask] built one detection at a time. It decodes to the same pixels as the dense array; see [Use Compact Masks](use_compact_masks.md). This example also uses `label_map` and `names` from the **Class map** tab above.
 
 ```python
 detections = sv.Detections.from_semantic_segmentation(

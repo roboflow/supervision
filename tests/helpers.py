@@ -521,8 +521,16 @@ class _FakeMediapipeLandmarkWithZeroVisibility:
         self.visibility = 0.0
 
 
+_AnyFakeMediapipeLandmark = (
+    _FakeMediapipeLandmark
+    | _FakeMediapipeLandmarkWithoutVisibility
+    | _FakeMediapipeLandmarkWithNoneVisibility
+    | _FakeMediapipeLandmarkWithZeroVisibility
+)
+
+
 class _FakeMediapipePose:
-    def __init__(self, landmarks: list[_FakeMediapipeLandmark]) -> None:
+    def __init__(self, landmarks: Sequence[_AnyFakeMediapipeLandmark]) -> None:
         self.landmark = landmarks
 
 
@@ -552,11 +560,11 @@ class _FakeMediapipeHandedness:
 class _FakeMediapipeResults:
     def __init__(
         self,
-        pose_landmarks: list[list[_FakeMediapipeLandmark]]
+        pose_landmarks: Sequence[Sequence[_AnyFakeMediapipeLandmark]]
         | _FakeMediapipePose
         | None = None,
-        face_landmarks: _FakeMediapipeLandmark | None = None,
-        hand_landmarks: list[list[_FakeMediapipeLandmark]] | None = None,
+        face_landmarks: Sequence[Sequence[_AnyFakeMediapipeLandmark]] | None = None,
+        hand_landmarks: Sequence[Sequence[_AnyFakeMediapipeLandmark]] | None = None,
         multi_face_landmarks: list[_FakeMediapipePose] | None = None,
         multi_hand_landmarks: list[_FakeMediapipePose] | None = None,
         handedness: list[list[_FakeMediapipeHandednessCategory]] | None = None,
