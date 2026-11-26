@@ -55,6 +55,9 @@ from supervision.detection.utils.iou_and_nms import (
     _box_non_max_merge_from_arrays,
     _box_non_max_suppression_from_arrays,
     _box_soft_non_max_suppression_from_arrays,
+    box_non_max_merge,  # noqa: F401  (re-exported for existing imports from this module)
+    box_non_max_suppression,  # noqa: F401
+    box_soft_non_max_suppression,  # noqa: F401
     mask_non_max_merge,
     mask_non_max_suppression,
     mask_soft_non_max_suppression,
