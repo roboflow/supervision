@@ -169,6 +169,17 @@ Annotators pick a colour from the class id. Two models that number the same clas
 coverage = detections.area / (image.shape[0] * image.shape[1])
 ```
 
+### Paint the Raw Class Map
+
+When you only need the colours, skip `Detections` and paint the `(H, W)` class map directly with [LabelMapAnnotator][supervision.annotators.label_map.LabelMapAnnotator]. It holds one array the size of the image instead of one mask per class, and it colours class `i` with palette colour `i`, as `MaskAnnotator` does. Class id `0` stays unpainted by default, so the scene shows through the background. This example uses `label_map` from the **Class map** tab above, which must have the scene's height and width.
+
+```python
+label_map_annotator = sv.LabelMapAnnotator(opacity=0.6)
+annotated_image = label_map_annotator.annotate(image.copy(), label_map)
+```
+
+Pass `background_id=None` to paint every class, or another id to leave that one unpainted. Negative ids are ignore labels and are never painted. Labels and per-class numbers still need `Detections`.
+
 ## Keep Memory Low with Compact Masks
 
 A dense mask array holds one `(H, W)` boolean frame per detection. On a large image with many classes or patches, pass `compact_masks=True` to get a [CompactMask][supervision.detection.compact_mask.CompactMask] built one detection at a time. It decodes to the same pixels as the dense array; see [Use Compact Masks](use_compact_masks.md). This example also uses `label_map` and `names` from the **Class map** tab above.
