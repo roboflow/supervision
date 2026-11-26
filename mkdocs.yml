@@ -114,7 +114,10 @@ nav:
           - Geometry: utils/geometry.md
       - Assets: assets.md
   - Community:
-      - Contributing: contributing.md
+      - Overview: contributing/index.md
+      - First Contribution: contributing/first_contribution.md
+      - Development Guide: contributing/development.md
+      - AI-Assisted Contributions: contributing/ai_assisted.md
       - Code of Conduct: code_of_conduct.md
   - Releases:
       - Changelog: changelog.md
