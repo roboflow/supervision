@@ -17,7 +17,9 @@ from tests.metrics.coco_reference import evaluate_detections
 _RESOLUTION = 120
 
 
-def _box_masks(xyxy: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]:
+def _box_masks(
+    xyxy: npt.NDArray[np.float64] | npt.NDArray[np.int64],
+) -> npt.NDArray[np.bool_]:
     """Rasterize integer boxes into full-image masks."""
     masks = np.zeros((len(xyxy), _RESOLUTION, _RESOLUTION), dtype=bool)
     for index, (x_min, y_min, x_max, y_max) in enumerate(xyxy.astype(int)):
