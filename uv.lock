@@ -4712,6 +4712,10 @@ opencv-python = [
 opencv-python-headless = [
     { name = "opencv-python-headless" },
 ]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
 torch = [
     { name = "torch", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "torch", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -4719,7 +4723,7 @@ torch = [
 
 [package.metadata]
 requires-dist = [
-    { name = "av", specifier = ">=14.2" },
+    { name = "av", specifier = ">=15.1" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "khatt", marker = "extra == 'rtl'", specifier = ">=0.4" },
     { name = "matplotlib", specifier = ">=3.6" },
@@ -4771,6 +4775,10 @@ docs = [
 mediapipe-reference = [{ name = "mediapipe", marker = "python_full_version < '3.13'", specifier = ">=0.10.35,<0.11" }]
 opencv-python = [{ name = "opencv-python", specifier = ">=5,<5.1" }]
 opencv-python-headless = [{ name = "opencv-python-headless", specifier = ">=5,<5.1" }]
+test = [
+    { name = "pytest", specifier = ">=7.2.2,<10" },
+    { name = "pytest-cov", specifier = ">=4,<8" },
+]
 torch = [{ name = "torch", specifier = ">=2" }]
 
 [[package]]

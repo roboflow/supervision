@@ -62,7 +62,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "av>=14.2",
+  "av>=15.1",
   "defusedxml>=0.7.1",
   "matplotlib>=3.6",
   "numpy>=1.21.2",
@@ -91,6 +91,7 @@ urls.Repository = "https://github.com/roboflow/supervision"
 
 [dependency-groups]
 dev = [
+  { include-group = "test" },
   "docutils!=0.21",
   "faster-coco-eval>=1.8",
   "ipywidgets>=8.1.1",
@@ -101,11 +102,13 @@ dev = [
   "packaging",
   "pre-commit>=3.8",
   "pycocotools>=2.0.11",
-  "pytest>=7.2.2,<10",
-  "pytest-cov>=4,<8",
   "scikit-learn>=1.7",
   "tox>=4.11.4",
   "types-tqdm",
+]
+test = [
+  "pytest>=7.2.2,<10",
+  "pytest-cov>=4,<8",
 ]
 docs = [
   "mike>=2",
@@ -346,7 +349,10 @@ ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
 ]
-ini_options.markers = [ "integration: tests requiring external integration dependencies" ]
+ini_options.markers = [
+  "integration: tests requiring external integration dependencies",
+  "metrics: tests requiring the optional metrics dependencies (pandas and the reference metric packages)",
+]
 ini_options.filterwarnings = [
   "error::DeprecationWarning",
 ]

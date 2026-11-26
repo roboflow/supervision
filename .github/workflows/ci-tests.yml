@@ -106,9 +106,12 @@ jobs:
         run: uv cache prune --ci
 
   minimum-numpy:
-    name: Minimum NumPy import
+    name: Testing w/ minimum dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Also reaches the pytest subprocesses that tests start.
+      PYTEST_ADDOPTS: -m "not metrics"
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -122,11 +125,23 @@ jobs:
           activate-environment: true
           enable-cache: true # zizmor: ignore[cache-poisoning] -- Test-only workflow; publishing jobs do not restore this cache.
 
-      - name: 🚀 Install package with NumPy 1.21
-        run: uv pip install "numpy==1.21.6" "pytest>=7.2.2,<10" .
+      - name: 📌 Pin dependencies to their declared minimum versions
+        # Python 3.12 only parses pyproject.toml; the package itself installs on 3.10 below.
+        run: uv run --no-project --python 3.12 .github/scripts/pin_minimum_dependencies.py > minimum-requirements.txt
 
-      - name: 🧪 Check import and annotation introspection
-        run: python -m pytest tests/key_points/test_numpy_compatibility.py -q
+      - name: 🚀 Install test dependencies
+        # The dev group cannot resolve next to the minimum pins (some tools need newer
+        # Pillow or NumPy), so it is installed first and the pins are applied on top.
+        run: uv pip install -e . --group dev
+
+      - name: 📉 Downgrade the package dependencies to their minimum versions
+        run: uv pip install -r minimum-requirements.txt
+
+      - name: 📋 Print installed packages
+        run: uv pip list
+
+      - name: 🧪 Run the Test
+        run: python -m pytest src/ tests/ --strict-markers -rs
 
   with-torch:
     name: Testing w/ tensors (CPU)
