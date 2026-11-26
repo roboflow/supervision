@@ -99,6 +99,39 @@ class TestInferenceSlicerCompactMasks:
         for buffer, source_mask in zip(buffers, source_masks):
             assert buffer.mask is source_mask
 
+    def test_reused_compact_callback_counts_preserve_earlier_tile(self) -> None:
+        """Keep each tile's pixels when a sequential callback reuses compact counts."""
+        counts = np.array([0, 1], dtype=np.int32)
+        mask = CompactMask(
+            [counts],
+            np.array([[1, 1]], dtype=np.int32),
+            np.array([[0, 0]], dtype=np.int32),
+            (1, 1),
+        )
+        detections = Detections(xyxy=np.array([[0, 0, 0, 0]]), mask=mask)
+
+        def callback(tile: npt.NDArray[np.uint8]) -> Detections:
+            """Reuse one run array and replace its foreground with each tile's pixel."""
+            foreground = int(tile[0, 0, 0])
+            counts[:] = [1 - foreground, foreground]
+            return detections
+
+        image = np.array([[[1, 0, 0], [0, 0, 0]]], dtype=np.uint8)
+        slicer = sv.InferenceSlicer(
+            callback=callback,
+            slice_wh=1,
+            overlap_wh=0,
+            overlap_filter=sv.OverlapFilter.NONE,
+            thread_workers=1,
+            compact_masks=True,
+        )
+
+        result = slicer(image)
+
+        np.testing.assert_array_equal(
+            np.asarray(result.mask), [[[True, False]], [[False, False]]]
+        )
+
     @pytest.mark.parametrize("batch_size", [1, 2])
     @pytest.mark.parametrize("thread_workers", [1, 2])
     def test_preserves_callback_mask_objects(

@@ -1173,7 +1173,8 @@ def _compact_mask_intersections(
 
     # Keep only the active row and the columns needed by later rows.
     crops_b: dict[int, npt.NDArray[np.bool_]] = {}
-    for idx_a in range(len(bboxes_a)):
+    for row in np.flatnonzero(bbox_overlap.any(axis=1)):
+        idx_a = int(row)
         first_col = idx_a + 1 if upper_triangle else 0
         matching_b = np.flatnonzero(bbox_overlap[idx_a, first_col:])
         crop_a = crops_b.pop(idx_a, None) if upper_triangle else None

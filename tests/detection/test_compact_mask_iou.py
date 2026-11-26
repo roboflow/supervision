@@ -76,6 +76,18 @@ class TestCompactMaskIouBatch:
         assert result.shape == (1, 1)
         assert result[0, 0] == pytest.approx(0.0)
 
+    def test_sparse_rectangular_overlap_preserves_row_order(self) -> None:
+        """Keep each overlap in its original row when bounding boxes are disjoint."""
+        masks_true = np.zeros((4, 10, 10), dtype=bool)
+        masks_true[np.arange(4), [1, 3, 5, 7], [1, 3, 5, 7]] = True
+        masks_detection = masks_true[[2]].copy()
+        true_compact = _cm_tight(masks_true, (10, 10))
+        detection_compact = _cm_tight(masks_detection, (10, 10))
+
+        result = compact_mask_iou_batch(true_compact, detection_compact)
+
+        np.testing.assert_array_equal(result, [[0.0], [0.0], [1.0], [0.0]])
+
     def test_identical_masks_give_one(self) -> None:
         """IoU of a mask with itself must be 1.0."""
         img_h, img_w = 20, 20

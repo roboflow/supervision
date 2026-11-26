@@ -58,6 +58,17 @@ class TestConstruction:
         with pytest.raises(ValueError, match="mask must contain"):
             Detections(xyxy=xyxy, mask=cm)
 
+    def test_to_compact_masks_preserves_masked_array_data(self) -> None:
+        """Preserve the underlying boolean pixels accepted by the RLE encoder."""
+        pixels = np.array([[[True, False], [False, False]]])
+        masks = np.ma.array(pixels, mask=pixels)
+        detections = Detections(xyxy=np.array([[0, 0, 1, 1]]), mask=masks)
+
+        compact = detections.to_compact_masks()
+
+        assert isinstance(compact.mask, CompactMask)
+        np.testing.assert_array_equal(compact.mask.to_dense(), pixels)
+
 
 class TestFiltering:
     """Tests for Detections.__getitem__ with a CompactMask.
@@ -327,6 +338,20 @@ class TestAnnotators:
             annotated_dense,
             err_msg="MaskAnnotator output differs between CompactMask and dense mask",
         )
+
+    def test_mask_annotator_ignores_compact_foreground_outside_scene(self) -> None:
+        """Keep the scene unchanged when its bounds miss all compact foreground."""
+        masks = np.zeros((1, 20, 20), dtype=bool)
+        masks[0, 10, 10] = True
+        detections = Detections(
+            xyxy=np.array([[10, 10, 10, 10]]), mask=masks
+        ).to_compact_masks()
+        scene = np.zeros((5, 5, 3), dtype=np.uint8)
+        annotator = sv.MaskAnnotator(color_lookup=sv.ColorLookup.INDEX)
+
+        result = annotator.annotate(scene.copy(), detections)
+
+        np.testing.assert_array_equal(result, scene)
 
     def test_polygon_annotator(self) -> None:
         h, w = 40, 40

@@ -1006,7 +1006,7 @@ class CompactMask:
 
         for mask_idx in range(num_masks):
             # Clip padded masks to the requested canvas before scanning bounds.
-            mask = masks[mask_idx, :img_h, :img_w]
+            mask = np.asarray(masks[mask_idx, :img_h, :img_w], dtype=np.bool_)
             scan_h, scan_w = mask.shape
             row_any = np.asarray(mask.any(axis=1))
             if not row_any.any():

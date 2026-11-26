@@ -2930,16 +2930,9 @@ class Detections:
         :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
         the instance is returned unchanged.
 
-        Note:
-            The crop boundaries are set to the **full image dimensions**, not the
-            detector bounding box. No bbox-crop memory savings apply: the RLE
-            sparsity still reduces storage versus a dense array, but the
-            ``O(bbox_area)`` savings available from
-            ``from_inference(..., compact_masks=True)`` are absent here because
-            every crop spans the whole frame. Call
-            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
-            resulting mask to tighten crops to their bounding boxes, at the cost
-            of potential pixel loss outside those boxes.
+        Each crop is bounded by the mask's foreground, preserving pixels
+        outside the detector box and retaining their original image coordinates.
+        Masks without foreground use a 1-by-1 background crop.
 
         Returns:
             A new :class:`~supervision.detection.core.Detections` instance with

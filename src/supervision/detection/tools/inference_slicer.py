@@ -99,8 +99,8 @@ def move_detections(
         moved_mask = None
     elif isinstance(detections.mask, CompactMask):
         assert resolution_wh is not None
-        # Preserve move_masks clipping semantics without dense materialisation.
-        moved_mask = detections.mask.with_offset(
+        # Snapshot callback-owned run arrays before the callback can reuse them.
+        moved_mask = detections.mask[:].with_offset(
             dx=int(offset[0]),
             dy=int(offset[1]),
             new_image_shape=(resolution_wh[1], resolution_wh[0]),
@@ -182,10 +182,9 @@ class InferenceSlicer:
             without ever materialising a full ``(N, H, W)`` array.
             Defaults to ``False`` for backward compatibility.
 
-            When ``compact_masks=True``, each detection's CompactMask crop spans
-            the entire slice tile bbox (not the tight detection bbox). Call
-            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
-            merged result to tighten crops to the detection bounding boxes.
+            Dense masks are cropped to their foreground before relocation from tile
+            coordinates to image coordinates. Masks returned in compact form keep
+            their existing crops, clipped to the image as needed.
         batch_size: Number of slices passed to the callback per call.
             Defaults to ``1``, which uses the single-image callback contract
             (``np.ndarray`` → :class:`~supervision.detection.core.Detections`).
