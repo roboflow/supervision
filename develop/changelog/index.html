@@ -4740,6 +4740,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Mask painting in <code>sv.MaskAnnotator</code> and <code>sv.HaloAnnotator</code> uses tight foreground regions, and Halo blends non-empty row strips. <code>sv.ColorAnnotator</code> blends non-BGRA scenes within the rectangle bounds. <code>sv.HeatMapAnnotator</code> blends active pixels, using lookup tables on the NumPy fallback and full-frame HSV conversion on native OpenCV to preserve its color rounding. <code>sv.TraceAnnotator</code> skips unused mask copies and caches smoothed splines. <code>sv.DetectionsSmoother</code> releases superseded masks and keeps mutable fields in returned data isolated from track history. (<a href="https://github.com/roboflow/supervision/pull/3039">#3039</a>)</p>
+</li>
+<li>
 <p>The OpenCV-free fallback backend uses a cached lookup table for large <code>uint8</code> blends, bounds strip-based blur work for tall kernels, draws rectangles, ellipses and thick polylines in local windows, and traces cropped contours with compact labels. Text can use bundled DejaVu Sans without importing Matplotlib and respects configured font selection when Matplotlib is already loaded. (<a href="https://github.com/roboflow/supervision/pull/3038">#3038</a>)</p>
 </li>
 <li>
@@ -7325,7 +7328,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 15:22:36 UTC">November 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 15:44:07 UTC">November 26, 2026</span>
   </span>
 
     
