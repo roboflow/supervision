@@ -310,8 +310,9 @@ def detections_to_tensor(
         ValueError: If `detections.class_id` is `None`.
         ValueError: If `with_confidence=True` and `detections.confidence` is `None`.
         ValueError: If `metric_target` is `MetricTarget.ORIENTED_BOUNDING_BOXES`
-            and `detections.data` does not contain `ORIENTED_BOX_COORDINATES`,
-            or if the stored array does not have exactly `N * 8` elements.
+            and `detections.data` does not contain `ORIENTED_BOX_COORDINATES`.
+        ValueError: If `metric_target` is `MetricTarget.ORIENTED_BOUNDING_BOXES`
+            and the stored array does not have exactly `N * 8` elements.
 
     Examples:
         ```pycon
@@ -953,12 +954,14 @@ class ConfusionMatrix:
             New instance of ConfusionMatrix.
 
         Raises:
-            ValueError: If `predictions` and `targets` differ in length, if any
-                :class:`~supervision.detection.core.Detections` lacks
-                `class_id`, if a prediction lacks
-                `confidence`, or if `MetricTarget.MASKS` is requested and a
-                non-empty :class:`~supervision.detection.core.Detections` lacks
-                `mask` or the masks of one image differ in resolution.
+            ValueError: If `predictions` and `targets` differ in length.
+            ValueError: If any :class:`~supervision.detection.core.Detections` lacks
+                `class_id`.
+            ValueError: If a prediction lacks `confidence`.
+            ValueError: If `MetricTarget.MASKS` is requested and a non-empty
+                :class:`~supervision.detection.core.Detections` lacks `mask`.
+            ValueError: If `MetricTarget.MASKS` is requested and the masks of one
+                image differ in resolution.
 
         Examples:
             ```pycon

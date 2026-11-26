@@ -34,7 +34,10 @@ from supervision.metrics.utils.object_size import (
     get_detection_size_category as _get_detection_size_category,
 )
 from supervision.metrics.utils.utils import ensure_pandas_installed
-from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
+from supervision.utils.internal import (
+    _DEPRECATION_TEMPLATE_KEYWORD,
+    _DEPRECATION_WARNING_STREAM,
+)
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -53,7 +56,7 @@ _SIZE_CATEGORY_MODULE_DEPRECATION = (
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    template_mgs=_SIZE_CATEGORY_MODULE_DEPRECATION,
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _SIZE_CATEGORY_MODULE_DEPRECATION},
 )
 def get_detection_size_category(
     detections: Detections, metric_target: MetricTarget = MetricTarget.BOXES

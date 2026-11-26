@@ -76,10 +76,11 @@ def createml_annotations_to_detections(
 
     Raises:
         ValueError: If an annotation is missing required keys (``"coordinates"``,
-            ``"label"``, or any coordinate sub-key), if a coordinate value
-            cannot be converted to float, or if ``"width"`` or ``"height"`` is
-            negative. A negative extent would place ``x_max`` before ``x_min``
-            once the corners are formed; a zero extent is accepted.
+            ``"label"``, or any coordinate sub-key).
+        ValueError: If a coordinate value cannot be converted to float.
+        ValueError: If ``"width"`` or ``"height"`` is negative. A negative
+            extent would place ``x_max`` before ``x_min`` once the corners are
+            formed; a zero extent is accepted.
 
     Example:
         ```pycon
@@ -252,8 +253,8 @@ def detections_to_createml_annotations(
         ``"height"`` in pixel space.
 
     Raises:
-        ValueError: If ``detections.class_id`` is ``None`` or if any
-            ``class_id`` value is out of range for ``classes``.
+        ValueError: If ``detections.class_id`` is ``None``.
+        ValueError: If any ``class_id`` value is out of range for ``classes``.
 
     Example:
         ```pycon

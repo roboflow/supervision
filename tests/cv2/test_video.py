@@ -19,6 +19,7 @@ from supervision._cv2._video import (
     _VideoCapture,
     _VideoWriter,
 )
+from supervision.utils.video import _video_timing
 from tests.helpers import write_browser_recorded_webm
 
 
@@ -141,6 +142,13 @@ def test_public_video_reader_handles_audio_before_video(
     assert info.resolution_wh == (16, 16)
     assert len(frames) == 2
     assert [float(frame.mean()) for frame in frames] == pytest.approx([20, 60], abs=4)
+
+
+#: Skips tests that tag a display rotation, which PyAV offers from 17.1.
+_requires_display_rotation = pytest.mark.skipif(
+    not hasattr(av.video.stream.VideoStream, "set_display_rotation"),
+    reason="Tagging a display rotation needs PyAV 17.1 or newer.",
+)
 
 
 def _write_rotated_video(path: Path, rotation: int) -> np.ndarray:
@@ -278,6 +286,32 @@ def test_fallback_capture_reports_browser_webm_rate_from_timestamps(
     assert fps == pytest.approx(30.3, rel=0.03)
 
 
+@pytest.mark.parametrize(
+    ("frame_count", "slow_after", "gap_after"),
+    [
+        pytest.param(60, None, None, id="steady-cadence"),
+        pytest.param(152, 32, None, id="slower-after-start"),
+        pytest.param(4, None, 2, id="short-with-gap"),
+    ],
+)
+def test_fallback_capture_browser_webm_rate_matches_decoded_timing(
+    tmp_path: Path, frame_count: int, slow_after: int | None, gap_after: int | None
+) -> None:
+    """Fallback capture reports the rate OpenCV's browser WebM correction decodes."""
+    source_path = str(tmp_path / "browser.webm")
+    write_browser_recorded_webm(
+        source_path, frame_count=frame_count, slow_after=slow_after, gap_after=gap_after
+    )
+    timing = _video_timing(source_path)
+
+    capture = _VideoCapture(source_path)
+    fps = capture.get(_cv2.CAP_PROP_FPS)
+    capture.release()
+
+    assert timing is not None
+    assert fps == pytest.approx(timing[0])
+
+
 def test_fallback_capture_reports_position_of_last_read_frame(tmp_path: Path) -> None:
     """Fallback capture reports the last read frame's timestamp in milliseconds."""
     source_path = str(tmp_path / "browser.webm")
@@ -302,6 +336,7 @@ def test_fallback_capture_reports_position_of_last_read_frame(tmp_path: Path) ->
         pytest.param(45, 0, id="non-quarter-turn"),
     ],
 )
+@_requires_display_rotation
 def test_fallback_capture_turns_rotated_video_upright(
     tmp_path: Path, rotation: int, quarter_turns: int
 ) -> None:
@@ -326,6 +361,7 @@ def test_fallback_capture_turns_rotated_video_upright(
 
 
 @pytest.mark.parametrize("rotation", [90, -90, 180])
+@_requires_display_rotation
 def test_fallback_capture_matches_opencv_display_rotation(
     tmp_path: Path, rotation: int
 ) -> None:

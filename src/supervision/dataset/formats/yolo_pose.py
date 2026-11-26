@@ -60,8 +60,9 @@ def _extract_kpt_shape(data: dict[str, Any], file_path: str) -> tuple[int, int]:
         The keypoint count ``K`` and the per-keypoint value count ``D``.
 
     Raises:
-        ValueError: If ``kpt_shape`` is absent, or is not ``[K, 2]`` or
-            ``[K, 3]`` with a positive whole number ``K``.
+        ValueError: If ``kpt_shape`` is absent.
+        ValueError: If ``kpt_shape`` is not ``[K, 2]`` or ``[K, 3]`` with a
+            positive whole number ``K``.
     """
     pose_value_count = _extract_pose_value_count_from_data(
         data=data, file_path=file_path
@@ -129,9 +130,11 @@ def _parse_pose_line(
             keypoint values reshaped to ``(K, D)``.
 
     Raises:
-        ValueError: If the row does not hold exactly ``5 + K * D`` tokens,
-            carries a class id or box the detection loader rejects, holds a
-            non-finite keypoint value, or a negative visibility value.
+        ValueError: If the row does not hold exactly ``5 + K * D`` tokens.
+        ValueError: If the row carries a class id or box the detection loader
+            rejects.
+        ValueError: If the row holds a non-finite keypoint value.
+        ValueError: If the row holds a negative visibility value.
     """
     expected = 5 + keypoint_count * value_dim
     if len(values) != expected:
@@ -208,9 +211,11 @@ def yolo_pose_annotations_to_key_points(
         The key points of the image, empty when ``lines`` is empty.
 
     Raises:
-        ValueError: If a line does not hold ``5 + K * D`` values, carries a
-            class id that is not a whole number or an invalid box, holds a
-            non-finite keypoint value, or a negative visibility value.
+        ValueError: If a line does not hold ``5 + K * D`` values.
+        ValueError: If a line carries a class id that is not a whole number or
+            an invalid box.
+        ValueError: If a line holds a non-finite keypoint value.
+        ValueError: If a line holds a negative visibility value.
     """
     if not lines:
         return KeyPoints.empty()
@@ -312,10 +317,11 @@ def load_yolo_pose_annotations(
     Raises:
         FileNotFoundError: If the images or labels directory does not exist.
         NotADirectoryError: If the images or labels path names a file.
-        ValueError: If data.yaml has no valid ``kpt_shape`` or ``names``, if
-            ``flip_idx`` is not a permutation of the keypoint indices, or if a
-            label file holds an invalid line or a class id that ``names`` does
-            not declare; the message names the file.
+        ValueError: If data.yaml has no valid ``kpt_shape`` or ``names``.
+        ValueError: If ``flip_idx`` is not a permutation of the keypoint
+            indices.
+        ValueError: If a label file holds an invalid line or a class id that
+            ``names`` does not declare; the message names the file.
     """
     _require_directory(
         directory_path=images_directory_path, argument_name="images_directory_path"
@@ -410,8 +416,9 @@ def _export_data_field(
         The field as ``float64``, or ``None`` when the key points do not carry it.
 
     Raises:
-        ValueError: If the field is not numeric, does not have
-            ``expected_shape``, or holds a non-finite value.
+        ValueError: If the field is not numeric.
+        ValueError: If the field does not have ``expected_shape``.
+        ValueError: If the field holds a non-finite value.
     """
     stored = key_points.data.get(key)
     if stored is None:
@@ -483,11 +490,16 @@ def _validated_export_fields(
 
     Raises:
         ValueError: If class ids are missing, misaligned, non-integer or out of
-            bounds, planar coordinates are non-finite, the keypoint count
-            differs from ``keypoint_count``, or ``data['xyxy']`` is not of
-            shape ``(N, 4)`` or ``data['keypoint_visibility']`` not of shape
-            ``(N, K)``, either holding a non-finite value, a negative
-            visibility value, or a box whose width or height overflows.
+            bounds.
+        ValueError: If planar coordinates are non-finite.
+        ValueError: If the keypoint count differs from ``keypoint_count``.
+        ValueError: If ``data['xyxy']`` is not of shape ``(N, 4)`` or
+            ``data['keypoint_visibility']`` not of shape ``(N, K)``.
+        ValueError: If ``data['xyxy']`` or ``data['keypoint_visibility']``
+            holds a non-finite value.
+        ValueError: If ``data['keypoint_visibility']`` holds a negative
+            visibility value.
+        ValueError: If a box's width or height overflows.
     """
     class_id = key_points.class_id
     if class_id is None:
@@ -672,12 +684,17 @@ def key_points_to_yolo_pose_annotations(
         One annotation line per skeleton.
 
     Raises:
-        ValueError: If class ids are missing, misaligned, non-integer or negative,
-            planar coordinates are non-finite, the keypoint count differs
-            from ``keypoint_count``, or ``data['xyxy']`` is not of
-            shape ``(N, 4)`` or ``data['keypoint_visibility']`` not of shape
-            ``(N, K)``, either holding a non-finite value, a negative
-            visibility value, or a box whose width or height overflows.
+        ValueError: If class ids are missing, misaligned, non-integer or
+            negative.
+        ValueError: If planar coordinates are non-finite.
+        ValueError: If the keypoint count differs from ``keypoint_count``.
+        ValueError: If ``data['xyxy']`` is not of shape ``(N, 4)`` or
+            ``data['keypoint_visibility']`` not of shape ``(N, K)``.
+        ValueError: If ``data['xyxy']`` or ``data['keypoint_visibility']``
+            holds a non-finite value.
+        ValueError: If ``data['keypoint_visibility']`` holds a negative
+            visibility value.
+        ValueError: If a box's width or height overflows.
     """
     if len(key_points) == 0:
         return []
@@ -751,10 +768,11 @@ def save_yolo_pose_annotations(
         PIL.UnidentifiedImageError: If an image file cannot be read, as when
             loading the dataset.
         ValueError: Before any file is written, if two images would share a
-            label file name, or if an annotation cannot be written as YOLO pose
-            labels, such as one carrying a misshaped or non-finite
-            ``data['xyxy']`` or ``data['keypoint_visibility']``; the message
-            names the image.
+            label file name.
+        ValueError: Before any file is written, if an annotation cannot be
+            written as YOLO pose labels, such as one carrying a misshaped or
+            non-finite ``data['xyxy']`` or ``data['keypoint_visibility']``; the
+            message names the image.
     """
     if not dataset._yolo_normalized_export:
         # The dataset module imports this writer, so resolve the circular boundary here.

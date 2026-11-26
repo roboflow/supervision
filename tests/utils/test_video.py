@@ -1306,6 +1306,14 @@ def test_video_info_float_fps(
     assert video_info.fps != int(video_info.fps)
 
 
+#: Skips tests that tag a display rotation, which PyAV offers from 17.1.
+_requires_display_rotation = pytest.mark.skipif(
+    not hasattr(av.video.stream.VideoStream, "set_display_rotation"),
+    reason="Tagging a display rotation needs PyAV 17.1 or newer.",
+)
+
+
+@_requires_display_rotation
 def test_video_info_and_frames_follow_display_rotation(tmp_path: Path) -> None:
     """Report and yield a phone-style portrait clip upright, not as it is stored."""
     video_path = str(tmp_path / "portrait.mp4")
@@ -1371,6 +1379,17 @@ class TestVideoInfoFrameRate:
         fps, count = timing
         assert count == 4
         assert count / fps == pytest.approx(1.132, abs=0.01)
+
+    def test_short_variable_rate_keeps_decoded_duration(self, tmp_path: Path) -> None:
+        """Frame count over fps spans the decoded duration, last frame included."""
+        source_path = str(tmp_path / "short-variable.webm")
+        write_browser_recorded_webm(source_path, frame_count=4, gap_after=2)
+
+        video_info = VideoInfo.from_video_path(source_path)
+
+        assert video_info.total_frames is not None
+        duration = video_info.total_frames / video_info.fps
+        assert duration == pytest.approx(1.132, abs=0.01)
 
     def test_longer_audio_does_not_inflate_video_frame_count(
         self, tmp_path: Path
