@@ -111,20 +111,23 @@ def _box_blur_uint8(
             stop = min(start + _BLUR_STRIP_ROWS, height)
             strip_len = stop - start
             src_rows = row_indices[start : stop + kernel_height - 1]
+            # Quoted: NumPy < 1.22 cannot subscript `np.signedinteger` at runtime.
             strip = cast(
-                npt.NDArray[np.signedinteger[Any]], image[src_rows].astype(sum_dtype)
+                "npt.NDArray[np.signedinteger[Any]]", image[src_rows].astype(sum_dtype)
             )
             cumulative = np.cumsum(strip, axis=0, dtype=sum_dtype)
             upper = cumulative[kernel_height - 1 : kernel_height - 1 + strip_len]
             lower = np.zeros_like(upper)
             if strip_len > 1:
                 lower[1:] = cumulative[: strip_len - 1]
-            strip_column_sums = cast(npt.NDArray[np.signedinteger[Any]], upper - lower)
+            strip_column_sums = cast(
+                "npt.NDArray[np.signedinteger[Any]]", upper - lower
+            )
             sums = _window_sums(strip_column_sums, kernel_width, axis=1)
             out[start:stop] = _scale_uint8_box_sums(sums, area)
         return out
 
-    image_sums = cast(npt.NDArray[np.signedinteger[Any]], image.astype(sum_dtype))
+    image_sums = cast("npt.NDArray[np.signedinteger[Any]]", image.astype(sum_dtype))
     column_sums = _window_sums(image_sums, kernel_height, axis=0)
     sums = _window_sums(column_sums, kernel_width, axis=1)
     return _scale_uint8_box_sums(sums, area)
