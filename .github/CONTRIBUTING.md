@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Supervision! We are actively improving this library to reduce the amount of work you need to do to solve common computer vision problems.
 
-Please read and follow our [Code of Conduct](../docs/code_of_conduct.md). It describes the expected behavior for everyone who takes part in the project.
+Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md). It describes the expected behavior for everyone who takes part in the project.
 
 <!-- --8<-- [start:callouts] -->
 
