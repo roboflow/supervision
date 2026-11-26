@@ -3,7 +3,9 @@ comments: true
 description: Colour depth and disparity maps over images with sv.DepthAnnotator — Turbo, Viridis, Cividis, Inferno, Magma or grayscale, near objects warm, pixels without depth unpainted.
 ---
 
-# Depth Annotators
+# Depth and Map Annotators
+
+`sv.DepthAnnotator` colours depth and disparity maps. `sv.NormalMapAnnotator` and `sv.GradientMapAnnotator` colour normal and gradient maps over an image.
 
 === "DepthAnnotator"
 
@@ -39,6 +41,18 @@ description: Colour depth and disparity maps over images with sv.DepthAnnotator 
 </div>
 
 :::supervision.depth.annotators.DepthClipRange
+
+<div class="md-typeset">
+    <h2><a href="#supervision.depth.annotators.NormalMapAnnotator">NormalMapAnnotator</a></h2>
+</div>
+
+:::supervision.depth.annotators.NormalMapAnnotator
+
+<div class="md-typeset">
+    <h2><a href="#supervision.depth.annotators.GradientMapAnnotator">GradientMapAnnotator</a></h2>
+</div>
+
+:::supervision.depth.annotators.GradientMapAnnotator
 
 <div class="md-typeset">
     <h2><a href="#supervision.depth.colormaps.DepthColormap">DepthColormap</a></h2>
