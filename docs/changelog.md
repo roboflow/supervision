@@ -7,7 +7,7 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.from_yolo` and `sv.KeyPointsDataset.from_yolo` now load images in sorted path order, as `from_pascal_voc` does. They kept the order in which the filesystem listed files, so `image_paths`, iteration and `split(random_state=...)` depended on the filesystem: the same files and seed gave different train/test splits on ext4, which lists by name hash, and on tmpfs, which lists by creation order.
+- `sv.DetectionDataset.from_yolo` and `sv.KeyPointsDataset.from_yolo` now load images in sorted path order, as `from_pascal_voc` does. They kept the order in which the filesystem listed files, so `image_paths`, iteration and `split(random_state=...)` depended on the filesystem: the same files and seed gave different train/test splits on ext4, which lists by name hash, and on tmpfs, which lists by creation order. ([#3081](https://github.com/roboflow/supervision/pull/3081))
 
 - supervision now requires Pillow 10.4 or newer. `pillow>=9.4` let Pillow 9.4 to 10.3 install, where Pillow-scene features fail: `sv.RichLabelAnnotator` raised `UnicodeEncodeError` on a non-Latin label such as Hebrew or Chinese without the `rtl` extra (before Pillow 10.1), annotators drew nothing on a 16-bit (`I;16`) Pillow scene (before 10.4), annotating a palette (`P`, `PA`) scene changed pixels outside the drawing (before 10.1), and `sv.IconAnnotator` rejected a 16-bit grayscale icon (before 10.3). ([#3045](https://github.com/roboflow/supervision/pull/3045))
 
