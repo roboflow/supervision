@@ -4718,6 +4718,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>supervision now requires Pillow 10.4 or newer. <code>pillow&gt;=9.4</code> let Pillow 9.4 to 10.3 install, where Pillow-scene features fail: <code>sv.RichLabelAnnotator</code> raised <code>UnicodeEncodeError</code> on a non-Latin label such as Hebrew or Chinese without the <code>rtl</code> extra (before Pillow 10.1), annotators drew nothing on a 16-bit (<code>I;16</code>) Pillow scene (before 10.4), annotating a palette (<code>P</code>, <code>PA</code>) scene changed pixels outside the drawing (before 10.1), and <code>sv.IconAnnotator</code> rejected a 16-bit grayscale icon (before 10.3). (<a href="https://github.com/roboflow/supervision/pull/3045">#3045</a>)</p>
 </li>
 <li>
+<p>Added <code>sv.NormalMapAnnotator</code> for normalized xyz normal maps and <code>sv.GradientMapAnnotator</code> for scalar magnitudes or x/y derivative maps. Both colour maps over NumPy or Pillow scenes, leave invalid pixels unpainted, resize to the scene, and blend with configurable opacity. Gradient maps use the 2nd to 98th percentile by default or a fixed display range. (<a href="https://github.com/roboflow/supervision/pull/2888">#2888</a>)</p>
+</li>
+<li>
 <p>The minimum <code>pillow</code> is now <code>10.4</code> (was <code>9.4</code>) and the minimum <code>av</code> is now <code>15.1</code> (was <code>14.2</code>). The CI job that installs every dependency at its declared minimum showed that cropping to an empty region and drawing on 16-bit images fail with older Pillow, and that measuring the frame rate of a video with variable frame timing reads <code>VideoFrame.duration</code>, which PyAV <code>14.2</code> and <code>15.0</code> do not provide. <a href="https://github.com/roboflow/supervision/pull/3068">#3068</a></p>
 </li>
 <li>
@@ -7276,7 +7279,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 11:38:24 UTC">November 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 12:12:06 UTC">November 26, 2026</span>
   </span>
 
     
@@ -7304,9 +7307,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/SajjadPSavoji" class="md-author" title="@SajjadPSavoji">
+        <a href="https://github.com/Nikhila-Dhevi-R" class="md-author" title="@Nikhila-Dhevi-R">
           
-          <img src="https://avatars.githubusercontent.com/u/44399382?v=4&size=72" alt="SajjadPSavoji">
+          <img src="https://avatars.githubusercontent.com/u/178061112?v=4&size=72" alt="Nikhila-Dhevi-R">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7314,14 +7317,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/SajjadPSavoji" class="md-author" title="@SajjadPSavoji">
+          
+          <img src="https://avatars.githubusercontent.com/u/44399382?v=4&size=72" alt="SajjadPSavoji">
+        </a>
+      
         <a href="https://github.com/AhmetMert01" class="md-author" title="@AhmetMert01">
           
           <img src="https://avatars.githubusercontent.com/u/190357674?v=4&size=72" alt="AhmetMert01">
-        </a>
-      
-        <a href="https://github.com/rishi02102017" class="md-author" title="@rishi02102017">
-          
-          <img src="https://avatars.githubusercontent.com/u/107503099?v=4&size=72" alt="rishi02102017">
         </a>
       
       

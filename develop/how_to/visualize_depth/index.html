@@ -204,7 +204,7 @@
   ],
   "mainEntityOfPage": "https://supervision.roboflow.com/latest/how_to/visualize_depth/",
   
-  "dateModified": "2026-10-08",
+  "dateModified": "2026-11-05",
   
   
   "articleBody": "Load depth maps from Roboflow Inference, Ultralytics, Hugging Face Transformers or stereo datasets, colour them over images and video with sv.DepthAnnotator, convert disparity to metres and label objects with their distance.",
@@ -1357,6 +1357,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-ellipsis">
       
         Label Objects with Their Distance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visualize-normal-and-gradient-maps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualize Normal and Gradient Maps
       
     </span>
   </a>
@@ -3516,6 +3527,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#visualize-normal-and-gradient-maps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualize Normal and Gradient Maps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#attribution" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3676,6 +3698,22 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>An object whose region holds no depth gets <code>NaN</code>, so the labels above check <code>np.isfinite</code> instead of printing <code>nan m</code>.</p>
 <p><code>measure_detections</code> names its column after what the map can give: <code>"depth_m"</code> for a <code>depth_m</code> map or a disparity map with a camera, and the map's own kind otherwise, <code>"disparity_px"</code> for a disparity map without a camera. A relative map has no metres, so it fills <code>detections.data["relative_inverse"]</code> instead: useful to sort objects from near to far within one image, not to compare images. A column of the same name already in <code>detections.data</code> is replaced.</p>
 <p>For one pixel, <code>depth_map.value_at(x, y)</code> returns the value in the map's own unit, not in metres unless the map is <code>depth_m</code>: pixels for a disparity map, so call <code>depth_map.to_depth().value_at(x, y)</code> for metres, and <code>None</code> where there is no depth.</p>
+<h2 id="visualize-normal-and-gradient-maps">Visualize Normal and Gradient Maps<a class="headerlink" href="#visualize-normal-and-gradient-maps" title="Permanent link">&para;</a></h2>
+<p>Normal maps hold an x, y and z component at every pixel. <code>sv.NormalMapAnnotator</code> normalizes each vector and maps its components to red, green and blue. Zero vectors and vectors with a nonfinite component are left unpainted:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">normal_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;&lt;NORMAL_MAP_NPY_PATH&gt;&quot;</span><span class="p">)</span>  <span class="c1"># float32 array shaped (H, W, 3)</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">annotated_image</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">NormalMapAnnotator</span><span class="p">(</span><span class="n">opacity</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">normal_map</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Gradient maps may hold a scalar magnitude shaped <code>(H, W)</code> or x and y derivative components shaped <code>(H, W, 2)</code>. Scalar magnitudes must be nonnegative: a finite negative value raises <code>ValueError</code>. The component form is visualized by its Euclidean magnitude. By default, the colormap spans the valid values' 2nd to 98th percentile; set a fixed range to compare frames on the same scale:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">gradient_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;&lt;GRADIENT_MAP_NPY_PATH&gt;&quot;</span><span class="p">)</span>  <span class="c1"># magnitude or two components</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">annotated_image</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">GradientMapAnnotator</span><span class="p">(</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">colormap</span><span class="o">=</span><span class="s2">&quot;turbo&quot;</span><span class="p">,</span> <span class="n">display_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">25.0</span><span class="p">),</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.7</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">)</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">gradient_map</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Both annotators accept NumPy BGR scenes and Pillow images, draw in place, and stretch a map over the whole scene when their dimensions differ. Nonfinite values remain transparent. <code>sv.GradientMapAnnotator</code> clamps values outside its range to the range's ends, except when the bounds are equal: a <code>(low, high)</code> tuple with <code>low == high</code>, or <code>"auto"</code> on a map whose valid values are all the same, paints every valid pixel the colormap's low-end colour. When the 2nd and 98th percentiles coincide on a map that is not constant, such as a mostly flat map with a few edges, <code>"auto"</code> spans the valid minimum to maximum instead.</p>
 <h2 id="attribution">Attribution<a class="headerlink" href="#attribution" title="Permanent link">&para;</a></h2>
 <p>Image: frame 96 of sequence 0021 of the Spring dataset (Mehl et al., CVPR 2023, <a href="https://doi.org/10.18419/darus-3376">doi:10.18419/darus-3376</a>) and the Spring open movie by Blender Foundation, both <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>; downscaled, with an OpenCV StereoSGBM disparity layer coloured by <code>sv.DepthAnnotator</code>.</p>
 
@@ -3700,7 +3738,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 19:37:01 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 12:12:06 UTC">November 26, 2026</span>
   </span>
 
     
@@ -3728,9 +3766,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/cfviotti" class="md-author" title="@cfviotti">
+        <a href="https://github.com/Nikhila-Dhevi-R" class="md-author" title="@Nikhila-Dhevi-R">
           
-          <img src="https://avatars.githubusercontent.com/u/6797129?v=4&size=72" alt="cfviotti">
+          <img src="https://avatars.githubusercontent.com/u/178061112?v=4&size=72" alt="Nikhila-Dhevi-R">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3738,9 +3776,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/claude" class="md-author" title="@claude">
+        <a href="https://github.com/cfviotti" class="md-author" title="@cfviotti">
           
-          <img src="https://avatars.githubusercontent.com/u/81847?u=577eaff0520b33aadc0f9fb6d11f5cdb2dd9486e&v=4&size=72" alt="Claude">
+          <img src="https://avatars.githubusercontent.com/u/6797129?v=4&size=72" alt="cfviotti">
         </a>
       
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
@@ -3752,7 +3790,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/how_to/visualize_depth.md" class="md-author md-author--more">
-            +3
+            +4
           </a>
         
       
