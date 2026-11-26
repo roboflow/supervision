@@ -31,6 +31,7 @@ from supervision.annotators.core import (
     TraceAnnotator,
     TriangleAnnotator,
 )
+from supervision.annotators.label_map import LabelMapAnnotator
 from supervision.annotators.utils import (
     ColorLookup,
     hex_to_rgba,
@@ -229,6 +230,7 @@ __all__ = [
     "KeyPoints",
     "KeyPointsDataset",
     "LabelAnnotator",
+    "LabelMapAnnotator",
     "LineZone",
     "LineZoneAnnotator",
     "LineZoneAnnotatorMulticlass",
