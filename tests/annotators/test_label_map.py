@@ -152,6 +152,27 @@ class TestLabelMapAnnotator:
 
         assert result[..., 1].tolist() == [[0, 255, 0], [0, 255, 0]]
 
+    @pytest.mark.parametrize(
+        ("dtype", "first_id"),
+        [
+            pytest.param("int64", 2**63 - 2, id="int64-maximum"),
+            pytest.param("uint64", 2**64 - 2, id="uint64-maximum"),
+            pytest.param(">u8", 2**63, id="big-endian-uint64"),
+        ],
+    )
+    def test_paints_adjacent_near_limit_ids(self, dtype: str, first_id: int) -> None:
+        """Adjacent large IDs keep distinct palette indices."""
+        ids = [first_id, first_id + 1]
+        label_map = np.array([ids], dtype=dtype)
+        annotator = sv.LabelMapAnnotator(color=PALETTE, opacity=1.0)
+
+        result = annotator.annotate(make_scene(height=1, width=2), label_map)
+
+        expected = [
+            PALETTE.colors[class_id % len(PALETTE.colors)].as_bgr() for class_id in ids
+        ]
+        np.testing.assert_array_equal(result, [expected])
+
     def test_matches_mask_annotator_on_loaded_detections(self) -> None:
         """Painting the map equals `MaskAnnotator` on the detections it loads to."""
         label_map = np.array([[0, 1, 1, 2], [0, 1, 2, 2], [3, 3, 2, 0]])
@@ -180,6 +201,9 @@ class TestLabelMapAnnotatorValidation:
             ),
             pytest.param(np.zeros((2, 3), dtype=np.float32), "integer", id="float"),
             pytest.param(np.zeros((2, 3), dtype=bool), "integer", id="bool"),
+            pytest.param(
+                np.zeros((2, 3), dtype="timedelta64[D]"), "integer", id="timedelta"
+            ),
             pytest.param(
                 np.array([[0, 1 << 30, 0], [0, 0, 0]]), "span", id="id-span-too-wide"
             ),

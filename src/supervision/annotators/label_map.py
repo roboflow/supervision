@@ -137,15 +137,23 @@ class LabelMapAnnotator:
         )
         # Python ints, because the difference of two `int8` ids would wrap.
         lowest, highest = int(class_ids.min()), int(class_ids.max())
-        if highest - lowest >= _MAX_ID_SPAN:
+        span = highest - lowest
+        if span >= _MAX_ID_SPAN:
             raise ValueError(
                 f"label_map ids span more than {_MAX_ID_SPAN} values, from {lowest} "
                 f"to {highest}; it does not look like a class-id map."
             )
-        ids = np.arange(lowest, highest + 1)
-        table = palette[ids % len(palette)]
-        # A narrow signed dtype would wrap when the lowest id is subtracted from it.
-        wide = class_ids if class_ids.dtype == np.uint64 else class_ids.astype(np.int64)
+        # Bounded offsets keep the LUT indices integral even at the dtype limits.
+        palette_size = len(palette)
+        palette_indices = (np.arange(span + 1) + lowest % palette_size) % palette_size
+        table = palette[palette_indices]
+        # Unsigned subtraction is safe because every id is at least the minimum.
+        # Widen signed inputs so narrow dtypes can hold the full range of offsets.
+        wide = (
+            class_ids
+            if class_ids.dtype.kind == "u"
+            else class_ids.astype(np.int64, copy=False)
+        )
         offsets = wide - np.asarray(lowest, dtype=wide.dtype)
         colors: npt.NDArray[np.uint8] = table[offsets]
         return colors
@@ -165,7 +173,7 @@ class LabelMapAnnotator:
             raise ValueError(
                 f"label_map must be a 2-D array, got shape {class_ids.shape}."
             )
-        if not np.issubdtype(class_ids.dtype, np.integer):
+        if class_ids.dtype.kind not in ("i", "u"):
             raise ValueError(
                 f"label_map must hold integer class ids, got dtype {class_ids.dtype}."
             )
