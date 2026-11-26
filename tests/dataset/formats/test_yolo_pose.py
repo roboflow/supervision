@@ -1,4 +1,5 @@
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 from unittest import mock
@@ -23,6 +24,11 @@ from supervision.dataset.formats.yolo_pose import (
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics import KeyPointMeanAveragePrecision
+from tests.dataset.formats.helpers import (
+    interleaved_paths,
+    list_files_in_order,
+    reversed_paths,
+)
 
 
 def _write_dataset(
@@ -1343,3 +1349,64 @@ def test_save_pose_data_yaml_creates_parents_and_content(tmp_path: Path) -> None
         "kpt_shape": [3, 3],
         "flip_idx": [0, 2, 1],
     }
+
+
+_POSE_ORDER_STEMS = ["c", "a", "e", "b", "d"]
+
+
+def _write_unordered_pose_dataset(root: Path) -> tuple[str, str, str]:
+    """Write a YOLO pose dataset of several labelled images and return its paths."""
+    return _write_dataset(
+        root=root,
+        label_lines={
+            stem: ["0 0.5 0.5 0.4 0.6 0.25 0.3 2"] for stem in _POSE_ORDER_STEMS
+        },
+        data_yaml="nc: 1\nnames: ['person']\nkpt_shape: [1, 3]\n",
+    )
+
+
+class TestYoloPoseImageOrder:
+    """Tests that ``KeyPointsDataset.from_yolo`` orders images independently of the
+    filesystem listing order."""
+
+    @pytest.mark.parametrize(
+        "reorder",
+        [
+            pytest.param(reversed_paths, id="reversed-listing"),
+            pytest.param(interleaved_paths, id="interleaved-listing"),
+        ],
+    )
+    def test_image_paths_follow_sorted_file_names(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        reorder: Callable[[list[Path]], list[Path]],
+    ) -> None:
+        """Images load in sorted path order whatever order the directory lists."""
+        paths = _write_unordered_pose_dataset(tmp_path)
+        list_files_in_order(
+            monkeypatch, reorder, "supervision.dataset.formats.yolo_pose"
+        )
+
+        dataset = KeyPointsDataset.from_yolo(*paths)
+
+        assert [Path(path).stem for path in dataset.image_paths] == sorted(
+            _POSE_ORDER_STEMS
+        )
+
+    def test_seeded_split_does_not_depend_on_listing_order(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The same files and seed give the same split for two listing orders."""
+        paths = _write_unordered_pose_dataset(tmp_path)
+        splits = []
+        for reorder in (reversed_paths, interleaved_paths):
+            list_files_in_order(
+                monkeypatch, reorder, "supervision.dataset.formats.yolo_pose"
+            )
+            dataset = KeyPointsDataset.from_yolo(*paths)
+
+            train, test = dataset.split(split_ratio=0.6, random_state=0)
+            splits.append((train.image_paths, test.image_paths))
+
+        assert splits[0] == splits[1]

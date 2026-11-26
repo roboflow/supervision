@@ -915,6 +915,10 @@ class DetectionDataset(BaseDataset):
         label id is mapped to the name declared for it, so label id `1` loads
         as class `0`.
 
+        Images load in sorted path order, so `image_paths` and seeded
+        :meth:`~supervision.dataset.core.DetectionDataset.split` results do not
+        depend on the order in which the filesystem lists files.
+
         Args:
             images_directory_path: The path to the
                 directory containing the images.
@@ -1921,6 +1925,10 @@ class KeyPointsDataset(BaseDataset):
         Loaded ``class_id`` values index ``classes``. When ``names`` is a dict
         whose keys start above ``0`` or skip values, such as ``{1: person}``,
         each label id is mapped to the name declared for it.
+
+        Images load in sorted path order, so ``image_paths`` and seeded
+        :meth:`~supervision.dataset.core.KeyPointsDataset.split` results do not
+        depend on the order in which the filesystem lists files.
 
         Args:
             images_directory_path: Directory holding the images.
