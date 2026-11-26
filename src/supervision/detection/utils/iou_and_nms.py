@@ -1235,10 +1235,10 @@ def _packed_mask_iou_batch(
     true_words: npt.NDArray[np.uint64],
     detection_words: npt.NDArray[np.uint64],
     count_dtype: type[np.floating],
-    overlap_metric: OverlapMetric = OverlapMetric.IOU,
-    detection_area: npt.NDArray[np.floating] | None = None,
-    detection_columns: npt.NDArray[np.intp] | None = None,
-    block_rows: int | None = None,
+    overlap_metric: OverlapMetric,
+    detection_area: npt.NDArray[np.floating],
+    detection_columns: npt.NDArray[np.intp],
+    block_rows: int,
 ) -> npt.NDArray[np.floating]:
     """Internal function.
 
@@ -1250,38 +1250,26 @@ def _packed_mask_iou_batch(
 
     Args:
         true_words: 2D `uint64` `np.ndarray` of shape `(N, K)`.
-        detection_words: 2D `uint64` `np.ndarray` of shape `(M, K)`. When
-            `detection_columns` is given it already holds only those columns.
+        detection_words: 2D `uint64` `np.ndarray` of shape `(M, K)`, already
+            reduced to `detection_columns`.
         count_dtype: Float dtype the pixel counts are cast to.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
-        detection_area: Optional precomputed detection mask areas, taken
+        detection_area: Precomputed detection mask areas, taken
             before any column was dropped from `detection_words`.
-        detection_columns: Optional indices of the word columns that are
+        detection_columns: Indices of the word columns that are
             non-empty in the detections, with `detection_words` already
             reduced to them. Passing them lets a chunked caller reduce the
-            detections once instead of once per chunk. Computed from
-            `detection_words` when omitted.
-        block_rows: Rows of `true_words` intersected per step. Derived from
-            `_PACKED_BLOCK_BYTES` when omitted.
+            detections once instead of once per chunk.
+        block_rows: Rows of `true_words` intersected per step.
 
     Returns:
         Pairwise overlap of shape `(N, M)`.
     """
     masks_true_area = _count_pixels(true_words).astype(count_dtype)
-    if detection_area is None:
-        detection_area = _count_pixels(detection_words).astype(count_dtype)
-
     # Words that are empty in the detections cannot add to any intersection; the
     # areas above were taken before they were dropped.
-    if detection_columns is None:
-        detection_columns = np.flatnonzero(detection_words.any(axis=0))
-        detection_words = np.ascontiguousarray(detection_words[:, detection_columns])
     true_words = true_words[:, detection_columns]
-
-    if block_rows is None:
-        row_bytes = max(detection_words.size * detection_words.itemsize, 1)
-        block_rows = max(_PACKED_BLOCK_BYTES // row_bytes, 1)
 
     intersection_area = np.empty(
         (len(true_words), len(detection_words)), dtype=count_dtype

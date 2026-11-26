@@ -1607,6 +1607,27 @@ class TestBitPackedMaskOverlap:
         expected = mask_iou_batch(masks_true, np.array(masks_detection, copy=True))
         np.testing.assert_array_equal(result, expected)
 
+    def test_noncontiguous_true_masks_match_float_path(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Budget reshape copies while preserving packed overlap for true masks."""
+        masks_true = np.ones((100, 128, 128), dtype=bool).transpose(0, 2, 1)
+        masks_detection = np.ones((100, 128, 128), dtype=bool)
+        original = iou_and_nms._packed_mask_iou_batch
+        chunk_sizes: list[int] = []
+
+        def recording(true_words: np.ndarray, *args: object) -> np.ndarray:
+            """Record true-mask chunk sizes before computing overlaps."""
+            chunk_sizes.append(len(true_words))
+            return original(true_words, *args)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(iou_and_nms, "_packed_mask_iou_batch", recording)
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+        expected = mask_iou_batch(masks_true.copy(), masks_detection)
+
+        assert chunk_sizes == [13] * 7 + [9]
+        np.testing.assert_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "overlap_metric",
         [
