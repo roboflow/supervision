@@ -5,6 +5,10 @@ date_modified: 2026-11-26
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+-
+
 ### 0.32.3 <small>Nov 26, 2026</small>
 
 - **Detection**: oriented soft-NMS decays boxes by their rotated bodies, NMM and NMS keep precision at large coordinates and for float64 unions, and Ultralytics masks, 0-d indices and class-agnostic Transformers results load correctly.
