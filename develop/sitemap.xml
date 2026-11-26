@@ -25,10 +25,6 @@
          <lastmod>2026-11-26</lastmod>
     </url>
     <url>
-         <loc>https://supervision.roboflow.com/latest/contributing/</loc>
-         <lastmod>2026-11-26</lastmod>
-    </url>
-    <url>
          <loc>https://supervision.roboflow.com/latest/cookbooks/</loc>
          <lastmod>2026-11-26</lastmod>
     </url>
@@ -46,6 +42,22 @@
     </url>
     <url>
          <loc>https://supervision.roboflow.com/latest/classification/core/</loc>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/latest/contributing/</loc>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/latest/contributing/ai_assisted/</loc>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/latest/contributing/development/</loc>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/latest/contributing/first_contribution/</loc>
          <lastmod>2026-11-26</lastmod>
     </url>
     <url>
