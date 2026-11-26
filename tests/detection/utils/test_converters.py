@@ -1401,7 +1401,11 @@ def test_polygon_to_mask_accepts_non_list_array_like(
         pytest.param(5, "Polygon must have shape", id="scalar"),
         pytest.param([1, 2, 3, 4], "Polygon must have shape", id="flat-1d-list"),
         pytest.param(np.zeros((3, 3)), "Polygon must have shape", id="n-by-3-array"),
-        pytest.param([[1, 2], [3]], "inhomogeneous shape", id="ragged-nested-list"),
+        pytest.param(
+            [[1, 2], [3]],
+            "inhomogeneous shape|Polygon must have shape",
+            id="ragged-nested-list",
+        ),
         pytest.param(
             [["a", "b"], ["c", "d"]],
             "Polygon must have shape",

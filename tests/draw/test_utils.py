@@ -8,6 +8,7 @@ import pytest
 from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    _color_for_canvas,
     _map_to_drawing_coordinates,
     draw_filled_polygon,
     draw_filled_rectangle,
@@ -454,6 +455,27 @@ class TestDrawImageSceneLayouts:
         assert result.shape == (4, 4, 4)
         np.testing.assert_array_equal(result[..., :3], np.full((4, 4, 3), expected_bgr))
         np.testing.assert_array_equal(result[..., 3], np.full((4, 4), expected_alpha))
+
+
+class TestColorForCanvas:
+    @pytest.mark.parametrize(
+        ("canvas_shape", "expected"),
+        [
+            pytest.param((4, 4), (10,), id="grayscale-2d"),
+            pytest.param((4, 4, 1), (10,), id="grayscale-3d"),
+            pytest.param((4, 4, 3), (10, 20, 30), id="bgr"),
+            pytest.param((4, 4, 4), (10, 20, 30, 255), id="bgra"),
+        ],
+    )
+    def test_matches_canvas_channels(
+        self, canvas_shape: tuple[int, ...], expected: tuple[int, ...]
+    ) -> None:
+        """The pixel value has one entry per canvas channel; BGRA gets opaque alpha."""
+        canvas = np.zeros(canvas_shape, dtype=np.uint8)
+
+        result = _color_for_canvas((10, 20, 30), canvas)
+
+        assert result == expected
 
 
 _POLYGON = np.array([[5, 5], [40, 8], [35, 40], [8, 30]])

@@ -1,4 +1,5 @@
 import warnings
+from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
@@ -13,6 +14,7 @@ from supervision import (
     Classifications,
     DetectionDataset,
     Detections,
+    KeyPointsDataset,
 )
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.utils.internal import SupervisionWarnings
@@ -244,6 +246,231 @@ class TestMergeUnlabeledDetections:
         np.testing.assert_array_equal(merged.annotations["labeled.png"].class_id, [1])
 
 
+def _write_one_image_yolo_dataset(
+    root: Path, names: str, class_id: int, with_key_points: bool
+) -> tuple[str, str, str]:
+    """Write a one-image YOLO dataset named after ``root`` and return its paths."""
+    images_dir = root / "images"
+    labels_dir = root / "labels"
+    images_dir.mkdir(parents=True)
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / f"{root.name}.png")
+    label = f"{class_id} 0.5 0.5 0.2 0.4"
+    data_yaml = f"names:\n{names}"
+    if with_key_points:
+        label += " 0.45 0.3 2 0.55 0.6 0"
+        data_yaml += "kpt_shape: [2, 3]\n"
+    (labels_dir / f"{root.name}.txt").write_text(label + "\n")
+    (root / "data.yaml").write_text(data_yaml)
+    return str(images_dir), str(labels_dir), str(root / "data.yaml")
+
+
+def _load_from_yolo(
+    source: tuple[str, str, str], with_key_points: bool
+) -> DetectionDataset | KeyPointsDataset:
+    """Load one YOLO source with the dataset type the test exercises."""
+    if with_key_points:
+        return KeyPointsDataset.from_yolo(*source)
+    return DetectionDataset.from_yolo(*source)
+
+
+def _merge(
+    datasets: Sequence[DetectionDataset | KeyPointsDataset],
+) -> DetectionDataset | KeyPointsDataset:
+    """Merge loaded datasets with the merge method of their dataset type."""
+    key_points = [
+        dataset for dataset in datasets if isinstance(dataset, KeyPointsDataset)
+    ]
+    if key_points:
+        return KeyPointsDataset.merge(key_points)
+    return DetectionDataset.merge(
+        [dataset for dataset in datasets if isinstance(dataset, DetectionDataset)]
+    )
+
+
+def _merge_from_yolo(
+    sources: list[tuple[str, str, str]], with_key_points: bool
+) -> DetectionDataset | KeyPointsDataset:
+    """Load each YOLO source with the matching dataset type and merge them."""
+    return _merge([_load_from_yolo(source, with_key_points) for source in sources])
+
+
+def _class_names(dataset: DetectionDataset | KeyPointsDataset) -> list[str]:
+    """Return the class name of every label in ``dataset``, in image order."""
+    names: list[str] = []
+    for _, _, annotation in dataset:
+        assert annotation.class_id is not None
+        names.extend(dataset.classes[class_id] for class_id in annotation.class_id)
+    return names
+
+
+#: Source ``names`` blocks whose label id ``2`` names the paired class.
+_SHARED_SPARSE_NAMES = [
+    pytest.param("  1: cat\n  2: dog\n", "dog", id="sorted-names"),
+    pytest.param("  1: dog\n  2: cat\n", "cat", id="unsorted-names"),
+]
+
+
+@pytest.mark.parametrize(
+    "with_key_points",
+    [
+        pytest.param(False, id="detection"),
+        pytest.param(True, id="key-points"),
+    ],
+)
+class TestMergeYoloSourceMapping:
+    """Tests that YOLO merges compare id-to-name pairs, not paths or class order."""
+
+    @pytest.mark.parametrize("changed_source", [0, 1])
+    def test_changed_source_blocks_partial_export(
+        self, tmp_path: Path, with_key_points: bool, changed_source: int
+    ) -> None:
+        """A changed contributing YAML blocks annotation-only export."""
+        first = _write_one_image_yolo_dataset(
+            tmp_path / "first", "  1: cat\n  2: dog\n", 2, with_key_points
+        )
+        second = _write_one_image_yolo_dataset(
+            tmp_path / "second", "  1: cat\n  2: dog\n", 2, with_key_points
+        )
+        sources = [first, second]
+        merged = _merge_from_yolo(sources, with_key_points)
+        Path(sources[changed_source][2]).write_text("names:\n  1: cat\n  2: bird\n")
+
+        with pytest.raises(ValueError, match="mapping changed"):
+            merged.as_yolo(annotations_directory_path=str(tmp_path / "out"))
+
+    def test_duplicate_names_block_partial_export(
+        self, tmp_path: Path, with_key_points: bool
+    ) -> None:
+        """Duplicate source names cannot silently collapse distinct IDs."""
+        first = _write_one_image_yolo_dataset(
+            tmp_path / "first", "  1: cat\n  2: cat\n", 1, with_key_points
+        )
+        second = _write_one_image_yolo_dataset(
+            tmp_path / "second", "  1: cat\n  2: cat\n", 2, with_key_points
+        )
+        merged = _merge_from_yolo([first, second], with_key_points)
+
+        with pytest.raises(ValueError, match="mappings differ"):
+            merged.as_yolo(data_yaml_path=str(tmp_path / "out.yaml"))
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_annotation_only_export_keeps_shared_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """Equal sparse mappings from separate YAML files export the source IDs."""
+        sources = [
+            _write_one_image_yolo_dataset(tmp_path / name, names, 2, with_key_points)
+            for name in ("first", "second")
+        ]
+        merged = _merge_from_yolo(sources, with_key_points)
+        output_dir = tmp_path / "labels"
+
+        merged.as_yolo(annotations_directory_path=str(output_dir))
+
+        written_ids = [
+            label_file.read_text().split()[0]
+            for label_file in sorted(output_dir.iterdir())
+        ]
+        assert written_ids == ["2", "2"]
+        assert _class_names(merged) == [expected_name, expected_name]
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_yaml_only_export_keeps_shared_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """A YAML exported from equal sparse mappings still reads the source labels."""
+        sources = [
+            _write_one_image_yolo_dataset(tmp_path / name, names, 2, with_key_points)
+            for name in ("first", "second")
+        ]
+        merged = _merge_from_yolo(sources, with_key_points)
+        exported_yaml = str(tmp_path / "exported.yaml")
+
+        merged.as_yolo(data_yaml_path=exported_yaml)
+
+        reloaded = DetectionDataset.from_yolo(
+            sources[0][0], sources[0][1], exported_yaml
+        )
+        assert _class_names(reloaded) == [expected_name]
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_full_export_normalizes_shared_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """Exporting labels and a new YAML together keeps every label's class name."""
+        sources = [
+            _write_one_image_yolo_dataset(tmp_path / name, names, 2, with_key_points)
+            for name in ("first", "second")
+        ]
+        merged = _merge_from_yolo(sources, with_key_points)
+        output = (
+            str(tmp_path / "out" / "images"),
+            str(tmp_path / "out" / "labels"),
+            str(tmp_path / "out" / "data.yaml"),
+        )
+
+        merged.as_yolo(*output)
+
+        reloaded = DetectionDataset.from_yolo(*output)
+        assert reloaded.classes == ["cat", "dog"]
+        assert _class_names(reloaded) == [expected_name, expected_name]
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_unmerged_annotation_only_export_keeps_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """A single loaded dataset writes labels its source YAML still reads."""
+        source = _write_one_image_yolo_dataset(
+            tmp_path / "first", names, 2, with_key_points
+        )
+        dataset = _load_from_yolo(source, with_key_points)
+
+        dataset.as_yolo(annotations_directory_path=source[1])
+
+        assert Path(source[1], "first.txt").read_text().split()[0] == "2"
+        assert _class_names(DetectionDataset.from_yolo(*source)) == [expected_name]
+
+    @pytest.mark.parametrize(("names", "expected_name"), _SHARED_SPARSE_NAMES)
+    def test_merged_splits_of_one_source_keep_sparse_ids(
+        self, tmp_path: Path, with_key_points: bool, names: str, expected_name: str
+    ) -> None:
+        """Splits of one source merge back and still match the unchanged YAML."""
+        source = _write_one_image_yolo_dataset(
+            tmp_path / "first", names, 2, with_key_points
+        )
+        dataset = _load_from_yolo(source, with_key_points)
+        merged = _merge(dataset.split(split_ratio=1, shuffle=False))
+
+        merged.as_yolo(annotations_directory_path=source[1])
+
+        assert Path(source[1], "first.txt").read_text().split()[0] == "2"
+        assert _class_names(DetectionDataset.from_yolo(*source)) == [expected_name]
+
+    @pytest.mark.parametrize(
+        "second_names",
+        [
+            pytest.param("  1: cat\n  3: dog\n", id="sparse-ids-differ"),
+            pytest.param("  0: cat\n  1: dog\n", id="sparse-vs-contiguous"),
+            pytest.param("  1: dog\n  2: cat\n", id="sparse-ids-swapped"),
+        ],
+    )
+    def test_differing_mappings_require_new_yaml(
+        self, tmp_path: Path, with_key_points: bool, second_names: str
+    ) -> None:
+        """Mappings that disagree still block annotation-only export."""
+        first = _write_one_image_yolo_dataset(
+            tmp_path / "first", "  1: cat\n  2: dog\n", 2, with_key_points
+        )
+        second = _write_one_image_yolo_dataset(
+            tmp_path / "second", second_names, 1, with_key_points
+        )
+        merged = _merge_from_yolo([first, second], with_key_points)
+
+        with pytest.raises(ValueError, match="mappings differ"):
+            merged.as_yolo(annotations_directory_path=str(tmp_path / "labels"))
+
+
 class TestClassNamePopulation:
     """Verify that DetectionDataset populates CLASS_NAME_DATA_FIELD on init."""
 
@@ -387,6 +614,257 @@ class TestClassNamePopulation:
                 images=["img1.png"],
                 annotations=annotations,
             )
+
+
+class TestDetectionDatasetEmpty:
+    """Verify DetectionDataset.empty creates a dataset with classes and no images."""
+
+    def test_empty_keeps_classes_without_images(self) -> None:
+        """The empty dataset has the given classes and no images or annotations."""
+        dataset = DetectionDataset.empty(classes=["dog", "person"])
+
+        assert dataset.classes == ["dog", "person"]
+        assert len(dataset) == 0
+        assert dataset.annotations == {}
+
+    def test_empty_equals_constructor_without_images(self) -> None:
+        """The empty dataset equals one constructed with no images or annotations."""
+        dataset = DetectionDataset.empty(classes=["dog"])
+
+        assert dataset == DetectionDataset(classes=["dog"], images=[], annotations={})
+
+
+class TestDetectionDatasetAdd:
+    """Verify DetectionDataset.add accumulates images and annotations in place."""
+
+    def test_add_appends_after_existing_images(self) -> None:
+        """An added image is appended after the images the dataset already has."""
+        dataset = DetectionDataset(
+            classes=["dog"],
+            images=["img1.png", "img2.png"],
+            annotations={
+                "img1.png": Detections.empty(),
+                "img2.png": Detections.empty(),
+            },
+        )
+
+        dataset.add("img3.png", _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]))
+
+        assert dataset.image_paths == ["img1.png", "img2.png", "img3.png"]
+        assert len(dataset) == 3
+
+    def test_add_matches_constructor(self) -> None:
+        """A dataset built with add equals one built by the constructor."""
+        annotations = {
+            "img1.png": _create_detections(
+                xyxy=[[0, 0, 10, 10], [5, 5, 15, 15]], class_id=[1, 0]
+            ),
+            "img2.png": Detections.empty(),
+        }
+        dataset = DetectionDataset.empty(classes=["dog", "person"])
+
+        for image_path, annotation in annotations.items():
+            dataset.add(image_path=image_path, annotation=annotation)
+
+        assert dataset == DetectionDataset(
+            classes=["dog", "person"],
+            images=list(annotations),
+            annotations=annotations,
+        )
+
+    def test_add_populates_class_name(self) -> None:
+        """The stored annotation gets class names mapped from its class ids."""
+        dataset = DetectionDataset.empty(classes=["dog", "person"])
+
+        dataset.add(
+            "img1.png",
+            _create_detections(xyxy=[[0, 0, 10, 10], [5, 5, 15, 15]], class_id=[1, 0]),
+        )
+
+        np.testing.assert_array_equal(
+            dataset.annotations["img1.png"].data[CLASS_NAME_DATA_FIELD],
+            np.array(["person", "dog"]),
+        )
+
+    def test_add_without_class_id_stores_no_class_name(self) -> None:
+        """An annotation without class ids is stored with its boxes but no names."""
+        dataset = DetectionDataset.empty(classes=["dog", "person"])
+
+        dataset.add("img1.png", _create_detections(xyxy=[[0, 0, 10, 10]]))
+
+        stored = dataset.annotations["img1.png"]
+        assert stored.class_id is None
+        assert CLASS_NAME_DATA_FIELD not in stored.data
+        np.testing.assert_array_equal(stored.xyxy, np.array([[0, 0, 10, 10]]))
+
+    def test_add_does_not_mutate_input_annotation(self) -> None:
+        """Adding class_name metadata must not mutate caller-owned Detections."""
+        annotation = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+        dataset = DetectionDataset.empty(classes=["dog"])
+
+        dataset.add("img1.png", annotation)
+
+        assert CLASS_NAME_DATA_FIELD not in annotation.data
+        assert CLASS_NAME_DATA_FIELD in dataset.annotations["img1.png"].data
+
+    def test_add_stores_independent_copy(self) -> None:
+        """Changing the passed Detections after adding it leaves the dataset intact."""
+        annotation = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+        dataset = DetectionDataset.empty(classes=["dog"])
+        dataset.add("img1.png", annotation)
+
+        annotation.xyxy[0, 0] = 5
+
+        assert dataset.annotations["img1.png"].xyxy[0, 0] == 0
+
+    def test_add_rejects_duplicate_image_path(self) -> None:
+        """An image path already in the dataset raises and leaves it unchanged."""
+        dataset = DetectionDataset(
+            classes=["dog"],
+            images=["img1.png"],
+            annotations={
+                "img1.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+            },
+        )
+        expected = DetectionDataset(
+            classes=["dog"],
+            images=["img1.png"],
+            annotations={
+                "img1.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+            },
+        )
+
+        with pytest.raises(ValueError, match="already in the dataset"):
+            dataset.add(
+                "img1.png", _create_detections(xyxy=[[5, 5, 20, 20]], class_id=[0])
+            )
+
+        assert dataset == expected
+
+    @pytest.mark.parametrize(
+        ("annotation", "match"),
+        [
+            pytest.param(
+                _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+                "outside the valid range",
+                id="too-large",
+            ),
+            pytest.param(
+                _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[-1]),
+                "outside the valid range",
+                id="negative",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=np.array([0.5]),
+                ),
+                "non-integer class_id",
+                id="non-integer",
+            ),
+        ],
+    )
+    def test_add_rejects_invalid_class_id(
+        self, annotation: Detections, match: str
+    ) -> None:
+        """Invalid class ids raise like the constructor and leave the dataset empty."""
+        dataset = DetectionDataset.empty(classes=["dog"])
+
+        with pytest.raises(ValueError, match=match):
+            dataset.add("img1.png", annotation)
+
+        assert len(dataset) == 0
+        assert dataset.annotations == {}
+
+    def test_add_rejects_in_memory_dataset(self) -> None:
+        """Datasets holding deprecated in-memory images cannot be extended."""
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            dataset = DetectionDataset(
+                classes=["dog"],
+                images={"img1.png": _create_image(fill_value=1)},
+                annotations={
+                    "img1.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+                },
+            )
+
+        with pytest.raises(ValueError, match="in-memory images"):
+            dataset.add(
+                "img2.png", _create_detections(xyxy=[[5, 5, 20, 20]], class_id=[0])
+            )
+
+        assert dataset.classes == ["dog"]
+        assert dataset.image_paths == ["img1.png"]
+        assert dataset.annotations == {
+            "img1.png": _create_detections(
+                xyxy=[[0, 0, 10, 10]],
+                class_id=[0],
+                data={CLASS_NAME_DATA_FIELD: np.array(["dog"])},
+            )
+        }
+
+    def test_added_images_export_and_reload_as_yolo(self, tmp_path: Path) -> None:
+        """Images added from disk export to YOLO and load back with their boxes."""
+        dataset = DetectionDataset.empty(classes=["cat", "dog"])
+        annotations = {
+            "a.png": _create_detections(xyxy=[[2, 4, 10, 12]], class_id=[1]),
+            "b.png": _create_detections(
+                xyxy=[[0, 0, 8, 8], [8, 8, 16, 16]], class_id=[0, 1]
+            ),
+        }
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        for file_name, annotation in annotations.items():
+            image_path = source_dir / file_name
+            Image.fromarray(np.zeros((16, 16, 3), dtype=np.uint8)).save(image_path)
+            dataset.add(str(image_path), annotation)
+
+        dataset.as_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+        )
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+        )
+
+        assert reloaded.classes == ["cat", "dog"]
+        assert sorted(Path(path).name for path in reloaded.image_paths) == [
+            "a.png",
+            "b.png",
+        ]
+        for reloaded_path, reloaded_annotation in reloaded.annotations.items():
+            expected = annotations[Path(reloaded_path).name]
+            np.testing.assert_allclose(
+                reloaded_annotation.xyxy, expected.xyxy, atol=1e-3
+            )
+            np.testing.assert_array_equal(
+                reloaded_annotation.class_id, expected.class_id
+            )
+
+    def test_merge_combines_added_dataset_with_other_dataset(self) -> None:
+        """An empty-then-added dataset merges with another, remapping class ids."""
+        added = DetectionDataset.empty(classes=["dog"])
+        added.add("a.png", _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]))
+        other = DetectionDataset(
+            classes=["cat"],
+            images=["b.png"],
+            annotations={
+                "b.png": _create_detections(xyxy=[[5, 5, 15, 15]], class_id=[0])
+            },
+        )
+
+        merged = DetectionDataset.merge([added, other])
+
+        assert merged == DetectionDataset(
+            classes=["cat", "dog"],
+            images=["a.png", "b.png"],
+            annotations={
+                "a.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+                "b.png": _create_detections(xyxy=[[5, 5, 15, 15]], class_id=[0]),
+            },
+        )
 
 
 class TestDetectionDatasetInMemoryImages:
@@ -594,6 +1072,49 @@ class TestDatasetEqualityContracts:
 
         assert ds_a == ds_b
         assert ds_a != ds_c
+
+    @pytest.mark.parametrize(
+        "second_shape",
+        [
+            pytest.param((6, 8, 3), id="different-size"),
+            pytest.param((4, 4), id="grayscale"),
+        ],
+    )
+    @pytest.mark.parametrize("dataset_type", ["detection", "classification"])
+    def test_in_memory_images_of_different_shapes(
+        self, dataset_type: str, second_shape: tuple[int, ...]
+    ) -> None:
+        """In-memory images of different shapes compare image by image."""
+        images = {
+            "img1.jpg": _create_image(fill_value=1),
+            "img2.jpg": np.full(second_shape, 2, dtype=np.uint8),
+        }
+        changed_images = {**images, "img2.jpg": np.full(second_shape, 3, np.uint8)}
+
+        def build(
+            images: dict[str, npt.NDArray[np.uint8]],
+        ) -> DetectionDataset | ClassificationDataset:
+            """Build the parametrized dataset type from in-memory images."""
+            if dataset_type == "detection":
+                with pytest.warns(SupervisionWarnings, match="deprecated"):
+                    return DetectionDataset(
+                        classes=["dog"],
+                        images=images,
+                        annotations={path: Detections.empty() for path in images},
+                    )
+            annotations = {
+                path: Classifications(class_id=np.array([0])) for path in images
+            }
+            with pytest.warns(SupervisionWarnings, match="deprecated"):
+                return ClassificationDataset(
+                    classes=["dog"], images=images, annotations=annotations
+                )
+
+        dataset = build(images)
+
+        assert dataset == dataset
+        assert dataset == build(dict(images))
+        assert dataset != build(changed_images)
 
 
 class TestDetectionDatasetExportCollisions:

@@ -44,7 +44,10 @@ from supervision.detection.utils.masks import _masks_to_roi
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
+    _color_for_canvas,
+    _composite_coverage_over_bgra,
     _composite_over_bgra,
+    _draw_antialiased,
     draw_polygon,
     draw_rounded_rectangle,
     draw_text,
@@ -61,7 +64,10 @@ from supervision.utils.image import (
     letterbox_image,
     scale_image,
 )
-from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
+from supervision.utils.internal import (
+    _DEPRECATION_TEMPLATE_KEYWORD,
+    _DEPRECATION_WARNING_STREAM,
+)
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -72,7 +78,7 @@ logger = _get_logger(__name__)
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _DETECTION_COLOR_HELPER_DEPRECATION},
 )
 def resolve_color(
     color: Color | ColorPalette,
@@ -346,7 +352,7 @@ class BoxAnnotator(BaseAnnotator):
                 img=scene,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
-                color=color.as_bgr(),
+                color=_color_for_canvas(color.as_bgr(), scene),
                 thickness=self.thickness,
             )
         return scene
@@ -445,7 +451,13 @@ class OrientedBoxAnnotator(BaseAnnotator):
         ):
             obb = obb_boxes[detection_idx]
 
-            cv2.drawContours(scene, [obb], 0, color.as_bgr(), self.thickness)
+            cv2.drawContours(
+                scene,
+                [obb],
+                0,
+                _color_for_canvas(color.as_bgr(), scene),
+                self.thickness,
+            )
 
         return scene
 
@@ -493,28 +505,11 @@ def _iter_mask_crops(
             )
 
 
-def _color_for_canvas(
-    color_bgr: tuple[int, int, int], canvas: npt.NDArray[np.uint8]
-) -> tuple[int, ...]:
-    """Return the color as the pixel value OpenCV drawing writes to `canvas`.
-
-    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
-    channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
-    polygons other annotators draw on the same scene. A BGRA canvas takes the color with
-    an opaque alpha, as :func:`~supervision.draw.utils.draw_image` does.
-    """
-    if canvas.ndim == 2 or canvas.shape[2] == 1:
-        return color_bgr[:1]
-    if canvas.shape[2] == 4:
-        return (*color_bgr, 255)
-    return color_bgr
-
-
 def _pillow_fill(color: Color, mode: str) -> float | tuple[int, ...]:
     """Return `color` as the fill Pillow's `ImageDraw` accepts for a scene of `mode`.
 
     Pillow rejects an RGB tuple on grayscale modes. Those take the first (blue) BGR
-    channel, as :func:`~supervision.annotators.core._color_for_canvas` does, so rich
+    channel, as :func:`~supervision.draw.utils._color_for_canvas` does, so rich
     labels match what the other annotators draw on the same scene. Integer modes
     deeper than 8 bits scale it by 257, the mapping of 0-255 onto 0-65535 that
     :func:`~supervision.utils.conversion.ensure_cv2_image_for_class_method` applies.
@@ -915,6 +910,20 @@ class ColorAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            # Boxes are drawn on a separate color layer and coverage mask so the
+            # scene's hidden colors under transparent pixels cannot tint them.
+            box_colors = np.zeros((*scene.shape[:2], 3), dtype=np.uint8)
+            coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+            for detection_idx, color in _iter_resolved_colors(
+                detections, self.color, self.color_lookup, custom_color_lookup
+            ):
+                x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+                cv2.rectangle(box_colors, (x1, y1), (x2, y2), color.as_bgr(), -1)
+                cv2.rectangle(coverage, (x1, y1), (x2, y2), 255, -1)
+            _composite_coverage_over_bgra(scene, box_colors, coverage, self.opacity)
+            return scene
+
         scene_with_boxes = scene.copy()
         for detection_idx, color in _iter_resolved_colors(
             detections, self.color, self.color_lookup, custom_color_lookup
@@ -924,7 +933,7 @@ class ColorAnnotator(BaseAnnotator):
                 img=scene_with_boxes,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
-                color=color.as_bgr(),
+                color=_color_for_canvas(color.as_bgr(), scene_with_boxes),
                 thickness=-1,
             )
 
@@ -1143,7 +1152,7 @@ class EllipseAnnotator(BaseAnnotator):
                 angle=0.0,
                 startAngle=self.start_angle,
                 endAngle=self.end_angle,
-                color=color.as_bgr(),
+                color=_color_for_canvas(color.as_bgr(), scene),
                 thickness=self.thickness,
                 lineType=cv2.LINE_4,
             )
@@ -1226,12 +1235,20 @@ class BoxCornerAnnotator(BaseAnnotator):
             for x, y in corners:
                 x_end = x + self.corner_length if x == x1 else x - self.corner_length
                 cv2.line(
-                    scene, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
+                    scene,
+                    (x, y),
+                    (x_end, y),
+                    _color_for_canvas(color.as_bgr(), scene),
+                    thickness=self.thickness,
                 )
 
                 y_end = y + self.corner_length if y == y1 else y - self.corner_length
                 cv2.line(
-                    scene, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
+                    scene,
+                    (x, y),
+                    (x, y_end),
+                    _color_for_canvas(color.as_bgr(), scene),
+                    thickness=self.thickness,
                 )
         return scene
 
@@ -1311,7 +1328,7 @@ class CircleAnnotator(BaseAnnotator):
                 img=scene,
                 center=center,
                 radius=int(distance),
-                color=color.as_bgr(),
+                color=_color_for_canvas(color.as_bgr(), scene),
                 thickness=self.thickness,
             )
 
@@ -1400,7 +1417,9 @@ class DotAnnotator(BaseAnnotator):
         ):
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
 
-            cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            cv2.circle(
+                scene, center, self.radius, _color_for_canvas(color.as_bgr(), scene), -1
+            )
             if self.outline_thickness:
                 outline_color = _resolve_annotator_color(
                     color=self.outline_color,
@@ -1413,7 +1432,7 @@ class DotAnnotator(BaseAnnotator):
                     scene,
                     center,
                     self.radius,
-                    outline_color.as_bgr(),
+                    _color_for_canvas(outline_color.as_bgr(), scene),
                     self.outline_thickness,
                 )
         return scene
@@ -1650,7 +1669,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             self.draw_rounded_rectangle(
                 scene=scene,
                 xyxy=box_xyxy,
-                color=background_color.as_bgr(),
+                color=_color_for_canvas(background_color.as_bgr(), scene),
                 border_radius=self.border_radius,
             )
 
@@ -1680,15 +1699,19 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 text_x = box_xyxy[0] + self.text_padding
                 text_y = current_y + text_h  # Add height to get to text baseline
 
-                cv2.putText(
-                    img=scene,
-                    text=line,
-                    org=(text_x, text_y),
-                    fontFace=CV2_FONT,
-                    fontScale=self.text_scale,
-                    color=text_color.as_bgr(),
-                    thickness=self.text_thickness,
-                    lineType=cv2.LINE_AA,
+                _draw_antialiased(
+                    scene,
+                    text_color.as_bgr(),
+                    lambda image, color: cv2.putText(
+                        image,
+                        line,
+                        (text_x, text_y),
+                        CV2_FONT,
+                        self.text_scale,
+                        color,
+                        self.text_thickness,
+                        lineType=cv2.LINE_AA,
+                    ),
                 )
 
                 current_y += text_h + self.text_padding  # Move to next line position
@@ -1697,7 +1720,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
     def draw_rounded_rectangle(
         scene: npt.NDArray[np.uint8],
         xyxy: tuple[int, int, int, int],
-        color: tuple[int, int, int],
+        color: tuple[int, ...],
         border_radius: int,
     ) -> npt.NDArray[np.uint8]:
         """Draw a filled rectangle with optional rounded corners on an image.
@@ -1705,7 +1728,8 @@ class LabelAnnotator(_BaseLabelAnnotator):
         Args:
             scene: BGR image array to draw on; modified in-place and returned.
             xyxy: Bounding box as (x1, y1, x2, y2) pixel coordinates.
-            color: Fill color as a BGR tuple (e.g. ``(0, 0, 255)`` for red).
+            color: Fill color as a BGR tuple (e.g. ``(0, 0, 255)`` for red), or a
+                BGRA tuple for a BGRA ``scene``.
             border_radius: Corner rounding radius in pixels. Values <= 0
                 (including values clamped to 0 by a degenerate box) draw a
                 plain filled rectangle with square corners.
@@ -2536,7 +2560,7 @@ class TraceAnnotator(BaseAnnotator):
                     scene,
                     [spline_points],
                     False,
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), scene),
                     thickness=self.thickness,
                 )
         return scene
@@ -2902,7 +2926,7 @@ class TriangleAnnotator(BaseAnnotator):
                 np.int32,
             )
 
-            cv2.fillPoly(scene, [vertices], color.as_bgr())
+            cv2.fillPoly(scene, [vertices], _color_for_canvas(color.as_bgr(), scene))
             if self.outline_thickness:
                 outline_color = _resolve_annotator_color(
                     color=self.outline_color,
@@ -2915,7 +2939,7 @@ class TriangleAnnotator(BaseAnnotator):
                     scene,
                     [vertices],
                     True,
-                    outline_color.as_bgr(),
+                    _color_for_canvas(outline_color.as_bgr(), scene),
                     thickness=self.outline_thickness,
                 )
         return scene
@@ -3033,7 +3057,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                     angle=0,
                     startAngle=start_angle,
                     endAngle=end_angle,
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), scene),
                     thickness=self.thickness,
                 )
 
@@ -3041,7 +3065,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                     img=scene,
                     pt1=line[0],
                     pt2=line[1],
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), scene),
                     thickness=self.thickness,
                 )
 
@@ -3170,14 +3194,14 @@ class PercentageBarAnnotator(BaseAnnotator):
                     border_coordinates[0][0] + int(border_width * value),
                     border_coordinates[1][1],
                 ),
-                color=color.as_bgr(),
+                color=_color_for_canvas(color.as_bgr(), scene),
                 thickness=-1,
             )
             cv2.rectangle(
                 img=scene,
                 pt1=border_coordinates[0],
                 pt2=border_coordinates[1],
-                color=self.border_color.as_bgr(),
+                color=_color_for_canvas(self.border_color.as_bgr(), scene),
                 thickness=self.border_thickness,
             )
         return scene

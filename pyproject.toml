@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.32.1"
+version = "0.32.3"
 description = "Model-agnostic computer vision toolkit: load detections, annotate, filter, count, evaluate, manage data"
 readme = "README.md"
 keywords = [
@@ -62,11 +62,11 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "av>=14.2",
+  "av>=15.1",
   "defusedxml>=0.7.1",
   "matplotlib>=3.6",
   "numpy>=1.21.2",
-  "pillow>=9.4",
+  "pillow>=10.4",
   "pydeprecate>=0.9,<0.16",
   "pyyaml>=5.3",
   "requests>=2.26",
@@ -91,6 +91,7 @@ urls.Repository = "https://github.com/roboflow/supervision"
 
 [dependency-groups]
 dev = [
+  { include-group = "test" },
   "docutils!=0.21",
   "faster-coco-eval>=1.8",
   "ipywidgets>=8.1.1",
@@ -101,11 +102,13 @@ dev = [
   "packaging",
   "pre-commit>=3.8",
   "pycocotools>=2.0.11",
-  "pytest>=7.2.2,<10",
-  "pytest-cov>=4,<8",
   "scikit-learn>=1.7",
   "tox>=4.11.4",
   "types-tqdm",
+]
+test = [
+  "pytest>=7.2.2,<10",
+  "pytest-cov>=4,<8",
 ]
 docs = [
   "mike>=2",
@@ -257,6 +260,7 @@ overrides = [
     "tests.cv2.*",
     "tests.dataset.*",
     "tests.depth.*",
+    "tests.detection.helpers",
     "tests.detection.test_compact_mask",
     "tests.detection.test_compact_mask_integration",
     "tests.detection.test_compact_mask_iou",
@@ -271,10 +275,15 @@ overrides = [
     "tests.detection.test_json",
     "tests.detection.test_json_snapshot",
     "tests.detection.test_line_counter",
+    "tests.detection.test_merge",
+    "tests.detection.test_nms",
     "tests.detection.test_polygon_zone_annotator",
     "tests.detection.test_polygonzone",
+    "tests.detection.test_transform",
     "tests.detection.test_ultralytics_arrays",
     "tests.detection.test_vlm",
+    "tests.detection.test_vlm_gemini",
+    "tests.detection.test_vlm_qwen",
     "tests.detection.tools.test_inference_slicer",
     "tests.detection.tools.test_inference_slicer_geotiff",
     "tests.detection.tools.test_smoother",
@@ -282,14 +291,19 @@ overrides = [
     "tests.detection.utils.test_boxes",
     "tests.detection.utils.test_converters",
     "tests.detection.utils.test_internal",
+    "tests.detection.utils.test_iou",
     "tests.detection.utils.test_iou_and_nms",
     "tests.detection.utils.test_masks",
     "tests.detection.utils.test_matching",
+    "tests.detection.utils.test_oriented_boxes",
     "tests.detection.utils.test_polygons",
     "tests.detection.utils.test_vlms",
     "tests.draw.*",
     "tests.geometry.*",
     "tests.helpers",
+    "tests.key_points.test_annotator_validation",
+    "tests.key_points.test_docs",
+    "tests.key_points.test_skeletons",
     "tests.metrics.coco_reference",
     "tests.metrics.conftest",
     "tests.metrics.test_core",
@@ -335,7 +349,10 @@ ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
 ]
-ini_options.markers = [ "integration: tests requiring external integration dependencies" ]
+ini_options.markers = [
+  "integration: tests requiring external integration dependencies",
+  "metrics: tests requiring the optional metrics dependencies (pandas and the reference metric packages)",
+]
 ini_options.filterwarnings = [
   "error::DeprecationWarning",
 ]
