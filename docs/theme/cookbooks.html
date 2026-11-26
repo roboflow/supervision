@@ -1,6 +1,8 @@
 {% extends "main.html" %}
 {% block libs %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+{# DOMPurify is the dompurify npm package's dist/purify.min.js, byte for byte. The
+   url filter keeps the path relative, so each version tree loads its own copy. #}
+<script src="{{ 'javascripts/vendor/purify.min.js' | url }}"></script>
 <link rel="stylesheet" href="/stylesheets/cookbooks-card.css">
 <script src="/javascripts/cookbooks-card.js"></script>
 {% endblock %}

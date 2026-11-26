@@ -1,8 +1,10 @@
 """Regression tests for the versioned documentation canonical contract."""
 
 import os
+import re
 import subprocess
 import textwrap
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
@@ -648,7 +650,7 @@ def test_unpatch_leaves_a_genuine_material_build_untouched(
 def test_backfill_triggers_on_pull_request_touching_its_own_files(
     repo_root: Path, workflows_dir: Path
 ) -> None:
-    """Run as a PR dry run whenever this workflow or the banner script changes."""
+    """Run as a PR dry run whenever this workflow or one of its scripts changes."""
     workflow = yaml.safe_load(
         (workflows_dir / BACKFILL_WORKFLOW).read_text(encoding="utf-8")
     )
@@ -668,6 +670,8 @@ def test_backfill_triggers_on_pull_request_touching_its_own_files(
         script.name == "inject_tracking_carrier.py" for script in scripts_dir.iterdir()
     )
     assert ".github/scripts/inject_tracking_carrier.py" in paths
+    assert any(script.name == "pin_cdn_scripts.py" for script in scripts_dir.iterdir())
+    assert ".github/scripts/pin_cdn_scripts.py" in paths
 
 
 def test_backfill_only_commits_on_a_real_dispatch(workflow_step: StepLookup) -> None:
@@ -1106,20 +1110,361 @@ def _load_mkdocs_extra_javascript(path: Path) -> list[str]:
     return extra_javascript
 
 
-def test_mkdocs_config_loads_utm_js_immediately_before_segment_js(
-    repo_root: Path,
-) -> None:
-    """Assert `utm.js` is present exactly once and sits right before `segment.js`.
-
-    This is the adjacency `inject_tracking_carrier.py` replicates on already-published
-    static HTML (see its module docstring and `TRACKING_STEP` above): a genuine `mkdocs`
-    build only puts the carrier ahead of Segment because `extra_javascript` orders them
-    that way, so if this list ever drifts, the backfill script's output and a real
-    rebuild's output would silently diverge.
-    """
+def test_mkdocs_config_loads_utm_js_once(repo_root: Path) -> None:
+    """Ensure rebuilt pages load `utm.js` exactly once and no longer load Segment."""
     extra_javascript = _load_mkdocs_extra_javascript(repo_root / "mkdocs.yml")
-    utm_url = "https://app.roboflow.com/scripts/utm.js"
 
-    assert extra_javascript.count(utm_url) == 1
-    utm_index = extra_javascript.index(utm_url)
-    assert extra_javascript[utm_index + 1] == "javascripts/segment.js"
+    assert extra_javascript.count("https://app.roboflow.com/scripts/utm.js") == 1
+    assert "javascripts/segment.js" not in extra_javascript
+
+
+CDN_STEP = "\N{PUSHPIN} Pin or drop public-CDN scripts in published trees"
+
+# Each tag exactly as the published gh-pages trees carry it.
+MATHJAX_3_PUBLISHED = (
+    '<script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>'
+)
+MATHJAX_2_PUBLISHED = (
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js'
+    '?config=TeX-AMS_CHTML-full,Safe"> </script>'
+)
+DOMPURIFY_PUBLISHED = (
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/'
+    'purify.min.js"></script>'
+)
+REQUIREJS_PUBLISHED = (
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/'
+    'require.min.js"></script>'
+)
+SEGMENT_PUBLISHED = '<script src="../javascripts/segment.js"></script>'
+MATHJAX_CONFIG_PUBLISHED = '<script src="../javascripts/mathjax.js"></script>'
+# A formula as pymdownx.arithmatex renders it: what the MathJax config typesets.
+ARITHMATEX_SPAN = r'<span class="arithmatex">\(|A \cap B|\)</span>'
+# The tag MathJax 3 is pinned to, by this script and by its first version alike.
+MATHJAX_3_PINNED = (
+    '<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" '
+    'integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/'
+    '1Nxveei" crossorigin="anonymous"></script>'
+)
+# The tag the script's first version pinned MathJax 2 to.
+MATHJAX_2_FIRST_PIN = (
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js'
+    '?config=TeX-AMS_CHTML-full,Safe" '
+    'integrity="sha384-vi9R4hb1goLJPJDHY+dOmXxcY3HGv6tJIwHxy5JunOTxJGHbsSuubPgl++'
+    'SNxYYi" crossorigin="anonymous"></script>'
+)
+
+
+def test_backfill_wires_the_cdn_pinning_script(workflow_step: StepLookup) -> None:
+    """Ensure the backfill job runs the CDN pinning script against the checkout root."""
+    cdn_step = workflow_step(BACKFILL_WORKFLOW, "backfill", CDN_STEP)["run"]
+
+    assert (
+        '"$GITHUB_WORKSPACE/_scripts/.github/scripts/pin_cdn_scripts.py" .' in cdn_step
+    )
+
+
+def test_backfill_drops_segment_only_after_the_carrier_step_anchored_on_it(
+    workflows_dir: Path,
+) -> None:
+    """Pin after the carrier step, which anchors `utm.js` on the `segment.js` tag."""
+    workflow = yaml.safe_load(
+        (workflows_dir / BACKFILL_WORKFLOW).read_text(encoding="utf-8")
+    )
+    names = [step["name"] for step in workflow["jobs"]["backfill"]["steps"]]
+
+    assert names.index(TRACKING_STEP) < names.index(CDN_STEP) < names.index(COMMIT_STEP)
+
+
+@pytest.mark.parametrize(
+    ("published", "pinned_src"),
+    [
+        pytest.param(
+            MATHJAX_3_PUBLISHED,
+            "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js",
+            id="mathjax-3-floating-major",
+        ),
+        pytest.param(
+            DOMPURIFY_PUBLISHED,
+            "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.5.0/purify.min.js",
+            id="dompurify-3.0.8",
+        ),
+    ],
+)
+def test_pin_cdn_scripts_pins_each_published_tag_in_place(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    published: str,
+    pinned_src: str,
+) -> None:
+    """Swap a hash-less tag a page with math still needs for a pinned one, in place."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<body>{ARITHMATEX_SPAN}\n        {published}\n</body>")
+
+    rewritten, changes = module.patch_directory(page.parent)
+
+    assert rewritten == [page]
+    assert sum(changes.values()) == 1
+    before, pinned, after = page.read_text().split("\n")
+    assert (before, after) == (f"<body>{ARITHMATEX_SPAN}", "</body>")
+    assert re.fullmatch(
+        rf'        <script src="{re.escape(pinned_src)}" '
+        r'integrity="sha384-[A-Za-z0-9+/]{64}" crossorigin="anonymous"></script>',
+        pinned,
+    )
+
+
+@pytest.mark.parametrize(
+    "published_line",
+    [
+        pytest.param(MATHJAX_2_PUBLISHED, id="mathjax-2-latest-js"),
+        pytest.param(MATHJAX_2_FIRST_PIN, id="mathjax-2-first-pin"),
+        pytest.param(REQUIREJS_PUBLISHED, id="requirejs"),
+        pytest.param(
+            '        <script src="javascripts/segment.js"></script>', id="segment-root"
+        ),
+        pytest.param(f"        {SEGMENT_PUBLISHED}", id="segment-nested"),
+        pytest.param(
+            '        <script src="/latest/javascripts/segment.js"></script>',
+            id="segment-absolute",
+        ),
+    ],
+)
+def test_pin_cdn_scripts_drops_unused_tags_with_their_line(
+    tmp_path: Path, load_script: Callable[[str], ModuleType], published_line: str
+) -> None:
+    """Drop MathJax 2, RequireJS and Segment, line and all, leaving no blank line."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<body>\n{published_line}\n  <p>kept</p>\n</body>")
+
+    rewritten, changes = module.patch_directory(page.parent)
+
+    assert rewritten == [page]
+    assert sum(changes.values()) == 1
+    assert page.read_text() == "<body>\n  <p>kept</p>\n</body>"
+
+
+@pytest.mark.parametrize(
+    "mathjax_3_tag",
+    [
+        pytest.param(MATHJAX_3_PUBLISHED, id="published"),
+        pytest.param(MATHJAX_3_PINNED, id="pinned-by-the-first-version"),
+    ],
+)
+def test_pin_cdn_scripts_drops_mathjax_and_its_config_from_a_page_without_math(
+    tmp_path: Path, load_script: Callable[[str], ModuleType], mathjax_3_tag: str
+) -> None:
+    """Drop MathJax 3 and the config that drives it from a page with no formula."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        "<body>\n"
+        f"        {MATHJAX_CONFIG_PUBLISHED}\n"
+        f"        {mathjax_3_tag}\n"
+        "  <p>kept</p>\n"
+        "</body>"
+    )
+
+    _, changes = module.patch_directory(page.parent)
+
+    assert changes == Counter({"MathJax 3 dropped": 1, "MathJax config dropped": 1})
+    assert page.read_text() == "<body>\n  <p>kept</p>\n</body>"
+
+
+def test_pin_cdn_scripts_keeps_the_mathjax_config_on_a_page_with_math(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Pin MathJax 3 on a page with a formula and keep the config that drives it."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "0.26.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        f"{ARITHMATEX_SPAN}\n{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PUBLISHED}\n"
+    )
+
+    _, changes = module.patch_directory(page.parent)
+
+    assert changes == Counter({"MathJax 3 pinned": 1})
+    assert page.read_text() == (
+        f"{ARITHMATEX_SPAN}\n{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PINNED}\n"
+    )
+
+
+def test_pin_cdn_scripts_keeps_the_config_of_a_mathjax_it_does_not_know(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Leave the config alone where MathJax loads from somewhere this script skips."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    original = (
+        f"{MATHJAX_CONFIG_PUBLISHED}\n"
+        '<script src="../javascripts/vendor/mathjax/tex-mml-chtml.js"></script>\n'
+    )
+    page.write_text(original)
+
+    rewritten, _ = module.patch_directory(page.parent)
+
+    assert rewritten == []
+    assert page.read_text() == original
+
+
+@pytest.mark.parametrize(
+    ("math", "kept"),
+    [
+        pytest.param(
+            f"{ARITHMATEX_SPAN}\n",
+            f"{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PINNED}\n",
+            id="page-with-math",
+        ),
+        pytest.param("", "", id="page-without-math"),
+    ],
+)
+def test_pin_cdn_scripts_finishes_a_page_its_first_version_pinned(
+    tmp_path: Path, load_script: Callable[[str], ModuleType], math: str, kept: str
+) -> None:
+    """Drop the pins a page does not need from a page the first version rewrote."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "0.26.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        f"{math}{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PINNED}\n"
+        f"{MATHJAX_2_FIRST_PIN}\n{module.DOMPURIFY_TAG}\n"
+    )
+
+    module.patch_directory(page.parent)
+
+    assert page.read_text() == f"{math}{kept}{module.DOMPURIFY_TAG}\n"
+
+
+def test_pin_cdn_scripts_is_idempotent(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A second run changes nothing: no pattern matches a tag the first run wrote."""
+    module = load_script("pin_cdn_scripts")
+    version_dir = tmp_path / "0.24.0"
+    page = version_dir / "notebooks" / "quickstart" / "index.html"
+    page.parent.mkdir(parents=True)
+    published = [
+        MATHJAX_3_PUBLISHED,
+        MATHJAX_2_PUBLISHED,
+        DOMPURIFY_PUBLISHED,
+        REQUIREJS_PUBLISHED,
+        SEGMENT_PUBLISHED,
+    ]
+    page.write_text("\n".join([*published, ""]))
+    first_rewritten, _ = module.patch_directory(version_dir)
+    once = page.read_text()
+
+    second_rewritten, second_changes = module.patch_directory(version_dir)
+
+    assert first_rewritten == [page]
+    assert second_rewritten == []
+    assert not second_changes
+    assert page.read_text() == once
+
+
+def test_pin_cdn_scripts_leaves_a_rebuilt_page_untouched(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Leave a page `mike` rebuilt from the current source alone: no pattern matches."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "latest" / "cookbooks" / "index.html"
+    page.parent.mkdir(parents=True)
+    original = (
+        "<head>\n"
+        '<script src="../javascripts/vendor/purify.min.js"></script>\n'
+        "</head>\n"
+        "<body>\n"
+        '        <script src="../javascripts/cookbooks-card.js"></script>\n'
+        '        <script src="https://app.roboflow.com/scripts/utm.js"></script>\n'
+        "</body>\n"
+    )
+    page.write_text(original)
+
+    rewritten, changes = module.patch_directory(tmp_path / "latest")
+
+    assert rewritten == []
+    assert not changes
+    assert page.read_text() == original
+
+
+def test_pin_cdn_scripts_keeps_crlf_line_endings(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Keep a CRLF page's line endings, which a text-mode read would turn into LF."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    lines = ["<body>", REQUIREJS_PUBLISHED, DOMPURIFY_PUBLISHED, "</body>", ""]
+    page.write_bytes("\r\n".join(lines).encode())
+
+    module.patch_directory(page.parent)
+
+    expected = ["<body>", module.DOMPURIFY_TAG, "</body>", ""]
+    assert page.read_bytes() == "\r\n".join(expected).encode()
+
+
+def test_pin_cdn_scripts_rewrites_latest_develop_and_every_numeric_version(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Rewrite every version tree, but no top-level page or non-version directory."""
+    module = load_script("pin_cdn_scripts")
+    published = f"{SEGMENT_PUBLISHED}\n"
+    for version_dir in ("latest", "develop", "0.30.5", "0.10.0"):
+        (tmp_path / version_dir).mkdir()
+        (tmp_path / version_dir / "index.html").write_text(published)
+    (tmp_path / "assets").mkdir()
+    outside = [tmp_path / "404.html", tmp_path / "assets" / "index.html"]
+    for page in outside:
+        page.write_text(published)
+
+    results = module.patch_tree(tmp_path)
+
+    assert set(results) == {"latest", "develop", "0.30.5", "0.10.0"}
+    assert all(len(rewritten) == 1 for rewritten, _ in results.values())
+    assert all(page.read_text() == published for page in outside)
+
+
+def test_pin_cdn_scripts_main_reports_per_directory_and_total_counts(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`main` prints each directory's pages and per-kind tag counts, then the total."""
+    module = load_script("pin_cdn_scripts")
+    (tmp_path / "latest").mkdir()
+    (tmp_path / "latest" / "index.html").write_text(
+        f"{DOMPURIFY_PUBLISHED}\n{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PUBLISHED}\n"
+        f"{SEGMENT_PUBLISHED}\n"
+    )
+    (tmp_path / "develop").mkdir()
+    (tmp_path / "0.24.0").mkdir()
+    (tmp_path / "0.24.0" / "index.html").write_text(
+        f"{REQUIREJS_PUBLISHED}\n{MATHJAX_2_PUBLISHED}\n"
+    )
+    (tmp_path / "0.26.0").mkdir()
+    (tmp_path / "0.26.0" / "index.html").write_text(
+        f"{ARITHMATEX_SPAN}\n{MATHJAX_3_PUBLISHED}\n"
+    )
+    monkeypatch.setattr(module.sys, "argv", ["pin_cdn_scripts.py", str(tmp_path)])
+
+    exit_code = module.main()
+
+    assert exit_code == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "latest: rewrote 1 page(s) (MathJax 3 dropped 1, MathJax config dropped 1, "
+        "DOMPurify pinned 1, Segment dropped 1)",
+        "develop: rewrote 0 page(s)",
+        "0.24.0: rewrote 1 page(s) (MathJax 2 dropped 1, RequireJS dropped 1)",
+        "0.26.0: rewrote 1 page(s) (MathJax 3 pinned 1)",
+        "total: rewrote 3 page(s) (MathJax 3 pinned 1, MathJax 3 dropped 1, "
+        "MathJax config dropped 1, MathJax 2 dropped 1, DOMPurify pinned 1, "
+        "RequireJS dropped 1, Segment dropped 1)",
+    ]

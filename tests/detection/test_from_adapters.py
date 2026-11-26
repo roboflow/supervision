@@ -1,13 +1,20 @@
+import base64
+import io
 from collections import UserDict
+from collections.abc import Callable
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
-from supervision.detection.core import Detections
+from supervision.detection.compact_mask import CompactMask
+from supervision.detection.core import (
+    Detections,
+)
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import (
     _FakeDeepSparseResults,
@@ -378,6 +385,54 @@ class TestFromTransformers:
         det = Detections.from_transformers(result, id2label={0: "cat", 1: "dog"})
 
         np.testing.assert_array_equal(det.data[CLASS_NAME_DATA_FIELD], ["cat", "dog"])
+
+    @pytest.mark.parametrize("dtype_name", ["bfloat16", "float16", "float32"])
+    @pytest.mark.parametrize("requires_grad", [False, True])
+    def test_detection_path_accepts_tensor_precisions(
+        self, dtype_name: str, requires_grad: bool
+    ) -> None:
+        """Half-precision model outputs load, with bfloat16 widened to float32."""
+        torch = pytest.importorskip("torch")
+        dtype = getattr(torch, dtype_name)
+        boxes = torch.tensor([[10.0, 20.0, 30.0, 40.0]], dtype=dtype)
+        scores = torch.tensor([0.5], dtype=dtype)
+        boxes.requires_grad_(requires_grad)
+        scores.requires_grad_(requires_grad)
+        result = {"boxes": boxes, "labels": torch.tensor([1]), "scores": scores}
+        expected_dtype = np.float32 if dtype_name == "bfloat16" else dtype_name
+
+        det = Detections.from_transformers(result)
+
+        np.testing.assert_array_equal(det.xyxy, [[10.0, 20.0, 30.0, 40.0]])
+        assert det.xyxy.dtype == expected_dtype
+        assert det.confidence is not None
+        np.testing.assert_array_equal(det.confidence, [0.5])
+        assert det.confidence.dtype == expected_dtype
+        np.testing.assert_array_equal(det.class_id, [1])
+
+    def test_v4_segmentation_path_accepts_bfloat16_outputs(self) -> None:
+        """V4 instance results with bfloat16 boxes and scores load as float32."""
+        torch = pytest.importorskip("torch")
+        masks = torch.zeros((1, 1, 4, 4), dtype=torch.bfloat16)
+        masks[0, 0, :2, :2] = 1
+        result = {
+            "boxes": torch.tensor([[0.0, 0.0, 2.0, 2.0]], dtype=torch.bfloat16),
+            "masks": masks,
+            "labels": torch.tensor([3]),
+            "scores": torch.tensor([0.75], dtype=torch.bfloat16),
+        }
+
+        det = Detections.from_transformers(result)
+
+        assert det.mask is not None
+        assert det.mask.shape == (1, 4, 4)
+        np.testing.assert_array_equal(det.mask[0][:2, :2], np.ones((2, 2), dtype=bool))
+        np.testing.assert_array_equal(det.area, [4])
+        np.testing.assert_array_equal(det.xyxy, [[0.0, 0.0, 2.0, 2.0]])
+        assert det.confidence is not None
+        np.testing.assert_array_equal(det.confidence, [0.75])
+        assert det.xyxy.dtype == np.float32
+        assert det.confidence.dtype == np.float32
 
     def test_v4_segmentation_masks_without_boxes_yield_correct_shape(self) -> None:
         """V4 segmentation with masks-only produces mask of shape (N, H, W)."""
@@ -883,6 +938,42 @@ class TestFromAzureAnalyzeImage:
 class TestFromNCNN:
     """from_ncnn converts ncnn rect objects (xywh) to xyxy Detections."""
 
+    @pytest.mark.parametrize(
+        "scalar_type",
+        [
+            pytest.param(float, id="python-float"),
+            pytest.param(int, id="python-int"),
+            pytest.param(np.float32, id="numpy-float32"),
+            pytest.param(np.float64, id="numpy-float64"),
+            pytest.param(np.int32, id="numpy-int32"),
+        ],
+    )
+    def test_accepts_python_and_numpy_coordinates(
+        self, scalar_type: Callable[[int], Any]
+    ) -> None:
+        """Convert numeric rect fields without requiring NumPy scalar methods."""
+        objects = [
+            SimpleNamespace(
+                rect=SimpleNamespace(
+                    x=scalar_type(10),
+                    y=scalar_type(-20),
+                    w=scalar_type(30),
+                    h=scalar_type(40),
+                ),
+                prob=0.9,
+                label=2,
+            )
+        ]
+
+        detections = Detections.from_ncnn(objects)
+
+        np.testing.assert_array_equal(detections.xyxy, [[10, -20, 40, 20]])
+        assert detections.xyxy.dtype == np.float32
+        assert detections.confidence is not None
+        assert detections.class_id is not None
+        np.testing.assert_allclose(detections.confidence, [0.9])
+        np.testing.assert_array_equal(detections.class_id, [2])
+
     def test_empty_objects_return_empty_detections(self) -> None:
         """Empty object list yields zero-length Detections."""
         det = Detections.from_ncnn([])
@@ -923,3 +1014,707 @@ class TestFromNCNN:
         assert det.class_id is not None
         assert float(det.confidence[0]) == pytest.approx(first.prob)
         assert int(det.class_id[0]) == first.label
+
+
+def test_from_inference_partial_tracker_id_does_not_crash() -> None:
+    """Results where only some predictions carry a tracker_id must not raise."""
+    result = {
+        "image": {"width": 200, "height": 200},
+        "predictions": [
+            {
+                "x": 50,
+                "y": 50,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "a",
+                "class_id": 0,
+                "tracker_id": 7,
+            },
+            {
+                "x": 120,
+                "y": 120,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.8,
+                "class": "b",
+                "class_id": 1,
+            },
+        ],
+    }
+
+    detections = Detections.from_inference(result)
+
+    # all detections are kept; tracker_id is dropped rather than misaligned
+    assert len(detections) == 2
+    assert detections.tracker_id is None
+    assert detections.class_id is not None
+    assert np.array_equal(detections.class_id, np.array([0, 1]))
+    assert detections.confidence is not None
+    assert np.array_equal(detections.confidence, np.array([0.9, 0.8]))
+    assert detections.xyxy.shape == (2, 4)
+    assert detections["class_name"] is not None
+
+
+def test_from_inference_partial_mask_does_not_crash() -> None:
+    """Results where only some predictions carry a mask must not raise."""
+    result = {
+        "image": {"width": 100, "height": 100},
+        "predictions": [
+            {
+                "x": 20,
+                "y": 20,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "a",
+                "class_id": 0,
+                "points": [
+                    {"x": 10, "y": 10},
+                    {"x": 30, "y": 10},
+                    {"x": 30, "y": 30},
+                    {"x": 10, "y": 30},
+                ],
+            },
+            {
+                "x": 70,
+                "y": 70,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.8,
+                "class": "b",
+                "class_id": 1,
+            },
+        ],
+    }
+
+    detections = Detections.from_inference(result)
+
+    # all detections are kept; masks are dropped rather than misaligned
+    assert len(detections) == 2
+    assert detections.mask is None
+    assert detections.xyxy.shape == (2, 4)
+
+
+def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
+    """Empty and non-empty results should produce string-kind class_name arrays."""
+    empty_result = {"predictions": [], "image": {"width": 100, "height": 100}}
+    non_empty_result = {
+        "predictions": [
+            {
+                "x": 50,
+                "y": 50,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "cat",
+                "class_id": 0,
+            }
+        ],
+        "image": {"width": 100, "height": 100},
+    }
+    empty = Detections.from_inference(empty_result)
+    non_empty = Detections.from_inference(non_empty_result)
+
+    # null-safety: class_name must be an array, not None
+    empty_names = empty["class_name"]
+    non_empty_names = non_empty["class_name"]
+    assert isinstance(empty_names, np.ndarray)
+    assert isinstance(non_empty_names, np.ndarray)
+
+    # dtype kind must match between empty and non-empty paths
+    assert empty_names.dtype.kind == non_empty_names.dtype.kind == "U"
+
+    # all data keys and dtypes must match between empty and non-empty paths
+    assert set(empty.data.keys()) == set(non_empty.data.keys())
+    for key in non_empty.data:
+        empty_values, non_empty_values = empty.data[key], non_empty.data[key]
+        assert isinstance(empty_values, np.ndarray), key
+        assert isinstance(non_empty_values, np.ndarray), key
+        assert empty_values.dtype.kind == non_empty_values.dtype.kind, key
+
+    # concatenation across empty+non-empty must produce a string-kind array
+    concat = np.concatenate([empty_names, non_empty_names])
+    assert concat.dtype.kind == "U"
+
+
+def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None:
+    """SDK objects with .dict() and empty predictions produce string-kind class_name."""
+
+    class _FakeSdkResult:
+        def dict(self, **kwargs: object) -> dict[str, Any]:
+            return {"predictions": [], "image": {"width": 100, "height": 100}}
+
+    detections = Detections.from_inference(_FakeSdkResult())
+    class_name = detections["class_name"]
+    assert isinstance(class_name, np.ndarray)
+    assert class_name.dtype.kind == "U"
+
+
+def test_from_inference_compact_masks_default_keeps_dense_mask() -> None:
+    """Default from_inference RLE output should remain a dense ndarray mask."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [4, 4], "counts": "52203"},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    detections = Detections.from_inference(result)
+
+    assert isinstance(detections.mask, np.ndarray)
+    assert not isinstance(detections.mask, CompactMask)
+
+
+def test_from_inference_compact_masks_matches_dense_default() -> None:
+    """compact_masks=True and False agree when all True pixels are inside the bbox."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle_mask": {"size": [4, 4], "counts": "52203"},
+                "tracker_id": 5,
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense = Detections.from_inference(result)
+
+    compact = Detections.from_inference(result, compact_masks=True)
+
+    assert isinstance(compact.mask, CompactMask)
+    assert dense.mask is not None
+    np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
+    np.testing.assert_array_equal(compact.xyxy, dense.xyxy)
+    np.testing.assert_array_equal(compact.confidence, dense.confidence)
+    np.testing.assert_array_equal(compact.class_id, dense.class_id)
+    np.testing.assert_array_equal(compact.tracker_id, dense.tracker_id)
+    np.testing.assert_array_equal(compact["class_name"], dense["class_name"])
+
+
+def test_from_inference_compact_masks_crops_to_detector_bbox() -> None:
+    """compact_masks=True crops masks to the detector bbox; pixels outside are dropped.
+
+    This is the documented behaviour (see Warning in Detections.from_inference): each
+    mask is cropped to its detector bbox, so True pixels outside that box are not
+    stored.  Dense masks are unaffected and preserve the full mask.
+    """
+    # Mask has True at (row=0,col=0) [inside bbox] and (row=3,col=3) [outside bbox].
+    # counts=[0,1,14,1,0]: 0 False, 1 True (pos 0), 14 False, 1 True (pos 15), 0 False.
+    # Bbox x_min=0,y_min=0,x_max=2,y_max=2 (int-truncated) covers cols 0-2, rows 0-2.
+    result = {
+        "predictions": [
+            {
+                "x": 1.0,
+                "y": 1.0,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.8,
+                "class_id": 0,
+                "class": "cat",
+                "rle_mask": {"size": [4, 4], "counts": [0, 1, 14, 1, 0]},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense = Detections.from_inference(result)
+    compact = Detections.from_inference(result, compact_masks=True)
+
+    assert isinstance(dense.mask, np.ndarray)
+    assert isinstance(compact.mask, CompactMask)
+    # Dense preserves both True pixels (full-image RLE decode, no cropping).
+    assert dense.mask[0].sum() == 2
+    assert bool(dense.mask[0, 0, 0])
+    assert bool(dense.mask[0, 3, 3])
+    # Compact crops to detector bbox (cols 0-2, rows 0-2): out-of-bbox pixel dropped.
+    compact_dense = compact.mask.to_dense()
+    assert bool(compact_dense[0, 0, 0]), "in-bbox pixel must be preserved"
+    assert not bool(compact_dense[0, 3, 3]), "out-of-bbox pixel silently dropped"
+    assert compact_dense[0].sum() == 1
+
+
+def test_from_inference_compact_masks_multiple_predictions_matches_dense() -> None:
+    """compact_masks=True with N>1 predictions exercises batched from_coco_rle."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 3.0,
+                "height": 3.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle_mask": {"size": [4, 4], "counts": "52203"},
+            },
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 3.0,
+                "height": 3.0,
+                "confidence": 0.8,
+                "class_id": 1,
+                "class": "car",
+                "rle_mask": {"size": [4, 4], "counts": [0, 16]},
+            },
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense = Detections.from_inference(result)
+    compact = Detections.from_inference(result, compact_masks=True)
+
+    assert isinstance(compact.mask, CompactMask)
+    assert len(compact) == 2
+    assert dense.mask is not None
+    np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
+
+
+def test_from_inference_compact_masks_empty_preserves_data_contract() -> None:
+    """compact_masks=True empty results should keep class_name string dtype."""
+    result = {"predictions": [], "image": {"width": 100, "height": 100}}
+
+    detections = Detections.from_inference(result, compact_masks=True)
+
+    assert detections.mask is None
+    class_name = detections["class_name"]
+    assert isinstance(class_name, np.ndarray)
+    assert class_name.dtype.kind == "U"
+
+
+def _png_b64(array: np.ndarray) -> str:
+    """Encode an integer array as a base64 PNG, as Inference serialises it."""
+    buffer = io.BytesIO()
+    Image.fromarray(array).save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode()
+
+
+class TestDetectionsFromSemanticSegmentation:
+    """Detections.from_semantic_segmentation builds one detection per class id."""
+
+    LABEL_MAP: ClassVar[np.ndarray] = np.array([[0, 0, 1], [0, 2, 1]], dtype=np.uint8)
+    CONFIDENCE_MAP: ClassVar[np.ndarray] = np.array(
+        [[200, 200, 255], [200, 100, 255]], dtype=np.uint8
+    )
+    CLASS_MAP: ClassVar[dict[str, str]] = {
+        "0": "background",
+        "1": "road",
+        "2": "car",
+    }
+
+    def test_decodes_base64_png_and_drops_background(self) -> None:
+        """A base64 PNG yields a mask, box and name per class, background dropped.
+
+        This is the payload Roboflow Inference returns for semantic segmentation, where
+        id 0 is the background.
+        """
+        detections = Detections.from_semantic_segmentation(
+            _png_b64(self.LABEL_MAP), class_map=self.CLASS_MAP
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 2])
+        assert np.array_equal(detections.data["class_name"], ["road", "car"])
+        assert detections.confidence is None
+        assert np.array_equal(detections.xyxy, [[2, 0, 2, 1], [1, 1, 1, 1]])
+        assert isinstance(detections.mask, np.ndarray)
+        assert np.array_equal(
+            detections.mask, [self.LABEL_MAP == 1, self.LABEL_MAP == 2]
+        )
+
+    def test_accepts_integer_array(self) -> None:
+        """An in-process integer label array needs no PNG decoding."""
+        detections = Detections.from_semantic_segmentation(self.LABEL_MAP)
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 2])
+
+    def test_keeps_background_when_background_id_is_none(self) -> None:
+        """`background_id=None` keeps every class, background included."""
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, class_map=self.CLASS_MAP, background_id=None
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [0, 1, 2])
+        assert np.array_equal(
+            detections.data["class_name"], ["background", "road", "car"]
+        )
+
+    def test_names_unlisted_class_by_its_id(self) -> None:
+        """A class missing from `class_map` is named by its id as text."""
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, class_map={"1": "road"}
+        )
+
+        assert np.array_equal(detections.data["class_name"], ["road", "2"])
+
+    def test_confidence_is_class_mean_over_255(self) -> None:
+        """Confidence is each class's mean 8-bit confidence divided by 255."""
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, confidence_mask=_png_b64(self.CONFIDENCE_MAP)
+        )
+
+        assert detections.confidence is not None
+        assert np.allclose(detections.confidence, [1.0, 100 / 255])
+
+    def test_compact_masks_match_dense_masks(self) -> None:
+        """`compact_masks=True` returns a CompactMask with the same pixels."""
+        dense = Detections.from_semantic_segmentation(self.LABEL_MAP)
+
+        compact = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, compact_masks=True
+        )
+
+        assert isinstance(compact.mask, CompactMask)
+        assert isinstance(dense.mask, np.ndarray)
+        assert np.array_equal(compact.mask.to_dense(), dense.mask)
+
+    @pytest.mark.parametrize(
+        ("label_png", "sample_ids"),
+        [
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABAQAAAADRRzJgAAAACklE"
+                "QVR4nGMIAAAAUgBR9yHZtwAAAABJRU5ErkJggg==",
+                [0, 1, 0, 1],
+                id="grayscale-1-bit",
+            ),
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABAgAAAACW50iwAAAACklE"
+                "QVR4nGOQBQAAHwAe5eoyzQAAAABJRU5ErkJggg==",
+                [0, 1, 3, 1],
+                id="grayscale-2-bit",
+            ),
+            pytest.param(
+                "iVBORw0KGgoAAAANSUhEUgAAAAQAAAABBAAAAAAZp70QAAAAC0lE"
+                "QVR4nGNg/AgAAPYA85wqhk0AAAAASUVORK5CYII=",
+                [0, 1, 15, 1],
+                id="grayscale-4-bit",
+            ),
+        ],
+    )
+    def test_low_bit_depth_png_preserves_class_ids(
+        self, label_png: str, sample_ids: list[int]
+    ) -> None:
+        """Grayscale PNG label values survive display-intensity expansion."""
+        label_map = np.array([sample_ids], dtype=np.uint8)
+        class_ids = np.unique(label_map)
+        class_ids = class_ids[class_ids != 0]
+
+        detections = Detections.from_semantic_segmentation(label_png)
+
+        np.testing.assert_array_equal(detections.class_id, class_ids)
+        np.testing.assert_array_equal(
+            detections.mask, label_map == class_ids[:, None, None]
+        )
+
+    def test_keeps_ids_above_255_from_a_16_bit_png(self) -> None:
+        """A 16-bit PNG keeps class ids that do not fit in 8 bits."""
+        label_map = np.array([[0, 300], [300, 7]], dtype=np.uint16)
+
+        detections = Detections.from_semantic_segmentation(_png_b64(label_map))
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [7, 300])
+
+    def test_decodes_one_bit_png_as_class_ids_zero_and_one(self) -> None:
+        """A one-bit PNG, which Pillow reads as booleans, holds class ids 0 and 1."""
+        label_map = np.array([[False, True], [True, True]])
+
+        detections = Detections.from_semantic_segmentation(
+            _png_b64(label_map), background_id=None
+        )
+
+        assert detections.class_id is not None
+        assert isinstance(detections.mask, np.ndarray)
+        assert np.array_equal(detections.class_id, [0, 1])
+        assert np.array_equal(detections.mask, [~label_map, label_map])
+
+    def test_returns_empty_detections_when_only_background(self) -> None:
+        """A map holding only the background id yields no detections."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 2), dtype=np.uint8)
+        )
+
+        assert len(detections) == 0
+        assert len(detections.data["class_name"]) == 0
+
+    @pytest.mark.parametrize(
+        ("compact_masks", "mask_type"),
+        [
+            pytest.param(False, np.ndarray, id="dense"),
+            pytest.param(True, CompactMask, id="compact"),
+        ],
+    )
+    def test_background_only_result_keeps_requested_mask_type(
+        self, compact_masks: bool, mask_type: type
+    ) -> None:
+        """A background-only map returns an empty mask of the requested kind."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8), compact_masks=compact_masks
+        )
+
+        assert detections.mask is not None
+        assert isinstance(detections.mask, mask_type)
+        assert detections.mask.shape == (0, 2, 3)
+
+    def test_background_only_result_has_no_confidence_without_map(self) -> None:
+        """Without a confidence map an empty result keeps `confidence` as `None`."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8)
+        )
+
+        assert detections.confidence is None
+
+    def test_background_only_result_has_empty_confidence_with_map(self) -> None:
+        """With a confidence map an empty result has an empty `confidence` array."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8),
+            confidence_mask=np.full((2, 3), 255, dtype=np.uint8),
+        )
+
+        assert detections.confidence is not None
+        assert detections.confidence.shape == (0,)
+
+    def test_names_classes_from_integer_keys(self) -> None:
+        """An integer-keyed `id2label` names classes like a text-keyed `class_map`.
+
+        Hugging Face configs hold `id2label` with integer keys. Matching them only as
+        text would silently name every class by its id.
+        """
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, class_map={1: "road", 2: "car"}
+        )
+
+        assert np.array_equal(detections.data["class_name"], ["road", "car"])
+
+    @pytest.mark.parametrize(
+        "wrap",
+        [
+            pytest.param(lambda fields: {"predictions": fields}, id="response-dict"),
+            pytest.param(
+                lambda fields: SimpleNamespace(predictions=SimpleNamespace(**fields)),
+                id="response-object",
+            ),
+            pytest.param(lambda fields: fields, id="predictions-dict"),
+            pytest.param(
+                lambda fields: SimpleNamespace(**fields), id="predictions-object"
+            ),
+        ],
+    )
+    def test_reads_whole_inference_result(self, wrap: Any) -> None:
+        """A whole Inference result gives the same detections as its unpacked fields.
+
+        `model.infer(image)[0]` returns an object and the HTTP client returns a dict,
+        and users may pass either the result or its `predictions`.
+        """
+        result = wrap(
+            {
+                "segmentation_mask": _png_b64(self.LABEL_MAP),
+                "class_map": self.CLASS_MAP,
+                "confidence_mask": _png_b64(self.CONFIDENCE_MAP),
+            }
+        )
+
+        detections = Detections.from_semantic_segmentation(result)
+
+        assert detections.class_id is not None
+        assert detections.confidence is not None
+        assert np.array_equal(detections.class_id, [1, 2])
+        assert np.array_equal(detections.data["class_name"], ["road", "car"])
+        assert np.allclose(detections.confidence, [1.0, 100 / 255])
+
+    def test_explicit_class_map_overrides_whole_result(self) -> None:
+        """An explicit `class_map` wins over the one inside a whole result."""
+        result = {
+            "predictions": {
+                "segmentation_mask": _png_b64(self.LABEL_MAP),
+                "class_map": self.CLASS_MAP,
+            }
+        }
+
+        detections = Detections.from_semantic_segmentation(
+            result, class_map={"1": "lane", "2": "truck"}
+        )
+
+        assert np.array_equal(detections.data["class_name"], ["lane", "truck"])
+
+    @pytest.mark.parametrize(
+        ("segmentation_result", "message"),
+        [
+            pytest.param(None, "segmentation_mask", id="none"),
+            pytest.param(object(), "segmentation_mask", id="unknown-object"),
+            pytest.param({"image": {}}, "segmentation_mask", id="dict-without-mask"),
+            pytest.param(
+                {"predictions": [{"x": 1}]},
+                "segmentation_mask",
+                id="object-detection-result",
+            ),
+            pytest.param([{}], "single result", id="list-of-results"),
+        ],
+    )
+    def test_rejects_input_without_a_map(
+        self, segmentation_result: Any, message: str
+    ) -> None:
+        """Input holding no map raises a ValueError that says what to pass.
+
+        An opaque `AttributeError` from deep inside the decoder gave no hint of the
+        expected input.
+        """
+        with pytest.raises(ValueError, match=message):
+            Detections.from_semantic_segmentation(segmentation_result)
+
+    @pytest.mark.parametrize(
+        "confidence_mask",
+        [
+            pytest.param(np.zeros((2, 3), dtype=np.float32), id="float-map"),
+            pytest.param({"a": 1}, id="dict"),
+            pytest.param(_png_b64(np.zeros((2, 3), dtype=bool)), id="one-bit-png"),
+        ],
+    )
+    def test_undecodable_confidence_error_names_confidence_mask(
+        self, confidence_mask: Any
+    ) -> None:
+        """A bad confidence map raises an error naming `confidence_mask`."""
+        with pytest.raises(ValueError, match="confidence_mask"):
+            Detections.from_semantic_segmentation(
+                self.LABEL_MAP, confidence_mask=confidence_mask
+            )
+
+    @pytest.mark.parametrize(
+        ("segmentation_mask", "message"),
+        [
+            pytest.param("data:image/png;base64,AAAA", "not valid base64", id="uri"),
+            pytest.param(
+                base64.b64encode(b"not a png").decode(),
+                "not a decodable PNG",
+                id="not-png",
+            ),
+            pytest.param(
+                np.zeros((2, 2, 3), dtype=np.uint8),
+                "single-channel integer",
+                id="three-channels",
+            ),
+            pytest.param(
+                np.zeros((2, 2), dtype=np.float32),
+                "single-channel integer",
+                id="float-map",
+            ),
+        ],
+    )
+    def test_rejects_undecodable_map(
+        self, segmentation_mask: Any, message: str
+    ) -> None:
+        """A map that cannot become an integer (H, W) label map raises ValueError."""
+        with pytest.raises(ValueError, match=message):
+            Detections.from_semantic_segmentation(segmentation_mask)
+
+    def test_rejects_confidence_of_another_shape(self) -> None:
+        """A confidence mask of another shape raises instead of misaligning."""
+        with pytest.raises(ValueError, match="same shape"):
+            Detections.from_semantic_segmentation(
+                self.LABEL_MAP, confidence_mask=np.zeros((3, 3), dtype=np.uint8)
+            )
+
+    def test_rejects_base64_jpeg(self) -> None:
+        """Encoded label maps must use the documented lossless PNG format."""
+        buffer = io.BytesIO()
+        Image.fromarray(self.LABEL_MAP).save(buffer, format="JPEG")
+        encoded = base64.b64encode(buffer.getvalue()).decode()
+
+        with pytest.raises(ValueError, match="PNG"):
+            Detections.from_semantic_segmentation(encoded)
+
+    @pytest.mark.parametrize("value", [-1, 256])
+    def test_rejects_confidence_outside_eight_bit_range(self, value: int) -> None:
+        """Confidence values outside the 8-bit range cannot produce valid scores."""
+        confidence = np.full(self.LABEL_MAP.shape, value, dtype=np.int16)
+
+        with pytest.raises(ValueError, match=r"confidence_mask.*0.*255"):
+            Detections.from_semantic_segmentation(
+                self.LABEL_MAP, confidence_mask=confidence
+            )
+
+    def test_rejects_unsigned_class_id_above_int64(self) -> None:
+        """Unrepresentable class IDs raise a clear error instead of wrapping."""
+        labels = np.array([[2**63]], dtype=np.uint64)
+
+        with pytest.raises(ValueError, match="int64"):
+            Detections.from_semantic_segmentation(labels)
+
+    @pytest.mark.parametrize("value", [0, 255])
+    def test_accepts_confidence_boundaries(self, value: int) -> None:
+        """Both endpoints of the 8-bit confidence range normalize correctly."""
+        confidence = np.full(self.LABEL_MAP.shape, value, dtype=np.uint16)
+
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, confidence_mask=confidence
+        )
+
+        assert detections.confidence is not None
+        assert np.array_equal(detections.confidence, [value / 255] * 2)
+
+    def test_preserves_adjacent_large_unsigned_class_ids(self) -> None:
+        """Representable uint64 labels remain distinct near the int64 limit."""
+        maximum = np.iinfo(np.int64).max
+        labels = np.array([[maximum - 1, maximum]], dtype=np.uint64)
+
+        detections = Detections.from_semantic_segmentation(labels)
+
+        assert detections.class_id is not None
+        assert isinstance(detections.mask, np.ndarray)
+        assert np.array_equal(detections.class_id, [maximum - 1, maximum])
+        assert np.array_equal(detections.mask, [[[True, False]], [[False, True]]])
+
+    @pytest.mark.parametrize(
+        "wrap",
+        [
+            pytest.param(lambda result: result, id="http-client-dict"),
+            pytest.param(
+                lambda result: SimpleNamespace(dict=lambda **kwargs: result),
+                id="model-infer-object",
+            ),
+        ],
+    )
+    def test_from_inference_loads_semantic_result(self, wrap: Any) -> None:
+        """`from_inference` loads a semantic result like the dedicated loader.
+
+        Users reach for `from_inference` on any Inference result, so a semantic one must
+        load there too, from the HTTP client's dict or `model.infer`'s object.
+        """
+        result = {
+            "predictions": {
+                "segmentation_mask": _png_b64(self.LABEL_MAP),
+                "class_map": self.CLASS_MAP,
+                "confidence_mask": _png_b64(self.CONFIDENCE_MAP),
+            }
+        }
+
+        detections = Detections.from_inference(wrap(result))
+
+        assert detections == Detections.from_semantic_segmentation(result)
+
+    def test_from_inference_builds_compact_semantic_masks(self) -> None:
+        """`compact_masks=True` reaches the semantic loader through `from_inference`."""
+        result = {"predictions": {"segmentation_mask": _png_b64(self.LABEL_MAP)}}
+
+        detections = Detections.from_inference(result, compact_masks=True)
+
+        assert isinstance(detections.mask, CompactMask)
+        assert np.array_equal(
+            np.asarray(detections.mask), [self.LABEL_MAP == 1, self.LABEL_MAP == 2]
+        )

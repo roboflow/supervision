@@ -167,7 +167,7 @@ class TestProcessTransformersDetectionResult:
             out = process_transformers_detection_result(result, None)
 
         assert out["class_id"] is None
-        np.testing.assert_array_equal(out["data"][CLASS_NAME_DATA_FIELD], phrases)
+        assert out["data"][CLASS_NAME_DATA_FIELD].tolist() == phrases
 
     def test_phrase_labels_without_text_labels_become_class_names(self) -> None:
         """Phrase `labels` from releases without `text_labels` still name detections."""
@@ -206,6 +206,30 @@ class TestProcessTransformersDetectionResult:
         np.testing.assert_array_equal(
             out["data"][CLASS_NAME_DATA_FIELD], ["a dog", "a cat"]
         )
+
+    @pytest.mark.parametrize(
+        "labels_entry",
+        [
+            pytest.param({}, id="sam3-without-labels"),
+            pytest.param({"labels": None}, id="owlv2-image-guided-labels-none"),
+        ],
+    )
+    def test_class_agnostic_result_has_no_class_ids(
+        self, labels_entry: dict[str, None]
+    ) -> None:
+        """Results without class labels load their boxes with `class_id=None`."""
+        result = {
+            "boxes": _FakeDetachTensor(np.array([[1, 2, 3, 4]], dtype=np.float32)),
+            "scores": _FakeDetachTensor(np.array([0.5], dtype=np.float32)),
+            **labels_entry,
+        }
+
+        out = process_transformers_detection_result(result, None)
+
+        np.testing.assert_array_equal(out["xyxy"], [[1, 2, 3, 4]])
+        np.testing.assert_array_equal(out["confidence"], [0.5])
+        assert out["class_id"] is None
+        assert out["data"] == {}
 
     def test_grounding_dino_result_builds_detections(self) -> None:
         """Detections.from_transformers accepts a Grounding DINO result."""
@@ -291,6 +315,25 @@ class TestProcessTransformersV4SegmentationResult:
         out = process_transformers_v4_segmentation_result(seg_result, None)
 
         assert out["mask"].shape == (1, 4, 4)
+
+    def test_sam3_instance_result_without_labels(self) -> None:
+        """SAM 3 `(N, H, W)` masks with boxes and no labels load class-agnostic."""
+        masks = np.zeros((2, 4, 6), dtype=np.int64)
+        masks[0, 0:2, 0:3] = 1
+        masks[1, 2:4, 3:6] = 1
+        boxes = np.array([[0, 0, 3, 2], [3, 2, 6, 4]], dtype=np.float32)
+        seg_result = {
+            "scores": _FakeDetachTensor(np.array([0.5, 0.25], dtype=np.float32)),
+            "boxes": _FakeDetachTensor(boxes),
+            "masks": _FakeDetachTensor(masks),
+        }
+
+        detections = sv.Detections.from_transformers(seg_result)
+
+        np.testing.assert_array_equal(detections.xyxy, boxes)
+        np.testing.assert_array_equal(detections.mask, masks.astype(bool))
+        np.testing.assert_array_equal(detections.confidence, [0.5, 0.25])
+        assert detections.class_id is None
 
     def test_panoptic_path_triggered_by_png_string(self) -> None:
         """png_string key routes to panoptic sub-processor; returns mask per segment."""

@@ -10,7 +10,7 @@ logger = _get_logger(__name__)
 
 
 def is_md5_hash_matching(filename: str | Path, original_md5_hash: str) -> bool:
-    """Check if the MD5 hash of a file matches the original hash.
+    """Check a file's MD5 in bounded chunks against the original hash.
 
     Note: MD5 is used here for file integrity checking (detecting corruption),
     not for cryptographic security purposes.
@@ -21,13 +21,23 @@ def is_md5_hash_matching(filename: str | Path, original_md5_hash: str) -> bool:
 
     Returns:
         True if the hashes match, False otherwise.
+
+    Example:
+        ```python
+        from supervision.assets.downloader import is_md5_hash_matching
+
+        matches = is_md5_hash_matching(
+            "vehicles.mp4", "8155ff4e4de08cfa25f39de96483f918"
+        )
+        ```
     """
     if not os.path.exists(filename):
         return False
 
     with open(filename, "rb") as file:
-        file_contents = file.read()
-        computed_md5_hash = md5(file_contents, usedforsecurity=False)
+        computed_md5_hash = md5(usedforsecurity=False)
+        while chunk := file.read(1024 * 1024):
+            computed_md5_hash.update(chunk)
 
     return computed_md5_hash.hexdigest() == original_md5_hash
 

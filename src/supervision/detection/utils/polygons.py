@@ -186,8 +186,9 @@ def _find_min_distance_indices(
 
     Raises:
         ValueError: If integer coordinates span more than ``2**25`` on either axis.
-            For mixed integer and floating inputs, integer coordinates must lie
-            within ``[-2**53, 2**53]`` to avoid lossy float64 conversion.
+        ValueError: If, for mixed integer and floating inputs, integer coordinates
+            do not lie within ``[-2**53, 2**53]``, to avoid lossy float64
+            conversion.
     """
     if np.issubdtype(polygon1.dtype, np.integer) and np.issubdtype(
         polygon2.dtype, np.integer
@@ -248,12 +249,12 @@ def merge_multi_segment(
 
     Raises:
         ValueError: If any segment does not have 2D shape with 2 coordinates per vertex.
-            Also raised if an adjacent pair of integer segments spans more than
+        ValueError: If an adjacent pair of integer segments spans more than
             ``2**25`` on either axis; this bound preserves exact nearest-vertex
             ordering independently of the absolute integer origin.
-            For an adjacent pair mixing integer and floating segments, integer
-            coordinates must lie within ``[-2**53, 2**53]`` to avoid lossy float64
-            conversion.
+        ValueError: If, for an adjacent pair mixing integer and floating segments,
+            integer coordinates do not lie within ``[-2**53, 2**53]``, to avoid
+            lossy float64 conversion.
 
     Examples:
         ```pycon

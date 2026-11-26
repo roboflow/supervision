@@ -82,34 +82,47 @@ def _scores_to_pandas(
     return pd.DataFrame(pandas_data, index=[0])
 
 
+def _score_bar_label(value: float, *, has_sentinel: bool) -> tuple[str, float]:
+    """Return the text of a score bar label and the height to draw it at.
+
+    When `has_sentinel` is set, a `-1` score means the metric is undefined, for example
+    without targets, so it reads `N/A` just above the axis instead of a numeric label
+    below the visible `[0, 1]` range.
+    """
+    if has_sentinel and value == -1:
+        return "N/A", 0.02
+    return f"{value:.2f}", value + 0.02
+
+
 def _show_bar_plot(details: PlotDetails) -> None:
-    """Draw score bars with their values on a `[0, 1]` axis and show them."""
+    """Draw score bars with their values on a `[0, 1]` axis and show them.
+
+    Every caller reports undefined scores as `-1`, so such bars are labelled `N/A`.
+    """
     from matplotlib import pyplot as plt
+    from matplotlib import rc_context
 
-    plt.rcParams["font.family"] = "monospace"
+    with rc_context({"font.family": "monospace"}):
+        _, ax = plt.subplots(figsize=(10, 6))
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Value", fontweight="bold")
+        ax.set_title(details.title, fontweight="bold")
 
-    _, ax = plt.subplots(figsize=(10, 6))
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("Value", fontweight="bold")
-    ax.set_title(details.title, fontweight="bold")
+        x_positions = range(len(details.labels))
+        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
 
-    x_positions = range(len(details.labels))
-    bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(details.labels, rotation=45, ha="right")
 
-    ax.set_xticks(x_positions)
-    ax.set_xticklabels(details.labels, rotation=45, ha="right")
-
-    for bar in bars:
-        y_value = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            y_value + 0.02,
-            f"{y_value:.2f}",
-            ha="center",
-            va="bottom",
-        )
-
-    plt.rcParams["font.family"] = "sans-serif"
+        for bar in bars:
+            label, label_y = _score_bar_label(bar.get_height(), has_sentinel=True)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                label_y,
+                label,
+                ha="center",
+                va="bottom",
+            )
 
     plt.tight_layout()
     plt.show()
