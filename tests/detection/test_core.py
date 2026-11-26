@@ -1703,3 +1703,22 @@ class TestDetectionsXyxyValidation:
         """Detections reports unsupported coordinate dtypes as validation errors."""
         with pytest.raises(ValueError, match="must contain only finite numeric values"):
             Detections(xyxy=xyxy)
+
+
+class TestCoreModuleBoxFunctionImports:
+    """The box suppression and merge functions stay importable from the core module."""
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "box_non_max_suppression",
+            "box_soft_non_max_suppression",
+            "box_non_max_merge",
+        ],
+    )
+    def test_name_is_the_public_function(self, name: str) -> None:
+        """Importing the name from the core module returns the public function."""
+        import supervision as sv
+        from supervision.detection import core
+
+        assert getattr(core, name) is getattr(sv, name)
