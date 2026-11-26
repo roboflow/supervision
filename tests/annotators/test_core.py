@@ -964,6 +964,41 @@ class TestAnnotatorRoiAndStripOptimizations:
         assert not np.array_equal(result[127:148, 47:68], scene[127:148, 47:68])
         assert np.array_equal(result[64:96, :], scene[64:96, :])
 
+    def test_halo_strip_blend_preserves_uint8_rounding(self) -> None:
+        """The halo preserves the original operation order before truncation."""
+        scene = np.full((9, 9), 8, dtype=np.uint8)
+        mask = np.zeros((1, 9, 9), dtype=bool)
+        mask[0, 4, 4] = True
+        detections = Detections(
+            xyxy=np.array([[4, 4, 4, 4]], dtype=float),
+            mask=mask,
+            class_id=np.array([0]),
+        )
+        annotator = HaloAnnotator(Color(27, 27, 27), opacity=0.8, kernel_size=3)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result[4, 5] == 3
+
+    @pytest.mark.parametrize("width", [16, 17, 31, 32, 33])
+    def test_heatmap_matches_full_frame_hsv_at_vector_boundaries(
+        self, width: int
+    ) -> None:
+        """Heat colors match the active backend at different frame widths."""
+        scene = np.zeros((3, width, 3), dtype=np.uint8)
+        annotator = HeatMapAnnotator(opacity=1, low_hue=180, kernel_size=None)
+        heat = np.full((3, width), 179, dtype=np.float32)
+        heat[0, 0] = 180
+        annotator.heat_mask = heat
+        hsv = np.full_like(scene, 255)
+        hsv[..., 0] = 1
+        hsv[0, 0, 0] = 0
+        expected = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+        result = annotator.annotate(scene=scene, detections=Detections.empty())
+
+        np.testing.assert_array_equal(result, expected)
+
     def test_trace_annotator_smooth_spline_cache_updates_as_track_moves(self) -> None:
         """TraceAnnotator smooth mode skips mask copies and updates spline caches."""
         scene = np.zeros((120, 120, 3), dtype=np.uint8)

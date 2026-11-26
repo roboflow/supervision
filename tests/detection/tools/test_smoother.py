@@ -920,6 +920,36 @@ class TestDetectionsSmootherUnconfirmedTracks:
         assert isinstance(again_tags, np.ndarray)
         assert again_tags[0] == ["initial"]
 
+    def test_structured_object_fields_do_not_share_track_history(self) -> None:
+        """Both smoother result paths isolate mutable structured data fields."""
+        smoother = DetectionsSmoother(length=3)
+        payload = np.array([(["initial"],)], dtype=[("tags", object)])
+        detection = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            tracker_id=np.array([1]),
+            data={"payload": payload},
+        )
+
+        updated = smoother.update_with_detections(detection)
+        updated_payload = updated.data["payload"]
+        assert isinstance(updated_payload, np.ndarray)
+        (updated_tags,) = updated_payload.item()
+        updated_tags.append("from update")
+        retrieved = smoother.get_track(1)
+        assert retrieved is not None
+        retrieved_payload = retrieved.data["payload"]
+        assert isinstance(retrieved_payload, np.ndarray)
+        (retrieved_tags,) = retrieved_payload.item()
+        after_update = retrieved_tags.copy()
+        retrieved_tags.append("from get_track")
+        fresh = smoother.get_track(1)
+
+        assert after_update == ["initial"]
+        assert fresh is not None
+        fresh_payload = fresh.data["payload"]
+        assert isinstance(fresh_payload, np.ndarray)
+        assert fresh_payload.item() == (["initial"],)
+
     def test_get_track_copies_compact_mask_independently(self) -> None:
         """Mutating a CompactMask returned by get_track leaves history intact."""
         from supervision.detection.compact_mask import CompactMask

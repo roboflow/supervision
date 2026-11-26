@@ -269,7 +269,7 @@ class DetectionsSmoother:
         data = {
             key: (
                 value.copy()
-                if isinstance(value, np.ndarray) and value.dtype != object
+                if isinstance(value, np.ndarray) and not value.dtype.hasobject
                 else deepcopy(value)
             )
             for key, value in latest.data.items()

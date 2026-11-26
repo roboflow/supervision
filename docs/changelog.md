@@ -7,7 +7,7 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.MaskAnnotator`, `sv.ColorAnnotator`, `sv.HaloAnnotator`, `sv.HeatMapAnnotator`, `sv.TraceAnnotator`, and `sv.DetectionsSmoother` now restrict mask painting and blending to tight bounding ROIs or non-empty horizontal strips, cache the 256-entry HSV-to-BGR heatmap lookup table and per-track smooth splines, skip unused mask copies in `TraceAnnotator`, and release superseded historical masks in `DetectionsSmoother`. ([#3039](https://github.com/roboflow/supervision/pull/3039))
+- Mask painting in `sv.MaskAnnotator` and `sv.HaloAnnotator` uses tight foreground regions, and Halo blends non-empty row strips. `sv.ColorAnnotator` blends non-BGRA scenes within the rectangle bounds. `sv.HeatMapAnnotator` blends active pixels, using lookup tables on the NumPy fallback and full-frame HSV conversion on native OpenCV to preserve its color rounding. `sv.TraceAnnotator` skips unused mask copies and caches smoothed splines. `sv.DetectionsSmoother` releases superseded masks and keeps mutable fields in returned data isolated from track history. ([#3039](https://github.com/roboflow/supervision/pull/3039))
 
 - `sv.Detections.to_compact_masks()` and `sv.InferenceSlicer(..., compact_masks=True)` now encode dense masks using their tight foreground bounding boxes instead of the full canvas, restoring bounding-box pruning for compact inputs to `sv.mask_iou_batch` and reducing compact-mask NMS time and memory on high-resolution scenes. Compact self-overlap also reuses a single crop cache for self-IoU, and `sv.Detections` boolean and integer indexing skips a redundant array copy. ([#3037](https://github.com/roboflow/supervision/pull/3037))
 

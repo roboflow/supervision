@@ -1097,13 +1097,13 @@ class HaloAnnotator(BaseAnnotator):
         is_bgra = scene.ndim == 3 and scene.shape[2] == 4
         strip_rows = 64
         height = scene.shape[0]
-        inv_scale = float(self.opacity) / float(gray_max)
         for start in range(0, height, strip_rows):
             stop = min(start + strip_rows, height)
             gray_strip = gray[start:stop]
             if not gray_strip.any():
                 continue
-            alpha = gray_strip.astype(np.float64) * inv_scale
+            # Retain the original operation order before uint8 truncation.
+            alpha = self.opacity * gray_strip / gray_max
             alpha_mask = alpha if scene.ndim == 2 else alpha[:, :, np.newaxis]
             scene_strip = scene[start:stop]
             color_strip = colored_mask[start:stop]
@@ -2686,19 +2686,16 @@ class TraceAnnotator(BaseAnnotator):
         return scene
 
 
-# OpenCV's x86-64 wheels (and the NumPy fallback) convert 8-bit HSV in 32-pixel
-# vector blocks per row and handle trailing columns with scalar rounding.
+# The NumPy HSV fallback processes 32-pixel blocks before its scalar tail.
 _HEATMAP_HSV_VECTOR_BLOCK = 32
 
 
 @lru_cache(maxsize=1)
 def _heatmap_hsv_to_bgr_luts() -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
-    """Return cached 256-entry BGR lookup tables for HSV(h, 255, 255).
+    """Build the HSV-to-BGR tables used by the NumPy fallback heatmap.
 
-    Returns `(block_lut, tail_lut)` built via the active `cv2.cvtColor` on a `(1, 256,
-    3)` vector-aligned strip and a `(256, 1, 3)` scalar-tail column, preserving bit-for-
-    bit parity with full-frame conversion on both block-aligned and trailing columns
-    across OpenCV and fallback backends.
+    A wide row and a single-column image capture the block and scalar rounding used when
+    converting HSV colors with full saturation and value.
     """
     hues = np.arange(256, dtype=np.uint8)
     hsv_block = np.full((1, 256, 3), 255, dtype=np.uint8)
@@ -2885,15 +2882,21 @@ class HeatMapAnnotator(BaseAnnotator):
                 cv2.blur(heat_hue, (self.kernel_size, self.kernel_size)),
             )
 
-        # Colorize and blend only the tight bounding ROI of nonzero heat via the
-        # layout-aware 256-entry HSV(h, 255, 255) -> BGR tables (block + row tail).
-        block_lut, tail_lut = _heatmap_hsv_to_bgr_luts()
-        heat_hue_roi = heat_hue[hy1:hy2, hx1:hx2]
-        heat_bgr_roi = block_lut[heat_hue_roi]
-        tail_start = width - (width % _HEATMAP_HSV_VECTOR_BLOCK)
-        if hx2 > tail_start and not np.array_equal(block_lut, tail_lut):
-            local_tail = max(0, tail_start - hx1)
-            heat_bgr_roi[:, local_tail:] = tail_lut[heat_hue_roi[:, local_tail:]]
+        if cv2.BACKEND_NAME == "fallback":
+            block_lut, tail_lut = _heatmap_hsv_to_bgr_luts()
+            heat_hue_roi = heat_hue[hy1:hy2, hx1:hx2]
+            heat_bgr_roi = block_lut[heat_hue_roi]
+            tail_start = width - (width % _HEATMAP_HSV_VECTOR_BLOCK)
+            if hx2 > tail_start and not np.array_equal(block_lut, tail_lut):
+                local_tail = max(0, tail_start - hx1)
+                heat_bgr_roi[:, local_tail:] = tail_lut[heat_hue_roi[:, local_tail:]]
+        else:
+            # Native OpenCV can round HSV colors differently by SIMD width and
+            # column position. Convert at the original frame width before cropping.
+            hsv = np.full((height, width, 3), 255, dtype=np.uint8)
+            hsv[..., 0] = heat_hue
+            heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
+            heat_bgr_roi = heat_bgr[hy1:hy2, hx1:hx2]
         scene_roi: npt.NDArray[np.uint8] = scene[hy1:hy2, hx1:hx2]
         mask2d_roi = mask2d[hy1:hy2, hx1:hx2]
 
