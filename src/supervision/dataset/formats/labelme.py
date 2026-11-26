@@ -87,9 +87,9 @@ def labelme_shapes_to_detections(
         ``xyxy``, ``class_id``, and optionally ``mask`` populated.
 
     Raises:
-        ValueError: If a shape is missing its ``label`` or ``points`` field,
-            if a ``polygon`` has fewer than 3 points, or a ``rectangle`` has
-            fewer than 2 points.
+        ValueError: If a shape is missing its ``label`` or ``points`` field.
+        ValueError: If a ``polygon`` has fewer than 3 points.
+        ValueError: If a ``rectangle`` has fewer than 2 points.
 
     Warns:
         UserWarning: When unsupported shape types are encountered and skipped.
@@ -211,9 +211,10 @@ def load_labelme_annotations(
 
     Raises:
         ValueError: If an annotation's ``imagePath`` is missing, empty, or
-            resolves to ``..`` or ``.``; if two annotation files reference the
-            same image basename; or if a polygon mask is requested for a file
-            missing ``imageWidth`` / ``imageHeight``.
+            resolves to ``..`` or ``.``.
+        ValueError: If two annotation files reference the same image basename.
+        ValueError: If a polygon mask is requested for a file missing
+            ``imageWidth`` / ``imageHeight``.
 
     Examples:
         ```python
@@ -345,8 +346,8 @@ def detections_to_labelme_shapes(
         A list of LabelMe shape dicts ready to embed in a ``.json`` annotation.
 
     Raises:
-        ValueError: If ``detections.class_id`` is ``None`` or if any
-            ``class_id`` value is out of range for ``classes``.
+        ValueError: If ``detections.class_id`` is ``None``.
+        ValueError: If any ``class_id`` value is out of range for ``classes``.
     """
     class_ids = detections.class_id
     if class_ids is None:

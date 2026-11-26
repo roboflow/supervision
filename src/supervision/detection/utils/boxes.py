@@ -493,8 +493,8 @@ def _oriented_box_anchors(
         Anchor coordinates as an array of shape `(N, 2)`.
 
     Raises:
-        ValueError: If `xyxyxyxy` does not have shape `(N, 4, 2)`, or the anchor
-            is not supported.
+        ValueError: If `xyxyxyxy` does not have shape `(N, 4, 2)`.
+        ValueError: If the anchor is not supported.
 
     Note:
         Corners must be in consecutive winding order (clockwise or

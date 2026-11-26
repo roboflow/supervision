@@ -24,7 +24,8 @@ def _normalize_http_url(url: str) -> str:
         Normalized URL string.
 
     Raises:
-        ValueError: If the URL is invalid or uses an unsupported scheme.
+        ValueError: If the URL is invalid.
+        ValueError: If the URL uses an unsupported scheme.
     """
     try:
         original_parsed_url = urllib.parse.urlparse(url)
