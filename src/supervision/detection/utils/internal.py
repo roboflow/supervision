@@ -740,6 +740,16 @@ def _split_class_regions(
         One ``(xyxy, crop_mask)`` pair per region: an integer pixel box and the
             region's mask inside that box, of shape ``(y2 - y1 + 1, x2 - x1 + 1)``.
             Without ``split_components`` the crop is a view of ``class_mask``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.internal import _split_class_regions
+        >>> mask = np.array([[True, False, True]])
+        >>> [box for box, _ in _split_class_regions(mask, split_components=True)]
+        [[0, 0, 0, 0], [2, 0, 2, 0]]
+
+        ```
     """
     if not split_components:
         rows = np.flatnonzero(class_mask.any(axis=1))
@@ -768,7 +778,10 @@ def _count_semantic_regions(
     class_ids: npt.NDArray[np.integer],
     split_components: bool,
 ) -> int:
-    """Count the regions :func:`_split_class_regions` yields for every class.
+    """Count the regions each class contributes.
+
+    This matches the output of
+    :func:`~supervision.detection.utils.internal._split_class_regions`.
 
     Knowing the count up front lets a dense output be allocated once, instead of
     stacking one full-size mask per region at the end. Patches are counted with the
@@ -781,6 +794,16 @@ def _count_semantic_regions(
 
     Returns:
         The number of regions all ``class_ids`` produce together.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.internal import _count_semantic_regions
+        >>> labels = np.array([[1, 0, 1]])
+        >>> _count_semantic_regions(labels, np.array([1]), split_components=True)
+        2
+
+        ```
     """
     if not split_components:
         return len(class_ids)

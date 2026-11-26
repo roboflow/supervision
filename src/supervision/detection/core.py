@@ -945,7 +945,8 @@ class Detections:
         :meth:`~supervision.detection.core.Detections.from_inference` calls this
         method for a semantic result, so a whole Inference result loads either way.
         Call this one directly for a raw map, to override the result's `class_map`
-        or `confidence_mask`, or to keep the background.
+        or `confidence_mask`, to keep the background, or to split classes into
+        separate patches.
 
         For Hugging Face Transformers models, use
         :meth:`~supervision.detection.core.Detections.from_transformers`, which takes

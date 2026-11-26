@@ -1304,6 +1304,24 @@ def _png_b64(array: np.ndarray) -> str:
     return base64.b64encode(buffer.getvalue()).decode()
 
 
+def _peak_traced_detection_bytes(
+    convert: Callable[[], Detections],
+) -> tuple[Detections, int]:
+    """Measure peak allocations without stopping an existing tracer."""
+    started_tracing = not tracemalloc.is_tracing()
+    if started_tracing:
+        tracemalloc.start()
+    try:
+        baseline_bytes, _ = tracemalloc.get_traced_memory()
+        tracemalloc.reset_peak()
+        detections = convert()
+        _, peak_bytes = tracemalloc.get_traced_memory()
+    finally:
+        if started_tracing:
+            tracemalloc.stop()
+    return detections, peak_bytes - baseline_bytes
+
+
 class TestDetectionsFromSemanticSegmentation:
     """Detections.from_semantic_segmentation builds one detection per class id."""
 
@@ -1594,18 +1612,32 @@ class TestDetectionsFromSemanticSegmentation:
         assert detections.confidence is not None
         assert np.allclose(detections.confidence, [0.8, 0.2, 1.0, 1.0])
 
-    def test_split_components_scores_ignore_patches_inside_the_box(self) -> None:
-        """A patch nested in another patch's box does not leak into its confidence."""
-        label_map = np.zeros((5, 5), dtype=np.uint8)
-        label_map[0, :] = label_map[4, :] = label_map[:, 0] = label_map[:, 4] = 1
-        label_map[2, 2] = 1
+    @pytest.mark.parametrize("compact_masks", [False, True])
+    def test_split_components_keeps_nested_patch_pixels_separate(
+        self, compact_masks: bool
+    ) -> None:
+        """A ring and nested island keep separate mask pixels, boxes, and scores."""
+        ring = np.zeros((5, 5), dtype=bool)
+        ring[[0, -1], :] = True
+        ring[:, [0, -1]] = True
+        island = np.zeros_like(ring)
+        island[2, 2] = True
+        label_map = (ring | island).astype(np.uint8)
         confidence_map = np.full(label_map.shape, 255, dtype=np.uint8)
-        confidence_map[2, 2] = 0
+        confidence_map[island] = 0
 
         detections = Detections.from_semantic_segmentation(
-            label_map, confidence_mask=confidence_map, split_components=True
+            label_map,
+            confidence_mask=confidence_map,
+            split_components=True,
+            compact_masks=compact_masks,
         )
 
+        masks = detections.mask
+        assert masks is not None
+        dense_masks = masks.to_dense() if isinstance(masks, CompactMask) else masks
+        assert np.array_equal(dense_masks, [ring, island])
+        assert np.array_equal(detections.xyxy, [[0, 0, 4, 4], [2, 2, 2, 2]])
         assert detections.confidence is not None
         assert detections.confidence.tolist() == [1.0, 0.0]
 
@@ -1700,20 +1732,11 @@ class TestDetectionsFromSemanticSegmentation:
         # One boolean plane is `label_map.size` bytes. Keeping a third of the 300 dense
         # masks would hold 100 planes, which the budget below stays well under.
         peak_budget_bytes = 75 * label_map.size
-        started_tracing = not tracemalloc.is_tracing()
-        if started_tracing:
-            tracemalloc.start()
-        try:
-            baseline_bytes = tracemalloc.get_traced_memory()[0]
-            tracemalloc.reset_peak()
-
-            detections = Detections.from_semantic_segmentation(
+        detections, peak_bytes = _peak_traced_detection_bytes(
+            lambda: Detections.from_semantic_segmentation(
                 label_map, split_components=True, compact_masks=True
             )
-            peak_bytes = tracemalloc.get_traced_memory()[1] - baseline_bytes
-        finally:
-            if started_tracing:
-                tracemalloc.stop()
+        )
 
         assert len(detections) == 300
         assert peak_bytes < peak_budget_bytes
@@ -1723,20 +1746,11 @@ class TestDetectionsFromSemanticSegmentation:
         label_map = np.zeros((600, 600), dtype=np.uint8)
         label_map[::8, ::8][:15, :20] = 1
         dense_masks_bytes = 300 * label_map.size
-        started_tracing = not tracemalloc.is_tracing()
-        if started_tracing:
-            tracemalloc.start()
-        try:
-            baseline_bytes = tracemalloc.get_traced_memory()[0]
-            tracemalloc.reset_peak()
-
-            detections = Detections.from_semantic_segmentation(
+        detections, peak_bytes = _peak_traced_detection_bytes(
+            lambda: Detections.from_semantic_segmentation(
                 label_map, split_components=True
             )
-            peak_bytes = tracemalloc.get_traced_memory()[1] - baseline_bytes
-        finally:
-            if started_tracing:
-                tracemalloc.stop()
+        )
 
         assert len(detections) == 300
         assert peak_bytes < dense_masks_bytes * 3 // 2
