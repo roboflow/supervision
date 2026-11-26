@@ -146,8 +146,10 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import CoordinatesTransformation, Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
+from supervision.key_points.angles import joint_angles
 from supervision.key_points.annotators import (
     EdgeAnnotator,
+    JointAngleAnnotator,
     VertexAnnotator,
     VertexEllipseAnnotator,
     VertexEllipseAreaAnnotator,
@@ -223,6 +225,7 @@ __all__ = [
     "ImageWindow",
     "InferenceSlicer",
     "JSONSink",
+    "JointAngleAnnotator",
     "KeyPoints",
     "KeyPointsDataset",
     "LabelAnnotator",
@@ -291,6 +294,7 @@ __all__ = [
     "hex_to_rgba",
     "is_compressed_rle",
     "is_valid_hex",
+    "joint_angles",
     "letterbox_image",
     "list_files_with_extensions",
     "load_image_from_url",
