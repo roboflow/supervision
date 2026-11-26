@@ -395,6 +395,34 @@ def test_scale_image_keeps_at_least_one_pixel_per_axis(
     assert result.shape == (*expected_hw, 3)
 
 
+class TestScaleImage:
+    @pytest.mark.parametrize(
+        ("image_hw", "scale_factor", "expected_hw"),
+        [
+            pytest.param((720, 1280), 0.7, (504, 896), id="720p-at-0.7"),
+            pytest.param((720, 1280), 0.35, (252, 448), id="720p-at-0.35"),
+            pytest.param((100, 100), 0.29, (29, 29), id="square-at-0.29"),
+            pytest.param((600, 600), 0.57, (342, 342), id="square-at-0.57"),
+            pytest.param((100, 100), 0.255, (25, 25), id="fractional-rounds-down"),
+        ],
+    )
+    def test_keeps_whole_product_size(
+        self,
+        image_hw: tuple[int, int],
+        scale_factor: float,
+        expected_hw: tuple[int, int],
+    ) -> None:
+        """A whole product of size and factor is kept despite float error."""
+        # given
+        image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+        # when
+        result = scale_image(image=image, scale_factor=scale_factor)
+
+        # then
+        assert result.shape == (*expected_hw, 3)
+
+
 def test_letterbox_image_for_extreme_aspect_ratio() -> None:
     """A strip too thin to scale into the target still fills the target resolution."""
     # given

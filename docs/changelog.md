@@ -7,6 +7,8 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.scale_image` no longer drops a pixel when the scaled size is a whole number that float multiplication lands just below. A 720p frame scaled by `0.7` came out 503 pixels high instead of 504, because `720 * 0.7` is `503.99999999999994`. `sv.CropAnnotator` scales its crops through this function.
+
 - `sv.LineZone.trigger` no longer raises `AssertionError` for detections that carry `data["class_name"]` but no `class_id`, as `sv.Detections.from_vlm` returns for Florence-2 phrase grounding and for Qwen-2.5-VL or PaliGemma without `classes`. These detections are counted under the `None` class key, as detections without class names already were. ([#3076](https://github.com/roboflow/supervision/pull/3076))
 
 - Added `sv.LabelMapAnnotator`, which colours a dense `(H, W)` class-id map, such as a semantic segmentation model's output, over an image through one colour lookup table, so it needs one array the size of the image instead of one mask per class. Class `i` takes palette colour `i`, as in `sv.MaskAnnotator`. Id `0` is left unpainted by default (`background_id=None` paints it), negative ids are ignore labels, and it raises `ValueError` for a map that is not a 2-D integer array of the scene's size. ([#3047](https://github.com/roboflow/supervision/pull/3047))

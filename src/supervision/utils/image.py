@@ -334,9 +334,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     width_old, height_old = image.shape[1], image.shape[0]
     # A small factor on a small image truncates an axis to zero, and `cv2.resize`
     # answers a zero-sized target with a bare assertion. One pixel is the smallest
-    # image that still exists, so clamp there instead.
-    width_new = max(1, int(width_old * scale_factor))
-    height_new = max(1, int(height_old * scale_factor))
+    # image that still exists, so clamp there instead. The product is rounded to
+    # 9 decimals first: `720 * 0.7` is 503.99999999999994, and `int()` alone
+    # dropped a pixel from an axis whose exact size is whole.
+    width_new = max(1, int(round(width_old * scale_factor, 9)))
+    height_new = max(1, int(round(height_old * scale_factor, 9)))
     resized = _resize_linear(image, (width_new, height_new))
     return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
