@@ -9,6 +9,8 @@ date_modified: 2026-11-26
 
 - Mask painting in `sv.MaskAnnotator` and `sv.HaloAnnotator` uses tight foreground regions, and Halo blends non-empty row strips. `sv.ColorAnnotator` blends non-BGRA scenes within the rectangle bounds. `sv.HeatMapAnnotator` blends active pixels, using lookup tables on the NumPy fallback and full-frame HSV conversion on native OpenCV to preserve its color rounding. `sv.TraceAnnotator` skips unused mask copies and caches smoothed splines. `sv.DetectionsSmoother` releases superseded masks and keeps mutable fields in returned data isolated from track history. ([#3039](https://github.com/roboflow/supervision/pull/3039))
 
+- The OpenCV-free fallback backend uses a cached lookup table for large `uint8` blends, bounds strip-based blur work for tall kernels, draws rectangles, ellipses and thick polylines in local windows, and traces cropped contours with compact labels. Text can use bundled DejaVu Sans without importing Matplotlib and respects configured font selection when Matplotlib is already loaded. ([#3038](https://github.com/roboflow/supervision/pull/3038))
+
 - `sv.Detections.to_compact_masks()` and `sv.InferenceSlicer(..., compact_masks=True)` now encode dense masks using their tight foreground bounding boxes instead of the full canvas, restoring bounding-box pruning for compact inputs to `sv.mask_iou_batch` and reducing compact-mask NMS time and memory on high-resolution scenes. Compact self-overlap also reuses a single crop cache for self-IoU, and `sv.Detections` boolean and integer indexing skips a redundant array copy. ([#3037](https://github.com/roboflow/supervision/pull/3037))
 
 - **Semantic segmentation**: a class made of several separate patches can load as one detection per patch.

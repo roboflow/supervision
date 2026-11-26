@@ -1372,6 +1372,22 @@ def _rectangle_mask(
     return mask
 
 
+def _paint_disc_into_image(
+    image: _ImageArray, center: _Point, radius: int, color_value: Any
+) -> None:
+    """Paint OpenCV's filled integer disc directly into `image` without a frame mask."""
+    height, width = image.shape[:2]
+    center_x, center_y = center
+    x_start, x_stop = max(center_x - radius, 0), min(center_x + radius + 1, width)
+    y_start, y_stop = max(center_y - radius, 0), min(center_y + radius + 1, height)
+    if x_start >= x_stop or y_start >= y_stop:
+        return
+    rows = np.arange(y_start, y_stop)[:, np.newaxis] - center_y
+    columns = np.arange(x_start, x_stop)[np.newaxis, :] - center_x
+    disc = rows**2 + columns**2 <= radius * radius
+    image[y_start:y_stop, x_start:x_stop][disc] = color_value
+
+
 def _rectangle(
     img: _ImageArray,
     pt1: Sequence[int | float],
@@ -1395,15 +1411,34 @@ def _rectangle(
     _validate_shift(shift)
     thickness = _bounded_thickness(thickness, "Rectangle")
     first_point, second_point = _point(pt1), _point(pt2)
-    first = (
-        min(first_point[0], second_point[0]),
-        min(first_point[1], second_point[1]),
-    )
-    second = (
-        max(first_point[0], second_point[0]),
-        max(first_point[1], second_point[1]),
-    )
-    return _paint(img, _rectangle_mask(img, first, second, thickness), color)
+    left = min(first_point[0], second_point[0])
+    top = min(first_point[1], second_point[1])
+    right = max(first_point[0], second_point[0])
+    bottom = max(first_point[1], second_point[1])
+
+    height, width = img.shape[:2]
+    color_value = _color_for_image(img, color)
+
+    def fill(x1: int, y1: int, x2: int, y2: int) -> None:
+        """Paint an inclusive box directly into `img`, clipped to frame bounds."""
+        x1, y1 = max(x1, 0), max(y1, 0)
+        x2, y2 = min(x2, width - 1), min(y2, height - 1)
+        if x1 <= x2 and y1 <= y2:
+            img[y1 : y2 + 1, x1 : x2 + 1] = color_value
+
+    if thickness < 0:
+        fill(left, top, right, bottom)
+        return img
+
+    radius = 0 if thickness <= 1 else (thickness + 1) // 2
+    fill(left, top - radius, right, top + radius)
+    fill(left, bottom - radius, right, bottom + radius)
+    fill(left - radius, top, left + radius, bottom)
+    fill(right - radius, top, right + radius, bottom)
+    if radius:
+        for corner in ((left, top), (right, top), (left, bottom), (right, bottom)):
+            _paint_disc_into_image(img, corner, radius, color_value)
+    return img
 
 
 def _circle(
@@ -1620,21 +1655,40 @@ def _ellipse(
     arc_start = round(startAngle)
     arc_end = round(endAngle)
     points = _ellipse_fixed_points(center_point, axes_point, angle, arc_start, arc_end)
+    if not points:
+        return img
     height, width = img.shape[:2]
-    mask = np.zeros((height, width), dtype=bool)
+    # Rasterize into the clipped bounding window instead of a full-frame mask.
+    margin = 2 if thickness < 0 else thickness + 2
+    pxs = [(x + _XY_HALF) >> _XY_SHIFT for x, _ in points]
+    pys = [(y + _XY_HALF) >> _XY_SHIFT for _, y in points]
+    if thickness < 0 and arc_end - arc_start < 360:
+        pxs.append(center_point[0])
+        pys.append(center_point[1])
+    x_start = max(min(pxs) - margin, 0)
+    x_stop = min(max(pxs) + margin + 1, width)
+    y_start = max(min(pys) - margin, 0)
+    y_stop = min(max(pys) + margin + 1, height)
+    if x_start >= x_stop or y_start >= y_stop:
+        return img
+
+    dx_fixed = x_start << _XY_SHIFT
+    dy_fixed = y_start << _XY_SHIFT
+    local_points = [(x - dx_fixed, y - dy_fixed) for x, y in points]
+    local_mask = np.zeros((y_stop - y_start, x_stop - x_start), dtype=bool)
     if thickness < 0:
         if arc_end - arc_start >= 360:
-            _fill_convex_fixed_point(mask, points)
+            _fill_convex_fixed_point(local_mask, local_points)
         else:
-            center_fixed = (center_point[0] << _XY_SHIFT, center_point[1] << _XY_SHIFT)
-            _fill_ellipse_arc_mask(mask, points, center_fixed)
-        return _paint(img, mask, color)
-
-    _thick_polyline_mask_fixed_point(mask, points, False, thickness)
-    painted_points = [
-        ((x + _XY_HALF) >> _XY_SHIFT, (y + _XY_HALF) >> _XY_SHIFT) for x, y in points
-    ]
-    return _paint_around(img, mask, color, painted_points, thickness)
+            center_fixed = (
+                (center_point[0] - x_start) << _XY_SHIFT,
+                (center_point[1] - y_start) << _XY_SHIFT,
+            )
+            _fill_ellipse_arc_mask(local_mask, local_points, center_fixed)
+    else:
+        _thick_polyline_mask_fixed_point(local_mask, local_points, False, thickness)
+    img[y_start:y_stop, x_start:x_stop][local_mask] = _color_for_image(img, color)
+    return img
 
 
 def _polylines(
@@ -1659,12 +1713,24 @@ def _polylines(
     _validate_shift(shift)
     thickness = _bounded_thickness(thickness, "Polyline")
     if thickness > 1:
-        mask = np.zeros(img.shape[:2], dtype=bool)
         polylines = [_points(polygon) for polygon in pts]
-        for points in polylines:
-            _thick_polyline_mask(mask, points, isClosed, thickness)
         all_points = [point for points in polylines for point in points]
-        return _paint_around(img, mask, color, all_points, thickness)
+        if not all_points:
+            return img
+        height, width = img.shape[:2]
+        xs = [x for x, _ in all_points]
+        ys = [y for _, y in all_points]
+        margin = thickness + 1
+        x_start, x_stop = max(min(xs) - margin, 0), min(max(xs) + margin + 1, width)
+        y_start, y_stop = max(min(ys) - margin, 0), min(max(ys) + margin + 1, height)
+        if x_start >= x_stop or y_start >= y_stop:
+            return img
+        local_mask = np.zeros((y_stop - y_start, x_stop - x_start), dtype=bool)
+        for points in polylines:
+            local_pts = [(x - x_start, y - y_start) for x, y in points]
+            _thick_polyline_mask(local_mask, local_pts, isClosed, thickness)
+        img[y_start:y_stop, x_start:x_stop][local_mask] = _color_for_image(img, color)
+        return img
 
     # OpenCV's `PolyLine` draws every edge as its own thin line; a closed
     # polyline adds the edge from the last point back to the first.
