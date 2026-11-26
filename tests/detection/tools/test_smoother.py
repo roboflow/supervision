@@ -863,6 +863,116 @@ class TestDetectionsSmootherUnconfirmedTracks:
         assert result.tracker_id.tolist() == [7, -1]
         assert result.confidence is None
 
+    def test_smoother_releases_superseded_masks_while_keeping_latest_mask(
+        self,
+    ) -> None:
+        """Superseded history drops masks while output preserves the latest mask."""
+        smoother = DetectionsSmoother(length=4)
+        expected_latest = np.zeros((1, 16, 16), dtype=bool)
+        for frame_idx in range(4):
+            mask = np.zeros((1, 16, 16), dtype=bool)
+            mask[0, frame_idx : frame_idx + 4, frame_idx : frame_idx + 4] = True
+            expected_latest = mask.copy()
+            smoothed = smoother.update_with_detections(
+                Detections(
+                    xyxy=np.array(
+                        [[frame_idx, frame_idx, frame_idx + 10, frame_idx + 10]],
+                        dtype=np.float32,
+                    ),
+                    mask=mask,
+                    tracker_id=np.array([1]),
+                )
+            )
+
+        history = list(smoother.tracks[1])
+        assert [entry is not None and entry.mask is None for entry in history[:-1]] == [
+            True,
+            True,
+            True,
+        ]
+        latest_entry = history[-1]
+        assert latest_entry is not None
+        assert latest_entry.mask is not None
+        assert isinstance(smoothed.mask, np.ndarray)
+        np.testing.assert_array_equal(smoothed.mask, expected_latest)
+        smoothed.mask[:] = False
+        np.testing.assert_array_equal(latest_entry.mask, expected_latest)
+
+    def test_smoother_deep_copies_object_dtype_data_arrays(self) -> None:
+        """Mutating nested mutable elements in object-dtype data isolates history."""
+        smoother = DetectionsSmoother(length=3)
+        payload = np.empty(1, dtype=object)
+        payload[0] = ["initial"]
+        det = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            tracker_id=np.array([1]),
+            data={"tags": payload},
+        )
+
+        smoothed = smoother.update_with_detections(det)
+        smoothed_tags = smoothed.data["tags"]
+        assert isinstance(smoothed_tags, np.ndarray)
+        smoothed_tags[0].append("mutated")
+
+        again = smoother.get_track(1)
+        assert again is not None
+        again_tags = again.data["tags"]
+        assert isinstance(again_tags, np.ndarray)
+        assert again_tags[0] == ["initial"]
+
+    def test_structured_object_fields_do_not_share_track_history(self) -> None:
+        """Both smoother result paths isolate mutable structured data fields."""
+        smoother = DetectionsSmoother(length=3)
+        payload = np.array([(["initial"],)], dtype=[("tags", object)])
+        detection = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            tracker_id=np.array([1]),
+            data={"payload": payload},
+        )
+
+        updated = smoother.update_with_detections(detection)
+        updated_payload = updated.data["payload"]
+        assert isinstance(updated_payload, np.ndarray)
+        (updated_tags,) = updated_payload.item()
+        updated_tags.append("from update")
+        retrieved = smoother.get_track(1)
+        assert retrieved is not None
+        retrieved_payload = retrieved.data["payload"]
+        assert isinstance(retrieved_payload, np.ndarray)
+        (retrieved_tags,) = retrieved_payload.item()
+        after_update = retrieved_tags.copy()
+        retrieved_tags.append("from get_track")
+        fresh = smoother.get_track(1)
+
+        assert after_update == ["initial"]
+        assert fresh is not None
+        fresh_payload = fresh.data["payload"]
+        assert isinstance(fresh_payload, np.ndarray)
+        assert fresh_payload.item() == (["initial"],)
+
+    def test_get_track_copies_compact_mask_independently(self) -> None:
+        """Mutating a CompactMask returned by get_track leaves history intact."""
+        from supervision.detection.compact_mask import CompactMask
+
+        smoother = DetectionsSmoother(length=3)
+        dense = np.zeros((1, 16, 16), dtype=bool)
+        dense[0, 2:6, 3:7] = True
+        xyxy = np.array([[3, 2, 6, 5]], dtype=np.float32)
+        compact = CompactMask.from_dense(dense, xyxy, (16, 16))
+        smoother.update_with_detections(
+            Detections(xyxy=xyxy, mask=compact, tracker_id=np.array([1]))
+        )
+
+        first = smoother.get_track(1)
+        assert first is not None
+        assert isinstance(first.mask, CompactMask)
+        first.mask.offsets[:] = 99
+
+        second = smoother.get_track(1)
+        assert second is not None
+        assert isinstance(second.mask, CompactMask)
+        assert second.mask.offsets.tolist() == [[3, 2]]
+
 
 class TestRepeatedTrackIds:
     def test_repeated_confirmed_id_contributes_only_first_detection_per_frame(
