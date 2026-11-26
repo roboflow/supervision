@@ -1,11 +1,11 @@
 ---
 comments: true
-description: Load semantic segmentation results from Roboflow Inference, Ultralytics, Hugging Face Transformers or a raw class map into sv.Detections, handle the background class, read per-class confidence, annotate the masks and keep memory low with compact masks.
+description: Load semantic segmentation results from Roboflow Inference, Ultralytics, Hugging Face Transformers or a raw class map into sv.Detections, handle the background class, read per-class confidence, split a class into separate patches, annotate the masks and keep memory low with compact masks.
 authors:
   - name: Borda
     role: Open Source Engineer, Roboflow
     github: https://github.com/borda
-date_modified: 2026-11-22
+date_modified: 2026-11-26
 ---
 
 # Load Semantic Segmentation Results
@@ -88,17 +88,33 @@ image = sv.pillow_to_cv2(pil_image)
 
 ## Split a Class into Separate Patches
 
-Call [from_semantic_segmentation][supervision.detection.core.Detections.from_semantic_segmentation] directly with `split_components=True` to get one detection per 8-connected patch. Each patch keeps its class name and gets its own mask and tight box. Pixels that touch only at a corner belong to the same patch.
+By default every pixel of a class shares one detection, even when the class shows up in several places. Three lakes become one `water` detection whose box spans the land between them and whose `area` adds the lakes together, so `len(detections)` counts classes, not lakes.
+
+![Animation of a class map with three separate water patches: by default supervision returns one detection of 52 pixels with a single box over the whole scene, and with split_components=True it returns three detections of 26, 12 and 14 pixels, each with a tight box](../assets/semantic-split-components.svg){ align=center width="760" }
+
+Call [from_semantic_segmentation][supervision.detection.core.Detections.from_semantic_segmentation] directly with `split_components=True` to get one detection per 8-connected patch. Each patch keeps its class name and gets its own mask, tight box, area and, when a confidence map is present, mean `confidence`. Pixels that touch only at a corner belong to the same patch.
 
 ```python
 import numpy as np
 import supervision as sv
 
 label_map = np.array([[1, 1, 0, 1]], dtype=np.uint8)
+names = {1: "water"}
+
+merged = sv.Detections.from_semantic_segmentation(label_map, class_map=names)
 patches = sv.Detections.from_semantic_segmentation(
-    label_map, class_map={1: "water"}, split_components=True
+    label_map, class_map=names, split_components=True
 )
+assert merged.area.tolist() == [3]
 assert patches.area.tolist() == [2, 1]
+```
+
+Keep the default when you want per-class coverage, such as the share of the image that is sky. Split when each patch is a thing to count or measure, such as flooded areas or fields.
+
+Two limits follow from how semantic maps work. Objects of the same class that touch stay one patch, because the model never separated them. And there is no minimum patch size, so a stray pixel of noise becomes its own detection. Drop small patches by filtering on `area`:
+
+```python
+patches = patches[patches.area >= 2]
 ```
 
 ## Choose What Counts as Background
