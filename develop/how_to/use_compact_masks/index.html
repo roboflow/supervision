@@ -3827,7 +3827,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 <p>The same path is used by <code>InferenceSlicer(compact_masks=True, overlap_filter=sv.OverlapFilter.NON_MAX_MERGE)</code>. The mask union preserves all stored foreground, including pixels outside the detection boxes. Matching thresholds, class grouping, confidence aggregation and winner metadata behave as with dense masks.</p>
 <p>Union cost depends on the number of foreground column intervals (<code>K</code>), determined by mask fragmentation and the columns foreground runs cross, not by the logical canvas area. Highly fragmented masks can take more time and temporary memory than a dense union, including with large crops. Holding the encoded crops fixed keeps this interval cost independent of canvas size. Overlap evaluation still decodes overlapping crops and allocates pairwise overlap arrays, so a very large or loose crop can still be expensive. This change removes the additional full-image union allocations.</p>
-<p>A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run <code>python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096</code>. To expose fragmentation overhead, run <code>python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard</code>: twelve masks in four groups of three duplicates increased peak traced NMM allocation from <strong>4.34 MiB to 7.79 MiB (1.79×)</strong> when comparing the pre-change dense-union implementation with the interval implementation (maximum of three repeats; input construction excluded). This measures the complete NMM call, not just union storage; see the <a href="https://github.com/roboflow/supervision/tree/develop/examples/compact_mask#non-maximum-merging-benchmark">benchmark results</a> for the matching solid-mask case.</p>
+<!-- keep in sync: examples/compact_mask/README.md, section "Non-Maximum Merging Benchmark". When either changes, update the other. -->
+
+<p>A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run <code>uv run python examples/compact_mask/benchmark_nmm.py</code>. To expose fragmentation overhead, run <code>uv run python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard</code>: twelve masks in four groups of three duplicates peak at <strong>4.34 MiB and 6.2 ms</strong> per NMM call. Heavily fragmented masks like this checkerboard are unioned through a bbox-local dense OR, which matches the pre-change dense-union peak of 4.34 MiB. The earlier interval-only implementation increased that peak to <strong>7.79 MiB (1.79×)</strong> (maximum of three repeats; input construction excluded). This measures the complete NMM call, not just union storage; the matching solid-mask case peaks at 0.14 MiB and 2.0 ms. See the <a href="https://github.com/roboflow/supervision/tree/develop/examples/compact_mask#non-maximum-merging-benchmark">benchmark results</a> for more rows.</p>
 <hr />
 <h2 id="load-yolo-datasets">Load YOLO Datasets<a class="headerlink" href="#load-yolo-datasets" title="Permanent link">&para;</a></h2>
 <p><code>DetectionDataset.from_yolo</code> accepts <code>compact_masks=True</code> to keep each polygon mask as a <code>CompactMask</code> instead of a dense <code>(N, H, W)</code> array, so a loaded segmentation dataset does not retain a full-frame boolean array per image:</p>
@@ -3840,10 +3842,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">compact_masks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">)</span>
 </span></code></pre></div>
-<p>Compression depends on mask complexity: it usually reduces retained memory, but highly fragmented masks can use more memory than dense storage. See <a href="../process_datasets/">Process Datasets</a> for the full loading options and caveats. A reproducible benchmark is available with <code>python examples/compact_mask/benchmark.py --section yolo</code> from a repository checkout.</p>
+<p>Compression depends on mask complexity: it usually reduces retained memory, but highly fragmented masks can use more memory than dense storage. See <a href="../process_datasets/">Process Datasets</a> for the full loading options and caveats. A reproducible benchmark is available with <code>uv run --with vision-synth python examples/compact_mask/benchmark.py --section yolo</code> from a repository checkout.</p>
 <hr />
 <h2 id="performance-notes">Performance Notes<a class="headerlink" href="#performance-notes" title="Permanent link">&para;</a></h2>
 <p>These estimates apply to the <strong>parsing and annotation stage</strong>, not end-to-end pipeline FPS. Model inference typically dominates total runtime.</p>
+<!-- keep in sync: the `from_inference` row below mirrors examples/compact_mask/README.md, table "Sample results — inference API". When either changes, update the other. -->
+
 <table>
 <thead>
 <tr>
@@ -3853,6 +3857,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>from_inference</code> ingestion</td>
+<td>1.4–30× faster parse (median 6.6×)</td>
+<td>Native RLE masks on real frames; slower on tiny, fully filled masks</td>
+</tr>
 <tr>
 <td><code>from_coco_rle</code> ingestion</td>
 <td>25–60% faster parse</td>
@@ -3930,7 +3939,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 16, 2026 12:52:08 UTC">November 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 22:27:27 UTC">November 26, 2026</span>
   </span>
 
     
@@ -3958,9 +3967,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/tongwentao" class="md-author" title="@tongwentao">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/51501406?v=4&size=72" alt="tongwentao">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3968,9 +3977,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/tongwentao" class="md-author" title="@tongwentao">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/51501406?v=4&size=72" alt="tongwentao">
         </a>
       
         <a href="https://github.com/trueoneplusone" class="md-author" title="@trueoneplusone">
