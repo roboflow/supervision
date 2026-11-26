@@ -18,6 +18,73 @@ from supervision.utils.internal import SupervisionWarnings
 from tests.metrics.coco_reference import evaluate_detections
 
 
+class TestMeanAverageRecallResultParity:
+    def test_mask_recall_follows_logical_boolean_values(self) -> None:
+        """Identical foreground is recalled even when true bytes differ."""
+        boxes = np.array([[0, 0, 2, 1]], dtype=np.float32)
+        class_id = np.array([0])
+        predictions = Detections(
+            xyxy=boxes,
+            mask=np.ones((1, 1, 2), dtype=bool),
+            class_id=class_id,
+            confidence=np.array([0.9]),
+        )
+        target_mask = np.array([[[1, 255]]], dtype=np.uint8).view(np.bool_)
+        targets = Detections(xyxy=boxes, mask=target_mask, class_id=class_id)
+
+        result = (
+            MeanAverageRecall(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        np.testing.assert_array_equal(result.recall_per_class, np.ones((3, 1, 10)))
+        assert result.small_objects is not None
+        np.testing.assert_array_equal(
+            result.small_objects.recall_per_class, np.ones((3, 1, 10))
+        )
+
+    def test_oriented_target_with_area_and_no_corners_is_a_miss(self) -> None:
+        """An area-only oriented target yields zero recall."""
+        boxes = np.array([[0, 0, 10, 10]], dtype=np.float32)
+        class_id = np.array([0])
+        corners = np.array([[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=np.float32)
+        predictions = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        targets = Detections(
+            xyxy=boxes, class_id=class_id, data={AREA_DATA_FIELD: np.array([100.0])}
+        )
+
+        result = (
+            MeanAverageRecall(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        np.testing.assert_array_equal(result.recall_per_class, np.zeros((3, 1, 10)))
+        assert result.small_objects is not None
+        np.testing.assert_array_equal(
+            result.small_objects.recall_per_class, np.zeros((3, 1, 10))
+        )
+
+    def test_bucket_thresholds_have_independent_storage(self) -> None:
+        """Changing a bucket's thresholds leaves overall and sibling results intact."""
+        result = MeanAverageRecall().compute()
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+
+        result.small_objects.iou_thresholds[0] = 0
+
+        assert result.iou_thresholds[0] == 0.5
+        assert result.medium_objects.iou_thresholds[0] == 0.5
+        assert result.large_objects.iou_thresholds[0] == 0.5
+
+
 class TestMeanAverageRecallScalarMetadata:
     """Size buckets preserve data shared by every target."""
 

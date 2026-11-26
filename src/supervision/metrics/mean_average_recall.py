@@ -367,26 +367,6 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         self._predictions_list = []
         self._targets_list = []
 
-    @staticmethod
-    def _compact_if_dense_mask(detections: Detections) -> Detections:
-        """Convert dense bool masks to tight CompactMask on a shallow copy."""
-        if (
-            detections.mask is None
-            or not isinstance(detections.mask, np.ndarray)
-            or detections.mask.dtype != np.bool_
-            or len(detections) == 0
-        ):
-            return detections
-        from supervision.detection.utils.converters import mask_to_xyxy
-
-        dense = detections.mask
-        image_shape = (int(dense.shape[1]), int(dense.shape[2]))
-        tight_xyxy = mask_to_xyxy(dense)
-        compact = CompactMask.from_dense(dense, tight_xyxy, image_shape=image_shape)
-        shallow = copy(detections)
-        shallow.mask = compact
-        return shallow
-
     def update(
         self,
         predictions: Detections | list[Detections],
@@ -411,10 +391,6 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                 f"The number of predictions ({len(predictions)}) and"
                 f" targets ({len(targets)}) during the update must be the same."
             )
-
-        if self._metric_target == MetricTarget.MASKS:
-            predictions = [self._compact_if_dense_mask(p) for p in predictions]
-            targets = [self._compact_if_dense_mask(t) for t in targets]
 
         self._predictions_list.extend(predictions)
         self._targets_list.extend(targets)
@@ -534,7 +510,18 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         prediction_confidence = np.asarray(predictions.confidence, dtype=np.float32)
 
         # Sort predictions and compute pairwise IoU once for all size buckets.
-        full_iou = self._compute_iou_matrix(base_target_contents, prediction_contents)
+        if (
+            self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES
+            and len(base_target_contents) == 0
+            and len(prediction_contents) > 0
+        ):
+            # Oriented targets can have class IDs and areas but no corners. Keep
+            # their rows aligned with the target metadata and score them as misses.
+            full_iou = np.zeros((len(base_targets), len(predictions)), dtype=np.float32)
+        else:
+            full_iou = self._compute_iou_matrix(
+                base_target_contents, prediction_contents
+            )
         # A stable sort keeps tied scores in input order, as COCO's
         # mergesort does, so equal-score boxes cross the K cutoff alike.
         sorted_indices = np.argsort(-prediction_confidence, kind="stable")
@@ -581,6 +568,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         iou_thresholds: npt.NDArray[np.float32],
     ) -> MeanAverageRecallResult:
         """Aggregate collected per-image stats into a MeanAverageRecallResult."""
+        iou_thresholds = iou_thresholds.copy()
         if not stats:
             max_detection_count = self.max_detections.shape[0]
             return MeanAverageRecallResult(

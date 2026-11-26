@@ -15,7 +15,7 @@ disappear from the rendered documentation.
 from __future__ import annotations
 
 from abc import abstractmethod
-from copy import copy, deepcopy
+from copy import deepcopy
 from dataclasses import dataclass
 from fractions import Fraction
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeVar, cast
@@ -181,26 +181,6 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
     ) -> _ResultT:
         """Wrap computed scores in the metric-specific result dataclass."""
         raise NotImplementedError
-
-    @staticmethod
-    def _compact_if_dense_mask(detections: Detections) -> Detections:
-        """Convert dense bool masks to tight CompactMask on a shallow copy."""
-        if (
-            detections.mask is None
-            or not isinstance(detections.mask, np.ndarray)
-            or detections.mask.dtype != np.bool_
-            or len(detections) == 0
-        ):
-            return detections
-        from supervision.detection.utils.converters import mask_to_xyxy
-
-        dense = detections.mask
-        image_shape = (int(dense.shape[1]), int(dense.shape[2]))
-        tight_xyxy = mask_to_xyxy(dense)
-        compact = CompactMask.from_dense(dense, tight_xyxy, image_shape=image_shape)
-        shallow = copy(detections)
-        shallow.mask = compact
-        return shallow
 
     def _compute_iou_matrix(
         self,
@@ -433,6 +413,7 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
         iou_thresholds: npt.NDArray[np.float32],
     ) -> _ResultT:
         """Aggregate collected per-image stats into a final metric result."""
+        iou_thresholds = iou_thresholds.copy()
         if not stats:
             return self._build_result(
                 scores=np.zeros(iou_thresholds.shape[0]),

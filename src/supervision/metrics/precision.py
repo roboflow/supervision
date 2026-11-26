@@ -133,10 +133,6 @@ class Precision(_ConfusionMatrixMetric["PrecisionResult"]):
                 f" targets ({len(targets)}) during the update must be the same."
             )
 
-        if self._metric_target == MetricTarget.MASKS:
-            predictions = [self._compact_if_dense_mask(p) for p in predictions]
-            targets = [self._compact_if_dense_mask(t) for t in targets]
-
         self._predictions_list.extend(predictions)
         self._targets_list.extend(targets)
 
