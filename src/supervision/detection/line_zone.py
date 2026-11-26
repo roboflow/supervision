@@ -476,10 +476,11 @@ class LineZone:
         """Update the attribute keeping track of which class IDs correspond to which
         class names.
 
-        Assumes that class_names are only provided when class_ids are.
+        Detections without `class_id`, such as VLM results parsed without `classes`, are
+        counted under `None` and leave the mapping unchanged, even when they carry class
+        names.
         """
         class_names = detections.data.get(CLASS_NAME_DATA_FIELD)
-        assert class_names is None or detections.class_id is not None
 
         if detections.class_id is None:
             return

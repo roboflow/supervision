@@ -1385,6 +1385,18 @@ def test_line_zone_class_flicker_keeps_crossing_counts_continuous() -> None:
     assert set(line_zone.crossing_state_history) == {0}
 
 
+def test_line_zone_counts_class_names_without_class_id() -> None:
+    """Detections with class names but no class ids are counted under `None`."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
+    for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:
+        detections = _create_detections(
+            xyxy=[xyxy], tracker_id=[0], data={"class_name": ["car"]}
+        )
+        line_zone.trigger(detections)
+
+    assert line_zone.out_count_per_class == {None: 1}
+
+
 def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
     line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
     for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:

@@ -7,6 +7,8 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.LineZone.trigger` no longer raises `AssertionError` for detections that carry `data["class_name"]` but no `class_id`, as `sv.Detections.from_vlm` returns for Florence-2 phrase grounding and for Qwen-2.5-VL or PaliGemma without `classes`. These detections are counted under the `None` class key, as detections without class names already were. ([#3076](https://github.com/roboflow/supervision/pull/3076))
+
 - Added `sv.LabelMapAnnotator`, which colours a dense `(H, W)` class-id map, such as a semantic segmentation model's output, over an image through one colour lookup table, so it needs one array the size of the image instead of one mask per class. Class `i` takes palette colour `i`, as in `sv.MaskAnnotator`. Id `0` is left unpainted by default (`background_id=None` paints it), negative ids are ignore labels, and it raises `ValueError` for a map that is not a 2-D integer array of the scene's size. ([#3047](https://github.com/roboflow/supervision/pull/3047))
 
 - Mask painting in `sv.MaskAnnotator` and `sv.HaloAnnotator` uses tight foreground regions, and Halo blends non-empty row strips. `sv.ColorAnnotator` blends non-BGRA scenes within the rectangle bounds. `sv.HeatMapAnnotator` blends active pixels, using lookup tables on the NumPy fallback and full-frame HSV conversion on native OpenCV to preserve its color rounding. `sv.TraceAnnotator` skips unused mask copies and caches smoothed splines. `sv.DetectionsSmoother` releases superseded masks and keeps mutable fields in returned data isolated from track history. ([#3039](https://github.com/roboflow/supervision/pull/3039))
