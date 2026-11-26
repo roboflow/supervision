@@ -1,11 +1,14 @@
 """Regression tests for version-dependent output in the custom docs theme."""
 
+import base64
+import hashlib
 import json
 import re
 import shutil
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import pytest
@@ -286,3 +289,15 @@ def test_cookbooks_page_loads_the_vendored_dompurify(
     assert sources == ["../javascripts/vendor/purify.min.js"]
     vendored = repo_root / "docs" / "javascripts" / "vendor" / "purify.min.js"
     assert vendored.read_bytes().startswith(b"/*! @license DOMPurify ")
+
+
+def test_vendored_dompurify_matches_its_pinned_integrity(
+    repo_root: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Fail when vendored DOMPurify differs from its pinned hash."""
+    pinned = load_script("pin_cdn_scripts").DOMPURIFY_INTEGRITY
+    vendored = repo_root / "docs" / "javascripts" / "vendor" / "purify.min.js"
+
+    digest = base64.b64encode(hashlib.sha384(vendored.read_bytes()).digest()).decode()
+
+    assert f"sha384-{digest}" == pinned

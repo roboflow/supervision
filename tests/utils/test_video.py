@@ -1306,6 +1306,14 @@ def test_video_info_float_fps(
     assert video_info.fps != int(video_info.fps)
 
 
+#: Skips tests that tag a display rotation, which PyAV offers from 17.1.
+_requires_display_rotation = pytest.mark.skipif(
+    not hasattr(av.video.stream.VideoStream, "set_display_rotation"),
+    reason="Tagging a display rotation needs PyAV 17.1 or newer.",
+)
+
+
+@_requires_display_rotation
 def test_video_info_and_frames_follow_display_rotation(tmp_path: Path) -> None:
     """Report and yield a phone-style portrait clip upright, not as it is stored."""
     video_path = str(tmp_path / "portrait.mp4")

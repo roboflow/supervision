@@ -172,6 +172,32 @@ class TestFallbackBlurUint8:
 
         assert np.abs(blurred - expected).max() <= 1
 
+    @pytest.mark.parametrize(
+        ("shape", "ksize"),
+        [
+            pytest.param((260, 40, 3), (5, 5), id="bgr-odd-multi-strip"),
+            pytest.param((260, 40), (4, 6), id="gray-even-multi-strip"),
+            pytest.param((130, 32, 3), (25, 25), id="bgr-large-kernel-multi-strip"),
+        ],
+    )
+    def test_strip_blur_matches_unstripped_reference(
+        self,
+        shape: tuple[int, ...],
+        ksize: tuple[int, int],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Horizontal strip blurring matches full-frame blur bit-for-bit."""
+        from supervision._cv2 import _transform
+
+        rng = np.random.default_rng(20261120)
+        source = rng.integers(0, 256, size=shape, dtype=np.uint8)
+
+        striped = _blur(source, ksize)
+        monkeypatch.setattr(_transform, "_BLUR_STRIP_ROWS", shape[0] + 1)
+        unstriped = _blur(source, ksize)
+
+        np.testing.assert_array_equal(striped, unstriped)
+
 
 class TestFallbackBlur16Bit:
     """16-bit box blur with OpenCV's exact window sums and float32 scaling."""

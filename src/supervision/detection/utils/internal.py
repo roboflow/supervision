@@ -2,6 +2,7 @@ import base64
 import binascii
 import io
 import logging
+from collections.abc import Iterator
 from itertools import chain
 from typing import Any, Literal, cast, overload
 
@@ -13,7 +14,11 @@ from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask, _polygon_to_compact_mask
 from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
-from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
+from supervision.detection.utils.converters import (
+    _mask_to_rle_counts,
+    polygon_to_mask,
+    rle_to_mask,
+)
 from supervision.geometry.core import Vector
 from supervision.utils.internal import _to_numpy
 
@@ -716,12 +721,109 @@ def decode_semantic_label_map(
     return _require_integer_label_map(array, field)
 
 
+def _split_class_regions(
+    class_mask: npt.NDArray[np.bool_], split_components: bool
+) -> Iterator[tuple[list[int], npt.NDArray[np.bool_]]]:
+    """Yield the ``(xyxy, crop_mask)`` regions one class contributes to a semantic map.
+
+    Without ``split_components`` the whole class is one region. With it, each
+    8-connected patch is its own region, ordered top to bottom and then left to
+    right by the top-left corner of its box. Each region's mask covers only its
+    inclusive box, so no full-size mask is allocated per region; the caller pastes
+    or encodes the crop where its output needs it.
+
+    Args:
+        class_mask: Boolean ``(H, W)`` mask of every pixel of one class; not empty.
+        split_components: Split the class into its connected patches.
+
+    Yields:
+        One ``(xyxy, crop_mask)`` pair per region: an integer pixel box and the
+            region's mask inside that box, of shape ``(y2 - y1 + 1, x2 - x1 + 1)``.
+            Without ``split_components`` the crop is a view of ``class_mask``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.internal import _split_class_regions
+        >>> mask = np.array([[True, False, True]])
+        >>> [box for box, _ in _split_class_regions(mask, split_components=True)]
+        [[0, 0, 0, 0], [2, 0, 2, 0]]
+
+        ```
+    """
+    if not split_components:
+        rows = np.flatnonzero(class_mask.any(axis=1))
+        cols = np.flatnonzero(class_mask.any(axis=0))
+        left, top = int(cols[0]), int(rows[0])
+        right, bottom = int(cols[-1]), int(rows[-1])
+        yield [left, top, right, bottom], class_mask[top : bottom + 1, left : right + 1]
+        return
+
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        class_mask.astype(np.uint8), connectivity=8
+    )
+    # Label 0 is the background of the class mask; stats columns are
+    # left, top, width, height, area. Comparing only the patch's box avoids
+    # scanning the whole label image once per patch.
+    for label in sorted(
+        range(1, count), key=lambda each: (stats[each, 1], stats[each, 0])
+    ):
+        left, top, width, height = (int(value) for value in stats[label, :4])
+        crop_mask = labels[top : top + height, left : left + width] == label
+        yield [left, top, left + width - 1, top + height - 1], crop_mask
+
+
+def _count_semantic_regions(
+    label_map: npt.NDArray[np.integer],
+    class_ids: npt.NDArray[np.integer],
+    split_components: bool,
+) -> int:
+    """Count the regions each class contributes.
+
+    This matches the output of
+    :func:`~supervision.detection.utils.internal._split_class_regions`.
+
+    Knowing the count up front lets a dense output be allocated once, instead of
+    stacking one full-size mask per region at the end. Patches are counted with the
+    same 8-connectivity the split uses.
+
+    Args:
+        label_map: Per-pixel class ids, ``(H, W)``.
+        class_ids: Class ids to count, each present in ``label_map``.
+        split_components: Count every connected patch instead of one per class.
+
+    Returns:
+        The number of regions all ``class_ids`` produce together.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.internal import _count_semantic_regions
+        >>> labels = np.array([[1, 0, 1]])
+        >>> _count_semantic_regions(labels, np.array([1]), split_components=True)
+        2
+
+        ```
+    """
+    if not split_components:
+        return len(class_ids)
+    # Label 0 of each class mask is its background, not a patch.
+    return sum(
+        cv2.connectedComponents(
+            (label_map == class_id).astype(np.uint8), connectivity=8
+        )[0]
+        - 1
+        for class_id in class_ids
+    )
+
+
 def process_semantic_segmentation(
     segmentation_mask: Any,
     class_map: dict[int, str] | dict[str, str] | None,
     confidence_mask: Any,
     background_id: int | None,
     compact_masks: bool,
+    split_components: bool = False,
 ) -> tuple[
     npt.NDArray[np.floating],
     npt.NDArray[np.floating] | None,
@@ -732,8 +834,11 @@ def process_semantic_segmentation(
     """Split a semantic segmentation map into one mask per class id.
 
     The background id is dropped, class names come from ``class_map`` with the id
-    as text when a class is not listed, and confidence is the class's mean 8-bit
-    ``confidence_mask`` over its pixels divided by 255.
+    as text when a class is not listed, and confidence is each entry's mean 8-bit
+    ``confidence_mask`` over its mask pixels divided by 255. With ``split_components``
+    each 8-connected patch of a class is its own entry, with the class's name and
+    its own confidence, ordered by class id and then by the top-left corner of its
+    box, top to bottom and then left to right.
 
     Args:
         segmentation_mask: Per-pixel class ids, see :func:`decode_semantic_label_map`.
@@ -741,7 +846,9 @@ def process_semantic_segmentation(
         confidence_mask: Per-pixel 8-bit confidence of the same shape, or ``None``.
         background_id: Class id to leave out, or ``None`` to keep every class.
         compact_masks: Return a :class:`~supervision.detection.compact_mask.CompactMask`
-            built one class at a time instead of a dense stack.
+            built one detection at a time instead of a dense stack.
+        split_components: Emit one entry per connected patch of each class instead of
+            one per class.
 
     Returns:
         ``(xyxy, confidence, class_id, masks, data)`` aligned on the first axis;
@@ -792,11 +899,7 @@ def process_semantic_segmentation(
     class_ids = np.unique(label_map)
     if background_id is not None:
         class_ids = class_ids[class_ids != background_id]
-    class_names = np.array(
-        [names_by_id.get(str(class_id), str(class_id)) for class_id in class_ids],
-        dtype=str,
-    )
-    data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
+    data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: np.array([], dtype=str)}
     if class_ids.size == 0:
         # Keep the requested output types so an empty frame needs no special case:
         # a zero-length mask of the requested kind, and confidence only with a map.
@@ -812,32 +915,66 @@ def process_semantic_segmentation(
         return np.empty((0, 4)), empty_confidence, class_ids, empty_result_masks, data
 
     boxes: list[list[int]] = []
-    masks: list[Any] = []
     scores: list[float] = []
-    # The loop runs over class ids, never pixels. Building one class at a time keeps
-    # peak memory at one (H, W) plane when compact masks are requested.
+    entry_class_ids: list[int] = []
+    # Dense output is allocated once at its final size and each region's crop is
+    # pasted into it, so no per-region full-size mask is kept and then stacked.
+    # Compact output encodes each crop as it is produced, like
+    # CompactMask.from_dense would from a full-size mask.
+    dense_masks: npt.NDArray[np.bool_] | None = None
+    if not compact_masks:
+        region_count = _count_semantic_regions(label_map, class_ids, split_components)
+        dense_masks = np.zeros((region_count, *label_map.shape), dtype=bool)
+    rles: list[npt.NDArray[np.int32]] = []
+    crop_shapes: list[tuple[int, int]] = []
+    offsets: list[tuple[int, int]] = []
+    # The loop runs over class ids and their patches, never pixels.
     for class_id in class_ids:
-        mask = label_map == class_id
-        rows = np.flatnonzero(mask.any(axis=1))
-        cols = np.flatnonzero(mask.any(axis=0))
-        box = [int(cols[0]), int(rows[0]), int(cols[-1]), int(rows[-1])]
-        boxes.append(box)
-        if compact_masks:
-            masks.append(
-                CompactMask.from_dense(
-                    masks=mask[np.newaxis],
-                    xyxy=np.array([box]),
-                    image_shape=label_map.shape,
-                )
-            )
-        else:
-            masks.append(mask)
-        if confidence_map is not None:
-            scores.append(float(confidence_map[mask].mean()) / 255.0)
+        for box, crop_mask in _split_class_regions(
+            label_map == class_id, split_components
+        ):
+            left, top, right, bottom = box
+            crop = (slice(top, bottom + 1), slice(left, right + 1))
+            if dense_masks is None:
+                rles.append(_mask_to_rle_counts(crop_mask))
+                crop_shapes.append((bottom - top + 1, right - left + 1))
+                offsets.append((left, top))
+            else:
+                dense_masks[len(boxes)][crop] = crop_mask
+            if confidence_map is not None:
+                # Scoring inside the box keeps the cost at the box area per region,
+                # not the whole map, and reads the same pixels in the same order.
+                region_confidence = confidence_map[crop][crop_mask]
+                scores.append(float(region_confidence.mean()) / 255.0)
+            entry_class_ids.append(int(class_id))
+            boxes.append(box)
 
-    result_masks = CompactMask.merge(masks) if compact_masks else np.stack(masks)
+    result_masks: npt.NDArray[np.bool_] | CompactMask
+    if dense_masks is None:
+        result_masks = CompactMask(
+            rles,
+            np.array(crop_shapes, dtype=np.int32),
+            np.array(offsets, dtype=np.int32),
+            label_map.shape,
+        )
+    else:
+        result_masks = dense_masks
     confidence = np.array(scores, dtype=np.float64) if scores else None
-    return np.array(boxes, dtype=np.float64), confidence, class_ids, result_masks, data
+    result_class_ids = np.array(entry_class_ids, dtype=class_ids.dtype)
+    data[CLASS_NAME_DATA_FIELD] = np.array(
+        [
+            names_by_id.get(str(class_id), str(class_id))
+            for class_id in result_class_ids
+        ],
+        dtype=str,
+    )
+    return (
+        np.array(boxes, dtype=np.float64),
+        confidence,
+        result_class_ids,
+        result_masks,
+        data,
+    )
 
 
 def is_data_equal(

@@ -1,5 +1,6 @@
 """Tests for `KeyPoints.as_detections` and `KeyPoints.with_nms`."""
 
+from collections.abc import Iterable
 from typing import Any
 
 import numpy as np
@@ -38,13 +39,18 @@ from tests.helpers import (
     ],
 )
 def test_key_points_as_detections(
-    key_points, expected_xyxy, expected_confidence, expected_class_id
-):
+    key_points: KeyPoints,
+    expected_xyxy: np.ndarray,
+    expected_confidence: np.ndarray,
+    expected_class_id: np.ndarray,
+) -> None:
     """Test the as_detections method for KeyPoints objects."""
     detections = key_points.as_detections()
     assert len(detections) == len(expected_xyxy)
     assert np.array_equal(detections.xyxy, expected_xyxy)
+    assert detections.confidence is not None
     assert np.allclose(detections.confidence, expected_confidence)
+    assert detections.class_id is not None
     assert np.array_equal(detections.class_id, expected_class_id)
 
 
@@ -117,7 +123,7 @@ class TestKeyPointsImageSpaceBoxes:
         np.testing.assert_array_equal(coordinates, original)
 
 
-def test_key_points_as_detections_empty():
+def test_key_points_as_detections_empty() -> None:
     """Test the as_detections method for empty KeyPoints objects."""
     empty_key_points = KeyPoints.empty()
     empty_detections = empty_key_points.as_detections()
@@ -154,8 +160,10 @@ class TestKeyPointsAsDetectionsKeepsFields:
         assert detections.confidence is not None
         assert detections.confidence.dtype == np.float32
         assert list(detections.data) == ["track"]
-        assert detections.data["track"].dtype == np.int32
-        assert detections.data["track"].shape == (0,)
+        track = detections.data["track"]
+        assert isinstance(track, np.ndarray)
+        assert track.dtype == np.int32
+        assert track.shape == (0,)
 
     def test_matches_all_invalid_skeletons(self) -> None:
         """No skeletons gives the same data keys and dtypes as all-[0, 0] skeletons."""
@@ -166,6 +174,7 @@ class TestKeyPointsAsDetectionsKeepsFields:
         }
         all_invalid = KeyPoints(xy=np.zeros((1, 2, 2), dtype=np.float32), **fields)
         no_skeletons = all_invalid[np.array([], dtype=int)]
+        assert isinstance(no_skeletons, KeyPoints)
 
         expected = all_invalid.as_detections()
         result = no_skeletons.as_detections()
@@ -266,7 +275,7 @@ class TestKeyPointsAsDetectionsKeepsFields:
         assert names == ["left", "right"]
 
 
-def test_key_points_as_detections_ignores_missing_keypoints():
+def test_key_points_as_detections_ignores_missing_keypoints() -> None:
     """A [0, 0] keypoint is treated as missing and excluded from the box."""
     key_points = _create_key_points(
         xy=[[[0, 0], [10, 20], [30, 40]]],
@@ -279,7 +288,7 @@ def test_key_points_as_detections_ignores_missing_keypoints():
     assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
 
 
-def test_key_points_as_detections_uses_detection_confidence():
+def test_key_points_as_detections_uses_detection_confidence() -> None:
     """detection_confidence is preferred over the keypoint-confidence mean."""
     key_points = _create_key_points(
         xy=[[[10, 20], [30, 40]]],
@@ -290,10 +299,11 @@ def test_key_points_as_detections_uses_detection_confidence():
 
     detections = key_points.as_detections()
 
+    assert detections.confidence is not None
     assert np.allclose(detections.confidence, np.array([0.95], dtype=np.float32))
 
 
-def test_key_points_as_detections_selected_keypoint_indices():
+def test_key_points_as_detections_selected_keypoint_indices() -> None:
     """Only the selected keypoints contribute to the bounding box."""
     key_points = _create_key_points(
         xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
@@ -306,7 +316,7 @@ def test_key_points_as_detections_selected_keypoint_indices():
     assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
 
 
-def test_key_points_as_detections_confidence_over_selected_indices():
+def test_key_points_as_detections_confidence_over_selected_indices() -> None:
     """Confidence mean uses only the selected keypoint columns, not all."""
     key_points = _create_key_points(
         xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
@@ -317,10 +327,11 @@ def test_key_points_as_detections_confidence_over_selected_indices():
     detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
 
     expected_confidence = np.mean([0.8, 0.6], dtype=np.float32)
+    assert detections.confidence is not None
     assert np.isclose(detections.confidence[0], expected_confidence)
 
 
-def test_key_points_as_detections_mixed_valid_invalid_batch():
+def test_key_points_as_detections_mixed_valid_invalid_batch() -> None:
     """Batch with one all-zero skeleton: invalid skeleton gets box zeroed."""
     key_points = _create_key_points(
         xy=[[[0, 0], [0, 0]], [[10, 20], [30, 40]]],
@@ -373,7 +384,9 @@ def test_key_points_as_detections_ignores_invisible_keypoints(
         pytest.param((0, 1), id="tuple"),
     ],
 )
-def test_key_points_as_detections_index_container_types(selected_keypoint_indices):
+def test_key_points_as_detections_index_container_types(
+    selected_keypoint_indices: Iterable[int],
+) -> None:
     """selected_keypoint_indices accepts any Iterable[int] container type."""
     key_points = _create_key_points(
         xy=[[[10, 10], [20, 20], [30, 15]]],
@@ -387,7 +400,7 @@ def test_key_points_as_detections_index_container_types(selected_keypoint_indice
     assert np.array_equal(detections.xyxy, np.array([[10, 10, 20, 20]]))
 
 
-def test_key_points_as_detections_empty_indices_selects_all():
+def test_key_points_as_detections_empty_indices_selects_all() -> None:
     """An empty selected_keypoint_indices behaves like None (selects all)."""
     key_points = _create_key_points(
         xy=[[[10, 10], [20, 20], [30, 15]]],
@@ -401,7 +414,11 @@ def test_key_points_as_detections_empty_indices_selects_all():
     empty_list_selected = key_points.as_detections(selected_keypoint_indices=[])
 
     assert np.array_equal(all_selected.xyxy, empty_list_selected.xyxy)
+    assert all_selected.confidence is not None
+    assert empty_list_selected.confidence is not None
     assert np.array_equal(all_selected.confidence, empty_list_selected.confidence)
+    assert all_selected.class_id is not None
+    assert empty_list_selected.class_id is not None
     assert np.array_equal(all_selected.class_id, empty_list_selected.class_id)
     assert np.array_equal(
         all_selected.data["custom_data"], empty_list_selected.data["custom_data"]
@@ -423,7 +440,9 @@ def test_key_points_as_detections_empty_indices_selects_all():
         ),
     ],
 )
-def test_key_points_as_detections_keeps_degenerate_skeletons(xy, expected_xyxy):
+def test_key_points_as_detections_keeps_degenerate_skeletons(
+    xy: list[list[list[float]]], expected_xyxy: np.ndarray
+) -> None:
     """A skeleton with valid keypoints keeps its box even when the area is zero."""
     key_points = _create_key_points(xy=xy, class_id=[0])
 
@@ -433,7 +452,9 @@ def test_key_points_as_detections_keeps_degenerate_skeletons(xy, expected_xyxy):
     assert np.array_equal(detections.xyxy, expected_xyxy)
 
 
-def test_key_points_as_detections_filters_invalid_and_aligns_degenerate_metadata():
+def test_key_points_as_detections_filters_invalid_and_aligns_degenerate_metadata() -> (
+    None
+):
     """Invalid skeletons are removed while valid degenerate metadata stays aligned."""
     key_points = _create_key_points(
         xy=[
@@ -454,12 +475,14 @@ def test_key_points_as_detections_filters_invalid_and_aligns_degenerate_metadata
         detections.xyxy,
         np.array([[15, 25, 15, 25], [10, 20, 30, 20]], dtype=np.float32),
     )
+    assert detections.class_id is not None
     assert np.array_equal(detections.class_id, np.array([3, 4]))
+    assert detections.confidence is not None
     assert np.array_equal(detections.confidence, np.array([0.4, 0.5], dtype=np.float32))
     assert np.array_equal(detections.data["custom_data"], np.array(["point", "line"]))
 
 
-def test_key_points_as_detections_with_data():
+def test_key_points_as_detections_with_data() -> None:
     """Test the as_detections method preserves data."""
     key_points = _create_key_points(
         xy=[[[0, 1], [2, 3], [4, 5]]],
@@ -472,7 +495,7 @@ def test_key_points_as_detections_with_data():
     assert np.array_equal(detections.data["custom_data"], np.array(["value1"]))
 
 
-def test_key_points_merge_then_with_nms_deduplicates_overlapping_detections():
+def test_key_points_merge_then_with_nms_deduplicates_overlapping_detections() -> None:
     """Test merge-then-NMS removes duplicated overlapping skeletons."""
     key_points_list = [
         _create_key_points(
@@ -493,6 +516,7 @@ def test_key_points_merge_then_with_nms_deduplicates_overlapping_detections():
     assert len(merged) == 4
     assert len(result) == 3
     assert len(result) < len(merged)
+    assert result.detection_confidence is not None
     np.testing.assert_allclose(
         np.sort(result.detection_confidence),
         np.array([0.6, 0.7, 0.9], dtype=np.float32),
@@ -826,13 +850,18 @@ def test_key_points_merge_then_with_nms_deduplicates_overlapping_detections():
         ),
     ],
 )
-def test_with_nms(key_points, threshold, class_agnostic, expected_result):
+def test_with_nms(
+    key_points: KeyPoints,
+    threshold: float,
+    class_agnostic: bool,
+    expected_result: KeyPoints,
+) -> None:
     """NMS filters overlapping keypoint skeletons."""
     result = key_points.with_nms(threshold=threshold, class_agnostic=class_agnostic)
     assert result == expected_result
 
 
-def test_with_nms_keeps_skeleton_without_any_finite_keypoint():
+def test_with_nms_keeps_skeleton_without_any_finite_keypoint() -> None:
     """A skeleton with no usable keypoint survives NMS rather than being dropped."""
     key_points = _create_key_points(
         xy=[
@@ -845,6 +874,7 @@ def test_with_nms_keeps_skeleton_without_any_finite_keypoint():
 
     result = key_points.with_nms(threshold=0.3)
 
+    assert result.detection_confidence is not None
     assert np.allclose(result.detection_confidence, [0.9, 0.7])
 
 
@@ -871,6 +901,7 @@ class TestKeyPointsWithNmsEmptyJoints:
             data={"custom_data": np.arange(skeleton_count)},
         )
         filtered = key_points[np.zeros((skeleton_count, 2), dtype=bool)]
+        assert isinstance(filtered, KeyPoints)
 
         result = filtered.with_nms(threshold=0.0, class_agnostic=class_agnostic)
 
@@ -963,7 +994,9 @@ class TestKeyPointsWithNmsEmptyJoints:
         ),
     ],
 )
-def test_with_nms_raises(key_points, threshold, class_agnostic, match):
+def test_with_nms_raises(
+    key_points: KeyPoints, threshold: float, class_agnostic: bool, match: str
+) -> None:
     """NMS raises when required fields are missing."""
     with pytest.raises(ValueError, match=match):
         key_points.with_nms(threshold=threshold, class_agnostic=class_agnostic)

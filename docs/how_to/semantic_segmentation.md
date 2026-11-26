@@ -1,16 +1,16 @@
 ---
 comments: true
-description: Load semantic segmentation results from Roboflow Inference, Ultralytics, Hugging Face Transformers or a raw class map into sv.Detections, handle the background class, read per-class confidence, annotate the masks and keep memory low with compact masks.
+description: Load semantic segmentation results from Roboflow Inference, Ultralytics, Hugging Face Transformers or a raw class map into sv.Detections, handle the background class, read per-class confidence, split a class into separate patches, annotate the masks and keep memory low with compact masks.
 authors:
   - name: Borda
     role: Open Source Engineer, Roboflow
     github: https://github.com/borda
-date_modified: 2026-11-22
+date_modified: 2026-11-26
 ---
 
 # Load Semantic Segmentation Results
 
-A semantic segmentation model labels every pixel with a class, such as *road*, *building* or *sky*, and does not separate two people standing side by side. Models return this as one dense map of shape `(H, W)` that holds a class id per pixel. supervision turns that map into [sv.Detections][supervision.detection.core.Detections] with **one detection per class present in the image**. Each detection has a mask over every pixel of its class, the tight box around that mask and the class name in `detections.data["class_name"]`.
+A semantic segmentation model labels every pixel with a class, such as *road*, *building* or *sky*, and does not separate two people standing side by side. Models return this as one dense map of shape `(H, W)` that holds a class id per pixel. supervision turns that map into [sv.Detections][supervision.detection.core.Detections] with **one detection per class present in the image by default**. Each detection has a mask over every pixel of its class, the tight box around that mask and the class name in `detections.data["class_name"]`.
 
 For a side-by-side comparison of several models on one image, see the [semantic segmentation cookbook](../notebooks/semantic-segmentation.ipynb).
 
@@ -86,6 +86,37 @@ image = sv.pillow_to_cv2(pil_image)
     detections = sv.Detections.from_semantic_segmentation(label_map, class_map=names)
     ```
 
+## Split a Class into Separate Patches
+
+By default every pixel of a class shares one detection, even when the class shows up in several places. Three lakes become one `water` detection whose box spans the land between them and whose `area` adds the lakes together, so `len(detections)` counts classes, not lakes.
+
+![Animation of a class map with three separate water patches: by default supervision returns one detection of 52 pixels with a single box over the whole scene, and with split_components=True it returns three detections of 26, 12 and 14 pixels, each with a tight box](../assets/semantic-split-components.svg){ align=center width="760" }
+
+Call [from_semantic_segmentation][supervision.detection.core.Detections.from_semantic_segmentation] directly with `split_components=True` to get one detection per 8-connected patch. Each patch keeps its class name and gets its own mask, tight box, area and, when a confidence map is present, mean `confidence`. Pixels that touch only at a corner belong to the same patch.
+
+```python
+import numpy as np
+import supervision as sv
+
+label_map = np.array([[1, 1, 0, 1]], dtype=np.uint8)
+names = {1: "water"}
+
+merged = sv.Detections.from_semantic_segmentation(label_map, class_map=names)
+patches = sv.Detections.from_semantic_segmentation(
+    label_map, class_map=names, split_components=True
+)
+assert merged.area.tolist() == [3]
+assert patches.area.tolist() == [2, 1]
+```
+
+Keep the default when you want per-class coverage, such as the share of the image that is sky. Split when each patch is a thing to count or measure, such as flooded areas or fields.
+
+Two limits follow from how semantic maps work. Objects of the same class that touch stay one patch, because the model never separated them. And there is no minimum patch size, so a stray pixel of noise becomes its own detection. Drop small patches by filtering on `area`:
+
+```python
+patches = patches[patches.area >= 2]
+```
+
 ## Choose What Counts as Background
 
 [from_semantic_segmentation][supervision.detection.core.Detections.from_semantic_segmentation] leaves out class id `0` by default, because models served by Roboflow Inference use it for background. [from_inference][supervision.detection.core.Detections.from_inference] uses the same default.
@@ -108,7 +139,7 @@ detections = sv.Detections.from_semantic_segmentation(
 
 ## Read the Confidence
 
-When the result carries a per-pixel `confidence_mask`, as an Inference result does, each detection's `confidence` is the mean of that map over the pixels of its class, divided by 255. Without a confidence map, `confidence` is `None`.
+When the result carries a per-pixel `confidence_mask`, as an Inference result does, each detection's `confidence` is the mean of that map over its mask pixels, divided by 255. This covers the whole class by default and one patch with `split_components=True`. Without a confidence map, `confidence` is `None`.
 
 Pass a map of your own as `confidence_mask`, an 8-bit array or PNG with the same shape as the class map, to override the one in the result.
 
@@ -132,15 +163,26 @@ annotated_image = label_annotator.annotate(annotated_image, detections)
 
 Annotators pick a colour from the class id. Two models that number the same classes differently give different colours, so pass `custom_color_lookup` with ids that agree across models to compare them.
 
-Because the masks cover whole classes, `detections.area` is the pixel count of each class:
+`detections.area` gives the pixel count of each mask. That count covers the whole class by default and one patch with `split_components=True`.
 
 ```python
 coverage = detections.area / (image.shape[0] * image.shape[1])
 ```
 
+### Paint the Raw Class Map
+
+When you only need the colours, skip `Detections` and paint the `(H, W)` class map directly with [LabelMapAnnotator][supervision.annotators.label_map.LabelMapAnnotator]. It holds one array the size of the image instead of one mask per class, and it colours class `i` with palette colour `i`, as `MaskAnnotator` does. Class id `0` stays unpainted by default, so the scene shows through the background. This example uses `label_map` from the **Class map** tab above, which must have the scene's height and width.
+
+```python
+label_map_annotator = sv.LabelMapAnnotator(opacity=0.6)
+annotated_image = label_map_annotator.annotate(image.copy(), label_map)
+```
+
+Pass `background_id=None` to paint every class, or another id to leave that one unpainted. Negative ids are ignore labels and are never painted. Labels and per-class numbers still need `Detections`.
+
 ## Keep Memory Low with Compact Masks
 
-A dense mask array holds one `(H, W)` boolean frame per class. On a large image with many classes, pass `compact_masks=True` to get a [CompactMask][supervision.detection.compact_mask.CompactMask] instead, built one class at a time. It decodes to the same pixels as the dense array; see [Use Compact Masks](use_compact_masks.md). This example also uses `label_map` and `names` from the **Class map** tab above.
+A dense mask array holds one `(H, W)` boolean frame per detection. On a large image with many classes or patches, pass `compact_masks=True` to get a [CompactMask][supervision.detection.compact_mask.CompactMask] built one detection at a time. It decodes to the same pixels as the dense array; see [Use Compact Masks](use_compact_masks.md). This example also uses `label_map` and `names` from the **Class map** tab above.
 
 ```python
 detections = sv.Detections.from_semantic_segmentation(

@@ -274,3 +274,40 @@ assert np.any(image)
         )
 
         assert completed.returncode == 0, completed.stderr
+
+    def test_font_lookup_does_not_import_matplotlib(self) -> None:
+        """Resolve fallback font paths without importing matplotlib at runtime."""
+        completed = _run_without_opencv(
+            """
+import sys
+import numpy as np
+from supervision._cv2._text import _put_text
+from supervision._cv2.constants import _FONT_HERSHEY_SIMPLEX
+
+image = np.zeros((48, 128, 3), dtype=np.uint8)
+_put_text(image, "Hi", (4, 30), _FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
+assert "matplotlib" not in sys.modules
+assert np.any(image)
+"""
+        )
+
+        assert completed.returncode == 0, completed.stderr
+
+    def test_font_lookup_respects_configured_matplotlib_weight(self) -> None:
+        """Use the configured Matplotlib font face on the first fallback lookup."""
+        completed = _run_without_opencv(
+            """
+import matplotlib
+from matplotlib import font_manager
+
+from supervision._cv2._text import _font_path
+
+with matplotlib.rc_context({"font.weight": "bold"}):
+    expected = font_manager.findfont(
+        font_manager.FontProperties(family="DejaVu Sans", style="normal")
+    )
+    assert _font_path(False) == expected
+"""
+        )
+
+        assert completed.returncode == 0, completed.stderr

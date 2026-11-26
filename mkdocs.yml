@@ -44,10 +44,12 @@ extra_css:
   - stylesheets/cookbooks_card.css
 
 nav:
-  - Home: index.md
-  - About: about.md
-  - Contact: contact.md
-  - FAQ: faq.md
+  - Home:
+      - Overview: index.md
+      - About: about.md
+      - FAQ: faq.md
+      - Contact: contact.md
+      - License: license.md
   - Learn:
       - Detect and Annotate: how_to/detect_and_annotate.md
       - Save Detections: how_to/save_detections.md
@@ -62,7 +64,8 @@ nav:
       - Visualize Depth Maps: how_to/visualize_depth.md
       - Classify Images: how_to/classify_images.md
       - OpenCV Migration: how_to/opencv_migration.md
-  - Reference:
+  - Cookbooks: cookbooks.md
+  - API Reference:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
@@ -76,6 +79,7 @@ nav:
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md
+          - Angles: keypoint/angles.md
       - Depth Estimation:
           - Core: depth/core.md
           - Annotators: depth/annotators.md
@@ -110,11 +114,13 @@ nav:
           - Draw: utils/draw.md
           - Geometry: utils/geometry.md
       - Assets: assets.md
-  - Cookbooks: cookbooks.md
-  - Contributing: contributing.md
-  - Code of Conduct: code_of_conduct.md
-  - License: license.md
-  - Changelog:
+  - Community:
+      - Overview: contributing/index.md
+      - First Contribution: contributing/first_contribution.md
+      - Development Guide: contributing/development.md
+      - AI-Assisted Contributions: contributing/ai_assisted.md
+      - Code of Conduct: code_of_conduct.md
+  - Releases:
       - Changelog: changelog.md
       - Deprecated: deprecated.md
 

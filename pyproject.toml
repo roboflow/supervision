@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.32.2"
+version = "0.32.3"
 description = "Model-agnostic computer vision toolkit: load detections, annotate, filter, count, evaluate, manage data"
 readme = "README.md"
 keywords = [
@@ -62,11 +62,11 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "av>=14.2",
+  "av>=15.1",
   "defusedxml>=0.7.1",
   "matplotlib>=3.6",
   "numpy>=1.21.2",
-  "pillow>=9.4",
+  "pillow>=10.4",
   "pydeprecate>=0.9,<0.16",
   "pyyaml>=5.3",
   "requests>=2.26",
@@ -91,6 +91,7 @@ urls.Repository = "https://github.com/roboflow/supervision"
 
 [dependency-groups]
 dev = [
+  { include-group = "test" },
   "docutils!=0.21",
   "faster-coco-eval>=1.8",
   "ipywidgets>=8.1.1",
@@ -101,11 +102,13 @@ dev = [
   "packaging",
   "pre-commit>=3.8",
   "pycocotools>=2.0.11",
-  "pytest>=7.2.2,<10",
-  "pytest-cov>=4,<8",
   "scikit-learn>=1.7",
   "tox>=4.11.4",
   "types-tqdm",
+]
+test = [
+  "pytest>=7.2.2,<10",
+  "pytest-cov>=4,<8",
 ]
 docs = [
   "mike>=2",
@@ -299,10 +302,15 @@ overrides = [
     "tests.geometry.*",
     "tests.helpers",
     "tests.key_points.test_annotator_validation",
+    "tests.key_points.test_annotators",
     "tests.key_points.test_docs",
+    "tests.key_points.test_from_connectors",
+    "tests.key_points.test_numpy_compatibility",
     "tests.key_points.test_skeletons",
+    "tests.key_points.test_to_detections",
     "tests.metrics.coco_reference",
     "tests.metrics.conftest",
+    "tests.metrics.test_confusion_matrix_metric",
     "tests.metrics.test_core",
     "tests.metrics.test_detection",
     "tests.metrics.test_f1_score",
@@ -346,7 +354,10 @@ ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
 ]
-ini_options.markers = [ "integration: tests requiring external integration dependencies" ]
+ini_options.markers = [
+  "integration: tests requiring external integration dependencies",
+  "metrics: tests requiring the optional metrics dependencies (pandas and the reference metric packages)",
+]
 ini_options.filterwarnings = [
   "error::DeprecationWarning",
 ]

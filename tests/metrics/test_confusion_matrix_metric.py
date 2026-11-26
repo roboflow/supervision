@@ -17,7 +17,9 @@ from tests.metrics.coco_reference import evaluate_detections
 _RESOLUTION = 120
 
 
-def _box_masks(xyxy: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]:
+def _box_masks(
+    xyxy: npt.NDArray[np.float64] | npt.NDArray[np.int64],
+) -> npt.NDArray[np.bool_]:
     """Rasterize integer boxes into full-image masks."""
     masks = np.zeros((len(xyxy), _RESOLUTION, _RESOLUTION), dtype=bool)
     for index, (x_min, y_min, x_max, y_max) in enumerate(xyxy.astype(int)):
@@ -90,6 +92,62 @@ def _coco_precision_and_recall(
         target_count += int((image["gtIgnore"] == 0).sum())
     precision = true_positives / (true_positives + false_positives)
     return precision, true_positives / target_count
+
+
+@pytest.mark.parametrize(
+    ("metric_class", "scores_field"),
+    [
+        pytest.param(F1Score, "f1_scores", id="f1"),
+        pytest.param(Precision, "precision_scores", id="precision"),
+        pytest.param(Recall, "recall_scores", id="recall"),
+    ],
+)
+class TestConfusionMatrixMetricResults:
+    def test_mask_scores_follow_logical_boolean_values(
+        self,
+        metric_class: type[F1Score | Precision | Recall],
+        scores_field: str,
+    ) -> None:
+        """Identical foreground scores perfectly even when true bytes differ."""
+        boxes = np.array([[0, 0, 2, 1]], dtype=np.float32)
+        class_id = np.array([0])
+        predictions = Detections(
+            xyxy=boxes,
+            mask=np.ones((1, 1, 2), dtype=bool),
+            class_id=class_id,
+            confidence=np.array([0.9]),
+        )
+        target_mask = np.array([[[1, 255]]], dtype=np.uint8).view(np.bool_)
+        targets = Detections(xyxy=boxes, mask=target_mask, class_id=class_id)
+
+        result = (
+            metric_class(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        np.testing.assert_array_equal(getattr(result, scores_field), np.ones(10))
+        assert result.small_objects is not None
+        np.testing.assert_array_equal(
+            getattr(result.small_objects, scores_field), np.ones(10)
+        )
+
+    def test_bucket_thresholds_have_independent_storage(
+        self,
+        metric_class: type[F1Score | Precision | Recall],
+        scores_field: str,
+    ) -> None:
+        """Changing a bucket's thresholds leaves overall and sibling results intact."""
+        result = metric_class().compute()
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+
+        result.small_objects.iou_thresholds[0] = 0
+
+        assert result.iou_thresholds[0] == 0.5
+        assert result.medium_objects.iou_thresholds[0] == 0.5
+        assert result.large_objects.iou_thresholds[0] == 0.5
 
 
 class TestConfusionMatrixMetricIgnoreRegions:

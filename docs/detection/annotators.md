@@ -632,6 +632,12 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 :::supervision.annotators.core.MaskAnnotator
 
 <div class="md-typeset">
+    <h2><a href="#supervision.annotators.label_map.LabelMapAnnotator">LabelMapAnnotator</a></h2>
+</div>
+
+:::supervision.annotators.label_map.LabelMapAnnotator
+
+<div class="md-typeset">
     <h2><a href="#supervision.annotators.core.PolygonAnnotator">PolygonAnnotator</a></h2>
 </div>
 

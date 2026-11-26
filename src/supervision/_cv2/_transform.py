@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -37,6 +37,29 @@ def _blur(
     return np.ascontiguousarray(_cast_array_like_opencv(values, src.dtype))
 
 
+_BLUR_STRIP_ROWS = 128
+
+
+def _scale_uint8_box_sums(
+    sums: npt.NDArray[np.integer], area: int
+) -> npt.NDArray[np.uint8]:
+    """Scale exact integer window sums back to uint8 with OpenCV rounding."""
+    if area <= 256:
+        scale = (1 << 23) / area
+        divisor_scale = int(scale)
+        divisor_delta = area // 2
+        if scale - divisor_scale < 0.5:
+            divisor_delta += 1
+        else:
+            divisor_scale += 1
+        quotient = ((sums.astype(np.int64) + divisor_delta) * divisor_scale) >> 23
+        return cast(npt.NDArray[np.uint8], np.minimum(quotient, 255).astype(np.uint8))
+    scaled = sums.astype(np.float32) * np.float32(1.0 / area)
+    return cast(
+        npt.NDArray[np.uint8], np.clip(np.rint(scaled), 0, 255).astype(np.uint8)
+    )
+
+
 def _box_blur_uint8(
     image: npt.NDArray[np.uint8], ksize: tuple[int, int]
 ) -> npt.NDArray[np.uint8]:
@@ -66,31 +89,48 @@ def _box_blur_uint8(
         ```
     """
     kernel_width, kernel_height = ksize
+    area = kernel_width * kernel_height
+    if area == 1:
+        return cast(npt.NDArray[np.uint8], image.copy())
     # Window sums are exact integers either way; int32 halves memory whenever the
     # largest possible sum fits.
-    sum_dtype = np.int32 if 255 * kernel_width * kernel_height < 2**31 else np.int64
-    column_sums = _window_sums(image.astype(sum_dtype), kernel_height, axis=0)
+    sum_dtype: type[np.signedinteger[Any]] = (
+        np.int32 if 255 * area < 2**31 else np.int64
+    )
+    height = image.shape[0]
+    if height > _BLUR_STRIP_ROWS >= kernel_height:
+        # Limit each strip's reflected halo to fewer rows than the strip itself.
+        # Taller kernels would repeatedly sum most of the same input rows.
+        pad_top = kernel_height // 2
+        pad_bottom = kernel_height - 1 - pad_top
+        row_indices = np.pad(
+            np.arange(height, dtype=np.intp), (pad_top, pad_bottom), mode="reflect"
+        )
+        out = np.empty_like(image)
+        for start in range(0, height, _BLUR_STRIP_ROWS):
+            stop = min(start + _BLUR_STRIP_ROWS, height)
+            strip_len = stop - start
+            src_rows = row_indices[start : stop + kernel_height - 1]
+            # Quoted: NumPy < 1.22 cannot subscript `np.signedinteger` at runtime.
+            strip = cast(
+                "npt.NDArray[np.signedinteger[Any]]", image[src_rows].astype(sum_dtype)
+            )
+            cumulative = np.cumsum(strip, axis=0, dtype=sum_dtype)
+            upper = cumulative[kernel_height - 1 : kernel_height - 1 + strip_len]
+            lower = np.zeros_like(upper)
+            if strip_len > 1:
+                lower[1:] = cumulative[: strip_len - 1]
+            strip_column_sums = cast(
+                "npt.NDArray[np.signedinteger[Any]]", upper - lower
+            )
+            sums = _window_sums(strip_column_sums, kernel_width, axis=1)
+            out[start:stop] = _scale_uint8_box_sums(sums, area)
+        return out
+
+    image_sums = cast("npt.NDArray[np.signedinteger[Any]]", image.astype(sum_dtype))
+    column_sums = _window_sums(image_sums, kernel_height, axis=0)
     sums = _window_sums(column_sums, kernel_width, axis=1)
-    area = kernel_width * kernel_height
-    blurred: npt.NDArray[np.uint8]
-    if area == 1:
-        blurred = image.copy()
-    elif area <= 256:
-        scale = (1 << 23) / area
-        divisor_scale = int(scale)
-        divisor_delta = area // 2
-        if scale - divisor_scale < 0.5:
-            divisor_delta += 1
-        else:
-            divisor_scale += 1
-        # Widen before multiplication: a white two-pixel window reaches 2**31,
-        # and OpenCV's vector path saturates its resulting 256 to 255.
-        quotient = ((sums.astype(np.int64) + divisor_delta) * divisor_scale) >> 23
-        blurred = np.minimum(quotient, 255).astype(np.uint8)
-    else:
-        scaled = sums.astype(np.float32) * np.float32(1.0 / area)
-        blurred = np.clip(np.rint(scaled), 0, 255).astype(np.uint8)
-    return blurred
+    return _scale_uint8_box_sums(sums, area)
 
 
 def _box_blur_16bit(

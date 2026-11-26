@@ -31,6 +31,7 @@ from supervision.annotators.core import (
     TraceAnnotator,
     TriangleAnnotator,
 )
+from supervision.annotators.label_map import LabelMapAnnotator
 from supervision.annotators.utils import (
     ColorLookup,
     hex_to_rgba,
@@ -45,7 +46,12 @@ from supervision.dataset.core import (
     KeyPointsDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
-from supervision.depth.annotators import DepthAnnotator, DepthClipRange
+from supervision.depth.annotators import (
+    DepthAnnotator,
+    DepthClipRange,
+    GradientMapAnnotator,
+    NormalMapAnnotator,
+)
 from supervision.depth.colormaps import DepthColormap
 from supervision.depth.core import (
     DepthCamera,
@@ -141,8 +147,10 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import CoordinatesTransformation, Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
+from supervision.key_points.angles import joint_angles
 from supervision.key_points.annotators import (
     EdgeAnnotator,
+    JointAngleAnnotator,
     VertexAnnotator,
     VertexEllipseAnnotator,
     VertexEllipseAreaAnnotator,
@@ -210,6 +218,7 @@ __all__ = [
     "EdgeAnnotator",
     "EllipseAnnotator",
     "FPSMonitor",
+    "GradientMapAnnotator",
     "HaloAnnotator",
     "HeatMapAnnotator",
     "IconAnnotator",
@@ -217,13 +226,16 @@ __all__ = [
     "ImageWindow",
     "InferenceSlicer",
     "JSONSink",
+    "JointAngleAnnotator",
     "KeyPoints",
     "KeyPointsDataset",
     "LabelAnnotator",
+    "LabelMapAnnotator",
     "LineZone",
     "LineZoneAnnotator",
     "LineZoneAnnotatorMulticlass",
     "MaskAnnotator",
+    "NormalMapAnnotator",
     "OrientedBoxAnnotator",
     "OverlapFilter",
     "OverlapMetric",
@@ -284,6 +296,7 @@ __all__ = [
     "hex_to_rgba",
     "is_compressed_rle",
     "is_valid_hex",
+    "joint_angles",
     "letterbox_image",
     "list_files_with_extensions",
     "load_image_from_url",

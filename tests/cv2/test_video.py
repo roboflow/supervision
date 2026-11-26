@@ -144,6 +144,13 @@ def test_public_video_reader_handles_audio_before_video(
     assert [float(frame.mean()) for frame in frames] == pytest.approx([20, 60], abs=4)
 
 
+#: Skips tests that tag a display rotation, which PyAV offers from 17.1.
+_requires_display_rotation = pytest.mark.skipif(
+    not hasattr(av.video.stream.VideoStream, "set_display_rotation"),
+    reason="Tagging a display rotation needs PyAV 17.1 or newer.",
+)
+
+
 def _write_rotated_video(path: Path, rotation: int) -> np.ndarray:
     """Write a landscape clip tagged with a display rotation and return its frame."""
     frame = np.zeros((16, 32, 3), dtype=np.uint8)
@@ -329,6 +336,7 @@ def test_fallback_capture_reports_position_of_last_read_frame(tmp_path: Path) ->
         pytest.param(45, 0, id="non-quarter-turn"),
     ],
 )
+@_requires_display_rotation
 def test_fallback_capture_turns_rotated_video_upright(
     tmp_path: Path, rotation: int, quarter_turns: int
 ) -> None:
@@ -353,6 +361,7 @@ def test_fallback_capture_turns_rotated_video_upright(
 
 
 @pytest.mark.parametrize("rotation", [90, -90, 180])
+@_requires_display_rotation
 def test_fallback_capture_matches_opencv_display_rotation(
     tmp_path: Path, rotation: int
 ) -> None:
