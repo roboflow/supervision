@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 import pytest
 from PIL import Image
@@ -1306,6 +1308,22 @@ class TestJointAngleAnnotator:
             atol=0.05,
         )
 
+    def test_label_text_carries_the_degree_sign(
+        self, scene: np.ndarray, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The label reads like 90° and never a bare number that could mean radians."""
+        drawn: list[str] = []
+
+        def record_text(**kwargs: Any) -> None:
+            drawn.append(kwargs["text"])
+
+        monkeypatch.setattr("supervision.key_points.annotators.draw_text", record_text)
+        annotator = sv.JointAngleAnnotator(angles=[JOINT])
+
+        annotator.annotate(scene=scene.copy(), key_points=_right_angle())
+
+        assert drawn == ["90\N{DEGREE SIGN}"]
+
     def test_folded_joint_draws_no_arc(self, scene: np.ndarray) -> None:
         """A joint narrower than one degree draws no arc."""
         key_points = _joint_from_headings(0.0, 0.3)
@@ -1344,8 +1362,9 @@ class TestJointAngleAnnotator:
 
         rows, cols = np.nonzero(result.any(axis=-1))
         assert rows.size > 0
-        # Arc radius 20 plus thickness, plus the label centred on the bisector.
-        assert np.hypot(rows - 50, cols - 50).max() < 60
+        # Arc radius 20 plus thickness, plus the label, which ends in the degree
+        # sign, centred on the bisector. The hidden joint sits 141 px away.
+        assert np.hypot(rows - 50, cols - 50).max() < 70
 
     @pytest.mark.parametrize("show_value", [False, True])
     def test_label_is_drawn_beyond_the_arc(
@@ -1470,7 +1489,7 @@ class TestJointAngleAnnotator:
         scene[..., 3] = np.arange(100, dtype=np.uint8)[:, None] + 100
         original_alpha = scene[..., 3].copy()
         rows, cols = np.indices(scene.shape[:2])
-        far_from_joint = np.hypot(rows - 50, cols - 50) >= 60
+        far_from_joint = np.hypot(rows - 50, cols - 50) >= 70
         annotator = sv.JointAngleAnnotator(
             angles=[JOINT], thickness=3, show_value=show_value
         )
@@ -1490,7 +1509,7 @@ class TestJointAngleAnnotator:
         scene = np.zeros((100, 100, 4), dtype=np.uint8)
         rows, cols = np.indices(scene.shape[:2])
         beyond_arc = np.hypot(rows - 50, cols - 50) > 20 + 3 + 2
-        far_from_joint = np.hypot(rows - 50, cols - 50) >= 60
+        far_from_joint = np.hypot(rows - 50, cols - 50) >= 70
         annotator = sv.JointAngleAnnotator(
             angles=[JOINT],
             color=sv.Color.BLACK,
