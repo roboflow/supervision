@@ -178,8 +178,9 @@ class InferenceSlicer:
             Must be a positive integer.
 
     Raises:
-        ValueError: If ``slice_wh``, ``overlap_wh``, or ``thread_workers`` are
-            invalid or inconsistent.
+        ValueError: If ``slice_wh`` is invalid.
+        ValueError: If ``overlap_wh`` is invalid or inconsistent with ``slice_wh``.
+        ValueError: If ``thread_workers`` is invalid.
         ValueError: If ``batch_size < 1``.
         ValueError: If the callback returns a non-list when ``batch_size > 1``.
         ValueError: If the callback returns a list whose length differs from the

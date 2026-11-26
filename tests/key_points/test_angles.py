@@ -1,0 +1,258 @@
+import numpy as np
+import pytest
+
+import supervision as sv
+from supervision.key_points.angles import JointAngle
+
+JOINT_XY = [50.0, 50.0]
+JOINT = JointAngle(name="joint", start=0, joint=1, end=2)
+
+
+#: A 90-degree joint: start, joint, end; used where the angle itself is irrelevant.
+RIGHT_ANGLE = [[90.0, 50.0], JOINT_XY, [50.0, 10.0]]
+
+
+def _single_joint(start: list[float], end: list[float]) -> sv.KeyPoints:
+    """Build one skeleton whose points 0, 1 and 2 form the rays joint -> start and joint
+    -> end."""
+    xy = np.array([[start, JOINT_XY, end]], dtype=np.float32)
+    return sv.KeyPoints(xy=xy)
+
+
+class TestJointAngle:
+    @pytest.mark.parametrize(
+        ("start", "joint", "end"),
+        [
+            pytest.param(-1, 1, 2, id="negative-index"),
+            pytest.param(0, 0, 2, id="joint-equals-start"),
+            pytest.param(0, 1, 1, id="joint-equals-end"),
+            pytest.param(2, 1, 2, id="start-equals-end"),
+        ],
+    )
+    def test_invalid_positions_raise(self, start: int, joint: int, end: int) -> None:
+        """A joint needs three distinct, non-negative key point positions."""
+        with pytest.raises(ValueError, match="JointAngle 'joint'"):
+            JointAngle(name="joint", start=start, joint=joint, end=end)
+
+    @pytest.mark.parametrize(
+        "position",
+        [
+            pytest.param(2.0, id="float"),
+            pytest.param(True, id="bool"),
+            pytest.param("2", id="string"),
+        ],
+    )
+    def test_non_integer_position_raises(self, position: object) -> None:
+        """Positions must be integers; floats, bools and strings are rejected."""
+        with pytest.raises(TypeError, match="positions must be integers"):
+            JointAngle(name="joint", start=0, joint=1, end=position)  # type: ignore[arg-type]
+
+    def test_numpy_integer_positions_are_accepted(self) -> None:
+        """NumPy integers, as produced by array indexing, are valid positions."""
+        joint = JointAngle(
+            name="joint", start=np.int64(0), joint=np.int64(1), end=np.int64(2)
+        )
+
+        assert (joint.start, joint.joint, joint.end) == (0, 1, 2)
+
+
+class TestJointAngles:
+    @pytest.mark.parametrize(
+        ("start", "end", "expected"),
+        [
+            pytest.param([90.0, 50.0], [50.0, 10.0], 90.0, id="right-angle"),
+            pytest.param([90.0, 50.0], [10.0, 50.0], 180.0, id="collinear"),
+            pytest.param([90.0, 50.0], [90.0, 10.0], 45.0, id="acute"),
+            pytest.param([90.0, 50.0], [10.0, 10.0], 135.0, id="obtuse"),
+            pytest.param([90.0, 50.0], [70.0, 50.0], 0.0, id="folded"),
+            pytest.param([90.0, 50.0], [90.0, 49.0], 1.432096, id="small-acute"),
+        ],
+    )
+    def test_returns_interior_angle_in_degrees(
+        self, start: list[float], end: list[float], expected: float
+    ) -> None:
+        """The angle at the joint between the rays to start and end is returned in
+        degrees."""
+        key_points = _single_joint(start, end)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        np.testing.assert_allclose(angles, [[expected]], atol=1e-5)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64, np.int64])
+    def test_result_is_float64(self, dtype: type) -> None:
+        """Angles are returned as float64 whatever the key point dtype."""
+        xy: np.ndarray = np.array([[[90, 50], [50, 50], [50, 10]]], dtype=dtype)
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        assert angles.dtype == np.float64
+        np.testing.assert_allclose(angles, [[90.0]], atol=1e-5)
+
+    def test_returns_one_column_per_joint_and_one_row_per_skeleton(self) -> None:
+        """Rows follow the skeletons and columns follow the requested joints."""
+        key_points = sv.KeyPoints(
+            xy=np.array(
+                [
+                    [[90, 50], [50, 50], [50, 10], [10, 50]],
+                    [[60, 40], [40, 40], [40, 20], [40, 60]],
+                ],
+                dtype=np.float32,
+            )
+        )
+        joints = [
+            JointAngle(name="first", start=0, joint=1, end=2),
+            JointAngle(name="second", start=0, joint=1, end=3),
+        ]
+
+        angles = sv.joint_angles(key_points, joints)
+
+        np.testing.assert_allclose(angles, [[90, 180], [90, 90]], atol=1e-5)
+
+    @pytest.mark.parametrize("position", [0, 1, 2])
+    @pytest.mark.parametrize(
+        "coordinate",
+        [
+            pytest.param([np.nan, 50.0], id="nan"),
+            pytest.param([np.inf, 50.0], id="inf"),
+            pytest.param([0.0, 0.0], id="zero-marker"),
+        ],
+    )
+    def test_missing_point_gives_nan(
+        self, position: int, coordinate: list[float]
+    ) -> None:
+        """A NaN, infinite or [0, 0] end point or joint yields NaN, not an angle."""
+        xy = np.array([RIGHT_ANGLE], dtype=np.float32)
+        xy[0, position] = coordinate
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        assert np.isnan(angles).all()
+
+    @pytest.mark.parametrize("position", [0, 1, 2])
+    def test_hidden_point_gives_nan(self, position: int) -> None:
+        """Hiding any one of the three points through `visible` yields NaN."""
+        visible = np.ones((1, 3), dtype=bool)
+        visible[0, position] = False
+        key_points = sv.KeyPoints(
+            xy=np.array([RIGHT_ANGLE], dtype=np.float32), visible=visible
+        )
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        assert np.isnan(angles).all()
+
+    @pytest.mark.parametrize("position", [0, 2])
+    def test_end_point_on_joint_gives_nan(self, position: int) -> None:
+        """An end point on the joint leaves no ray to measure, so the angle is NaN."""
+        xy = np.array([RIGHT_ANGLE], dtype=np.float32)
+        xy[0, position] = JOINT_XY
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        assert np.isnan(angles).all()
+
+    def test_point_next_to_zero_marker_is_measured(self) -> None:
+        """Only exactly [0, 0] marks a missing point; a point just beside it counts."""
+        xy = np.array([[[0.001, 0.0], [0.001, 50.0], [40.001, 50.0]]], dtype=np.float32)
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        np.testing.assert_allclose(angles, [[90.0]], atol=1e-5)
+
+    def test_unusable_point_does_not_affect_other_skeletons(self) -> None:
+        """Only the skeleton with the missing point gets NaN."""
+        key_points = sv.KeyPoints(
+            xy=np.array(
+                [
+                    [[90, 50], [50, 50], [50, 10]],
+                    [[90, 50], [0, 0], [50, 10]],
+                ],
+                dtype=np.float32,
+            )
+        )
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        np.testing.assert_allclose(angles, [[90.0], [np.nan]], atol=1e-5)
+
+    @pytest.mark.filterwarnings("error")
+    def test_same_infinity_at_end_point_and_joint_gives_nan_quietly(self) -> None:
+        """An end point and joint at the same infinity give NaN without a warning."""
+        xy = np.array([[[np.inf, 50.0], [np.inf, 50.0], [50.0, 10.0]]])
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        assert np.isnan(angles).all()
+
+    @pytest.mark.filterwarnings("error")
+    @pytest.mark.parametrize("scale", [1e200, 1e-170])
+    def test_extreme_coordinate_scale_keeps_angle(self, scale: float) -> None:
+        """Coordinates near the float64 limits give the angle of ordinary ones."""
+        xy = scale * np.array([[[2.0, 1.0], [1.0, 1.0], [2.0, 1.1]]])
+        key_points = sv.KeyPoints(xy=xy)
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        np.testing.assert_allclose(angles, [[np.degrees(np.arctan(0.1))]], rtol=1e-6)
+
+    @pytest.mark.parametrize("depth", [0.5, np.nan, np.inf])
+    def test_third_coordinate_is_ignored(self, depth: float) -> None:
+        """Angles use x/y only, so depth never changes or invalidates them."""
+        xy = np.array([[[90, 50, depth], [50, 50, depth], [50, 10, depth]]])
+        key_points = sv.KeyPoints(xy=xy.astype(np.float32))
+
+        angles = sv.joint_angles(key_points, [JOINT])
+
+        np.testing.assert_allclose(angles, [[90.0]], atol=1e-5)
+
+    @pytest.mark.parametrize("num_points", [0, 17])
+    def test_zero_skeletons_give_zero_rows(self, num_points: int) -> None:
+        """A frame without skeletons returns zero rows, one column per joint."""
+        key_points = sv.KeyPoints(xy=np.zeros((0, num_points, 2), dtype=np.float32))
+
+        angles = sv.joint_angles(key_points, [JOINT, JOINT])
+
+        assert angles.shape == (0, 2)
+
+    def test_no_joints_give_empty_columns(self) -> None:
+        """Without joints, each skeleton still gets a row."""
+        key_points = _single_joint([90.0, 50.0], [50.0, 10.0])
+
+        angles = sv.joint_angles(key_points, [])
+
+        assert angles.shape == (1, 0)
+
+    @pytest.mark.parametrize(
+        ("num_points", "joint"),
+        [
+            pytest.param(
+                3, JointAngle(name="too_far", start=0, joint=1, end=3), id="past-end"
+            ),
+            pytest.param(
+                0, JointAngle(name="too_far", start=0, joint=1, end=2), id="no-points"
+            ),
+        ],
+    )
+    def test_index_out_of_range_raises(
+        self, num_points: int, joint: JointAngle
+    ) -> None:
+        """A joint that points past the last key point raises ValueError."""
+        key_points = sv.KeyPoints(xy=np.ones((1, num_points, 2), dtype=np.float32))
+
+        with pytest.raises(ValueError, match="'too_far' refers to position"):
+            sv.joint_angles(key_points, [joint])
+
+    def test_input_is_not_modified(self) -> None:
+        """Computing angles leaves the key points untouched."""
+        key_points = _single_joint([np.nan, 50.0], [50.0, 10.0])
+        xy_before = key_points.xy.copy()
+
+        sv.joint_angles(key_points, [JOINT])
+
+        np.testing.assert_array_equal(key_points.xy, xy_before)

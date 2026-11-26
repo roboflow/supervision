@@ -7,11 +7,22 @@ from typing import Any, Generic, TypeVar
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated
 
 
 def _to_numpy(value: Any) -> npt.NDArray[Any]:
-    """Return a NumPy property directly or convert a tensor through the CPU."""
-    return value if isinstance(value, np.ndarray) else value.cpu().numpy()
+    """Return a NumPy property directly or convert a tensor through the CPU.
+
+    A `bfloat16` tensor has no NumPy dtype, so it is widened to `float32` first; every
+    other dtype keeps its own precision.
+    """
+    if isinstance(value, np.ndarray):
+        return value
+    tensor = value.cpu()
+    if str(getattr(tensor, "dtype", None)) == "torch.bfloat16":
+        tensor = tensor.float()
+    result: npt.NDArray[Any] = tensor.numpy()
+    return result
 
 
 class SupervisionWarnings(Warning):
@@ -64,6 +75,17 @@ def warn_deprecated(message: str) -> None:
 #: that setting silence them like :func:`~supervision.utils.internal.warn_deprecated`.
 _DEPRECATION_WARNING_STREAM = functools.partial(
     warnings.warn, category=SupervisionWarnings
+)
+
+#: Keyword pydeprecate's ``deprecated`` decorator reads a custom warning template
+#: from. pydeprecate 0.12 renamed ``template_mgs`` to ``message_template`` and warns
+#: with ``FutureWarning`` whenever a decorator uses the old name, which happens while
+#: supervision is imported; 0.9 to 0.11, still in the supported range, accept only
+#: ``template_mgs``.
+_DEPRECATION_TEMPLATE_KEYWORD = (
+    "message_template"
+    if "message_template" in inspect.signature(deprecated).parameters
+    else "template_mgs"
 )
 
 

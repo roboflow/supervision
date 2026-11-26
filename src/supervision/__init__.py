@@ -45,7 +45,12 @@ from supervision.dataset.core import (
     KeyPointsDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
-from supervision.depth.annotators import DepthAnnotator, DepthClipRange
+from supervision.depth.annotators import (
+    DepthAnnotator,
+    DepthClipRange,
+    GradientMapAnnotator,
+    NormalMapAnnotator,
+)
 from supervision.depth.colormaps import DepthColormap
 from supervision.depth.core import (
     DepthCamera,
@@ -109,6 +114,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
+    oriented_box_soft_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -140,8 +146,10 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import CoordinatesTransformation, Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
+from supervision.key_points.angles import joint_angles
 from supervision.key_points.annotators import (
     EdgeAnnotator,
+    JointAngleAnnotator,
     VertexAnnotator,
     VertexEllipseAnnotator,
     VertexEllipseAreaAnnotator,
@@ -209,6 +217,7 @@ __all__ = [
     "EdgeAnnotator",
     "EllipseAnnotator",
     "FPSMonitor",
+    "GradientMapAnnotator",
     "HaloAnnotator",
     "HeatMapAnnotator",
     "IconAnnotator",
@@ -216,6 +225,7 @@ __all__ = [
     "ImageWindow",
     "InferenceSlicer",
     "JSONSink",
+    "JointAngleAnnotator",
     "KeyPoints",
     "KeyPointsDataset",
     "LabelAnnotator",
@@ -223,6 +233,7 @@ __all__ = [
     "LineZoneAnnotator",
     "LineZoneAnnotatorMulticlass",
     "MaskAnnotator",
+    "NormalMapAnnotator",
     "OrientedBoxAnnotator",
     "OverlapFilter",
     "OverlapMetric",
@@ -283,6 +294,7 @@ __all__ = [
     "hex_to_rgba",
     "is_compressed_rle",
     "is_valid_hex",
+    "joint_angles",
     "letterbox_image",
     "list_files_with_extensions",
     "load_image_from_url",
@@ -301,6 +313,7 @@ __all__ = [
     "oriented_box_iou_batch",
     "oriented_box_non_max_merge",
     "oriented_box_non_max_suppression",
+    "oriented_box_soft_non_max_suppression",
     "pad_boxes",
     "pillow_to_cv2",
     "plot_image",

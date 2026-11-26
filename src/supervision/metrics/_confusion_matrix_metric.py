@@ -17,16 +17,21 @@ from __future__ import annotations
 from abc import abstractmethod
 from copy import copy, deepcopy
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.utils.converters import xyxy_to_xywh
 from supervision.detection.utils.iou_and_nms import (
+    _has_coordinates_beyond_float64_exact_int,
+    _large_integer_box_areas,
     box_iou_batch,
+    box_iou_batch_with_jaccard,
     mask_iou_batch,
     oriented_box_iou_batch,
 )
@@ -35,6 +40,11 @@ from supervision.detection.utils.matching import (
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.mean_average_precision import (
+    _mask_iou_with_jaccard,
+    _MaskRow,
+    _oriented_box_iou_with_jaccard,
+)
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -57,6 +67,82 @@ def _validate_confusion_matrix(confusion_matrix: npt.NDArray[np.float64]) -> Non
         raise ValueError(
             f"Confusion matrix must have shape (..., 3), got {confusion_matrix.shape}"
         )
+
+
+def _ignore_region_masks(
+    targets: Detections,
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+    """Return which targets are COCO crowd regions and which are ignore regions.
+
+    A target is an ignore region when ``data["iscrowd"]`` or ``data["ignore"]`` is
+    set for it, the rule
+    :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision` and
+    :class:`~supervision.metrics.mean_average_recall.MeanAverageRecall` apply.
+    Crowd regions are the subset that any number of predictions may match.
+
+    Args:
+        targets: The target detections of one image.
+
+    Returns:
+        Two boolean arrays of shape ``(N,)``: crowd regions and ignore regions.
+    """
+    crowd = np.zeros(len(targets), dtype=bool)
+    if ISCROWD_DATA_FIELD in targets.data:
+        crowd |= np.asarray(targets.data[ISCROWD_DATA_FIELD]).astype(bool)
+    ignored = crowd.copy()
+    if "ignore" in targets.data:
+        ignored |= np.asarray(targets.data["ignore"]).astype(bool)
+    return crowd, ignored
+
+
+def _mask_rows(
+    masks: npt.NDArray[Any] | CompactMask, indices: npt.NDArray[np.intp]
+) -> list[_MaskRow]:
+    """Return the selected masks as rows the COCO mask overlap helper accepts.
+
+    Compact masks stay compact as ``(CompactMask, index)`` references, so no full-image
+    array is decoded.
+    """
+    if isinstance(masks, CompactMask):
+        return [(masks, int(index)) for index in indices]
+    return [np.asarray(masks[index], dtype=bool) for index in indices]
+
+
+def _match_unscored_targets(
+    matched_target_indices: npt.NDArray[np.int32],
+    prediction_class_ids: npt.NDArray[np.int32],
+    prediction_confidence: npt.NDArray[np.float32],
+    target_class_ids: npt.NDArray[np.int32],
+    iou: npt.NDArray[np.floating],
+    iou_thresholds: npt.NDArray[np.float32],
+    target_scored: npt.NDArray[np.bool_],
+    target_crowd: npt.NDArray[np.bool_],
+) -> None:
+    """Assign remaining predictions to unscored targets in confidence order.
+
+    Non-crowd targets are consumed once per threshold; crowd targets remain available.
+    Scored targets have already had priority in the first round.
+    """
+    unscored = np.flatnonzero(~target_scored)
+    prediction_order = np.argsort(-prediction_confidence, kind="stable")
+    for threshold_index, threshold in enumerate(iou_thresholds):
+        available = np.ones(len(unscored), dtype=bool)
+        for prediction_index in prediction_order:
+            if matched_target_indices[prediction_index, threshold_index] >= 0:
+                continue
+            overlaps = iou[unscored, prediction_index]
+            eligible = (
+                available
+                & (target_class_ids[unscored] == prediction_class_ids[prediction_index])
+                & (overlaps >= threshold)
+            )
+            if not np.any(eligible):
+                continue
+            best = int(np.argmax(np.where(eligible, overlaps, -1.0)))
+            target_index = unscored[best]
+            matched_target_indices[prediction_index, threshold_index] = target_index
+            if not target_crowd[target_index]:
+                available[best] = False
 
 
 class _ConfusionMatrixMetric(Metric[_ResultT]):
@@ -221,15 +307,18 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                 "predictions and targets."
             )
         base_target_classes = np.asarray(targets.class_id, dtype=np.int32)
+        target_crowd, target_ignored = _ignore_region_masks(targets)
+        scored_targets = ~target_ignored
+        has_ignored_targets = bool(target_ignored.any())
         if len(predictions) == 0:
             for size_category in size_categories:
-                if size_category == ObjectSizeCategory.ANY:
-                    target_classes = base_target_classes
-                else:
+                target_scored = scored_targets
+                if size_category != ObjectSizeCategory.ANY:
                     assert target_categories is not None
-                    target_classes = base_target_classes[
+                    target_scored = scored_targets & (
                         target_categories == size_category.value
-                    ]
+                    )
+                target_classes = base_target_classes[target_scored]
                 if len(target_classes) == 0:
                     continue
                 stats_by_size[size_category].append(
@@ -250,16 +339,37 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
         base_pred_classes = np.asarray(predictions.class_id, dtype=np.int32)
         base_pred_conf = np.asarray(predictions.confidence, dtype=np.float32)
         iou = self._compute_iou_matrix(target_contents, prediction_contents)
+        if target_crowd.any():
+            # Crowd overlap uses prediction area as the denominator. Round it like
+            # the float32 thresholds so exact boundary matches survive assignment.
+            iou[target_crowd] = self._crowd_overlaps(
+                target_contents, prediction_contents, target_crowd
+            ).astype(np.float32)
 
         for size_category in size_categories:
-            if size_category == ObjectSizeCategory.ANY:
-                matches, _ = _match_detection_batch_with_target_indices(
+            all_sizes = size_category == ObjectSizeCategory.ANY
+            target_scored = scored_targets
+            if not all_sizes:
+                assert target_categories is not None
+                target_scored = scored_targets & (
+                    target_categories == size_category.value
+                )
+
+            has_unscored_targets = not all_sizes or has_ignored_targets
+            scored_iou = (
+                np.where(target_scored[:, None], iou, -1.0)
+                if has_unscored_targets
+                else iou
+            )
+            matches, matched_target_indices = (
+                _match_detection_batch_with_target_indices(
                     base_pred_classes,
                     base_target_classes,
-                    iou,
+                    scored_iou,
                     iou_thresholds,
-                    target_scored_mask=None,
                 )
+            )
+            if not has_unscored_targets:
                 stats_by_size[size_category].append(
                     (
                         matches,
@@ -271,23 +381,26 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                 )
                 continue
 
-            assert pred_categories is not None
-            assert target_categories is not None
-            prediction_size_mask = pred_categories == size_category.value
-            target_size_mask = target_categories == size_category.value
-            matches, matched_target_indices = (
-                _match_detection_batch_with_target_indices(
-                    base_pred_classes,
-                    base_target_classes,
-                    iou,
-                    iou_thresholds,
-                    target_scored_mask=target_size_mask,
-                )
+            # Scored matches are true positives. Unscored matches absorb predictions
+            # in stable confidence order without consuming reusable crowd regions.
+            _match_unscored_targets(
+                matched_target_indices,
+                base_pred_classes,
+                base_pred_conf,
+                base_target_classes,
+                iou,
+                iou_thresholds,
+                target_scored,
+                target_crowd,
             )
+            prediction_size_mask = np.ones(len(predictions), dtype=bool)
+            if not all_sizes:
+                assert pred_categories is not None
+                prediction_size_mask = pred_categories == size_category.value
             valid_target_match = matched_target_indices >= 0
             matched_scored_target = np.zeros_like(matches, dtype=bool)
             if np.any(valid_target_match):
-                matched_scored_target[valid_target_match] = target_size_mask[
+                matched_scored_target[valid_target_match] = target_scored[
                     matched_target_indices[valid_target_match]
                 ]
             prediction_scored = prediction_size_mask[:, None] | matched_scored_target
@@ -301,7 +414,7 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
             filtered_ignored = ignored_matches[prediction_keep]
             filtered_conf = base_pred_conf[prediction_keep]
             filtered_pred_classes = base_pred_classes[prediction_keep]
-            filtered_target_classes = base_target_classes[target_size_mask]
+            filtered_target_classes = base_target_classes[target_scored]
             if len(filtered_pred_classes) == 0 and len(filtered_target_classes) == 0:
                 continue
             stats_by_size[size_category].append(
@@ -540,6 +653,84 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
+    def _crowd_overlaps(
+        self,
+        target_contents: npt.NDArray[Any] | CompactMask,
+        prediction_contents: npt.NDArray[Any] | CompactMask,
+        target_crowd: npt.NDArray[np.bool_],
+    ) -> npt.NDArray[np.float64]:
+        """Return the COCO overlap of each crowd target with each prediction.
+
+        For a crowd region COCO divides the intersection by the prediction's own
+        area instead of the union, so a prediction inside the region overlaps it
+        fully however large the region is. The same helpers as
+        :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
+        compute it.
+
+        Args:
+            target_contents: Boxes, masks or oriented boxes of all targets.
+            prediction_contents: Boxes, masks or oriented boxes of all predictions.
+            target_crowd: Which targets are crowd regions, shape ``(N,)``.
+
+        Returns:
+            Overlaps of shape ``(number of crowd targets, P)``.
+        """
+        crowd_count = int(np.count_nonzero(target_crowd))
+        always_crowd = [True] * crowd_count
+        if self._metric_target == MetricTarget.MASKS:
+            crowd_indices = np.flatnonzero(target_crowd)
+            target_rows = _mask_rows(target_contents, crowd_indices)
+            prediction_rows = _mask_rows(
+                prediction_contents, np.arange(len(prediction_contents))
+            )
+            overlaps = _mask_iou_with_jaccard(
+                target_rows, prediction_rows, always_crowd
+            )
+        elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            overlaps = _oriented_box_iou_with_jaccard(
+                np.asarray(target_contents)[target_crowd],
+                np.asarray(prediction_contents),
+                always_crowd,
+            )
+        else:
+            crowd_boxes = np.asarray(target_contents)[target_crowd]
+            prediction_boxes = np.asarray(prediction_contents)
+            if (
+                (
+                    _has_coordinates_beyond_float64_exact_int(crowd_boxes)
+                    or _has_coordinates_beyond_float64_exact_int(prediction_boxes)
+                )
+                and np.isfinite(crowd_boxes).all()
+                and np.isfinite(prediction_boxes).all()
+            ):
+                # Mixed integer/float inputs need exact comparisons too: casting the
+                # large integer corner to float would erase a narrow intersection.
+                if not np.issubdtype(crowd_boxes.dtype, np.integer):
+                    crowd_boxes = np.vectorize(Fraction, otypes=[object])(crowd_boxes)
+                if not np.issubdtype(prediction_boxes.dtype, np.integer):
+                    prediction_boxes = np.vectorize(Fraction, otypes=[object])(
+                        prediction_boxes
+                    )
+                intersection, _, prediction_area = _large_integer_box_areas(
+                    crowd_boxes, prediction_boxes
+                )
+                return np.divide(
+                    intersection,
+                    prediction_area[None, :],
+                    out=np.zeros_like(intersection),
+                    where=prediction_area[None, :] > 0,
+                )
+            overlaps = box_iou_batch_with_jaccard(
+                xyxy_to_xywh(crowd_boxes).tolist(),
+                xyxy_to_xywh(prediction_boxes).tolist(),
+                always_crowd,
+            )
+        # The helpers return `(predictions, targets)`.
+        crowd_overlaps: npt.NDArray[np.float64] = np.asarray(
+            overlaps, dtype=np.float64
+        ).T
+        return crowd_overlaps
+
     def _make_empty_content(self) -> npt.NDArray[Any]:
         """Return the empty content array matching the configured metric target."""
         if self._metric_target == MetricTarget.BOXES:
@@ -709,6 +900,7 @@ def _result_to_pandas(view: _ResultView) -> pd.DataFrame:
 def _plot_result(view: _ResultView) -> None:
     """Plot the metric value at IoU 0.5 and 0.75, split by object size."""
     from matplotlib import pyplot as plt
+    from matplotlib import rc_context
 
     result_labels = view.labels
     labels = [f"{result_labels.long}@50", f"{result_labels.long}@75"]
@@ -729,35 +921,32 @@ def _plot_result(view: _ResultView) -> None:
         values += [bucket.score_at_50, bucket.score_at_75]
         colors += [LEGACY_COLOR_PALETTE[palette_index]] * 2
 
-    plt.rcParams["font.family"] = "monospace"
-
-    _, ax = plt.subplots(figsize=(10, 6))
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("Value", fontweight="bold")
-    title = (
-        f"{result_labels.plot_title}, by Object Size"
-        f"\n(target: {view.metric_target.value},"
-        f" averaging: {view.averaging_method.value})"
-    )
-    ax.set_title(title, fontweight="bold")
-
-    x_positions = range(len(labels))
-    bars = ax.bar(x_positions, values, color=colors, align="center")
-
-    ax.set_xticks(x_positions)
-    ax.set_xticklabels(labels, rotation=45, ha="right")
-
-    for bar in bars:
-        y_value = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            y_value + 0.02,
-            f"{y_value:.2f}",
-            ha="center",
-            va="bottom",
+    with rc_context({"font.family": "monospace"}):
+        _, ax = plt.subplots(figsize=(10, 6))
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Value", fontweight="bold")
+        title = (
+            f"{result_labels.plot_title}, by Object Size"
+            f"\n(target: {view.metric_target.value},"
+            f" averaging: {view.averaging_method.value})"
         )
+        ax.set_title(title, fontweight="bold")
 
-    plt.rcParams["font.family"] = "sans-serif"
+        x_positions = range(len(labels))
+        bars = ax.bar(x_positions, values, color=colors, align="center")
+
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+
+        for bar in bars:
+            y_value = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                y_value + 0.02,
+                f"{y_value:.2f}",
+                ha="center",
+                va="bottom",
+            )
 
     plt.tight_layout()
     plt.show()
