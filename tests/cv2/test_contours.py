@@ -323,3 +323,23 @@ def test_edge_distance_handles_non_finite_thresholds(
     actual = filter_segments_by_distance(mask, absolute_distance=threshold, mode="edge")
 
     np.testing.assert_array_equal(actual, expected)
+
+
+def test_tight_crop_contours_restore_global_coordinates_and_holes() -> None:
+    """Tight-bbox contour cropping restores exact global offsets, borders, and holes."""
+    source = np.zeros((100, 120), dtype=np.uint8)
+    source[40:55, 60:80] = 1
+    source[44:50, 65:74] = 0
+
+    contours, hierarchy = _find_contours(source, _RETR_TREE, _CHAIN_APPROX_SIMPLE)
+
+    assert len(contours) == 2
+    assert hierarchy is None
+    outer_xs = contours[0][:, 0, 0]
+    outer_ys = contours[0][:, 0, 1]
+    assert (int(outer_xs.min()), int(outer_xs.max())) == (60, 79)
+    assert (int(outer_ys.min()), int(outer_ys.max())) == (40, 54)
+    hole_xs = contours[1][:, 0, 0]
+    hole_ys = contours[1][:, 0, 1]
+    assert (int(hole_xs.min()), int(hole_xs.max())) == (64, 74)
+    assert (int(hole_ys.min()), int(hole_ys.max())) == (43, 50)
