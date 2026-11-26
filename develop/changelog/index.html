@@ -1798,6 +1798,34 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keypoint/angles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Angles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4712,6 +4740,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Added <code>sv.joint_angles</code> and <code>sv.JointAngleAnnotator</code> for measuring and drawing joint angles from <code>sv.KeyPoints</code>. A joint is a <code>JointAngle</code> from <code>supervision.key_points.angles</code>: a name and three zero-based key point positions, <code>start</code>, <code>joint</code> and <code>end</code>, for example hip, knee and ankle. <code>sv.joint_angles</code> returns the interior angle at <code>joint</code> in degrees, one row per skeleton and one column per joint. It returns <code>NaN</code> rather than a value when one of the three points is hidden by <code>visible</code>, non-finite or exactly <code>[0, 0]</code>, the points <code>KeyPoints.as_detections</code> also leaves out, or when <code>start</code> or <code>end</code> lies on <code>joint</code>. Angles are measured on x/y in the image plane, so a third coordinate is ignored and foreshortened limbs read differently from their 3D angle. <code>sv.JointAngleAnnotator</code> draws an arc inside each measurable joint of at least one degree, labels it with the angle unless <code>show_value=False</code>, and skips the joints <code>sv.joint_angles</code> returns as <code>NaN</code>. Like the other key point annotators, it takes a <code>sv.Color</code> or a <code>sv.ColorPalette</code> for <code>color</code> and <code>text_color</code>, with <code>color_lookup</code> set to <code>INDEX</code>, <code>CLASS</code> or <code>KEYPOINT</code> (the color of the <code>joint</code> point). On a BGRA scene, shaped <code>(H, W, 4)</code>, arcs and labels are composited according to their coverage and the rest of the scene keeps its alpha. (<a href="https://github.com/roboflow/supervision/pull/2899">#2899</a>)</p>
+</li>
+<li>
 <p><code>sv.DetectionDataset.from_yolo</code> and <code>sv.KeyPointsDataset.from_yolo</code> now load images in sorted path order, as <code>from_pascal_voc</code> does. They kept the order in which the filesystem listed files, so <code>image_paths</code>, iteration and <code>split(random_state=...)</code> depended on the filesystem: the same files and seed gave different train/test splits on ext4, which lists by name hash, and on tmpfs, which lists by creation order. (<a href="https://github.com/roboflow/supervision/pull/3081">#3081</a>)</p>
 </li>
 <li>
@@ -7282,7 +7313,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 12:46:24 UTC">November 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 13:13:22 UTC">November 26, 2026</span>
   </span>
 
     
@@ -7310,9 +7341,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/voropaevv" class="md-author" title="@voropaevv">
+        <a href="https://github.com/kari-pikkarainen" class="md-author" title="@kari-pikkarainen">
           
-          <img src="https://avatars.githubusercontent.com/u/43608848?v=4&size=72" alt="voropaevv">
+          <img src="https://avatars.githubusercontent.com/u/154351964?v=4&size=72" alt="kari-pikkarainen">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7320,14 +7351,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/voropaevv" class="md-author" title="@voropaevv">
+          
+          <img src="https://avatars.githubusercontent.com/u/43608848?v=4&size=72" alt="voropaevv">
+        </a>
+      
         <a href="https://github.com/Nikhila-Dhevi-R" class="md-author" title="@Nikhila-Dhevi-R">
           
           <img src="https://avatars.githubusercontent.com/u/178061112?v=4&size=72" alt="Nikhila-Dhevi-R">
-        </a>
-      
-        <a href="https://github.com/SajjadPSavoji" class="md-author" title="@SajjadPSavoji">
-          
-          <img src="https://avatars.githubusercontent.com/u/44399382?v=4&size=72" alt="SajjadPSavoji">
         </a>
       
       
