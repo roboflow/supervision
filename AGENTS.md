@@ -1,6 +1,6 @@
 # Agent Guidelines for `supervision`
 
-Behave like a senior contributor: precise, efficient, maintainable. When this file and the [contributing guide](docs/contributing/index.md) conflict, **the contributing guide wins**.
+Behave like a senior contributor: precise, efficient, maintainable. When this file and [CONTRIBUTING.md](.github/CONTRIBUTING.md) conflict, **CONTRIBUTING.md wins**.
 
 ______________________________________________________________________
 
@@ -49,7 +49,7 @@ ______________________________________________________________________
 
 ## 3. Agent-Critical Rules
 
-These supplement the [Development guide](docs/contributing/development.md) — covering gaps or agent-specific failure modes.
+These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or agent-specific failure modes.
 
 **Doc headings**: `###` max in docstrings and docs. `####` renders identically to bold in mkdocs — use `**bold**` instead.
 
@@ -70,11 +70,11 @@ These supplement the [Development guide](docs/contributing/development.md) — c
 - Never assert `dict` or `set` iteration order.
 - No network or filesystem access outside `supervision/assets/`.
 
-**⚠ Test structure** — agents frequently fail here; read [Development guide §Tests](docs/contributing/development.md#tests) carefully: AAA structure, class grouping, bare simple parametrized values, `pytest.param(..., id="semantic-slug")` for compound or unclear cases (never parallel `ids`), one-line docstring per test.
+**⚠ Test structure** — agents frequently fail here; read [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#tests) carefully: AAA structure, class grouping, bare simple parametrized values, `pytest.param(..., id="semantic-slug")` for compound or unclear cases (never parallel `ids`), one-line docstring per test.
 
-**Reference parity tests** — follow [Development guide §Reference parity tests](docs/contributing/development.md#reference-parity-tests): evaluate the live reference package on the same inputs, and keep it in development dependencies only.
+**Reference parity tests** — follow [CONTRIBUTING.md §Reference parity tests](.github/CONTRIBUTING.md#reference-parity-tests): evaluate the live reference package on the same inputs, and keep it in development dependencies only.
 
-For branching and commit conventions see [First contribution](docs/contributing/first_contribution.md); for code style and API design conventions see the [Development guide](docs/contributing/development.md).
+For branching, commit, code style, and API design conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ______________________________________________________________________
 
@@ -120,7 +120,7 @@ ______________________________________________________________________
 ## 6. Implementing Features
 
 - Minimal implementation; type hints and Google docstrings with usage examples.
-- Tests covering new functionality and edge cases (see [Development guide §Tests](docs/contributing/development.md#tests)).
+- Tests covering new functionality and edge cases (see [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#tests)).
 - Update docstrings and mkdocs entries as needed.
 - Update [docs/changelog.md](docs/changelog.md) for every functional change or bug fix, including user-visible behavior changes. Skip changelog entries for lint-only, type-only, formatting-only, and pure documentation-only changes.
 - If work has open PR, changelog entry must link that PR (`[#N](https://github.com/roboflow/supervision/pull/N)`), not source issue. PR link only, even if issue exists.

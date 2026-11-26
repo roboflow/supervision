@@ -68,7 +68,7 @@ ______________________________________________________________________
 ### General Guidelines
 
 - Follow **[AGENTS.md](../AGENTS.md)** for task-based development workflows
-- Reference the **[Development guide](../docs/contributing/development.md)** for detailed contribution guidelines
+- Reference **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed contribution guidelines
 - All code must pass `pre-commit` hooks before committing
 
 ### Code Style
@@ -134,4 +134,4 @@ ______________________________________________________________________
 
 - **For general development tasks**: Follow [AGENTS.md](../AGENTS.md)
 - **For pull request reviews**: Follow the [code-review skill](skills/code-review/SKILL.md)
-- **For detailed processes**: Consult the [contributing guide](../docs/contributing/index.md)
+- **For detailed processes**: Consult [CONTRIBUTING.md](CONTRIBUTING.md)
