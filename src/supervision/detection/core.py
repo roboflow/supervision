@@ -2640,29 +2640,42 @@ class Detections:
         array_index = cast(
             slice | list[int] | npt.NDArray[np.integer | np.bool_], index
         )
+        # Slice indexing returns a view in NumPy and needs `.copy()` to guarantee
+        # independence from `self`; fancy/boolean indexing already returns a fresh
+        # owning array, so skipping the extra `.copy()` halves peak memory.
+        needs_copy = isinstance(array_index, slice)
+
+        def _own(arr: npt.NDArray[Any]) -> npt.NDArray[Any]:
+            """Return an owning copy when slicing, viewing, or forwarding 0-D data."""
+            return (
+                arr.copy()
+                if (needs_copy or arr.ndim == 0 or arr.base is not None)
+                else arr
+            )
+
         data = {
-            key: value.copy() if isinstance(value, np.ndarray) else list(value)
+            key: _own(value) if isinstance(value, np.ndarray) else list(value)
             for key, value in get_data_item(self.data, array_index).items()
         }
         if isinstance(self.mask, CompactMask):
             mask = self.mask[cast(Any, array_index)]
         elif self.mask is not None:
-            mask = self.mask[cast(Any, array_index)].copy()
+            mask = _own(self.mask[cast(Any, array_index)])
         else:
             mask = None
         return Detections(
-            xyxy=self.xyxy[array_index].copy(),
+            xyxy=_own(self.xyxy[array_index]),
             mask=mask,
             confidence=(
-                self.confidence[array_index].copy()
+                _own(self.confidence[array_index])
                 if self.confidence is not None
                 else None
             ),
             class_id=(
-                self.class_id[array_index].copy() if self.class_id is not None else None
+                _own(self.class_id[array_index]) if self.class_id is not None else None
             ),
             tracker_id=(
-                self.tracker_id[array_index].copy()
+                _own(self.tracker_id[array_index])
                 if self.tracker_id is not None
                 else None
             ),
@@ -2931,16 +2944,9 @@ class Detections:
         :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
         the instance is returned unchanged.
 
-        Note:
-            The crop boundaries are set to the **full image dimensions**, not the
-            detector bounding box. No bbox-crop memory savings apply: the RLE
-            sparsity still reduces storage versus a dense array, but the
-            ``O(bbox_area)`` savings available from
-            ``from_inference(..., compact_masks=True)`` are absent here because
-            every crop spans the whole frame. Call
-            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
-            resulting mask to tighten crops to their bounding boxes, at the cost
-            of potential pixel loss outside those boxes.
+        Each crop is bounded by the mask's foreground, preserving pixels
+        outside the detector box and retaining their original image coordinates.
+        Masks without foreground use a 1-by-1 background crop.
 
         Returns:
             A new :class:`~supervision.detection.core.Detections` instance with
@@ -2971,17 +2977,10 @@ class Detections:
         if self.mask is None or isinstance(self.mask, CompactMask):
             return self
         image_shape = (int(self.mask.shape[1]), int(self.mask.shape[2]))
-        full_image_xyxy = np.tile(
-            np.array(
-                [[0, 0, image_shape[1] - 1, image_shape[0] - 1]], dtype=np.float64
-            ),
-            (len(self), 1),
-        )
         new = self.__class__(
             xyxy=self.xyxy,
-            mask=CompactMask.from_dense(
+            mask=CompactMask._from_dense_tight(
                 masks=self.mask,
-                xyxy=full_image_xyxy,
                 image_shape=image_shape,
             ),
             confidence=self.confidence,

@@ -13,6 +13,7 @@ from supervision.detection.compact_mask import (
     _rle_area,
     _rle_counts_int32,
 )
+from supervision.detection.core import Detections
 from supervision.detection.utils.converters import (
     _mask_to_rle_counts,
     _rle_counts_to_mask,
@@ -2304,3 +2305,61 @@ class TestCompactMaskSum:
         np.testing.assert_array_equal(result, expected)
         assert np.shape(result) == np.shape(expected)
         assert result.dtype == expected.dtype
+
+
+class TestFromDenseTight:
+    """Tests for lossless tight-bbox encoding via CompactMask._from_dense_tight."""
+
+    def test_encodes_minimal_crops_and_round_trips_losslessly(self) -> None:
+        """Tight encoding stores minimal foreground crops, empty masks, and edges."""
+        img_h, img_w = 40, 50
+        masks = np.zeros((4, img_h, img_w), dtype=bool)
+        masks[0, 10:15, 20:28] = True
+        masks[2, 0, 0] = True
+        masks[3, img_h - 2 : img_h, img_w - 3 : img_w] = True
+
+        cm = CompactMask._from_dense_tight(masks, (img_h, img_w))
+
+        assert cm.offsets.tolist() == [[20, 10], [0, 0], [0, 0], [47, 38]]
+        assert cm._crop_shapes.tolist() == [[5, 8], [1, 1], [1, 1], [2, 3]]
+        np.testing.assert_array_equal(cm.to_dense(), masks)
+
+    def test_empty_stack_preserves_image_shape(self) -> None:
+        """Encoding an empty (0, H, W) dense stack returns an empty CompactMask."""
+        masks = np.zeros((0, 12, 18), dtype=bool)
+
+        cm = CompactMask._from_dense_tight(masks, (12, 18))
+
+        assert len(cm) == 0
+        assert cm.image_shape == (12, 18)
+        assert cm.to_dense().shape == (0, 12, 18)
+
+    def test_detections_to_compact_masks_uses_tight_crops(self) -> None:
+        """to_compact_masks() preserves pixels outside xyxy inside tight crops."""
+        img_h, img_w = 32, 48
+        masks = np.zeros((2, img_h, img_w), dtype=bool)
+        masks[0, 4:10, 8:14] = True
+        masks[1, 20:25, 30:36] = True
+        detections = Detections(
+            xyxy=np.array([[0, 0, 5, 5], [20, 20, 22, 22]], dtype=np.float32),
+            mask=masks,
+        )
+
+        compact = detections.to_compact_masks()
+
+        assert isinstance(compact.mask, CompactMask)
+        assert compact.mask.offsets.tolist() == [[8, 4], [30, 20]]
+        assert compact.mask._crop_shapes.tolist() == [[6, 6], [5, 6]]
+        np.testing.assert_array_equal(compact.mask.to_dense(), masks)
+
+    def test_clips_padded_masks_before_computing_tight_bounds(self) -> None:
+        """Padded callback masks larger than image_shape keep in-canvas foreground."""
+        padded = np.zeros((1, 16, 14), dtype=bool)
+        padded[0, 6:9, 3:7] = True
+        padded[0, 14, 13] = True
+
+        cm = CompactMask._from_dense_tight(padded, (12, 12))
+
+        assert cm.offsets.tolist() == [[3, 6]]
+        assert cm._crop_shapes.tolist() == [[3, 4]]
+        np.testing.assert_array_equal(cm.to_dense(), padded[:, :12, :12])

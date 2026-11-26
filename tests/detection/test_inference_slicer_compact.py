@@ -99,6 +99,39 @@ class TestInferenceSlicerCompactMasks:
         for buffer, source_mask in zip(buffers, source_masks):
             assert buffer.mask is source_mask
 
+    def test_reused_compact_callback_counts_preserve_earlier_tile(self) -> None:
+        """Keep each tile's pixels when a sequential callback reuses compact counts."""
+        counts = np.array([0, 1], dtype=np.int32)
+        mask = CompactMask(
+            [counts],
+            np.array([[1, 1]], dtype=np.int32),
+            np.array([[0, 0]], dtype=np.int32),
+            (1, 1),
+        )
+        detections = Detections(xyxy=np.array([[0, 0, 0, 0]]), mask=mask)
+
+        def callback(tile: npt.NDArray[np.uint8]) -> Detections:
+            """Reuse one run array and replace its foreground with each tile's pixel."""
+            foreground = int(tile[0, 0, 0])
+            counts[:] = [1 - foreground, foreground]
+            return detections
+
+        image = np.array([[[1, 0, 0], [0, 0, 0]]], dtype=np.uint8)
+        slicer = sv.InferenceSlicer(
+            callback=callback,
+            slice_wh=1,
+            overlap_wh=0,
+            overlap_filter=sv.OverlapFilter.NONE,
+            thread_workers=1,
+            compact_masks=True,
+        )
+
+        result = slicer(image)
+
+        np.testing.assert_array_equal(
+            np.asarray(result.mask), [[[True, False]], [[False, False]]]
+        )
+
     @pytest.mark.parametrize("batch_size", [1, 2])
     @pytest.mark.parametrize("thread_workers", [1, 2])
     def test_preserves_callback_mask_objects(
@@ -241,6 +274,34 @@ class TestInferenceSlicerCompactMasks:
 
         assert isinstance(compact.mask, CompactMask)
         np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
+
+    def test_compact_masks_use_tight_crop_shapes(self) -> None:
+        """InferenceSlicer stores tight foreground crops instead of full tiles."""
+        image = np.zeros((120, 120, 3), dtype=np.uint8)
+
+        def callback(tile: np.ndarray) -> Detections:
+            """Return one small mask inside the tile."""
+            h, w = tile.shape[:2]
+            masks = np.zeros((1, h, w), dtype=bool)
+            masks[0, 10:22, 15:30] = True
+            return Detections(
+                xyxy=np.array([[15, 10, 30, 22]], dtype=np.float32),
+                mask=masks,
+                confidence=np.array([0.9], dtype=np.float32),
+                class_id=np.array([0]),
+            )
+
+        result = sv.InferenceSlicer(
+            callback=callback,
+            slice_wh=120,
+            overlap_wh=0,
+            overlap_filter=sv.OverlapFilter.NONE,
+            compact_masks=True,
+        )(image)
+
+        assert isinstance(result.mask, CompactMask)
+        assert result.mask.offsets.tolist() == [[15, 10]]
+        assert result.mask._crop_shapes.tolist() == [[12, 15]]
 
     def test_nms_with_overlapping_tiles_uses_rle_iou(self) -> None:
         """With overlapping tiles, NMS must suppress duplicates using RLE IoU."""

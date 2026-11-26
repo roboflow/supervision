@@ -7,6 +7,8 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.to_compact_masks()` and `sv.InferenceSlicer(..., compact_masks=True)` now encode dense masks using their tight foreground bounding boxes instead of the full canvas, restoring bounding-box pruning for compact inputs to `sv.mask_iou_batch` and reducing compact-mask NMS time and memory on high-resolution scenes. Compact self-overlap also reuses a single crop cache for self-IoU, and `sv.Detections` boolean and integer indexing skips a redundant array copy. ([#3037](https://github.com/roboflow/supervision/pull/3037))
+
 - `sv.metrics.MeanAverageRecall`, `sv.metrics.F1Score`, `sv.metrics.Precision`, and `sv.metrics.Recall` now compute IoU once per image when needed and reuse it across the `ANY`, `SMALL`, `MEDIUM`, and `LARGE` object-size buckets. `MeanAverageRecall` also matches predictions across `max_detections` cutoffs in a single per-class pass, and the metrics matcher reuses sorted candidate pairs across IoU thresholds. ([#3040](https://github.com/roboflow/supervision/pull/3040))
 
 - **Semantic segmentation**: a class made of several separate patches can load as one detection per patch.
