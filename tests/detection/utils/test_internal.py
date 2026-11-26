@@ -25,7 +25,7 @@ class _FakeMasksData:
     """Ultralytics-like mask tensor exposing shape and cpu().numpy()."""
 
     def __init__(self, arr: np.ndarray) -> None:
-        self._arr = np.asarray(arr, dtype=np.float32)
+        self._arr = np.asarray(arr)
         self.shape = self._arr.shape
 
     def cpu(self) -> "_FakeMasksData":
@@ -53,15 +53,18 @@ class _FakeYOLOMaskResults:
         self.orig_shape = orig_shape
 
 
-def test_extract_ultralytics_masks_thresholds_resized_proto_at_half() -> None:
+@pytest.mark.parametrize("dtype", [np.float32, np.uint8])
+def test_extract_ultralytics_masks_thresholds_resized_proto_at_half(
+    dtype: type,
+) -> None:
     """Resized proto masks threshold at 0.5, so interpolated edges don't dilate."""
-    orig_shape = (4, 4)
-    proto = np.array([[[1.0, 1.0], [0.0, 0.0]]], dtype=np.float32)
+    orig_shape = (3, 3)
+    proto: np.ndarray = np.array([[[1.0, 1.0], [0.0, 0.0]]], dtype=dtype)
     results = _FakeYOLOMaskResults(masks_arr=proto, orig_shape=orig_shape)
 
     masks = extract_ultralytics_masks(results)
 
-    resized = cv2.resize(proto[0], (orig_shape[1], orig_shape[0]))
+    resized = cv2.resize(proto[0].astype(np.float32), (orig_shape[1], orig_shape[0]))
     assert masks is not None
     assert masks.dtype == bool
     np.testing.assert_array_equal(masks[0], resized > 0.5)

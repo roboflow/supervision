@@ -214,9 +214,10 @@ def _get_perspective_transform(
 
     Raises:
         TypeError: If ``src`` or ``dst`` is not a float32 NumPy array.
-        ValueError: If ``src`` or ``dst`` has an unsupported shape or a non-finite
-            point, or the system is exactly singular (a zero LU pivot), where OpenCV
-            returns a degenerate matrix instead.
+        ValueError: If ``src`` or ``dst`` has an unsupported shape.
+        ValueError: If ``src`` or ``dst`` has a non-finite point.
+        ValueError: If the system is exactly singular (a zero LU pivot), where
+            OpenCV returns a degenerate matrix instead.
     """
     x, y = _as_quad(src, "src").T
     u, v = _as_quad(dst, "dst").T

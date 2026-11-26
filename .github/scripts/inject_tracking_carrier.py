@@ -2,10 +2,10 @@
 trees.
 
 Purpose:
-    ``mkdocs.yml``'s ``extra_javascript`` now loads
-    ``https://app.roboflow.com/scripts/utm.js`` immediately before
-    ``javascripts/segment.js`` on every page a build renders, so the carrier keeps
-    this site's page-view history continuous once Segment retires on 2026-09-30. But
+    ``mkdocs.yml``'s ``extra_javascript`` loads
+    ``https://app.roboflow.com/scripts/utm.js`` on every page a build renders (it sat
+    right before ``javascripts/segment.js`` until Segment's 2026-09-30 retirement), so
+    the carrier keeps this site's page-view history continuous without Segment. But
     only a tree ``mike`` actually rebuilds picks that up: a ``develop`` merge rebuilds
     ``develop/``, a ``release/latest`` push rebuilds ``latest/`` (99% of the docs'
     page views), and neither ever touches a numbered version directory. This patches

@@ -50,6 +50,14 @@ class Recall(_ConfusionMatrixMetric["RecallResult"]):
     Here, `TP` is the number of true positives (correct detections), and `FN` is the
     number of false negatives (missed detections).
 
+    Targets marked as crowd regions in `targets.data["iscrowd"]`, loaded by
+    :meth:`~supervision.dataset.core.DetectionDataset.from_coco`, or marked in
+    `targets.data["ignore"]` are COCO ignore regions, as in
+    :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`: they
+    are not counted as missed objects, and a prediction matched to one is neither a
+    true nor a false positive. A crowd region can absorb any number of predictions,
+    each overlapping it by the share of its own area inside the region.
+
     Examples:
         ```pycon
         >>> import numpy as np
