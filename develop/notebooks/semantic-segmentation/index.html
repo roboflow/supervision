@@ -4275,7 +4275,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Semantic segmentation support needs supervision <code>0.32.0</code> or newer. This is a separate step with <code>--no-deps</code> because <code>inference</code> currently pins <code>supervision&lt;0.31</code>, so one <code>pip install</code> cannot resolve both.</p>
+<p>The patch-splitting example requires Supervision <code>0.33.0</code> or newer for <code>split_components</code>. Use a separate <code>--no-deps</code> install because <code>inference</code> currently pins <code>supervision&lt;0.31</code>.</p>
 </div>
 </div>
 </div>
@@ -4298,9 +4298,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">deps</span> <span class="s2">"supervision&gt;=0.32.0"</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">deps</span> <span class="s2">"supervision&gt;=0.33.0"</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2">%pip install -q --no-deps "supervision&gt;=0.32.0"</div>
+<div class="clipboard-copy-txt" id="cell-2">%pip install -q --no-deps "supervision&gt;=0.33.0"</div>
 </div>
 </div>
 </div>
@@ -6541,7 +6541,7 @@ sv.plot_image(annotate(image, large_patches), size=(12, 12))</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 15:48:29 UTC">November 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 16:00:16 UTC">November 26, 2026</span>
   </span>
 
     
