@@ -568,22 +568,21 @@ def _compact_masks_to_roi(
         image_shape: Image dimensions as ``(height, width)``.
 
     Returns:
-        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true pixels exist.
+        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when the foreground
+        bounds are empty or outside the image.
     """
     bboxes = masks.bbox_xyxy[masks.area > 0]
     if len(bboxes) == 0:
         return None
     image_h, image_w = image_shape
-    x_min = int(bboxes[:, 0].min())
-    y_min = int(bboxes[:, 1].min())
-    x_max = int(bboxes[:, 2].max()) + 1  # convert inclusive to exclusive
-    y_max = int(bboxes[:, 3].max()) + 1
-    return (
-        max(0, x_min),
-        max(0, y_min),
-        min(image_w, x_max),
-        min(image_h, y_max),
-    )
+    x_min = max(0, int(bboxes[:, 0].min()))
+    y_min = max(0, int(bboxes[:, 1].min()))
+    # Convert inclusive maxima to exclusive bounds before clipping.
+    x_max = min(image_w, int(bboxes[:, 2].max()) + 1)
+    y_max = min(image_h, int(bboxes[:, 3].max()) + 1)
+    if x_min >= x_max or y_min >= y_max:
+        return None
+    return x_min, y_min, x_max, y_max
 
 
 def _masks_to_roi(

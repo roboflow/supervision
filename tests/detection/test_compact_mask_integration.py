@@ -58,6 +58,17 @@ class TestConstruction:
         with pytest.raises(ValueError, match="mask must contain"):
             Detections(xyxy=xyxy, mask=cm)
 
+    def test_to_compact_masks_preserves_masked_array_data(self) -> None:
+        """Preserve the underlying boolean pixels accepted by the RLE encoder."""
+        pixels = np.array([[[True, False], [False, False]]])
+        masks = np.ma.array(pixels, mask=pixels)
+        detections = Detections(xyxy=np.array([[0, 0, 1, 1]]), mask=masks)
+
+        compact = detections.to_compact_masks()
+
+        assert isinstance(compact.mask, CompactMask)
+        np.testing.assert_array_equal(compact.mask.to_dense(), pixels)
+
 
 class TestFiltering:
     """Tests for Detections.__getitem__ with a CompactMask.
@@ -90,6 +101,75 @@ class TestFiltering:
         assert isinstance(subset.mask, CompactMask)
         assert len(subset) == 2
         np.testing.assert_array_equal(subset.mask.to_dense(), masks[[0, 2]])
+
+    @pytest.mark.parametrize(
+        "selector",
+        [
+            pytest.param(np.array([True, False, True, False]), id="bool-mask"),
+            pytest.param(np.array([0, 2]), id="int-array"),
+            pytest.param(slice(0, 3, 2), id="slice"),
+        ],
+    )
+    def test_dense_select_returns_independent_copies(
+        self, selector: np.ndarray | slice
+    ) -> None:
+        """Mutating selected dense Detections leaves the source object unchanged."""
+        masks = np.zeros((4, 8, 8), dtype=bool)
+        masks[0, 1:4, 1:4] = True
+        masks[2, 4:7, 4:7] = True
+        source = Detections(
+            xyxy=np.array(
+                [[1, 1, 4, 4], [2, 2, 5, 5], [4, 4, 7, 7], [0, 0, 2, 2]],
+                dtype=np.float32,
+            ),
+            mask=masks.copy(),
+            confidence=np.array([0.9, 0.8, 0.7, 0.6], dtype=np.float32),
+            class_id=np.array([0, 1, 2, 3]),
+            data={"score": np.array([10, 20, 30, 40])},
+        )
+        subset = source[selector]
+        assert isinstance(subset, Detections)
+        assert isinstance(subset.mask, np.ndarray)
+
+        subset.xyxy[:] = -1.0
+        subset.mask[:] = False
+        subset_scores = subset.data["score"]
+        assert isinstance(subset_scores, np.ndarray)
+        subset_scores[:] = -99
+
+        assert source.mask is not None
+        source_scores = source.data["score"]
+        assert isinstance(source_scores, np.ndarray)
+        np.testing.assert_array_equal(source.mask, masks)
+        assert source.xyxy[0, 0] == 1.0
+        assert source_scores.tolist() == [10, 20, 30, 40]
+
+    @pytest.mark.parametrize(
+        "selector",
+        [
+            pytest.param(np.array([True, False]), id="bool-mask"),
+            pytest.param(np.array([0]), id="int-array"),
+            pytest.param(slice(0, 1), id="slice"),
+        ],
+    )
+    def test_select_copies_zero_dimensional_data_arrays(
+        self, selector: np.ndarray | slice
+    ) -> None:
+        """Mutating a 0-D data array on a selection leaves the source unchanged."""
+        source = Detections(
+            xyxy=np.array([[0, 0, 4, 4], [5, 5, 9, 9]], dtype=np.float32),
+            data={"tag": np.array("orig")},
+        )
+        subset = source[selector]
+        assert isinstance(subset, Detections)
+        subset_tag = subset.data["tag"]
+        assert isinstance(subset_tag, np.ndarray)
+
+        subset_tag[...] = "edit"
+
+        source_tag = source.data["tag"]
+        assert isinstance(source_tag, np.ndarray)
+        assert source_tag.item() == "orig"
 
 
 class TestIteration:
@@ -258,6 +338,20 @@ class TestAnnotators:
             annotated_dense,
             err_msg="MaskAnnotator output differs between CompactMask and dense mask",
         )
+
+    def test_mask_annotator_ignores_compact_foreground_outside_scene(self) -> None:
+        """Keep the scene unchanged when its bounds miss all compact foreground."""
+        masks = np.zeros((1, 20, 20), dtype=bool)
+        masks[0, 10, 10] = True
+        detections = Detections(
+            xyxy=np.array([[10, 10, 10, 10]]), mask=masks
+        ).to_compact_masks()
+        scene = np.zeros((5, 5, 3), dtype=np.uint8)
+        annotator = sv.MaskAnnotator(color_lookup=sv.ColorLookup.INDEX)
+
+        result = annotator.annotate(scene.copy(), detections)
+
+        np.testing.assert_array_equal(result, scene)
 
     def test_polygon_annotator(self) -> None:
         h, w = 40, 40
