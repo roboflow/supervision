@@ -4603,7 +4603,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </ul>
 <h3 id="0323-nov-26-2026">0.32.3 <small>Nov 26, 2026</small><a class="headerlink" href="#0323-nov-26-2026" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Detection</strong>: oriented soft-NMS decays boxes by their rotated bodies, NMM and NMS keep precision at large coordinates and for float64 unions, and Ultralytics masks, 0-d indices and class-agnostic Transformers results load correctly.<ul>
+<li>
+<p><strong>Detection</strong>: oriented soft-NMS decays boxes by their rotated bodies, NMM and NMS keep precision at large coordinates and for float64 unions, and Ultralytics masks, 0-d indices and class-agnostic Transformers results load correctly.</p>
+<ul>
 <li><code>sv.Detections.with_soft_nms</code> now decays oriented-box detections by their rotated bodies (<code>data["xyxyxyxy"]</code>) instead of their axis-aligned envelope when masks are absent, like <code>with_nms</code> and <code>with_nmm</code>. Mask overlap takes precedence when both masks and oriented boxes are present. The <code>data["xyxyxyxy"]</code> array must be shaped <code>(N, 4, 2)</code> or <code>(N, 8)</code>; other shapes raise <code>ValueError</code>, where the field used to be ignored. The new <code>sv.oriented_box_soft_non_max_suppression</code> does the same for raw arrays. (<a href="https://github.com/roboflow/supervision/pull/3023">#3023</a>)</li>
 <li><code>sv.Detections.with_nmm</code>, <code>sv.Detections.with_nms</code>, <code>sv.Detections.with_soft_nms</code> and <code>sv.box_iou_batch</code> now preserve coordinate differences for narrow <code>int64</code> and <code>uint64</code> boxes at large coordinate origins above <code>2**53</code> when both box arrays are integer. Overlap scores are returned as floating-point values. <code>sv.Detections.with_nmm</code> also preserves integer coordinate dtypes on merged axis-aligned unions. Previously, converting coordinates to <code>float64</code> before subtracting corners collapsed distinct endpoints into zero-area boxes and caused overlapping detections to miss merging or suppression, while axis-aligned unions cast integer boxes to <code>float32</code>. (<a href="https://github.com/roboflow/supervision/pull/3057">#3057</a>)</li>
 <li><code>sv.Detections.with_nmm</code> retains float64 and wider floating precision when merging axis-aligned boxes. Large-origin boxes no longer collapse when the union was narrowed to float32. Float16 still widens to float32. (<a href="https://github.com/roboflow/supervision/pull/3053">#3053</a>)</li>
@@ -4612,36 +4614,54 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li><code>sv.Detections.from_transformers</code> now loads class-agnostic Transformers results, which carry no class labels, with <code>class_id=None</code>. SAM 3 <code>post_process_object_detection</code> and <code>post_process_instance_segmentation</code> results, which have no <code>labels</code> key, raised <code>KeyError: 'labels'</code>, and OWL-ViT and OWLv2 <code>post_process_image_guided_detection</code> results, whose <code>labels</code> is <code>None</code>, raised <code>AttributeError: 'NoneType' object has no attribute 'detach'</code>. SAM 3 instance masks keep their <code>(N, H, W)</code> shape. (<a href="https://github.com/roboflow/supervision/pull/3061">#3061</a>)</li>
 </ul>
 </li>
-<li><strong>Datasets and I/O</strong>: Pascal VOC class ids follow sorted names, in-memory datasets compare image by image and <code>sv.JSONSink</code> writes valid JSON.<ul>
+<li>
+<p><strong>Datasets and I/O</strong>: Pascal VOC class ids follow sorted names, in-memory datasets compare image by image and <code>sv.JSONSink</code> writes valid JSON.</p>
+<ul>
 <li><code>sv.DetectionDataset.from_pascal_voc</code> now gives class ids in sorted class-name order. Previously, it processed images in sorted path order and appended newly encountered class names in sorted order within each file, so train and valid splits with the same classes could get different ids, and exporting both with <code>as_yolo</code> wrote one split's labels under the other split's class names. Datasets whose classes did not already appear in sorted order load with different <code>class_id</code> values. (<a href="https://github.com/roboflow/supervision/pull/3069">#3069</a>)</li>
 <li><code>sv.DetectionDataset</code> and <code>sv.ClassificationDataset</code> built from in-memory images now compare those images one by one. A dataset holding images of different sizes or channel counts was unequal even to itself, because the images could not be stacked into a single array. (<a href="https://github.com/roboflow/supervision/pull/3029">#3029</a>)</li>
 <li><code>sv.JSONSink</code> now writes <code>NaN</code> and infinite values as <code>null</code>. Previously it wrote them as <code>NaN</code>, <code>Infinity</code> or <code>-Infinity</code>, which are not valid JSON, so strict parsers such as <code>JSON.parse</code> in browsers raised <code>SyntaxError</code> on files with a missing value. Python's <code>json</code> module now reads these values as <code>None</code> instead of <code>nan</code>, <code>inf</code> or <code>-inf</code>. (<a href="https://github.com/roboflow/supervision/pull/3028">#3028</a>)</li>
 </ul>
 </li>
-<li><strong>Key points</strong>: <code>sv.KeyPoints.from_inference</code> keeps trailing key points with <code>num_keypoints</code>, <code>as_detections</code> keeps data fields on empty frames and the package imports with NumPy 1.21.<ul>
+<li>
+<p><strong>Key points</strong>: <code>sv.KeyPoints.from_inference</code> keeps trailing key points with <code>num_keypoints</code>, <code>as_detections</code> keeps data fields on empty frames and the package imports with NumPy 1.21.</p>
+<ul>
 <li><code>sv.KeyPoints.from_inference</code> takes a <code>num_keypoints</code> argument, as <code>sv.KeyPoints.from_transformers</code> does, to keep trailing key points that every object in a result lost. Inference leaves out key points scored below <code>keypoint_confidence</code>, so the key point axis ended at the largest index any object kept: a frame whose people all lost their ankles loaded with 15 COCO key points instead of 17, <code>sv.EdgeAnnotator</code> found no skeleton and drew nothing, and <code>sv.KeyPoints.merge</code> refused to combine it with full frames. Pass the skeleton size, for example <code>num_keypoints=17</code>, to zero-fill the missing slots and retain the key point axis in empty frames. Without it the result is unchanged. (<a href="https://github.com/roboflow/supervision/pull/3064">#3064</a>)</li>
 <li><code>sv.KeyPoints.as_detections()</code> keeps <code>data</code> keys and the <code>class_id</code> dtype on frames without skeletons or key points, as it already did when every key point is invalid. It returned <code>sv.Detections.empty()</code> there, so an unguarded version of the recipe for attaching tracker IDs to key points raised <code>KeyError: 'row'</code> on a frame without people. Out-of-range <code>selected_keypoint_indices</code> now raise <code>IndexError</code> when there are no skeletons but the key point axis is nonempty, instead of only when skeletons are present. (<a href="https://github.com/roboflow/supervision/pull/3026">#3026</a>)</li>
 <li><code>import supervision</code> works again with NumPy 1.21, the oldest version supervision declares; a new CI job tests it with NumPy 1.21.6. It raised <code>TypeError: 'type' object is not subscriptable</code>, because a key point type alias subscripted <code>np.integer</code>, which NumPy supports only from 1.22. (<a href="https://github.com/roboflow/supervision/pull/3027">#3027</a>)</li>
 </ul>
 </li>
-<li><strong>Annotators and images</strong>: annotators draw visibly on BGRA scenes, OpenCV annotators draw on non-contiguous views, and <code>(H, W, 1)</code> grayscale images plot with the colormap.<ul>
+<li>
+<p><strong>Annotators and images</strong>: annotators draw visibly on BGRA scenes, OpenCV annotators draw on non-contiguous views, and <code>(H, W, 1)</code> grayscale images plot with the colormap.</p>
+<ul>
 <li>Annotators now draw on writable non-contiguous NumPy views, such as a channel flip <code>frame[..., ::-1]</code>, a column step <code>frame[:, ::2]</code>, flips or a transpose, when OpenCV is installed. Before, OpenCV raised a layout error while the NumPy fallback drew the same pixels; both backends now annotate the view in place. <code>sv.LineZoneAnnotator</code>, <code>sv.LineZoneAnnotatorMulticlass</code> and <code>sv.PolygonZoneAnnotator</code> still raise on such views. (<a href="https://github.com/roboflow/supervision/pull/3036">#3036</a>)</li>
 <li>Annotators that draw directly, such as <code>sv.BoxAnnotator</code>, <code>sv.LabelAnnotator</code>, the key point annotators and the line zone annotators, now draw visibly on BGRA scenes, such as a PNG read with <code>cv2.IMREAD_UNCHANGED</code>, with antialiased edges composited using their coverage. Before, these annotators padded the B, G and R color with alpha <code>0</code>, so they drew fully transparent pixels: invisible wherever alpha is honored, and holes in opaque scenes. The translucent fills of <code>sv.ColorAnnotator</code> and <code>sv.VertexEllipseAreaAnnotator</code> composite their coverage times <code>opacity</code> over the existing alpha and keep their own color instead of blending with the hidden color of transparent pixels. (<a href="https://github.com/roboflow/supervision/pull/3033">#3033</a>)</li>
 <li><code>sv.plot_image</code> and <code>sv.plot_images_grid</code> now draw grayscale images shaped <code>(H, W, 1)</code> with <code>cmap</code>, as they already did for <code>(H, W)</code> images. Without OpenCV they raised <code>ValueError</code>, and with OpenCV they ignored <code>cmap</code>. (<a href="https://github.com/roboflow/supervision/pull/3024">#3024</a>)</li>
 </ul>
 </li>
-<li><strong>Tracking</strong>: <code>sv.LineZone</code> and <code>sv.DetectionsSmoother</code> count a tracker ID repeated in one frame once.<ul>
+<li>
+<p><strong>Tracking</strong>: <code>sv.LineZone</code> and <code>sv.DetectionsSmoother</code> count a tracker ID repeated in one frame once.</p>
+<ul>
 <li><code>sv.LineZone</code> now treats a <code>tracker_id</code> repeated within one frame as one observation, keeping the first copy. Previously each copy counted separately, so a single frame could satisfy <code>minimum_crossing_threshold</code>, and copies on both sides of the line produced an in and an out from the same frame. (<a href="https://github.com/roboflow/supervision/pull/3015">#3015</a>)</li>
 <li><code>sv.DetectionsSmoother</code> now uses the first detection for each confirmed tracker ID per frame. Repeated IDs previously consumed multiple history slots and distorted the smoothed box and confidence. (<a href="https://github.com/roboflow/supervision/pull/3035">#3035</a>)</li>
 </ul>
 </li>
-<li><strong>Metrics</strong>: Precision, Recall and F1Score now honor COCO ignore regions.<ul>
+<li>
+<p><strong>Metrics</strong>: Precision, Recall and F1Score now honor COCO ignore regions.</p>
+<ul>
 <li><code>sv.metrics.Precision</code>, <code>sv.metrics.Recall</code> and <code>sv.metrics.F1Score</code> now recognize the COCO ignore flags that <code>sv.metrics.MeanAveragePrecision</code> and <code>sv.metrics.MeanAverageRecall</code> already honor: targets with <code>data["iscrowd"]</code> set, as <code>sv.DetectionDataset.from_coco</code> loads them, or with <code>data["ignore"]</code> set. They were scored as ordinary objects, so an undetected crowd region counted as a miss and a detection inside one that did not match it counted as a false positive: on 500 COCO val2017 images with YOLO11n, precision@50 was 0.733 instead of the 0.768 that pycocotools' matching gives, and 0.670 instead of 0.838 on the images with crowd regions. A crowd region now absorbs any number of predictions, each overlapping it by the share of its own area inside the region. (<a href="https://github.com/roboflow/supervision/pull/3071">#3071</a>)</li>
 </ul>
 </li>
-<li><strong>Packaging</strong>: <code>import supervision</code> no longer warns or fails with pyDeprecate 0.12 and newer.<ul>
+<li>
+<p><strong>Packaging</strong>: <code>import supervision</code> no longer warns or fails with pyDeprecate 0.12 and newer.</p>
+<ul>
 <li><code>import supervision</code> no longer prints six <code>FutureWarning</code>s with pyDeprecate 0.12 or newer, and no longer fails when <code>FutureWarning</code> is an error (<code>python -W error::FutureWarning</code>, or <code>filterwarnings = ["error"]</code> in pytest). pyDeprecate 0.12 renamed the <code>template_mgs</code> argument of <code>deprecated</code> to <code>message_template</code>; supervision now passes its deprecation messages under whichever name the installed pyDeprecate reads. (<a href="https://github.com/roboflow/supervision/pull/3043">#3043</a>)</li>
 </ul>
+</li>
+<li>
+<p>The minimum <code>pillow</code> is now <code>10.4</code> (was <code>9.4</code>) and the minimum <code>av</code> is now <code>15.1</code> (was <code>14.2</code>). The CI job that installs every dependency at its declared minimum showed that cropping to an empty region and drawing on 16-bit images fail with older Pillow, and that measuring the frame rate of a video with variable frame timing reads <code>VideoFrame.duration</code>, which PyAV <code>14.2</code> and <code>15.0</code> do not provide. <a href="https://github.com/roboflow/supervision/pull/3068">#3068</a></p>
+</li>
+<li>
+<p><code>sv.DepthMap.from_png16</code> raises <code>ValueError</code> for a truncated PNG with NumPy older than 1.25, as it does with newer NumPy. It raised <code>TypeError</code> there. <a href="https://github.com/roboflow/supervision/pull/3068">#3068</a></p>
 </li>
 </ul>
 <h3 id="0322-nov-25-2026">0.32.2 <small>Nov 25, 2026</small><a class="headerlink" href="#0322-nov-25-2026" title="Permanent link">&para;</a></h3>
@@ -7149,7 +7169,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 09:48:36 UTC">November 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 09:49:48 UTC">November 26, 2026</span>
   </span>
 
     
