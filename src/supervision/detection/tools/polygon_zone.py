@@ -207,7 +207,8 @@ def _validate_shape(
         name: How the array is called in the error message.
 
     Raises:
-        ValueError: If the dimension count differs or a fixed dimension mismatches.
+        ValueError: If the dimension count differs.
+        ValueError: If a fixed dimension mismatches.
     """
     fixed_match = all(
         isinstance(want, str) or want == got
@@ -247,8 +248,10 @@ def _detections_to_union_mask(
             `False` for empty `detections`.
 
     Raises:
-        ValueError: If a dense mask is not of shape ``(N, H, W)`` or the oriented
-            box corners are not of shape ``(N, 4, 2)``, with ``N`` detections.
+        ValueError: If a dense mask is not of shape ``(N, H, W)``, with ``N``
+            detections.
+        ValueError: If the oriented box corners are not of shape ``(N, 4, 2)``, with
+            ``N`` detections.
     """
     width, height = resolution_wh
     if len(detections) == 0:
@@ -325,10 +328,13 @@ class PolygonZone:
     sequence of a tracked object gives the same counts. As there, a detection
     with a non-finite anchor, for example one a `coord_transform` cannot map, has
     no known side, so it neither crosses nor resets its track's state or dwell.
-    They differ in that a `tracker_id` repeated within one frame is a single
-    observation, whose side is unknown when its copies disagree, ids that are
-    not finite non-negative integers are skipped rather than used as keys, and
-    frames without a `tracker_id` emit no warning.
+    For tracked counts, both treat a `tracker_id` repeated within one frame as a
+    single observation. Unlike `LineZone`, which considers only the first copy,
+    `PolygonZone` treats the side as unknown when located copies disagree. The
+    same rule applies to dwell time; `current_count` still counts detections
+    individually. `PolygonZone` also skips ids that are not finite non-negative
+    integers rather than using them as keys, and emits no warning for frames
+    without a `tracker_id`.
 
     Call :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`
     exactly once per frame for each zone; frame-mode dwell,
@@ -469,10 +475,12 @@ class PolygonZone:
                 is not counted as exiting.
 
         Raises:
-            ValueError: If `polygon` is not of shape `(N, 2)`, has fewer than
-                `MIN_POLYGON_POINT_COUNT` vertices, `triggering_anchors` is
-                empty, or `minimum_crossing_threshold` or `max_absent_frames`
-                is less than 1.
+            ValueError: If `polygon` is not of shape `(N, 2)`.
+            ValueError: If `polygon` has fewer than `MIN_POLYGON_POINT_COUNT`
+                vertices.
+            ValueError: If `triggering_anchors` is empty.
+            ValueError: If `minimum_crossing_threshold` is less than 1.
+            ValueError: If `max_absent_frames` is less than 1.
         """
         polygon = np.asarray(polygon)
         if polygon.ndim != 2 or polygon.shape[-1] != 2:
@@ -701,10 +709,13 @@ class PolygonZone:
                 if each detection is within the polygon zone
 
         Raises:
-            ValueError: If `timestamp` is not finite, exceeds half the largest
-                `float64` (about `9e307`) in magnitude, so that dwell times stay
-                finite, is earlier than the previous frame's timestamp, or is given
-                on some calls but not others since construction or the last
+            ValueError: If `timestamp` is not finite.
+            ValueError: If `timestamp` exceeds half the largest `float64` (about
+                `9e307`) in magnitude, so that dwell times stay finite.
+            ValueError: If `timestamp` is earlier than the previous frame's
+                timestamp.
+            ValueError: If `timestamp` is given on some calls but not others since
+                construction or the last
                 :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.reset`.
 
         Example:
@@ -958,12 +969,16 @@ class PolygonZone:
                 `0.0` for empty `detections`.
 
         Raises:
-            ValueError: If the zone mask is not 2D or has no nonzero pixels, for
-                example because the polygon lies entirely at negative coordinates,
-                even when `detections` is empty; or if a dense detection mask is
-                not of shape `(N, H, W)` or the oriented box corners are not of
-                shape `(N, 4, 2)`, with `N` detections, or their finite coordinates
-                cannot be represented as `int32` after truncation.
+            ValueError: If the zone mask is not 2D.
+            ValueError: If the zone mask has no nonzero pixels, for example because
+                the polygon lies entirely at negative coordinates, even when
+                `detections` is empty.
+            ValueError: If a dense detection mask is not of shape `(N, H, W)`, with
+                `N` detections.
+            ValueError: If the oriented box corners are not of shape `(N, 4, 2)`,
+                with `N` detections.
+            ValueError: If the finite coordinates of the oriented box corners cannot
+                be represented as `int32` after truncation.
 
         Example:
             ```pycon

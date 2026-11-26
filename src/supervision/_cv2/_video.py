@@ -102,6 +102,25 @@ def _opencv_encoder_options(
     }
 
 
+def _timed_frame_rate(
+    count: int, span: float, last_interval: float, last_duration: float
+) -> float:
+    """Return the rate of `count` frames from the first frame's start to the last's end.
+
+    `span` is the time from the first to the last frame's timestamp, in seconds. The
+    last frame's duration is added to it, so `count` divided by the rate is the video's
+    duration and every backend reports the same rate for one file. Returns 0 when fewer
+    than two frames or no positive span are given.
+    """
+    if count < 2 or span <= 0:
+        return 0.0
+    # Some containers omit the last frame duration; use its preceding interval as an
+    # estimate, which may be inaccurate when the final cadence changes abruptly.
+    if last_duration <= 0:
+        last_duration = last_interval if last_interval > 0 else span / (count - 1)
+    return count / (span + last_duration)
+
+
 def _quarter_turns(rotation: int) -> int:
     """Return the counterclockwise quarter turns OpenCV applies for a display rotation.
 
@@ -190,8 +209,11 @@ class _VideoCapture:
     def _timestamp_fps(self) -> float:
         """Return frames per second of the video stream's packet timestamps, or 0.
 
-        Only the video stream is demuxed, on a second handle, so a longer audio track or
-        a missing container duration does not change the result.
+        The rate runs to the end of the last frame, as the decoded timing the OpenCV
+        path uses for a browser WebM does, so both backends report the same rate and the
+        frame count over it keeps the video's duration. Only the video stream is
+        demuxed, on a second handle, so a longer audio track or a missing container
+        duration does not change the result.
         """
         import av
 
@@ -199,17 +221,26 @@ class _VideoCapture:
         try:
             stream = container.streams.video[0]
             time_base = stream.time_base
-            timestamps = [
-                packet.pts
+            # Sort by presentation time: the last frame shown is the one whose
+            # duration ends the video, whatever order the packets are stored in.
+            packets = sorted(
+                (packet.pts, packet.duration or 0)
                 for packet in container.demux(stream)
                 if packet.pts is not None and packet.size > 0
-            ]
+            )
         finally:
             container.close()
-        if len(timestamps) < 2:
+        if len(packets) < 2:
             return 0.0
-        span = (max(timestamps) - min(timestamps)) * time_base
-        return float((len(timestamps) - 1) / span) if span > 0 else 0.0
+        first_pts = packets[0][0]
+        previous_pts = packets[-2][0]
+        last_pts, last_duration = packets[-1]
+        return _timed_frame_rate(
+            count=len(packets),
+            span=float((last_pts - first_pts) * time_base),
+            last_interval=float((last_pts - previous_pts) * time_base),
+            last_duration=float(last_duration * time_base),
+        )
 
     def _rotation(self) -> int:
         """Return the stream's display rotation, decoding one frame on a second handle.

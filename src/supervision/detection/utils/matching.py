@@ -158,8 +158,9 @@ def match_detections(
             ``class_id`` and uses IoU only. Defaults to False.
 
     Raises:
-        ValueError: If `iou_threshold` is outside `[0, 1]`, or class-aware
-            matching is requested without class IDs on both inputs.
+        ValueError: If `iou_threshold` is outside `[0, 1]`.
+        ValueError: If class-aware matching is requested without class IDs on both
+            inputs.
 
     Returns:
         tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple of

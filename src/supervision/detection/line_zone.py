@@ -15,6 +15,7 @@ from supervision.detection.core import Detections
 from supervision.detection.utils.internal import cross_product
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    _draw_antialiased,
     _map_to_drawing_coordinates,
     draw_rectangle,
     draw_text,
@@ -207,6 +208,11 @@ class LineZone:
         Frames without tracker IDs are skipped for counting but age existing
         crossing history like empty frames.
 
+        When a confirmed `tracker_id` appears more than once in a frame, only
+        its first detection is considered. Later copies have `False` entries in
+        both returned arrays, even if the first detection is outside the line
+        limits, straddles the line, or has a non-finite mapped anchor.
+
         Args:
             detections: A Detections object for which to update the counts.
             coord_transform: Optional per-frame camera motion. Anchors are mapped
@@ -278,6 +284,15 @@ class LineZone:
         self._evict_stale_crossing_history(current_keys)
         self._update_class_id_to_name(detections)
 
+        # An id repeated within one frame, for example after merging overlapping
+        # sources, is one observation, as in PolygonZone; counting each copy would
+        # let a single frame satisfy minimum_crossing_threshold. The first copy is
+        # kept.
+        confirmed = np.flatnonzero(~unconfirmed)
+        _, first_copies = np.unique(detections.tracker_id[confirmed], return_index=True)
+        is_first_copy = np.zeros(len(detections), dtype=bool)
+        is_first_copy[confirmed[first_copies]] = True
+
         in_limits, has_any_left_trigger, has_any_right_trigger = (
             self._compute_anchor_sides(detections, coord_transform)
         )
@@ -285,7 +300,7 @@ class LineZone:
         for i, (class_id, tracker_id) in enumerate(
             zip(class_ids, detections.tracker_id)
         ):
-            if unconfirmed[i]:
+            if unconfirmed[i] or not is_first_copy[i]:
                 continue
 
             if not in_limits[i]:
@@ -613,31 +628,21 @@ class LineZoneAnnotator:
 
         line_start = vector.start.as_xy_int_tuple()
         line_end = vector.end.as_xy_int_tuple()
-        cv2.line(
+        _draw_antialiased(
             frame,
-            line_start,
-            line_end,
             self.color.as_bgr(),
-            self.thickness,
-            lineType=cv2.LINE_AA,
-            shift=0,
+            lambda image, color: cv2.line(
+                image, line_start, line_end, color, self.thickness, lineType=cv2.LINE_AA
+            ),
         )
-        cv2.circle(
-            frame,
-            line_start,
-            radius=5,
-            color=self.text_color.as_bgr(),
-            thickness=-1,
-            lineType=cv2.LINE_AA,
-        )
-        cv2.circle(
-            frame,
-            line_end,
-            radius=5,
-            color=self.text_color.as_bgr(),
-            thickness=-1,
-            lineType=cv2.LINE_AA,
-        )
+        for endpoint in (line_start, line_end):
+            _draw_antialiased(
+                frame,
+                self.text_color.as_bgr(),
+                lambda image, color: cv2.circle(
+                    image, endpoint, 5, color, -1, lineType=cv2.LINE_AA
+                ),
+            )
 
         is_mapped = coord_transform is not None
 
@@ -1119,15 +1124,19 @@ class LineZoneAnnotatorMulticlass:
             anchor_x = table_x1 + self.table_padding
             anchor_y = table_y1 + self.table_padding + (i + 1) * text_height
 
-            cv2.putText(
-                img=frame,
-                text=line,
-                org=(anchor_x, anchor_y),
-                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=self.text_scale,
-                color=self.text_color.as_bgr(),
-                thickness=self.text_thickness,
-                lineType=cv2.LINE_AA,
+            _draw_antialiased(
+                frame,
+                self.text_color.as_bgr(),
+                lambda image, color: cv2.putText(
+                    image,
+                    line,
+                    (anchor_x, anchor_y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    self.text_scale,
+                    color,
+                    self.text_thickness,
+                    lineType=cv2.LINE_AA,
+                ),
             )
 
         return frame

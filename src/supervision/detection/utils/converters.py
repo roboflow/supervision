@@ -835,7 +835,8 @@ def mask_to_rle(
             When ``compressed`` is ``True``, a COCO compressed RLE string.
 
     Raises:
-        ValueError: If input mask is not 2D or is empty.
+        ValueError: If input mask is not 2D.
+        ValueError: If input mask is empty.
 
     Examples:
         ```pycon
