@@ -310,9 +310,9 @@ def load_yolo_pose_annotations(
         show_progress: If ``True``, display a progress bar while loading.
 
     Returns:
-        The class names, the image paths, the key points of each image, the
-            ``(K, D)`` of ``kpt_shape``, and the ``flip_idx`` permutation when
-            data.yaml declares one.
+        The class names, the image paths in sorted order, the key points of each
+            image, the ``(K, D)`` of ``kpt_shape``, and the ``flip_idx``
+            permutation when data.yaml declares one.
 
     Raises:
         FileNotFoundError: If the images or labels directory does not exist.
@@ -338,12 +338,14 @@ def load_yolo_pose_annotations(
     )
     classes = _extract_class_names_from_data(data=data, file_path=data_yaml_path)
     class_ids = _extract_class_ids_from_data(data=data)
-    image_paths = [
+    # Filesystems list files in different orders; sorting keeps the dataset order,
+    # and so seeded splits, the same on every machine.
+    image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path, extensions=_YOLO_IMAGE_EXTENSIONS
         )
-    ]
+    )
 
     annotations: dict[str, KeyPoints] = {}
     for image_path in tqdm(
