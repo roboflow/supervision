@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 270" width="380" height="270" role="img" aria-labelledby="joint-angle-title">
+  <title id="joint-angle-title">A joint angle is measured at the joint, between the rays to start and to end</title>
+  <g fill="none" stroke="#6b7280" stroke-width="3" stroke-linecap="round">
+    <line x1="190" y1="170" x2="70" y2="50"/>
+    <line x1="190" y1="170" x2="320" y2="230"/>
+  </g>
+  <path d="M161.7 141.7 A40 40 0 0 1 226.3 186.8" fill="none" stroke="#8b5cf6" stroke-width="4" stroke-linecap="round"/>
+  <g fill="#8b5cf6">
+    <circle cx="70" cy="50" r="7"/>
+    <circle cx="190" cy="170" r="7"/>
+    <circle cx="320" cy="230" r="7"/>
+  </g>
+  <g font-family="sans-serif" font-size="18" fill="#6b7280" text-anchor="middle">
+    <text x="70" y="34">start</text>
+    <text x="172" y="204">joint</text>
+    <text x="320" y="260">end</text>
+  </g>
+  <text x="238" y="106" font-family="sans-serif" font-size="22" font-weight="bold" fill="#8b5cf6" text-anchor="middle">160°</text>
+</svg>
