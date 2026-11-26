@@ -14,10 +14,75 @@ import numpy.typing as npt
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
-from supervision._cv2._video import _mux_audio
+from supervision._cv2._video import _mux_audio, _timed_frame_rate
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+_MAX_PLAUSIBLE_FPS = 240.0
+_FPS_SAMPLE_INTERVALS = 30
+
+
+def _measure_fps(video: cv2.VideoCapture) -> float | None:
+    """Return the frame rate implied by the first frames' timestamps, or `None`.
+
+    Grabs up to `_FPS_SAMPLE_INTERVALS + 2` frames and divides the intervals by the time
+    they span. Returns `None` when fewer than two frames decode or the backend reports
+    no increasing timestamps.
+    """
+    timestamps_ms: list[float] = []
+    for _ in range(_FPS_SAMPLE_INTERVALS + 2):
+        if not video.grab():
+            break
+        timestamps_ms.append(float(video.get(cv2.CAP_PROP_POS_MSEC)))
+    # Browser recorders start the clock before the first frame arrives, so its
+    # interval is longer than the rest; skip it when later frames are available.
+    if len(timestamps_ms) > 2:
+        timestamps_ms = timestamps_ms[1:]
+    if len(timestamps_ms) < 2:
+        return None
+    span_ms = timestamps_ms[-1] - timestamps_ms[0]
+    if span_ms <= 0:
+        return None
+    return (len(timestamps_ms) - 1) * 1000.0 / span_ms
+
+
+def _video_timing(video_path: str) -> tuple[float, int] | None:
+    """Measure average video frame rate and count from decoded frame timestamps."""
+    import av
+
+    try:
+        with av.open(video_path) as container:
+            count = 0
+            timestamp_count = 0
+            first_time = None
+            last_time = None
+            last_duration = 0.0
+            last_interval = 0.0
+            for frame in container.decode(video=0):
+                count += 1
+                if frame.time is not None:
+                    timestamp_count += 1
+                    if first_time is None:
+                        first_time = frame.time
+                    if last_time is not None:
+                        last_interval = frame.time - last_time
+                    last_time = frame.time
+                    last_duration = float(frame.duration * frame.time_base)
+    except (av.FFmpegError, OSError) as exc:
+        logger.warning("Could not measure video timing for %s: %s", video_path, exc)
+        return None
+    if (
+        timestamp_count != count
+        or timestamp_count < 2
+        or first_time is None
+        or last_time is None
+    ):
+        return None
+    span = last_time - first_time
+    if span <= 0:
+        return None
+    return _timed_frame_rate(count, span, last_interval, last_duration), count
 
 
 @dataclass
@@ -80,6 +145,18 @@ class VideoInfo:
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = float(video.get(cv2.CAP_PROP_FPS))
         total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        # A browser WebM may expose its timebase as FPS; check a short sample before
+        # decoding the video to avoid changing or slowing ordinary and high-speed files.
+        if fps > _MAX_PLAUSIBLE_FPS:
+            measured_fps = _measure_fps(video)
+            if measured_fps is not None and measured_fps * 2 < fps:
+                timing = _video_timing(video_path)
+                if timing is not None:
+                    fps, total_frames = timing
+                else:
+                    if total_frames > 0:
+                        total_frames = round(total_frames * measured_fps / fps)
+                    fps = measured_fps
         video.release()
         return VideoInfo(width, height, fps, total_frames)
 
@@ -275,11 +352,12 @@ def get_video_frames_generator(
 
     Raises:
         Exception: If `end` exceeds a positive frame count reported by the
-            container (raised on first iteration), or capture release fails without
-            an earlier decoding error. Both are wrapped in `RuntimeError` when
+            container (raised on first iteration). Wrapped in `RuntimeError` when
             `prefetch` > 0.
-        ValueError: If `stride` is less than 1 or `prefetch` is negative,
-            raised on first iteration.
+        Exception: If capture release fails without an earlier decoding error.
+            Wrapped in `RuntimeError` when `prefetch` > 0.
+        ValueError: If `stride` is less than 1, raised on first iteration.
+        ValueError: If `prefetch` is negative, raised on first iteration.
         RuntimeError: If `prefetch` is greater than 0 and the background reader
             thread encounters a decode/open error, raised as
             `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
@@ -507,9 +585,9 @@ def process_video(
     Raises:
         RuntimeError: If the reader thread fails to open or decode the source
             video, raised as `RuntimeError(f"Reader thread raised: {exc!r}")`
-            from the original exception. If writing a processed frame to
-            `target_path` fails, raised as
-            `RuntimeError(f"Writer thread raised: {exc!r}")` from the original
+            from the original exception.
+        RuntimeError: If writing a processed frame to `target_path` fails, raised
+            as `RuntimeError(f"Writer thread raised: {exc!r}")` from the original
             exception. Exceptions raised by `callback` are re-raised unchanged.
         TypeError: If `callback` returns `None` instead of the processed frame.
 

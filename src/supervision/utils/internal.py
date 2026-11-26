@@ -7,6 +7,7 @@ from typing import Any, Generic, TypeVar
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated
 
 
 def _to_numpy(value: Any) -> npt.NDArray[Any]:
@@ -74,6 +75,17 @@ def warn_deprecated(message: str) -> None:
 #: that setting silence them like :func:`~supervision.utils.internal.warn_deprecated`.
 _DEPRECATION_WARNING_STREAM = functools.partial(
     warnings.warn, category=SupervisionWarnings
+)
+
+#: Keyword pydeprecate's ``deprecated`` decorator reads a custom warning template
+#: from. pydeprecate 0.12 renamed ``template_mgs`` to ``message_template`` and warns
+#: with ``FutureWarning`` whenever a decorator uses the old name, which happens while
+#: supervision is imported; 0.9 to 0.11, still in the supported range, accept only
+#: ``template_mgs``.
+_DEPRECATION_TEMPLATE_KEYWORD = (
+    "message_template"
+    if "message_template" in inspect.signature(deprecated).parameters
+    else "template_mgs"
 )
 
 

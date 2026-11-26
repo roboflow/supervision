@@ -93,7 +93,7 @@ class TestSkeletons:
         for vertex_count, skeleton_value in expected_mapping.items():
             assert SKELETONS_BY_VERTEX_COUNT[vertex_count] == skeleton_value
 
-    def test_hand_skeleton_definition(self):
+    def test_hand_skeleton_definition(self) -> None:
         """Test MediaPipe hand skeleton definition matches the verified topology."""
         hand_skeleton = Skeleton.HAND.value
 
@@ -102,7 +102,7 @@ class TestSkeletons:
         assert SKELETONS_BY_VERTEX_COUNT[21] == hand_skeleton
         assert SKELETONS_BY_EDGE_COUNT[21] == hand_skeleton
 
-    def test_hand_skeleton_edges(self):
+    def test_hand_skeleton_edges(self) -> None:
         """Test MediaPipe hand skeleton follows expected palm and finger connections.
 
         The palm is the closing knuckle arch defined by MediaPipe's

@@ -87,12 +87,12 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
         mask = mask[top:bottom, left:right]
 
         if mask.shape != orig_shape:
-            # `cv2.resize` interpolates the float proto mask, so threshold at 0.5
-            # (matching Ultralytics' own semantics) instead of casting every
-            # nonzero interpolated value to True, which would dilate the mask.
+            # Interpolate binary uint8 masks in float so resize cannot round
+            # fractional pixels before the strict threshold.
+            if mask.dtype == np.uint8:
+                mask = mask.astype(np.float32)
             mask = cv2.resize(mask, (orig_shape[1], orig_shape[0])) > 0.5
-        # else: slice-crop (no interpolation) preserves the binary 0/1 float values
-        # produced by Ultralytics; the final np.asarray(..., dtype=bool) is equivalent.
+        # At the original resolution, the existing binary mask needs no resize.
 
         mask_maps.append(mask)
 
@@ -665,7 +665,8 @@ def decode_semantic_label_map(
         payload: Base64 PNG string without a data-URI prefix, as Roboflow Inference
             returns it, or an ``(H, W)`` integer array or tensor.
         field: Name of the argument being decoded, used in error messages.
-        accept_one_bit: Read a one-bit PNG as values ``0`` and ``1``. Pass ``False``
+        accept_one_bit: Read 1-, 2-, and 4-bit grayscale PNGs as their stored
+            sample values, so a one-bit PNG holds ``0`` and ``1``. Pass ``False``
             for maps on another scale, such as 8-bit confidence, where ``1`` would
             not mean the maximum.
 
@@ -673,8 +674,10 @@ def decode_semantic_label_map(
         The map with its integer values unchanged, so class ids keep their meaning.
 
     Raises:
-        ValueError: If the payload is not a string, array or tensor, not valid base64,
-            not a decodable PNG, or not a single-channel integer ``(H, W)`` map.
+        ValueError: If the payload is not a string, array or tensor.
+        ValueError: If a string payload is not valid base64.
+        ValueError: If a decoded string payload is not a decodable PNG.
+        ValueError: If the payload is not a single-channel integer ``(H, W)`` map.
     """
     if not _is_semantic_map_payload(payload):
         raise ValueError(
@@ -694,10 +697,18 @@ def decode_semantic_label_map(
                 if image.format != "PNG":
                     raise ValueError(f"{field} must be a PNG image.")
                 array = np.asarray(image)
-                if accept_one_bit and image.mode == "1":
-                    # Pillow exposes a one-bit PNG as booleans; its pixels are the
-                    # class IDs 0 and 1, so read them as integers.
-                    array = array.astype(np.uint8)
+                if accept_one_bit:
+                    # The PNG header (IHDR) stores bit depth and color type here.
+                    # Pillow returns bool for 1-bit grayscale and expands 2- and
+                    # 4-bit grayscale to 8-bit intensities. Recover the stored
+                    # sample values, which are the class IDs; indexed-color PNGs
+                    # already return their palette indices.
+                    bit_depth, color_type = png_bytes[24:26]
+                    if color_type == 0:
+                        if bit_depth == 1:
+                            array = array.astype(np.uint8)
+                        elif bit_depth in (2, 4):
+                            array = array >> (8 - bit_depth)
         except OSError as error:
             raise ValueError(f"{field} is not a decodable PNG.") from error
     else:
@@ -738,7 +749,8 @@ def process_semantic_segmentation(
             remains every array is empty and ``masks`` keeps the requested kind.
 
     Raises:
-        ValueError: If a map cannot be decoded or the two maps differ in shape.
+        ValueError: If a map cannot be decoded.
+        ValueError: If the two maps differ in shape.
 
     Examples:
         ```pycon
@@ -877,8 +889,8 @@ def merge_data(
             types (list or npt.NDArray[np.generic]).
 
     Raises:
-        ValueError: If data values within a single object have different lengths or if
-            dictionaries have different keys.
+        ValueError: If data values within a single object have different lengths.
+        ValueError: If dictionaries have different keys.
     """
     if not data_list:
         return {}
@@ -967,8 +979,8 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
         A single merged metadata dictionary.
 
     Raises:
-        ValueError: If there are conflicting values for the same key or if
-            dictionaries have different keys.
+        ValueError: If there are conflicting values for the same key.
+        ValueError: If dictionaries have different keys.
     """
     if not metadata_list:
         return {}
