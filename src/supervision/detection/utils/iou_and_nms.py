@@ -1108,35 +1108,48 @@ def compact_mask_iou_batch(
         return result
 
     areas_a: npt.NDArray[np.int64] = masks_true.area
-    areas_b: npt.NDArray[np.int64] = masks_detection.area
-    # Keep the arithmetic aligned with the dense matmul implementation. For
-    # images up to 2**24 pixels it intentionally uses float32 counts; this
-    # matters at an NMS threshold such as 0.1, where float32's rounded value
-    # is just above the threshold while the exact Python float is not.
+    symmetric = masks_true is masks_detection
+    if symmetric:
+        areas_b = areas_a
+        nonempty = np.flatnonzero(areas_a > 0)
+        result[nonempty, nonempty] = 1.0
+    else:
+        areas_b = masks_detection.area
+
+    # Use the same count precision as dense mask overlap.
     pixel_count = masks_true.image_shape[0] * masks_true.image_shape[1]
     count_dtype = _count_dtype(pixel_count)
-
     for idx_a, idx_b, pixel_overlap in _compact_mask_intersections(
-        masks_true, masks_detection
+        masks_true, masks_detection, upper_triangle=symmetric
     ):
+        if pixel_overlap == 0:
+            continue
         inter = count_dtype(pixel_overlap)
         area_a_i = count_dtype(areas_a[idx_a])
         area_b_j = count_dtype(areas_b[idx_b])
-
         if overlap_metric == OverlapMetric.IOU:
-            union = area_a_i + area_b_j - inter
-            result[idx_a, idx_b] = inter / union if union > 0 else 0.0
-        elif overlap_metric == OverlapMetric.IOS:
-            small = min(area_a_i, area_b_j)
-            result[idx_a, idx_b] = inter / small if small > 0 else 0.0
+            denominator = area_a_i + area_b_j - inter
+        else:
+            denominator = min(area_a_i, area_b_j)
+        overlap = inter / denominator if denominator > 0 else 0.0
+        result[idx_a, idx_b] = overlap
+        if symmetric:
+            result[idx_b, idx_a] = overlap
 
     return result
 
 
 def _compact_mask_intersections(
-    masks_true: CompactMask, masks_detection: CompactMask
+    masks_true: CompactMask,
+    masks_detection: CompactMask,
+    *,
+    upper_triangle: bool = False,
 ) -> Iterator[tuple[int, int, int]]:
-    """Yield mask indexes and exact intersection counts for overlapping crops."""
+    """Yield mask indices and exact intersection counts for overlapping crops.
+
+    For a self-comparison, callers can request only pairs above the diagonal. Other
+    callers receive all overlapping pairs in row order.
+    """
     # Inclusive per-mask bounding boxes obtained from public accessors.
     # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
     bboxes_a: npt.NDArray[np.int32] = masks_true.bbox_xyxy.astype(np.int32)
@@ -1158,30 +1171,33 @@ def _compact_mask_intersections(
     iy2: npt.NDArray[np.int32] = np.minimum(y2a[:, None], y2b[None, :])
     bbox_overlap: npt.NDArray[np.bool_] = (ix1 <= ix2) & (iy1 <= iy2)
 
-    # Decode each crop at most once, even if it participates in many pairs.
-    crops_a: dict[int, npt.NDArray[np.bool_]] = {}
+    # Keep only the active row and the columns needed by later rows.
     crops_b: dict[int, npt.NDArray[np.bool_]] = {}
-
-    for idx_pair in np.argwhere(bbox_overlap):
-        idx_a, idx_b = int(idx_pair[0]), int(idx_pair[1])
-
-        if idx_a not in crops_a:
-            crops_a[idx_a] = masks_true.crop(idx_a)
-        if idx_b not in crops_b:
-            crops_b[idx_b] = masks_detection.crop(idx_b)
-
-        lx1 = int(ix1[idx_a, idx_b])
-        ly1 = int(iy1[idx_a, idx_b])
-        lx2 = int(ix2[idx_a, idx_b])
-        ly2 = int(iy2[idx_a, idx_b])
-
+    for row in np.flatnonzero(bbox_overlap.any(axis=1)):
+        idx_a = int(row)
+        first_col = idx_a + 1 if upper_triangle else 0
+        matching_b = np.flatnonzero(bbox_overlap[idx_a, first_col:])
+        crop_a = crops_b.pop(idx_a, None) if upper_triangle else None
+        if len(matching_b) == 0:
+            continue
+        if crop_a is None:
+            crop_a = masks_true.crop(idx_a)
         ox_a, oy_a = int(x1a[idx_a]), int(y1a[idx_a])
-        sub_a = crops_a[idx_a][ly1 - oy_a : ly2 - oy_a + 1, lx1 - ox_a : lx2 - ox_a + 1]
+        for col in matching_b:
+            idx_b = first_col + int(col)
+            crop_b = crops_b.get(idx_b)
+            if crop_b is None:
+                crop_b = masks_detection.crop(idx_b)
+                crops_b[idx_b] = crop_b
 
-        ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
-        sub_b = crops_b[idx_b][ly1 - oy_b : ly2 - oy_b + 1, lx1 - ox_b : lx2 - ox_b + 1]
-
-        yield idx_a, idx_b, int(np.count_nonzero(sub_a & sub_b))
+            lx1 = int(ix1[idx_a, idx_b])
+            ly1 = int(iy1[idx_a, idx_b])
+            lx2 = int(ix2[idx_a, idx_b]) + 1
+            ly2 = int(iy2[idx_a, idx_b]) + 1
+            sub_a = crop_a[ly1 - oy_a : ly2 - oy_a, lx1 - ox_a : lx2 - ox_a]
+            ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
+            sub_b = crop_b[ly1 - oy_b : ly2 - oy_b, lx1 - ox_b : lx2 - ox_b]
+            yield idx_a, idx_b, int(np.count_nonzero(sub_a & sub_b))
 
 
 def _mask_iou_batch_split(
