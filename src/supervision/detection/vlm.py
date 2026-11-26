@@ -145,7 +145,9 @@ def _validate_vlm_parameters(
         The validated VLM enum value.
 
     Raises:
-        ValueError: If the VLM, result type, or arguments are invalid.
+        ValueError: If the VLM is invalid.
+        ValueError: If the result type is invalid.
+        ValueError: If the arguments are invalid.
     """
     if isinstance(vlm, str):
         try:
@@ -603,8 +605,8 @@ def from_florence_2(
             bounding boxes.
 
     Raises:
-        ValueError: If the top-level Florence 2 payload has multiple tasks or
-            if a task payload is malformed.
+        ValueError: If the top-level Florence 2 payload has multiple tasks.
+        ValueError: If a task payload is malformed.
     """
     if len(result) != 1:
         raise ValueError(f"Expected result with a single element. Got: {result}")

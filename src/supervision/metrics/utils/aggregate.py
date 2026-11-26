@@ -49,8 +49,8 @@ def aggregate_metric_results(
         each metric value.
 
     Raises:
-        ValueError: If the list is empty or *model_names* length does not
-            match *metric_results*.
+        ValueError: If the list is empty.
+        ValueError: If *model_names* length does not match *metric_results*.
         TypeError: If the list contains mixed result types.
     """
     if not metric_results:
@@ -111,8 +111,9 @@ def plot_aggregate_metric_results(
         show: When ``True``, display the completed plot with ``plt.show()``.
 
     Raises:
-        ValueError: If the list is empty, *model_names* length does not
-            match *metric_results*, or results have mismatched plot details.
+        ValueError: If the list is empty.
+        ValueError: If *model_names* length does not match *metric_results*.
+        ValueError: If results have mismatched plot details.
         TypeError: If the list contains mixed result types.
     """
     from matplotlib import pyplot as plt

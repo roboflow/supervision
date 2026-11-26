@@ -265,3 +265,19 @@ def test_supervision_warning_env_var_controls_deprecation_warnings(
     """SUPERVISION_DEPRECATION_WARNING keeps precedence over the legacy alias."""
     messages = _warning_messages_for_env(new_env=new_env, legacy_env=legacy_env)
     assert len(messages) == expected_count
+
+
+class TestDeprecationTemplate:
+    def test_import_raises_no_future_warning(self) -> None:
+        """Importing supervision succeeds with ``FutureWarning`` as an error."""
+        command = [
+            sys.executable,
+            "-W",
+            "error::FutureWarning",
+            "-c",
+            "import supervision",
+        ]
+
+        completed = subprocess.run(command, capture_output=True, text=True, check=False)
+
+        assert completed.returncode == 0, completed.stderr

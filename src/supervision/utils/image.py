@@ -83,7 +83,8 @@ def load_image_from_url(
         Image as a NumPy array in the format selected by `cv_imread_flags`.
 
     Raises:
-        ValueError: If the URL is invalid or the downloaded bytes cannot be decoded.
+        ValueError: If the URL is invalid.
+        ValueError: If the downloaded bytes cannot be decoded.
         requests.RequestException: If the request fails or returns an error status.
 
     Note:
