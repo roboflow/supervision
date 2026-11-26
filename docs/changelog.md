@@ -11,6 +11,8 @@ date_modified: 2026-11-26
 
 - The minimum `pillow` is now `10.4` (was `9.4`) and the minimum `av` is now `15.1` (was `14.2`). The CI job that installs every dependency at its declared minimum showed that cropping to an empty region and drawing on 16-bit images fail with older Pillow, and that measuring the frame rate of a video with variable frame timing reads `VideoFrame.duration`, which PyAV `14.2` and `15.0` do not provide. [#3068](https://github.com/roboflow/supervision/pull/3068)
 
+- Added `sv.DetectionDataset.empty` and `sv.DetectionDataset.add` to build a detection dataset image by image, for example from model predictions for semi-automatic annotation, before exporting it with `as_yolo`, `as_coco` or `as_pascal_voc`. `add` stores the image path and a copy of the annotation, validates class ids like the constructor, and raises `ValueError` for duplicate image paths or datasets holding in-memory images. ([#2868](https://github.com/roboflow/supervision/pull/2868))
+
 ### 0.32.3 <small>Nov 26, 2026</small>
 
 - **Detection**: oriented soft-NMS decays boxes by their rotated bodies, NMM and NMS keep precision at large coordinates and for float64 unions, and Ultralytics masks, 0-d indices and class-agnostic Transformers results load correctly.
