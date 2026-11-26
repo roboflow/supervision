@@ -27,7 +27,7 @@
     
     
       
-        <title>Supervision</title>
+        <title>Overview - Supervision</title>
       
     
     
@@ -169,106 +169,33 @@
 </script>
 
 
+
+
+
+
+
+
+
+
+
+
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
+  "@type": "BreadcrumbList",
+  "itemListElement": [
     {
-      "@type": "Question",
-      "name": "What is supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class with converters for supported detection, segmentation, and VLM outputs, plus tools for annotation, tracking, zone counting, dataset management, and model benchmarking."
-      }
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Supervision",
+      "item": "https://supervision.roboflow.com/latest"
     },
     {
-      "@type": "Question",
-      "name": "How do I install supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Install supervision with pip: pip install supervision. For optional metric dependencies use pip install supervision[metrics]. Sample asset utilities are included in the base package under supervision.assets. The current package metadata requires Python 3.10+."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What can I do with supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "With supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs; count detections inside polygon zones or line crossings with tracked detections; filter and query detection results; load, split, and convert detection datasets between YOLO, COCO, and Pascal VOC formats; manage classification datasets with folder structures; and benchmark model performance with mAP and confusion matrices."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is supervision free to use?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. Supervision is free and open-source under the MIT license. Source code is at https://github.com/roboflow/supervision."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Which object detection models work with supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Supervision is model-agnostic and works with supported outputs from Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers such as Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate converters, including MediaPipe."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I benchmark a model with supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Use supervision.metrics.mean_average_precision.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. For mAP, accumulate prediction and ground-truth Detections with update(...) and then call compute(). See the Benchmark a Model guide at https://supervision.roboflow.com/latest/how_to/benchmark_a_model/ for a complete walkthrough."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I track objects across video frames?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Use ByteTrackTracker from the external trackers package, which accepts Detections through update(); the built-in sv.ByteTrack wrapper, which used update_with_detections(), was removed as of supervision-0.31.0. Combine tracked Detections with sv.TraceAnnotator to visualize trajectories."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What dataset formats does supervision support?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "For detection datasets, supervision supports YOLO, COCO JSON, and Pascal VOC. Use DetectionDataset.from_yolo(), from_coco(), or from_pascal_voc() to load, and as_yolo(), as_coco(), or as_pascal_voc() to save. ClassificationDataset supports folder-structure import and export."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I count objects in a zone?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Use sv.PolygonZone for arbitrary polygon zones. Use sv.LineZone for line-crossing counts after assigning tracker IDs, because LineZone needs detections.tracker_id to match objects across frames."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I detect small objects with supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Use sv.InferenceSlicer to split high-resolution images into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. Configure overlap in pixels with overlap_wh. See the Detect Small Objects guide at https://supervision.roboflow.com/latest/how_to/detect_small_objects/."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I filter detections by class or confidence?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Detections supports NumPy-style boolean indexing. Filter by class: detections[detections.class_id == 0]. Filter by confidence: detections[detections.confidence > 0.5]. Filter by area: detections[detections.area > 1000]. Combine conditions with & or |."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Does supervision support keypoint detection and tracking?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. Use sv.KeyPoints.from_ultralytics() or sv.KeyPoints.from_inference() to load keypoint predictions. Convert to detections via as_detections() for tracking. Annotate with sv.EdgeAnnotator and sv.VertexAnnotator."
-      }
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Overview",
+      "item": "https://supervision.roboflow.com/latest/"
     }
   ]
 }
@@ -276,20 +203,9 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Supervision" />
-<meta property="og:title" content="Home" />
+<meta property="og:title" content="Overview" />
 <meta property="og:description" content="Open-source Python library providing computer vision tools for annotating detections, tracking objects, counting in zones, and processing datasets." />
 <meta property="og:url" content="https://supervision.roboflow.com/latest/" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
@@ -299,7 +215,7 @@
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content="@roboflow" />
 <meta name="twitter:creator" content="@roboflow" />
-<meta name="twitter:title" content="Home" />
+<meta name="twitter:title" content="Overview" />
 <meta name="twitter:description" content="Open-source Python library providing computer vision tools for annotating detections, tracking objects, counting in zones, and processing datasets." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta name="twitter:image:alt" content="Supervision computer vision Python library by Roboflow" />
@@ -420,7 +336,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
             </a>
             
-              Home
+              Overview
             
           </span>
         </div>
@@ -586,74 +502,18 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
   
   
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
-        
-  
-  
     
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="." class="md-tabs__link">
+          
+  
   
   Home
 
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="about/" class="md-tabs__link">
-        
-  
-  
+        </a>
+      </li>
     
-  
-  About
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="contact/" class="md-tabs__link">
-        
-  
-  
-    
-  
-  Contact
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="faq/" class="md-tabs__link">
-        
-  
-  
-    
-  
-  FAQ
-
-      </a>
-    </li>
   
 
       
@@ -682,36 +542,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    
-    
-      
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="detection/core/" class="md-tabs__link">
-          
-  
-  
-  Reference
-
-        </a>
-      </li>
-    
-  
-
-    
-  
-
-      
-        
-  
-  
-  
-  
     <li class="md-tabs__item">
       <a href="cookbooks/" class="md-tabs__link">
         
@@ -731,17 +561,28 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    <li class="md-tabs__item">
-      <a href="contributing/" class="md-tabs__link">
-        
+    
+    
+      
+  
+  
   
   
     
+    
+      <li class="md-tabs__item">
+        <a href="detection/core/" class="md-tabs__link">
+          
   
-  Contributing
+  
+  API Reference
 
-      </a>
-    </li>
+        </a>
+      </li>
+    
+  
+
+    
   
 
       
@@ -750,36 +591,18 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    <li class="md-tabs__item">
-      <a href="code_of_conduct/" class="md-tabs__link">
-        
-  
-  
     
-  
-  Code of Conduct
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="license/" class="md-tabs__link">
-        
-  
-  
     
+      <li class="md-tabs__item">
+        <a href="contributing/" class="md-tabs__link">
+          
   
-  License
+  
+  Community
 
-      </a>
-    </li>
+        </a>
+      </li>
+    
   
 
       
@@ -795,7 +618,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
           
   
   
-  Changelog
+  Releases
 
         </a>
       </li>
@@ -822,7 +645,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
               
                 
               
-              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -851,6 +674,61 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
     <li class="md-nav__item md-nav__item--active">
       
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
@@ -864,7 +742,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
   <span class="md-ellipsis">
     
   
-    Home
+    Overview
   
 
     
@@ -882,7 +760,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
   <span class="md-ellipsis">
     
   
-    Home
+    Overview
   
 
     
@@ -956,9 +834,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
     </li>
   
 
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -983,36 +862,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
     </li>
   
 
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="contact/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Contact
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -1037,6 +890,70 @@ APIs described here may change or may never ship in a release, so use the <a hre
     </li>
   
 
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="contact/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contact
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="license/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    License
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
     
       
       
@@ -1056,10 +973,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
@@ -1077,8 +994,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1465,6 +1382,33 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
+    <li class="md-nav__item">
+      <a href="cookbooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cookbooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -1477,17 +1421,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Reference
+    API Reference
   
 
     
@@ -1498,12 +1442,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Reference
+    API Reference
   
 
           </label>
@@ -1527,10 +1471,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" >
         
           
-          <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
             
   
   
@@ -1548,8 +1492,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_1">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1858,10 +1802,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
         
           
-          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
             
   
   
@@ -1879,8 +1823,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1972,10 +1916,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
         
           
-          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
             
   
   
@@ -1993,8 +1937,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2086,10 +2030,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
         
           
-          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
             
   
   
@@ -2107,8 +2051,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2172,10 +2116,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_5" id="__nav_4_5_label" tabindex="0">
             
   
   
@@ -2193,8 +2137,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2370,10 +2314,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_6" >
         
           
-          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_6" id="__nav_4_6_label" tabindex="0">
             
   
   
@@ -2391,8 +2335,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2456,10 +2400,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_7" >
         
           
-          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_7" id="__nav_4_7_label" tabindex="0">
             
   
   
@@ -2477,8 +2421,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2766,10 +2710,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_8" >
         
           
-          <label class="md-nav__link" for="__nav_6_8" id="__nav_6_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4_8" id="__nav_4_8_label" tabindex="0">
             
   
   
@@ -2787,8 +2731,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3120,15 +3064,29 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    <li class="md-nav__item">
-      <a href="cookbooks/" class="md-nav__link">
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
     
   
-    Cookbooks
+    Community
   
 
     
@@ -3136,13 +3094,22 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
 
-      </a>
-    </li>
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Community
   
 
-    
-      
-      
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
   
   
   
@@ -3167,9 +3134,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
     </li>
   
 
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -3194,30 +3162,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
     </li>
   
 
-    
+              
+            
+          </ul>
+        </nav>
       
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="license/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    License
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -3240,17 +3189,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    Changelog
+    Releases
   
 
     
@@ -3261,12 +3210,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_11">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Changelog
+    Releases
   
 
           </label>
@@ -3636,7 +3585,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 2, 2026 20:38:43 UTC">September 2, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 10:43:53 UTC">November 26, 2026</span>
   </span>
 
     
