@@ -719,8 +719,9 @@ def load_yolo_annotations(
             OBB annotations. Each mask is rasterized full-frame before encoding.
 
     Returns:
-        A tuple containing class names, image file paths, and a dictionary mapping
-        image paths to :class:`~supervision.detection.core.Detections` instances.
+        A tuple containing class names, image file paths in sorted order, and a
+        dictionary mapping image paths to
+        :class:`~supervision.detection.core.Detections` instances.
             Each `class_id` indexes the class names, so a `names` dict such as
             `{1: cat, 2: dog}` loads label id `1` as class `0`.
 
@@ -752,13 +753,15 @@ def load_yolo_annotations(
             UserWarning,
             stacklevel=2,
         )
-    image_paths = [
+    # Filesystems list files in different orders; sorting keeps the dataset order,
+    # and so seeded splits, the same on every machine.
+    image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path,
             extensions=_YOLO_IMAGE_EXTENSIONS,
         )
-    ]
+    )
 
     data = _read_data_yaml(file_path=data_yaml_path)
     classes = _extract_class_names_from_data(data=data, file_path=data_yaml_path)
