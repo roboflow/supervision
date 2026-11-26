@@ -7,7 +7,7 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.scale_image` no longer drops a pixel when the scaled size is a whole number that float multiplication lands just below. A 720p frame scaled by `0.7` came out 503 pixels high instead of 504, because `720 * 0.7` is `503.99999999999994`. `sv.CropAnnotator` scales its crops through this function.
+- `sv.scale_image` no longer drops a pixel when the scaled size is a whole number that float multiplication lands just below. A 720p frame scaled by `0.7` came out 503 pixels high instead of 504, because `720 * 0.7` is `503.99999999999994`. `sv.CropAnnotator` scales its crops through this function. ([#3089](https://github.com/roboflow/supervision/pull/3089))
 
 - `sv.LineZone.trigger` no longer raises `AssertionError` for detections that carry `data["class_name"]` but no `class_id`, as `sv.Detections.from_vlm` returns for Florence-2 phrase grounding and for Qwen-2.5-VL or PaliGemma without `classes`. These detections are counted under the `None` class key, as detections without class names already were. ([#3076](https://github.com/roboflow/supervision/pull/3076))
 
