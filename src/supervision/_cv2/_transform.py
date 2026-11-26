@@ -98,9 +98,9 @@ def _box_blur_uint8(
         np.int32 if 255 * area < 2**31 else np.int64
     )
     height = image.shape[0]
-    if height > _BLUR_STRIP_ROWS and kernel_height < height:
-        # Process horizontal strips with exact reflect-101 vertical padding to cut
-        # peak int32/int64 temporary memory ~10x while keeping bit-exact sums.
+    if height > _BLUR_STRIP_ROWS >= kernel_height:
+        # Limit each strip's reflected halo to fewer rows than the strip itself.
+        # Taller kernels would repeatedly sum most of the same input rows.
         pad_top = kernel_height // 2
         pad_bottom = kernel_height - 1 - pad_top
         row_indices = np.pad(

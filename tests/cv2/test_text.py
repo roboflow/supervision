@@ -292,3 +292,22 @@ assert np.any(image)
         )
 
         assert completed.returncode == 0, completed.stderr
+
+    def test_font_lookup_respects_configured_matplotlib_weight(self) -> None:
+        """Use the configured Matplotlib font face on the first fallback lookup."""
+        completed = _run_without_opencv(
+            """
+import matplotlib
+from matplotlib import font_manager
+
+from supervision._cv2._text import _font_path
+
+with matplotlib.rc_context({"font.weight": "bold"}):
+    expected = font_manager.findfont(
+        font_manager.FontProperties(family="DejaVu Sans", style="normal")
+    )
+    assert _font_path(False) == expected
+"""
+        )
+
+        assert completed.returncode == 0, completed.stderr

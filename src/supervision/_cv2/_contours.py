@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from array import array
 from typing import Any
 
 import numpy as np
@@ -26,7 +27,7 @@ _DIR_LOOKUP = (3, 2, 1, 4, -1, 0, 5, 6, 7)
 
 def _follow_border_fast(
     padded_bytes: bytes,
-    labels: list[int],
+    labels: array[int],
     stride: int,
     start_r: int,
     start_c: int,
@@ -37,7 +38,7 @@ def _follow_border_fast(
 ) -> list[tuple[int, int]]:
     """Trace one border in 1-pixel padded coordinates using flat Python sequences.
 
-    Operates on flat `bytes` and `list[int]` buffers with a 1-pixel zero border so each
+    Operates on flat byte and integer buffers with a 1-pixel zero border so each
     step avoids NumPy scalar indexing, bounds checks, and tuple search. Returns `(x, y)`
     coordinates in unpadded crop space (shifted by `-1`).
     """
@@ -106,7 +107,7 @@ def _follow_border_fast(
             raise RuntimeError("Contour border tracing did not converge")
 
 
-def _trace_borders(mask: npt.NDArray[np.bool_]) -> list[np.ndarray]:
+def _trace_borders(image: npt.NDArray[np.bool_]) -> list[np.ndarray]:
     """Trace all borders as int32 points, ordered like OpenCV's RETR_TREE.
 
     The raster scan follows Suzuki-Abe: ``last_border`` is the most recent border
@@ -115,21 +116,18 @@ def _trace_borders(mask: npt.NDArray[np.bool_]) -> list[np.ndarray]:
     its list is a depth-first pre-order walk with siblings in reverse discovery
     order; the walk below reproduces that order.
     """
-    image = np.ascontiguousarray(mask, dtype=bool)
     rows, cols = image.shape
     if rows == 0 or cols == 0:
         return []
 
-    padded = np.zeros((rows + 2, cols + 2), dtype=np.uint8)
-    padded[1:-1, 1:-1] = image
-    padded_bytes = padded.tobytes()
+    padded_bytes = np.pad(image, 1).tobytes()
     stride = cols + 2
-    labels = [0] * ((rows + 2) * stride)
+    # Signed labels preserve border orientation without one Python reference per pixel.
+    labels = array("i", [0]) * ((rows + 2) * stride)
     max_steps = 4 * image.size
 
     left_zero = image & ~np.pad(image[:, :-1], ((0, 0), (1, 0)))
     right_zero = image & ~np.pad(image[:, 1:], ((0, 0), (0, 1)))
-    starts = left_zero | right_zero
     # Border 1 is the image frame: a hole border around the whole image.
     is_hole = {1: True}
     parents = {1: 0}
@@ -137,7 +135,7 @@ def _trace_borders(mask: npt.NDArray[np.bool_]) -> list[np.ndarray]:
     points: dict[int, np.ndarray] = {}
     border_number = 1
 
-    active_rows = np.flatnonzero(starts.any(axis=1))
+    active_rows = np.flatnonzero(left_zero.any(axis=1) | right_zero.any(axis=1))
     for row in active_rows.tolist():
         pr = row + 1
         row_offset = pr * stride
@@ -146,7 +144,7 @@ def _trace_borders(mask: npt.NDArray[np.bool_]) -> list[np.ndarray]:
         # can trigger a new border or update `last_border`.
         row_left = left_zero[row]
         row_right = right_zero[row]
-        row_starts = starts[row]
+        row_starts = row_left | row_right
         for block_start in range(0, cols, 128):
             block_end = min(block_start + 128, cols)
             if not row_starts[block_start:block_end].any():

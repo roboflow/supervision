@@ -9,6 +9,7 @@ renders with, so the reported rectangle always encloses the drawn text.
 
 from __future__ import annotations
 
+import sys
 from functools import cache
 from importlib.util import find_spec
 from pathlib import Path
@@ -33,13 +34,14 @@ _PIXELS_PER_SCALE = 32
 @cache
 def _font_path(italic: bool) -> str:
     """Locate a bundled DejaVu Sans face without importing Matplotlib if possible."""
-    font_name = "DejaVuSans-Oblique.ttf" if italic else "DejaVuSans.ttf"
-    spec = find_spec("matplotlib")
-    if spec is not None and spec.submodule_search_locations:
-        for base in spec.submodule_search_locations:
-            candidate = Path(base) / "mpl-data" / "fonts" / "ttf" / font_name
-            if candidate.is_file():
-                return str(candidate)
+    if "matplotlib" not in sys.modules:
+        font_name = "DejaVuSans-Oblique.ttf" if italic else "DejaVuSans.ttf"
+        spec = find_spec("matplotlib")
+        if spec is not None and spec.submodule_search_locations:
+            for base in spec.submodule_search_locations:
+                candidate = Path(base) / "mpl-data" / "fonts" / "ttf" / font_name
+                if candidate.is_file():
+                    return str(candidate)
 
     from matplotlib import font_manager
 

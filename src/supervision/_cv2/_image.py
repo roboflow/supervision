@@ -152,6 +152,9 @@ def _blend_like_opencv_float32(
 
 
 _ADD_WEIGHTED_STRIP_ROWS = 64
+_UINT8_LUT_SIZE = 256**2
+# Leave headroom for rounding both products and their sum for any uint8 pair.
+_UINT8_LUT_MAX_WEIGHT = float(np.finfo(np.float32).max) / 1024
 
 
 @lru_cache(maxsize=64)
@@ -176,24 +179,22 @@ def _uint8_add_weighted_lut(
     )
 
 
-def _snapshot_if_aliased(
-    src: npt.NDArray[Any], target: npt.NDArray[Any]
-) -> npt.NDArray[Any]:
-    """Copy ``src`` when ``target`` overlaps it at a different offset or layout.
-
-    Exact in-place blends (identical data pointer, shape, strides, and dtype) stay zero-
-    copy because each horizontal strip reads and writes disjoint rows.
-    """
-    if not np.shares_memory(src, target):
-        return src
-    if (
-        src.__array_interface__["data"][0] == target.__array_interface__["data"][0]
-        and src.shape == target.shape
-        and src.strides == target.strides
-        and src.dtype == target.dtype
-    ):
-        return src
-    return cast(npt.NDArray[Any], src.copy())
+def _can_stream_blend(
+    first: npt.NDArray[Any], second: npt.NDArray[Any], dst: npt.NDArray[Any]
+) -> bool:
+    """Check whether strip writes preserve all future reads and destination order."""
+    if not dst.flags.c_contiguous:
+        return False
+    address = dst.__array_interface__["data"][0]
+    return all(
+        not np.may_share_memory(src, dst)
+        or (
+            src.flags.c_contiguous
+            and src.dtype == dst.dtype
+            and src.__array_interface__["data"][0] == address
+        )
+        for src in (first, second)
+    )
 
 
 def _add_weighted(
@@ -214,56 +215,36 @@ def _add_weighted(
     if src1.shape != src2.shape:
         raise ValueError("addWeighted inputs must have equal shapes")
 
-    target = dst if dst is not None else np.empty(src1.shape, dtype=src1.dtype)
-    if src1.size == 0:
-        return target
-
-    use_strips = src1.ndim >= 2 and src1.shape[0] > _ADD_WEIGHTED_STRIP_ROWS
-    if use_strips and dst is not None:
-        src1 = _snapshot_if_aliased(src1, target)
-        src2 = _snapshot_if_aliased(src2, target)
-
     if (
-        src1.dtype == np.uint8
+        src1.size >= _UINT8_LUT_SIZE
+        and src1.dtype == np.uint8
         and src2.dtype == np.uint8
-        and math.isfinite(alpha)
-        and math.isfinite(beta)
-        and math.isfinite(gamma)
+        and (dst is None or dst.shape == src1.shape)
+        # The full table evaluates pairs absent from the inputs, including zeros.
+        and np.geterr()["under"] == "ignore"
+        and all(
+            math.isfinite(weight) and abs(weight) <= _UINT8_LUT_MAX_WEIGHT
+            for weight in (alpha, beta, gamma)
+        )
     ):
         lut = _uint8_add_weighted_lut(
             float(np.float32(alpha)),
             float(np.float32(beta)),
             float(np.float32(gamma)),
         )
-        if use_strips:
+        if (
+            src1.ndim >= 2
+            and src1.shape[0] > _ADD_WEIGHTED_STRIP_ROWS
+            and (dst is None or _can_stream_blend(src1, src2, dst))
+        ):
+            target = dst if dst is not None else np.empty(src1.shape, dtype=np.uint8)
             for start in range(0, src1.shape[0], _ADD_WEIGHTED_STRIP_ROWS):
                 stop = min(start + _ADD_WEIGHTED_STRIP_ROWS, src1.shape[0])
                 target[start:stop] = lut[src1[start:stop], src2[start:stop]]
-        else:
-            target[...] = lut[src1, src2]
-        return target
-
-    use_float32_blend = src1.dtype in _FLOAT32_BLEND_DTYPES
-    if use_strips:
-        for start in range(0, src1.shape[0], _ADD_WEIGHTED_STRIP_ROWS):
-            stop = min(start + _ADD_WEIGHTED_STRIP_ROWS, src1.shape[0])
-            s1 = src1[start:stop]
-            s2 = src2[start:stop]
-            if use_float32_blend:
-                blended = _cast_array_like_opencv(
-                    _blend_like_opencv_float32(s1, alpha, s2, beta, gamma), src1.dtype
-                )
-            else:
-                blended = _cast_array_like_opencv(
-                    s1.astype(np.float64) * alpha
-                    + s2.astype(np.float64) * beta
-                    + gamma,
-                    src1.dtype,
-                )
-            target[start:stop] = blended
-        return target
-
-    if use_float32_blend:
+            return target
+        # Materialize the lookup before writing an overlapping destination.
+        result = lut[src1, src2]
+    elif src1.dtype in _FLOAT32_BLEND_DTYPES:
         result = _cast_array_like_opencv(
             _blend_like_opencv_float32(src1, alpha, src2, beta, gamma), src1.dtype
         )
@@ -272,8 +253,11 @@ def _add_weighted(
             src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
             src1.dtype,
         )
-    target[...] = result
-    return target
+
+    if dst is not None:
+        dst[...] = result
+        return dst
+    return np.asarray(result, order="C")
 
 
 def _convert_scale_abs(
