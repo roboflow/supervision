@@ -19,8 +19,8 @@ Mask complexity is controlled by ``num_vertices``: random polygons with more
 vertices produce jaggier boundaries and more RLE runs per row.
 
 The YOLO section generates 16 images with 8 small polygons each using the
-``vision-synth`` package (``pip install vision-synth``), loads them in three fresh
-processes per mode, and reports mask buffer bytes, load time and peak RSS.
+``vision-synth`` package (``uv run --with vision-synth python ...``), loads them in
+three fresh processes per mode, and reports mask buffer bytes, load time and peak RSS.
 Peak RSS comes from the POSIX ``resource`` module, so that section is skipped on
 platforms without it, such as Windows. Peak RSS includes interpreter, import and input
 generation overhead; mask buffer bytes exclude Python objects and allocator overhead.
@@ -32,6 +32,7 @@ datasets, especially fragmented masks.
 import argparse
 import dataclasses
 import gc
+import importlib.util
 import json
 import math
 import shutil
@@ -1267,13 +1268,29 @@ def _run_yolo_worker(mode: str, scenario: str) -> dict:
     return json.loads(result.stdout)
 
 
-def run_yolo_loading() -> None:
-    """Compare dense and compact ``from_yolo`` loading and print a summary table."""
+def run_yolo_loading(strict: bool = False) -> None:
+    """Compare dense and compact ``from_yolo`` loading and print a summary table.
+
+    Args:
+        strict: Exit with status 1 instead of skipping when ``vision-synth`` is
+            missing, so an explicit ``--section yolo`` request never reports success
+            without results.
+    """
     if resource is None:
         console.print(
             "[yellow]YOLO loading section skipped: it needs the POSIX 'resource' "
             "module to read peak RSS; run it on Linux or macOS.[/yellow]"
         )
+        return
+    if importlib.util.find_spec("synth_datasets") is None:
+        message = (
+            "YOLO loading section needs the 'vision-synth' package; run it with "
+            "`uv run --with vision-synth python examples/compact_mask/benchmark.py "
+            "--section yolo`."
+        )
+        if strict:
+            raise SystemExit(message)
+        console.print(f"[yellow]{message} Skipping.[/yellow]")
         return
 
     table = Table(
@@ -1406,7 +1423,7 @@ def main() -> None:
     if args.section in ("all", "matrix"):
         run_matrix()
     if args.section in ("all", "yolo"):
-        run_yolo_loading()
+        run_yolo_loading(strict=args.section == "yolo")
 
 
 if __name__ == "__main__":

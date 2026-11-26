@@ -527,7 +527,7 @@ Run on any machine — no GPU or real model required:
 uv run python examples/compact_mask/benchmark.py
 ```
 
-`--section yolo` runs only the YOLO loading comparison and `--section matrix` only the synthetic matrix. For a focused benchmark of the Roboflow inference-result parser API (no GPU needed, but it downloads supervision assets and runs a real model), run:
+`--section yolo` runs only the YOLO loading comparison (it needs `vision-synth`: `uv run --with vision-synth python examples/compact_mask/benchmark.py --section yolo`) and `--section matrix` only the synthetic matrix. For a focused benchmark of the Roboflow inference-result parser API (no GPU needed, but it downloads supervision assets and runs a real model), run:
 
 ```bash
 uv run python examples/compact_mask/bench_inference_api.py
@@ -627,6 +627,21 @@ Dense timing is skipped automatically when the dense IoU/NMS array would exceed 
 
 Ten representative scenarios out of the 54 in the matrix; the full per-scenario tables are printed by the benchmark script and saved to `results_<timestamp>.csv` / `.jsonl` next to it. All scenarios pass: pixel-perfect annotation, exact area, lossless `to_dense()` roundtrip, and matching IoU, NMS, merge, offset, centroids and resize results.
 
+### Sample results — YOLO loading
+
+Measured on macOS Apple M4 Max with `uv run --with vision-synth python examples/compact_mask/benchmark.py --section yolo`: 16 generated images with 8 small polygons each, median of 3 fresh processes per mode.
+
+| scenario   | mode    | mask buffer KiB | load s | peak RSS MiB | pixel equality |
+| ---------- | ------- | --------------- | ------ | ------------ | -------------- |
+| rectangles | dense   | 131,072.0       | 0.034  | 428.5        |                |
+| rectangles | compact | **54.2**        | 0.014  | **166.5**    | ✓              |
+| triangles  | dense   | 131,072.0       | 0.032  | 428.1        |                |
+| triangles  | compact | **56.3**        | 0.013  | **166.7**    | ✓              |
+| circles    | dense   | 131,072.0       | 0.034  | 434.4        |                |
+| circles    | compact | **53.3**        | 0.014  | **166.8**    | ✓              |
+
+Peak RSS includes interpreter, import and input-generation overhead; mask buffer bytes exclude Python objects and allocator overhead. Compression and timing differ for real datasets, especially fragmented masks.
+
 ______________________________________________________________________
 
 ## Use-Cases
@@ -677,24 +692,24 @@ Default sweep on the current implementation (`uv run python examples/compact_mas
 | 4096   | 64   | checkerboard | 48408          | 8192        | 1.578             | 0.551             |
 | 4096   | 64   | random       | 24048          | 8308        | 2.487             | 0.417             |
 
-Measured on Python 3.13.15 / NumPy 2.3.1, comparing the parent of `035079270` (dense unions) with the current fragmentation-aware implementation. Both revisions used the same benchmark script, with four disjoint groups in a 2×2 grid. Peak columns are maximum traced allocation over three complete NMM calls, excluding input construction; time columns are median wall time of the same calls, uninstrumented.
+Measured on Python 3.12.3 / NumPy 2.3.1 on an Apple M4 Max, comparing the parent of `68433a4a8` (dense unions) with the current fragmentation-aware implementation. Both revisions used the same, current benchmark script, with four disjoint groups in a 2×2 grid. Peak columns are maximum traced allocation over three complete NMM calls, excluding input construction; time columns are median wall time of the same calls, uninstrumented.
 
 | Crop / canvas       | Objects | Pattern      | Dense-only mem. peak (MiB) | Current mem. peak (MiB) | Dense-only time (ms) | Current time (ms) |
 | ------------------- | ------- | ------------ | -------------------------- | ----------------------- | -------------------- | ----------------- |
-| 32×32 / 512×512     | 200     | checkerboard | 25.83                      | **1.69** (0.07×)        | 12.69                | **9.87** (0.78×)  |
-| 32×32 / 512×512     | 200     | solid        | 25.07                      | **0.27** (0.01×)        | **11.06**            | 11.10 (1.00×)     |
-| 400×400 / 1024×1024 | 12      | checkerboard | 17.37                      | 17.37 (1.00×)           | 18.38                | **18.12** (0.99×) |
-| 400×400 / 1024×1024 | 12      | solid        | 6.01                       | **0.69** (0.11×)        | 5.64                 | **2.35** (0.42×)  |
-| 400×400 / 2048×2048 | 12      | checkerboard | 31.93                      | **17.37** (0.54×)       | 20.75                | **17.16** (0.83×) |
-| 400×400 / 2048×2048 | 12      | solid        | 24.01                      | **0.69** (0.03×)        | 8.62                 | **2.28** (0.26×)  |
-| 400×400 / 4096×4096 | 12      | checkerboard | 103.93                     | **17.37** (0.17×)       | 33.85                | **17.20** (0.51×) |
-| 400×400 / 4096×4096 | 12      | solid        | 96.01                      | **0.69** (0.01×)        | 21.67                | **2.32** (0.11×)  |
+| 32×32 / 512×512     | 200     | checkerboard | 25.83                      | **2.12** (0.08×)        | 13.55                | **8.48** (0.63×)  |
+| 32×32 / 512×512     | 200     | solid        | 25.07                      | **0.25** (0.01×)        | 11.51                | **10.00** (0.87×) |
+| 400×400 / 1024×1024 | 12      | checkerboard | 17.37                      | 17.37 (1.00×)           | 20.05                | **17.63** (0.88×) |
+| 400×400 / 1024×1024 | 12      | solid        | 6.01                       | **0.48** (0.08×)        | 6.08                 | **2.28** (0.38×)  |
+| 400×400 / 2048×2048 | 12      | checkerboard | 31.93                      | **17.37** (0.54×)       | 22.49                | **17.33** (0.77×) |
+| 400×400 / 2048×2048 | 12      | solid        | 24.01                      | **0.48** (0.02×)        | 9.73                 | **2.49** (0.26×)  |
+| 400×400 / 4096×4096 | 12      | checkerboard | 103.93                     | **17.37** (0.17×)       | 37.82                | **17.01** (0.45×) |
+| 400×400 / 4096×4096 | 12      | solid        | 96.01                      | **0.48** (0.01×)        | 26.67                | **2.30** (0.09×)  |
 
-Ratios in parentheses are interval/dense; under 1× means the interval path wins. The 32×32/512×512 row uses `--duplicates 50` (200 small objects total, instead of the default three per group) — many small fragmented crops on a small canvas. The 400×400 rows previously showed a genuine weak side: at 1024×1024, a single large checkerboard crop cost the old interval-only union 1.79× the dense implementation's memory and 4.5× its time, since sorting `K` ≈ 1.9M foreground intervals cost more than the dense array's single `O(area)` pass. The fragmentation-aware dispatch above closes that gap: every checkerboard row now flags as fragmented (run count ≈ crop area, since checkerboard flips every pixel) and unions via a bbox-local dense OR — matching or beating the dense-only baseline on both memory and time at every measured scale, while keeping peak memory flat (~17.37 MiB) as canvas grows from 1024×1024 to 4096×4096, unlike the dense-only baseline, which scales with canvas area. Solid rows are unaffected (their run count is one column per instance, far under the fragmentation threshold), so they still take the interval path and keep the same numbers as before. A single mask right at the dense fallback's 16 Mi-pixel bbox cap (a 4000×4000 checkerboard-fragmented crop, three duplicates) still favors dense decisively: 488 MiB / 136 ms with the fallback versus 2,197 MiB / 1,258 ms on the pure interval path, forced for comparison. The fallback's own encode step is not free on a maximally-fragmented result — several bytes of transient array per pixel, not one bit — but far cheaper than sorting the same fragmentation.
+Ratios in parentheses are current/dense-only; under 1× means the current implementation wins. The 32×32/512×512 row uses `--duplicates 50` (200 small objects total, instead of the default three per group) — many small fragmented crops on a small canvas. The 400×400 rows previously showed a genuine weak side: at 1024×1024, a single large checkerboard crop cost the old interval-only union 1.79× the dense implementation's memory and 4.5× its time, since sorting `K` ≈ 1.9M foreground intervals cost more than the dense array's single `O(area)` pass. The fragmentation-aware dispatch above closes that gap: every checkerboard row now flags as fragmented (run count ≈ crop area, since checkerboard flips every pixel) and unions via a bbox-local dense OR — matching or beating the dense-only baseline on both memory and time at every measured scale, while keeping peak memory flat (~17.37 MiB) as canvas grows from 1024×1024 to 4096×4096, unlike the dense-only baseline, which scales with canvas area. Solid rows are unaffected (their run count is one column per instance, far under the fragmentation threshold), so they still take the interval path; their peak is lower than in the earlier measurement of this table (0.48 versus 0.69 MiB at 400×400, 0.25 versus 0.27 MiB at 32×32) after later union optimisations. A single group right at the dense fallback's 16 Mi-pixel bbox cap (a 4000×4000 checkerboard-fragmented crop, three duplicates) still favors dense decisively: 854 MiB / 390 ms with the fallback versus 2,563 MiB / 2,070 ms on the pure interval path, forced for comparison. These cap-boundary figures use the script's `make_detections` with a single group, since the command line always builds four. The fallback's own encode step is not free on a maximally-fragmented result — several bytes of transient array per pixel, not one bit — but far cheaper than sorting the same fragmentation.
 
-This does not eliminate the tradeoff in general, only bounds where it can occur: the dense fallback is capped at a 16 Mi-pixel union bbox specifically so a handful of tiny, widely separated fragmented crops cannot force a large dense allocation. A single mask crop larger than 4096×4096 pixels exceeds that cap and takes the interval path regardless of fragmentation, paying the full `K log K` sort with no dense fallback — measured at 4100×4100 (just past the cap, three duplicates): 2,309 MiB / 1,371 ms, the same order of cost as the forced-interval comparison above. The theoretical worst case from before persists only past this exact boundary, for a single object that size — not exercised by the table rows.
+This does not eliminate the tradeoff in general, only bounds where it can occur: the dense fallback is capped at a 16 Mi-pixel union bbox specifically so a handful of tiny, widely separated fragmented crops cannot force a large dense allocation. A single mask crop larger than 4096×4096 pixels exceeds that cap and takes the interval path regardless of fragmentation, paying the full `K log K` sort with no dense fallback — measured at 4100×4100 (just past the cap, single group, three duplicates): 2,693 MiB / 2,177 ms, the same order of cost as the forced-interval comparison above. The theoretical worst case from before persists only past this exact boundary, for a single object that size — not exercised by the table rows.
 
-Reproduce the small-object row with `uv run python examples/compact_mask/benchmark_nmm.py --crop-size 32 --canvas 512 --duplicates 50 --pattern checkerboard solid --repeats 3`, and the large-crop rows with `uv run python examples/compact_mask/benchmark_nmm.py --crop-size 400 --canvas 1024 2048 4096 --pattern checkerboard solid --repeats 3`, on the current implementation; check out the parent of `035079270` for the dense-union baseline. Foreground area matched between revisions per row: 2,048 (32×32 checkerboard) / 4,096 (32×32 solid) / 320,000 (400×400 checkerboard) / 640,000 (400×400 solid). Absolute measurements depend on the Python/NumPy environment.
+Reproduce the small-object row with `uv run python examples/compact_mask/benchmark_nmm.py --crop-size 32 --canvas 512 --duplicates 50 --pattern checkerboard solid --repeats 3`, and the large-crop rows with `uv run python examples/compact_mask/benchmark_nmm.py --crop-size 400 --canvas 1024 2048 4096 --pattern checkerboard solid --repeats 3`, on the current implementation; for the dense-union baseline, check out the parent of `68433a4a8` and run the current script against it (the script was added in that commit; for example with `PYTHONPATH=<baseline checkout>/src`). Foreground area matched between revisions per row: 2,048 (32×32 checkerboard) / 4,096 (32×32 solid) / 320,000 (400×400 checkerboard) / 640,000 (400×400 solid). Absolute measurements depend on the Python/NumPy environment.
 
 ______________________________________________________________________
 
