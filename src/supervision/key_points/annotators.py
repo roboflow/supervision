@@ -1390,7 +1390,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
                 strategy for mapping palette colors to joints. Options are
                 ``INDEX`` (per-skeleton index), ``CLASS`` (per ``class_id``),
                 and ``KEYPOINT`` (per keypoint index; a joint takes the color of
-                its vertex ``b``).
+                its ``joint`` point).
 
         Raises:
             ValueError: If ``radius`` or ``thickness`` is not positive, or if
@@ -1444,7 +1444,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             ...     )
             ... )
             >>> from supervision.key_points.angles import JointAngle
-            >>> knee = JointAngle(name="knee", a=0, b=1, c=2)
+            >>> knee = JointAngle(name="knee", start=0, joint=1, end=2)
             >>> annotator = sv.JointAngleAnnotator(angles=[knee])
             >>> result = annotator.annotate(image.copy(), key_points)
 
@@ -1460,7 +1460,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
         # so a lookup that raises leaves the caller's scene untouched.
         joint_colors = [
             self._resolve_joint_colors(
-                key_points, int(skeleton_index), self.angles[angle_index].b
+                key_points, int(skeleton_index), self.angles[angle_index].joint
             )
             for skeleton_index, angle_index in measured
         ]
@@ -1468,14 +1468,14 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             measured, joint_colors
         ):
             angle = self.angles[angle_index]
-            vertex = xy[skeleton_index, angle.b]
-            heading_a = self._heading(xy[skeleton_index, angle.a] - vertex)
-            heading_c = self._heading(xy[skeleton_index, angle.c] - vertex)
+            joint_xy = xy[skeleton_index, angle.joint]
+            heading_start = self._heading(xy[skeleton_index, angle.start] - joint_xy)
+            heading_end = self._heading(xy[skeleton_index, angle.end] - joint_xy)
             # The interior angle never exceeds 180 degrees, so the arc follows the
-            # shorter way round from ray a to ray c. Both backends draw an arc
+            # shorter way round from ray start to ray end. Both backends draw an arc
             # clockwise from the smaller to the larger angle in image coordinates.
-            sweep = (heading_c - heading_a + 180.0) % 360.0 - 180.0
-            start_angle, end_angle = sorted((heading_a, heading_a + sweep))
+            sweep = (heading_end - heading_start + 180.0) % 360.0 - 180.0
+            start_angle, end_angle = sorted((heading_start, heading_start + sweep))
             # Both backends draw whole degrees, so a sub-degree arc would collapse
             # into a dot on the joint; such joints keep only their label.
             if end_angle - start_angle >= 1.0:
@@ -1484,7 +1484,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
                     color.as_bgr(),
                     lambda image, draw_color: cv2.ellipse(
                         image,
-                        (int(vertex[0]), int(vertex[1])),
+                        (int(joint_xy[0]), int(joint_xy[1])),
                         (self.radius, self.radius),
                         0.0,
                         start_angle,
@@ -1500,19 +1500,19 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
                     text=f"{values[skeleton_index, angle_index]:.0f}",
                     color=color,
                     text_color=text_color,
-                    vertex=vertex,
-                    bisector=np.radians(heading_a + sweep / 2.0),
+                    joint_xy=joint_xy,
+                    bisector=np.radians(heading_start + sweep / 2.0),
                 )
         return scene
 
     def _resolve_joint_colors(
-        self, key_points: KeyPoints, skeleton_index: int, vertex_index: int
+        self, key_points: KeyPoints, skeleton_index: int, joint_index: int
     ) -> tuple[Color, Color | None]:
         """Return the arc color of a joint and its text color, or ``None`` for the text
         color when no label is shown.
 
         Both follow ``color_lookup``; under ``KEYPOINT`` a joint takes the colors of its
-        vertex. A label that is not shown never resolves its text color, so an unused
+        joint. A label that is not shown never resolves its text color, so an unused
         ``text_color`` palette cannot raise.
         """
         color = _resolve_keypoint_color(
@@ -1520,7 +1520,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             color_lookup=self.color_lookup,
             key_points=key_points,
             instance_idx=skeleton_index,
-            keypoint_idx=vertex_index,
+            keypoint_idx=joint_index,
         )
         if not self.show_value:
             return color, None
@@ -1529,7 +1529,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             color_lookup=self.color_lookup,
             key_points=key_points,
             instance_idx=skeleton_index,
-            keypoint_idx=vertex_index,
+            keypoint_idx=joint_index,
         )
         return color, text_color
 
@@ -1544,7 +1544,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
         text: str,
         color: Color,
         text_color: Color,
-        vertex: npt.NDArray[np.float64],
+        joint_xy: npt.NDArray[np.float64],
         bisector: float,
     ) -> None:
         """Draw the label on the bisector, just outside the arc so it never covers the
@@ -1558,7 +1558,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             )
         )
         distance = self.radius + self.thickness + half_diagonal
-        center = vertex + distance * np.array([np.cos(bisector), np.sin(bisector)])
+        center = joint_xy + distance * np.array([np.cos(bisector), np.sin(bisector)])
         draw_text(
             scene=scene,
             text=text,

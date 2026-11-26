@@ -4,34 +4,35 @@ import pytest
 import supervision as sv
 from supervision.key_points.angles import JointAngle
 
-VERTEX = [50.0, 50.0]
-JOINT = JointAngle(name="joint", a=0, b=1, c=2)
+JOINT_XY = [50.0, 50.0]
+JOINT = JointAngle(name="joint", start=0, joint=1, end=2)
 
 
-#: A 90-degree joint, a then vertex then c, used where the angle itself is irrelevant.
-RIGHT_ANGLE = [[90.0, 50.0], VERTEX, [50.0, 10.0]]
+#: A 90-degree joint: start, joint, end; used where the angle itself is irrelevant.
+RIGHT_ANGLE = [[90.0, 50.0], JOINT_XY, [50.0, 10.0]]
 
 
-def _single_joint(a: list[float], c: list[float]) -> sv.KeyPoints:
-    """Build one skeleton whose points 0, 1 and 2 form the rays b -> a and b -> c."""
-    xy = np.array([[a, VERTEX, c]], dtype=np.float32)
+def _single_joint(start: list[float], end: list[float]) -> sv.KeyPoints:
+    """Build one skeleton whose points 0, 1 and 2 form the rays joint -> start and joint
+    -> end."""
+    xy = np.array([[start, JOINT_XY, end]], dtype=np.float32)
     return sv.KeyPoints(xy=xy)
 
 
 class TestJointAngle:
     @pytest.mark.parametrize(
-        ("a", "b", "c"),
+        ("start", "joint", "end"),
         [
             pytest.param(-1, 1, 2, id="negative-index"),
-            pytest.param(0, 0, 2, id="vertex-equals-a"),
-            pytest.param(0, 1, 1, id="vertex-equals-c"),
-            pytest.param(2, 1, 2, id="a-equals-c"),
+            pytest.param(0, 0, 2, id="joint-equals-start"),
+            pytest.param(0, 1, 1, id="joint-equals-end"),
+            pytest.param(2, 1, 2, id="start-equals-end"),
         ],
     )
-    def test_invalid_positions_raise(self, a: int, b: int, c: int) -> None:
+    def test_invalid_positions_raise(self, start: int, joint: int, end: int) -> None:
         """A joint needs three distinct, non-negative key point positions."""
         with pytest.raises(ValueError, match="JointAngle 'joint'"):
-            JointAngle(name="joint", a=a, b=b, c=c)
+            JointAngle(name="joint", start=start, joint=joint, end=end)
 
     @pytest.mark.parametrize(
         "position",
@@ -44,18 +45,20 @@ class TestJointAngle:
     def test_non_integer_position_raises(self, position: object) -> None:
         """Positions must be integers; floats, bools and strings are rejected."""
         with pytest.raises(TypeError, match="positions must be integers"):
-            JointAngle(name="joint", a=0, b=1, c=position)  # type: ignore[arg-type]
+            JointAngle(name="joint", start=0, joint=1, end=position)  # type: ignore[arg-type]
 
     def test_numpy_integer_positions_are_accepted(self) -> None:
         """NumPy integers, as produced by array indexing, are valid positions."""
-        joint = JointAngle(name="joint", a=np.int64(0), b=np.int64(1), c=np.int64(2))
+        joint = JointAngle(
+            name="joint", start=np.int64(0), joint=np.int64(1), end=np.int64(2)
+        )
 
-        assert (joint.a, joint.b, joint.c) == (0, 1, 2)
+        assert (joint.start, joint.joint, joint.end) == (0, 1, 2)
 
 
 class TestJointAngles:
     @pytest.mark.parametrize(
-        ("a", "c", "expected"),
+        ("start", "end", "expected"),
         [
             pytest.param([90.0, 50.0], [50.0, 10.0], 90.0, id="right-angle"),
             pytest.param([90.0, 50.0], [10.0, 50.0], 180.0, id="collinear"),
@@ -66,10 +69,11 @@ class TestJointAngles:
         ],
     )
     def test_returns_interior_angle_in_degrees(
-        self, a: list[float], c: list[float], expected: float
+        self, start: list[float], end: list[float], expected: float
     ) -> None:
-        """The angle at b between the rays to a and c is returned in degrees."""
-        key_points = _single_joint(a, c)
+        """The angle at the joint between the rays to start and end is returned in
+        degrees."""
+        key_points = _single_joint(start, end)
 
         angles = sv.joint_angles(key_points, [JOINT])
 
@@ -98,8 +102,8 @@ class TestJointAngles:
             )
         )
         joints = [
-            JointAngle(name="first", a=0, b=1, c=2),
-            JointAngle(name="second", a=0, b=1, c=3),
+            JointAngle(name="first", start=0, joint=1, end=2),
+            JointAngle(name="second", start=0, joint=1, end=3),
         ]
 
         angles = sv.joint_angles(key_points, joints)
@@ -118,7 +122,7 @@ class TestJointAngles:
     def test_missing_point_gives_nan(
         self, position: int, coordinate: list[float]
     ) -> None:
-        """A NaN, infinite or [0, 0] end point or vertex yields NaN, not an angle."""
+        """A NaN, infinite or [0, 0] end point or joint yields NaN, not an angle."""
         xy = np.array([RIGHT_ANGLE], dtype=np.float32)
         xy[0, position] = coordinate
         key_points = sv.KeyPoints(xy=xy)
@@ -141,10 +145,10 @@ class TestJointAngles:
         assert np.isnan(angles).all()
 
     @pytest.mark.parametrize("position", [0, 2])
-    def test_end_point_on_vertex_gives_nan(self, position: int) -> None:
-        """An end point on the vertex leaves no ray to measure, so the angle is NaN."""
+    def test_end_point_on_joint_gives_nan(self, position: int) -> None:
+        """An end point on the joint leaves no ray to measure, so the angle is NaN."""
         xy = np.array([RIGHT_ANGLE], dtype=np.float32)
-        xy[0, position] = VERTEX
+        xy[0, position] = JOINT_XY
         key_points = sv.KeyPoints(xy=xy)
 
         angles = sv.joint_angles(key_points, [JOINT])
@@ -177,8 +181,8 @@ class TestJointAngles:
         np.testing.assert_allclose(angles, [[90.0], [np.nan]], atol=1e-5)
 
     @pytest.mark.filterwarnings("error")
-    def test_same_infinity_at_end_point_and_vertex_gives_nan_quietly(self) -> None:
-        """An end point and vertex at the same infinity give NaN without a warning."""
+    def test_same_infinity_at_end_point_and_joint_gives_nan_quietly(self) -> None:
+        """An end point and joint at the same infinity give NaN without a warning."""
         xy = np.array([[[np.inf, 50.0], [np.inf, 50.0], [50.0, 10.0]]])
         key_points = sv.KeyPoints(xy=xy)
 
@@ -227,8 +231,12 @@ class TestJointAngles:
     @pytest.mark.parametrize(
         ("num_points", "joint"),
         [
-            pytest.param(3, JointAngle(name="too_far", a=0, b=1, c=3), id="past-end"),
-            pytest.param(0, JointAngle(name="too_far", a=0, b=1, c=2), id="no-points"),
+            pytest.param(
+                3, JointAngle(name="too_far", start=0, joint=1, end=3), id="past-end"
+            ),
+            pytest.param(
+                0, JointAngle(name="too_far", start=0, joint=1, end=2), id="no-points"
+            ),
         ],
     )
     def test_index_out_of_range_raises(

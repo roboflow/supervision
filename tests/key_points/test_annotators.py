@@ -1144,7 +1144,7 @@ class TestVertexLabelAnnotatorColorList:
             sv.VertexLabelAnnotator(**{argument: colors})
 
 
-JOINT = JointAngle(name="joint", a=0, b=1, c=2)
+JOINT = JointAngle(name="joint", start=0, joint=1, end=2)
 
 
 def _right_angle(visible: list[list[bool]] | None = None) -> sv.KeyPoints:
@@ -1158,19 +1158,19 @@ def _right_angle(visible: list[list[bool]] | None = None) -> sv.KeyPoints:
 _RIGHT_ANGLE_BISECTOR = np.radians(-45.0)
 
 
-def _joint_from_headings(heading_a: float, heading_c: float) -> sv.KeyPoints:
-    """One skeleton with its vertex at (50, 50) and rays at the given headings.
+def _joint_from_headings(heading_start: float, heading_end: float) -> sv.KeyPoints:
+    """One skeleton with its joint at (50, 50) and rays at the given headings.
 
     Headings are in degrees, clockwise from +x in image coordinates.
     """
-    vertex = np.array([50.0, 50.0])
-    a = vertex + 40 * np.array(
-        [np.cos(np.radians(heading_a)), np.sin(np.radians(heading_a))]
+    joint_xy = np.array([50.0, 50.0])
+    start = joint_xy + 40 * np.array(
+        [np.cos(np.radians(heading_start)), np.sin(np.radians(heading_start))]
     )
-    c = vertex + 40 * np.array(
-        [np.cos(np.radians(heading_c)), np.sin(np.radians(heading_c))]
+    end = joint_xy + 40 * np.array(
+        [np.cos(np.radians(heading_end)), np.sin(np.radians(heading_end))]
     )
-    return sv.KeyPoints(xy=np.array([[a, vertex, c]], dtype=np.float32))
+    return sv.KeyPoints(xy=np.array([[start, joint_xy, end]], dtype=np.float32))
 
 
 def _patch_at(image: np.ndarray, direction: float, distance: float) -> np.ndarray:
@@ -1182,7 +1182,7 @@ def _patch_at(image: np.ndarray, direction: float, distance: float) -> np.ndarra
 
 class TestJointAngleAnnotator:
     @pytest.mark.parametrize(
-        ("heading_a", "heading_c", "bisector"),
+        ("heading_start", "heading_end", "bisector"),
         [
             pytest.param(0.0, -90.0, -45.0, id="up-right"),
             pytest.param(170.0, -170.0, 180.0, id="wraps-past-180"),
@@ -1190,10 +1190,14 @@ class TestJointAngleAnnotator:
         ],
     )
     def test_draws_arc_inside_the_joint(
-        self, scene: np.ndarray, heading_a: float, heading_c: float, bisector: float
+        self,
+        scene: np.ndarray,
+        heading_start: float,
+        heading_end: float,
+        bisector: float,
     ) -> None:
         """The arc lies on the interior bisector, never on the opposite side."""
-        key_points = _joint_from_headings(heading_a, heading_c)
+        key_points = _joint_from_headings(heading_start, heading_end)
         annotator = sv.JointAngleAnnotator(
             angles=[JOINT],
             color=sv.Color.WHITE,
@@ -1208,17 +1212,18 @@ class TestJointAngleAnnotator:
         assert not _patch_at(result, np.radians(bisector + 180.0), 20.0).any()
 
     @pytest.mark.parametrize(
-        ("a", "c", "bisector"),
+        ("start", "end", "bisector"),
         [
-            pytest.param([90.0, 50.0], [10.0, 50.0], -90.0, id="a-right-arc-above"),
-            pytest.param([10.0, 50.0], [90.0, 50.0], 90.0, id="a-left-arc-below"),
+            pytest.param([90.0, 50.0], [10.0, 50.0], -90.0, id="start-right-arc-above"),
+            pytest.param([10.0, 50.0], [90.0, 50.0], 90.0, id="start-left-arc-below"),
         ],
     )
     def test_straight_joint_draws_half_arc_on_one_side(
-        self, scene: np.ndarray, a: list[float], c: list[float], bisector: float
+        self, scene: np.ndarray, start: list[float], end: list[float], bisector: float
     ) -> None:
-        """A 180-degree joint draws a half arc on the side its a-to-c order picks."""
-        xy = np.array([[a, [50.0, 50.0], c]], dtype=np.float32)
+        """A 180-degree joint draws a half arc on the side its start-to-end order
+        picks."""
+        xy = np.array([[start, [50.0, 50.0], end]], dtype=np.float32)
         annotator = sv.JointAngleAnnotator(
             angles=[JOINT],
             color=sv.Color.WHITE,
@@ -1239,8 +1244,8 @@ class TestJointAngleAnnotator:
             dtype=np.float32,
         )
         joints = [
-            JointAngle(name="right", a=0, b=1, c=2),
-            JointAngle(name="left", a=2, b=1, c=3),
+            JointAngle(name="right", start=0, joint=1, end=2),
+            JointAngle(name="left", start=2, joint=1, end=3),
         ]
         annotator = sv.JointAngleAnnotator(
             angles=joints,
@@ -1263,24 +1268,28 @@ class TestJointAngleAnnotator:
 
         result = annotator.annotate(scene=scene.copy(), key_points=sv.KeyPoints(xy=xy))
 
-        # The arc's bisector point, 20 px up and to the right of the vertex.
+        # The arc's bisector point, 20 px up and to the right of the joint.
         assert result[34:39, 92:97].any()
         # The anti-aliased arc reaches the last column only from row 38 down, so
         # above row 35 it is the label, cut by the border instead of moved inside.
         assert result[:35, -1].any()
 
     @pytest.mark.parametrize(
-        ("heading_a", "heading_c", "bisector"),
+        ("heading_start", "heading_end", "bisector"),
         [
             pytest.param(0.0, -90.0, -45.0, id="up-right"),
             pytest.param(90.0, 150.0, 120.0, id="down-left"),
         ],
     )
     def test_label_is_centred_on_the_interior_bisector(
-        self, scene: np.ndarray, heading_a: float, heading_c: float, bisector: float
+        self,
+        scene: np.ndarray,
+        heading_start: float,
+        heading_end: float,
+        bisector: float,
     ) -> None:
         """The label background is centred on the interior bisector of the joint."""
-        key_points = _joint_from_headings(heading_a, heading_c)
+        key_points = _joint_from_headings(heading_start, heading_end)
         arc_only = sv.JointAngleAnnotator(
             angles=[JOINT], color=sv.Color.WHITE, show_value=False
         )
@@ -1371,7 +1380,7 @@ class TestJointAngleAnnotator:
         np.testing.assert_array_equal(result, scene)
 
     @pytest.mark.parametrize(
-        ("vertex", "visible"),
+        ("joint_xy", "visible"),
         [
             pytest.param([50.0, 50.0], [[True, False, True]], id="hidden"),
             pytest.param([np.nan, 50.0], None, id="nan"),
@@ -1381,11 +1390,11 @@ class TestJointAngleAnnotator:
     def test_unmeasurable_joint_is_skipped(
         self,
         scene: np.ndarray,
-        vertex: list[float],
+        joint_xy: list[float],
         visible: list[list[bool]] | None,
     ) -> None:
         """A joint whose angle is NaN draws neither arc nor label."""
-        xy = np.array([[[90.0, 50.0], vertex, [50.0, 10.0]]], dtype=np.float32)
+        xy = np.array([[[90.0, 50.0], joint_xy, [50.0, 10.0]]], dtype=np.float32)
         visibility = None if visible is None else np.array(visible)
         key_points = sv.KeyPoints(xy=xy, visible=visibility)
         annotator = sv.JointAngleAnnotator(angles=[JOINT])
@@ -1573,7 +1582,7 @@ class TestJointAngleAnnotatorColorPalette:
         [
             pytest.param(sv.ColorLookup.INDEX, None, (0, 1), id="index"),
             pytest.param(sv.ColorLookup.CLASS, [2, 0], (2, 0), id="class"),
-            pytest.param(sv.ColorLookup.KEYPOINT, None, (1, 1), id="keypoint-vertex-b"),
+            pytest.param(sv.ColorLookup.KEYPOINT, None, (1, 1), id="keypoint-joint"),
         ],
     )
     def test_arcs_take_palette_colors(
@@ -1643,8 +1652,8 @@ class TestJointAngleAnnotatorColorPalette:
 
         np.testing.assert_array_equal(scene, original)
 
-    def test_keypoint_lookup_colors_label_text_by_vertex(self) -> None:
-        """Under KEYPOINT lookup every label takes the text color of vertex b."""
+    def test_keypoint_lookup_colors_label_text_by_joint(self) -> None:
+        """Under KEYPOINT lookup every label takes the text color of the joint point."""
         scene = np.zeros((100, 200, 3), dtype=np.uint8)
         annotator = sv.JointAngleAnnotator(
             angles=[JOINT],
@@ -1683,7 +1692,7 @@ class TestAnnotatorInputValidation:
             pytest.param(sv.VertexLabelAnnotator, {}, id="VertexLabelAnnotator"),
             pytest.param(
                 sv.JointAngleAnnotator,
-                {"angles": [JointAngle(name="joint", a=0, b=1, c=2)]},
+                {"angles": [JointAngle(name="joint", start=0, joint=1, end=2)]},
                 id="JointAngleAnnotator",
             ),
         ],

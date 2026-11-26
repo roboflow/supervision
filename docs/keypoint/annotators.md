@@ -143,8 +143,9 @@ comments: true
     image = ...
     key_points = sv.KeyPoints(...)
 
-    # Zero-based positions in key_points.xy; b is the vertex. COCO: hip, knee, ankle.
-    left_knee = JointAngle(name="left_knee", a=11, b=13, c=15)
+    # Zero-based positions in key_points.xy;
+    # joint is the middle point. COCO: hip, knee, ankle.
+    left_knee = JointAngle(name="left_knee", start=11, joint=13, end=15)
     joint_angle_annotator = sv.JointAngleAnnotator(
         angles=[left_knee],
         color=sv.Color.GREEN,
