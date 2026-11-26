@@ -1344,6 +1344,23 @@ APIs described here may change or may never ship in a release, so use the <a hre
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Annotate the Result">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#paint-the-raw-class-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paint the Raw Class Map
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3574,6 +3591,23 @@ APIs described here may change or may never ship in a release, so use the <a hre
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Annotate the Result">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#paint-the-raw-class-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paint the Raw Class Map
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3775,11 +3809,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>detections.area</code> gives the pixel count of each mask. That count covers the whole class by default and one patch with <code>split_components=True</code>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">coverage</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">area</span> <span class="o">/</span> <span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 </span></code></pre></div>
+<h3 id="paint-the-raw-class-map">Paint the Raw Class Map<a class="headerlink" href="#paint-the-raw-class-map" title="Permanent link">&para;</a></h3>
+<p>When you only need the colours, skip <code>Detections</code> and paint the <code>(H, W)</code> class map directly with <a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.annotators.label_map.LabelMapAnnotator&lt;/code&gt;" href="../../detection/annotators/#supervision.annotators.label_map.LabelMapAnnotator">LabelMapAnnotator</a>. It holds one array the size of the image instead of one mask per class, and it colours class <code>i</code> with palette colour <code>i</code>, as <code>MaskAnnotator</code> does. Class id <code>0</code> stays unpainted by default, so the scene shows through the background. This example uses <code>label_map</code> from the <strong>Class map</strong> tab above, which must have the scene's height and width.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">label_map_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelMapAnnotator</span><span class="p">(</span><span class="n">opacity</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">annotated_image</span> <span class="o">=</span> <span class="n">label_map_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">label_map</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Pass <code>background_id=None</code> to paint every class, or another id to leave that one unpainted. Negative ids are ignore labels and are never painted. Labels and per-class numbers still need <code>Detections</code>.</p>
 <h2 id="keep-memory-low-with-compact-masks">Keep Memory Low with Compact Masks<a class="headerlink" href="#keep-memory-low-with-compact-masks" title="Permanent link">&para;</a></h2>
 <p>A dense mask array holds one <code>(H, W)</code> boolean frame per detection. On a large image with many classes or patches, pass <code>compact_masks=True</code> to get a <a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.compact_mask.CompactMask&lt;/code&gt;" href="../../detection/compact_mask/#supervision.detection.compact_mask.CompactMask">CompactMask</a> built one detection at a time. It decodes to the same pixels as the dense array; see <a href="../use_compact_masks/">Use Compact Masks</a>. This example also uses <code>label_map</code> and <code>names</code> from the <strong>Class map</strong> tab above.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_semantic_segmentation</span><span class="p">(</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">label_map</span><span class="p">,</span> <span class="n">class_map</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">background_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compact_masks</span><span class="o">=</span><span class="kc">True</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_semantic_segmentation</span><span class="p">(</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">label_map</span><span class="p">,</span> <span class="n">class_map</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">background_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compact_masks</span><span class="o">=</span><span class="kc">True</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="workflows-output">Workflows Output<a class="headerlink" href="#workflows-output" title="Permanent link">&para;</a></h2>
 <p>A Roboflow Workflows semantic segmentation step does not return a raw result. At the time of writing, its output is already <code>sv.Detections</code> with <code>mask</code> set to <code>None</code> and each class's mask stored as COCO RLE in <code>detections.data["rle_mask"]</code>, so it does not go through <code>from_semantic_segmentation</code>. Calling the Inference HTTP API directly returns the raw result described above.</p>
@@ -3805,7 +3845,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 15:48:29 UTC">November 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 17:42:08 UTC">November 26, 2026</span>
   </span>
 
     
