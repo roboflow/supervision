@@ -1,4 +1,5 @@
 import os
+from collections.abc import Callable
 from typing import cast
 
 import numpy as np
@@ -48,16 +49,32 @@ def _map_to_drawing_coordinates(
     return mapped
 
 
+def _color_for_canvas(
+    color_bgr: tuple[int, int, int], canvas: npt.NDArray[np.uint8]
+) -> tuple[int, ...]:
+    """Return the color as the pixel value OpenCV drawing writes to `canvas`.
+
+    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
+    channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
+    polygons other annotators draw on the same scene. A BGRA canvas gets an opaque
+    alpha, because OpenCV pads a 3-value color with 0 and would leave the drawn pixels
+    fully transparent.
+    """
+    if canvas.ndim == 2 or canvas.shape[2] == 1:
+        return color_bgr[:1]
+    if canvas.shape[2] == 4:
+        return (*color_bgr, 255)
+    return color_bgr
+
+
 def _color_for_scene(color: Color, scene: npt.NDArray[np.uint8]) -> tuple[int, ...]:
     """Return `color` as the value OpenCV should draw on `scene`.
 
-    OpenCV fills the alpha a BGR color lacks with 0, so whatever it draws on a BGRA
-    scene, shaped ``(H, W, 4)``, becomes transparent. Such a scene takes the color with
-    an opaque alpha instead.
+    Delegates to :func:`_color_for_canvas`: a BGRA scene, shaped ``(H, W, 4)``, takes
+    the color with an opaque alpha, because OpenCV fills the alpha a BGR color lacks
+    with 0 and would make whatever it draws transparent.
     """
-    if scene.ndim == 3 and scene.shape[2] == 4:
-        return (*color.as_bgr(), 255)
-    return color.as_bgr()
+    return _color_for_canvas(color.as_bgr(), scene)
 
 
 def _has_transparency(scene: npt.NDArray[np.uint8]) -> bool:
@@ -604,6 +621,58 @@ def _composite_over_bgra(
     )
 
 
+def _composite_coverage_over_bgra(
+    scene: npt.NDArray[np.uint8],
+    colors: npt.NDArray[np.uint8] | npt.NDArray[np.float32] | tuple[int, int, int],
+    coverage: npt.NDArray[np.uint8] | npt.NDArray[np.float32],
+    opacity: float,
+) -> npt.NDArray[np.uint8]:
+    """Composite drawn colors over a BGRA scene in place, by coverage times opacity.
+
+    Only the bounding box of the covered pixels is composited, so pixels outside the
+    drawn shapes are left untouched. Unlike `_fill_over_bgra`, colors may vary per
+    pixel and coverage may be fractional (anti-aliased edges).
+
+    Args:
+        scene: BGRA scene of shape `(H, W, 4)`, modified in place.
+        colors: BGR colors of shape `(H, W, 3)`, or one BGR color for every pixel.
+        coverage: Shape coverage of shape `(H, W)`, in `[0, 255]` for `uint8` or
+            `[0, 1]` for floats.
+        opacity: Opacity applied on top of the coverage, in `[0, 1]`.
+
+    Returns:
+        The composited scene.
+    """
+    rows = np.flatnonzero(coverage.any(axis=1))
+    if rows.size == 0:
+        return scene
+    cols = np.flatnonzero(coverage.any(axis=0))
+    region = (slice(rows[0], rows[-1] + 1), slice(cols[0], cols[-1] + 1))
+    scale = opacity / 255.0 if coverage.dtype == np.uint8 else opacity
+    alpha = coverage[region][..., None].astype(np.float32) * scale
+    overlay = np.asarray(colors)
+    if overlay.ndim == 3:
+        overlay = overlay[region]
+    scene[region] = _composite_over_bgra(scene[region], overlay, alpha)
+    return scene
+
+
+def _draw_antialiased(
+    scene: npt.NDArray[np.uint8],
+    color: tuple[int, int, int],
+    draw: Callable[[npt.NDArray[np.uint8], tuple[int, ...]], object],
+) -> None:
+    """Draw antialiased coverage over a straight-alpha canvas."""
+    if scene.ndim != 3 or scene.shape[2] != 4:
+        draw(scene, _color_for_canvas(color, scene))
+        return
+
+    # Draw coverage separately so hidden RGB does not tint partially covered pixels.
+    coverage = np.zeros(scene.shape[:2], dtype=np.uint8)
+    draw(coverage, (255,))
+    _composite_coverage_over_bgra(scene, color, coverage, 1.0)
+
+
 def draw_image(
     scene: npt.NDArray[np.uint8],
     image: str | npt.NDArray[np.uint8],
@@ -632,8 +701,9 @@ def draw_image(
     Raises:
         FileNotFoundError: If the image path does not exist.
         OSError: If the image path exists but cannot be decoded.
-        ValueError: If the image is not 3-D with 3 (BGR) or 4 (BGRA) channels, or
-            for invalid opacity or rectangle dimensions.
+        ValueError: If the image is not 3-D with 3 (BGR) or 4 (BGRA) channels.
+        ValueError: If the opacity is invalid.
+        ValueError: If the rectangle dimensions are invalid.
 
     Example:
         ```pycon

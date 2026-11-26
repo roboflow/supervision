@@ -1,4 +1,5 @@
 import re
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
@@ -23,6 +24,11 @@ from supervision.dataset.formats.yolo import (
 )
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from tests.dataset.formats.helpers import (
+    interleaved_paths,
+    list_files_in_order,
+    reversed_paths,
+)
 
 
 def _mock_simple_mask(resolution_wh: tuple[int, int], box: list[int]) -> np.ndarray:
@@ -2121,3 +2127,64 @@ def test_save_data_yaml(tmp_path: Path) -> None:
     assert yaml_path.is_file()
     data = read_yaml_file(str(yaml_path))
     assert data == {"nc": 3, "names": ["dog", "cat", "horse"]}
+
+
+_IMAGE_ORDER_STEMS = ["c", "a", "e", "b", "d"]
+
+
+def _write_unordered_yolo_dataset(root: Path) -> tuple[str, str, str]:
+    """Write a YOLO dataset of several labelled images and return its three paths."""
+    images_dir = root / "images"
+    labels_dir = root / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    for stem in _IMAGE_ORDER_STEMS:
+        Image.new("RGB", (40, 30)).save(images_dir / f"{stem}.png")
+        (labels_dir / f"{stem}.txt").write_text("0 0.5 0.5 0.2 0.4\n")
+    (root / "data.yaml").write_text("names: ['cat']\n")
+    return str(images_dir), str(labels_dir), str(root / "data.yaml")
+
+
+class TestFromYoloImageOrder:
+    """Tests that ``DetectionDataset.from_yolo`` orders images independently of the
+    filesystem listing order."""
+
+    @pytest.mark.parametrize(
+        "reorder",
+        [
+            pytest.param(reversed_paths, id="reversed-listing"),
+            pytest.param(interleaved_paths, id="interleaved-listing"),
+        ],
+    )
+    def test_image_paths_follow_sorted_file_names(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        reorder: Callable[[list[Path]], list[Path]],
+    ) -> None:
+        """Images load in sorted path order whatever order the directory lists."""
+        paths = _write_unordered_yolo_dataset(tmp_path)
+        list_files_in_order(monkeypatch, reorder, "supervision.dataset.formats.yolo")
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        assert [Path(path).stem for path in dataset.image_paths] == sorted(
+            _IMAGE_ORDER_STEMS
+        )
+
+    def test_seeded_split_does_not_depend_on_listing_order(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The same files and seed give the same split for two listing orders."""
+        paths = _write_unordered_yolo_dataset(tmp_path)
+        splits = []
+        for reorder in (reversed_paths, interleaved_paths):
+            list_files_in_order(
+                monkeypatch, reorder, "supervision.dataset.formats.yolo"
+            )
+            dataset = DetectionDataset.from_yolo(*paths)
+
+            train, test = dataset.split(split_ratio=0.6, random_state=0)
+            splits.append((train.image_paths, test.image_paths))
+
+        assert splits[0] == splits[1]

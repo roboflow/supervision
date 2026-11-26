@@ -165,7 +165,7 @@ The Supervision library provides convenient functions to load datasets in variou
     )
 
     ds_train.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
@@ -192,7 +192,7 @@ The Supervision library provides convenient functions to load datasets in variou
     )
 
     ds_train.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
@@ -219,7 +219,7 @@ The Supervision library provides convenient functions to load datasets in variou
     )
 
     ds_train.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
@@ -299,7 +299,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
     ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
 
     ds.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds)
     # 1000
@@ -335,7 +335,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
     ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
 
     ds.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds)
     # 1000
@@ -360,7 +360,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
     )
 
     ds_train.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
@@ -368,7 +368,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
     ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
 
     ds.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds)
     # 1000
@@ -393,7 +393,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
     )
 
     ds_train.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
@@ -401,7 +401,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
     ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
 
     ds.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds)
     # 1000
@@ -426,7 +426,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
     )
 
     ds_train.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds_train), len(ds_valid), len(ds_test)
     # 800, 100, 100
@@ -434,7 +434,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
     ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
 
     ds.classes
-    # ['person', 'bicycle', 'car', ...]
+    # class names in sorted order, such as ['bicycle', 'car', 'person', ...]
 
     len(ds)
     # 1000

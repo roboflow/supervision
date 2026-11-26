@@ -862,3 +862,47 @@ class TestDetectionsSmootherUnconfirmedTracks:
         assert result.tracker_id is not None
         assert result.tracker_id.tolist() == [7, -1]
         assert result.confidence is None
+
+
+class TestRepeatedTrackIds:
+    def test_repeated_confirmed_id_contributes_only_first_detection_per_frame(
+        self,
+    ) -> None:
+        """A duplicate does not evict the previous frame or change its weight."""
+        smoother = DetectionsSmoother(length=2)
+        smoother.update_with_detections(_track(0, 0.2))
+        frame = Detections(
+            xyxy=np.array([[10, 0, 20, 10], [100, 0, 110, 10]], dtype=float),
+            confidence=np.array([0.8, 0.4]),
+            tracker_id=np.array([7, 7]),
+        )
+
+        result = smoother.update_with_detections(frame)
+
+        assert len(result) == 1
+        assert_allclose(result.xyxy, [[5, 0, 15, 10]])
+        assert result.confidence is not None
+        assert_allclose(result.confidence, [0.5])
+
+    def test_repeated_ids_do_not_affect_other_or_unconfirmed_tracks(self) -> None:
+        """Distinct confirmed tracks and negative-ID detections remain independent."""
+        smoother = DetectionsSmoother(length=2)
+        frame = Detections(
+            xyxy=np.array(
+                [
+                    [0, 0, 10, 10],
+                    [20, 0, 30, 10],
+                    [40, 0, 50, 10],
+                    [60, 0, 70, 10],
+                    [80, 0, 90, 10],
+                ],
+                dtype=float,
+            ),
+            tracker_id=np.array([1, 2, 1, -1, -1]),
+        )
+
+        result = smoother.update_with_detections(frame)
+
+        assert result.tracker_id is not None
+        assert result.tracker_id.tolist() == [1, 2, -1, -1]
+        assert_allclose(result.xyxy, frame.xyxy[[0, 1, 3, 4]])

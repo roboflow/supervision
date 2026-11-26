@@ -29,6 +29,21 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 
 @dataclass
 class Classifications:
+    """Class to standardize results from myriad image classifier models to a consistent
+    format.
+
+    One instance describes one image. Model connectors return every class id with its
+    corresponding confidence score. Annotations loaded by
+    :meth:`~supervision.dataset.core.ClassificationDataset.from_folder_structure`
+    contain class ids without confidence scores. Class names are not stored, only id
+    values for each class.
+
+    Attributes:
+        class_id: An array of shape `(n,)` containing class ids (ints)
+        confidence: An array of shape `(n,)` containing confidence scores (floats)
+            for each class id, or `None` when confidence values are unavailable
+    """
+
     class_id: npt.NDArray[np.int_]
     confidence: npt.NDArray[np.floating] | None = None
 
@@ -200,7 +215,8 @@ class Classifications:
             A tuple containing the top k class IDs and confidences.
 
         Raises:
-            ValueError: If confidence is missing or `k` is negative.
+            ValueError: If confidence is missing.
+            ValueError: If `k` is negative.
 
         Example:
             ```pycon

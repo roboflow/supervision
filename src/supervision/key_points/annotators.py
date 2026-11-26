@@ -6,7 +6,6 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import _cv2 as cv2
-from supervision.annotators.core import _color_for_canvas
 from supervision.annotators.utils import (
     ColorLookup,
     _get_color_by_index,
@@ -16,8 +15,15 @@ from supervision.config import KEYPOINT_COVARIANCE_DATA_FIELD
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_rounded_rectangle
-from supervision.geometry.core import Rect
+from supervision.draw.utils import (
+    _color_for_canvas,
+    _composite_coverage_over_bgra,
+    _draw_antialiased,
+    draw_rounded_rectangle,
+    draw_text,
+)
+from supervision.geometry.core import Point, Rect
+from supervision.key_points.angles import JointAngle, joint_angles
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
@@ -233,7 +239,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
                     img=scene,
                     center=(int(x), int(y)),
                     radius=self.radius,
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), scene),
                     thickness=-1,
                 )
 
@@ -432,7 +438,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     img=scene,
                     pt1=(int(xy_a[0]), int(xy_a[1])),
                     pt2=(int(xy_b[0]), int(xy_b[1])),
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), scene),
                     thickness=self.thickness,
                 )
 
@@ -631,6 +637,8 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
         """
         if len(key_points) == 0:
             return scene
+        if scene.ndim == 3 and scene.shape[2] == 4:
+            return self._annotate_bgra(scene, key_points)
 
         overlay = scene.copy()
         for level in self._iter_ellipse_params(key_points):
@@ -642,13 +650,63 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
                     angle=angle,
                     startAngle=0,
                     endAngle=360,
-                    color=color.as_bgr(),
+                    color=_color_for_canvas(color.as_bgr(), overlay),
                     thickness=-1,
                     lineType=cv2.LINE_AA,
                 )
 
         cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
+
+    def _annotate_bgra(
+        self, scene: npt.NDArray[np.uint8], key_points: KeyPoints
+    ) -> npt.NDArray[np.uint8]:
+        """Composite the filled ellipses over a BGRA scene by coverage and opacity.
+
+        Each anti-aliased ellipse is rendered into its own coverage mask and layered
+        over the earlier ones in premultiplied color, so neither the scene's hidden
+        colors nor transparent black at the edges tint the result.
+        """
+        height, width = scene.shape[:2]
+        premultiplied = np.zeros((height, width, 3), dtype=np.float32)
+        coverage = np.zeros((height, width, 1), dtype=np.float32)
+        for level in self._iter_ellipse_params(key_points):
+            for center, axis_lengths, angle, _sigma, color in level:
+                # One pixel of margin keeps the anti-aliased edge inside the region.
+                reach = max(axis_lengths) + 1
+                x0, y0 = max(center[0] - reach, 0), max(center[1] - reach, 0)
+                x1 = min(center[0] + reach + 1, width)
+                y1 = min(center[1] + reach + 1, height)
+                if x0 >= x1 or y0 >= y1:
+                    continue
+                mask = np.zeros((y1 - y0, x1 - x0), dtype=np.uint8)
+                cv2.ellipse(
+                    img=mask,
+                    center=(center[0] - x0, center[1] - y0),
+                    axes=axis_lengths,
+                    angle=angle,
+                    startAngle=0,
+                    endAngle=360,
+                    color=255,
+                    thickness=-1,
+                    lineType=cv2.LINE_AA,
+                )
+                weight = mask[..., None].astype(np.float32) / 255.0
+                region = (slice(y0, y1), slice(x0, x1))
+                premultiplied[region] = premultiplied[region] * (
+                    1 - weight
+                ) + weight * np.array(color.as_bgr(), dtype=np.float32)
+                coverage[region] = coverage[region] * (1 - weight) + weight
+
+        colors = np.divide(
+            premultiplied,
+            coverage,
+            out=np.zeros_like(premultiplied),
+            where=np.broadcast_to(coverage > 0, premultiplied.shape),
+        )
+        return _composite_coverage_over_bgra(
+            scene, colors, coverage[..., 0], self.opacity
+        )
 
 
 class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
@@ -736,16 +794,20 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
         for level in self._iter_ellipse_params(key_points):
             for center, axis_lengths, angle, _sigma, color in level:
-                cv2.ellipse(
-                    img=scene,
-                    center=center,
-                    axes=axis_lengths,
-                    angle=angle,
-                    startAngle=0,
-                    endAngle=360,
-                    color=color.as_bgr(),
-                    thickness=self.thickness,
-                    lineType=cv2.LINE_AA,
+                _draw_antialiased(
+                    scene,
+                    color.as_bgr(),
+                    lambda image, draw_color: cv2.ellipse(
+                        image,
+                        center,
+                        axis_lengths,
+                        angle,
+                        0,
+                        360,
+                        draw_color,
+                        self.thickness,
+                        lineType=cv2.LINE_AA,
+                    ),
                 )
 
         return scene
@@ -1150,15 +1212,19 @@ class VertexLabelAnnotator:
                 color=color,
                 border_radius=self.border_radius,
             )
-            cv2.putText(
-                img=scene,
-                text=text,
-                org=(box[0], box[3]),
-                fontFace=font,
-                fontScale=self.text_scale,
-                color=text_color.as_bgr(),
-                thickness=self.text_thickness,
-                lineType=cv2.LINE_AA,
+            _draw_antialiased(
+                scene,
+                text_color.as_bgr(),
+                lambda image, draw_color: cv2.putText(
+                    image,
+                    text,
+                    (box[0], box[3]),
+                    font,
+                    self.text_scale,
+                    draw_color,
+                    self.text_thickness,
+                    lineType=cv2.LINE_AA,
+                ),
             )
 
         return scene
@@ -1275,4 +1341,231 @@ class VertexLabelAnnotator:
             key_points=key_points,
             instance_idx=instance_idx,
             keypoint_idx=keypoint_idx,
+        )
+
+
+class JointAngleAnnotator(BaseKeyPointAnnotator):
+    """Draws an arc at each joint, between its two rays, labelled with the angle.
+
+    The angles come from :func:`~supervision.key_points.angles.joint_angles`, so a
+    joint is skipped whenever its angle is ``NaN``: one of its points is hidden via
+    ``key_points.visible``, has a non-finite x/y coordinate or sits at ``[0, 0]``.
+    The annotator applies no confidence threshold of its own; filter or hide
+    unreliable points before annotating. Joints narrower than one degree get no
+    arc, only their label when ``show_value`` is set. Because the interior angle
+    never exceeds 180 degrees, the arc of a joint that bends through straight moves
+    to the other side. On a BGRA scene, arcs and labels are composited according
+    to their coverage and other pixels keep their alpha.
+    """
+
+    def __init__(
+        self,
+        angles: Sequence[JointAngle],
+        color: Color | ColorPalette = Color.ROBOFLOW,
+        thickness: int = 2,
+        radius: int = 20,
+        show_value: bool = True,
+        text_color: Color | ColorPalette = Color.WHITE,
+        text_scale: float = 0.5,
+        text_thickness: int = 1,
+        text_padding: int = 4,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+    ) -> None:
+        """
+        Args:
+            angles: The joints to draw, see
+                :class:`~supervision.key_points.angles.JointAngle`.
+            color: The :class:`~supervision.draw.color.Color` or
+                :class:`~supervision.draw.color.ColorPalette` of the arcs and of the
+                label backgrounds.
+            thickness: The line thickness of the arcs.
+            radius: The radius of the arcs, in pixels.
+            show_value: Whether to label each arc with its angle in whole degrees.
+            text_color: The :class:`~supervision.draw.color.Color` or
+                :class:`~supervision.draw.color.ColorPalette` of the label text.
+            text_scale: The font scale of the label text.
+            text_thickness: The thickness of the label text.
+            text_padding: The padding between the label text and its background.
+            color_lookup: :class:`~supervision.annotators.utils.ColorLookup`
+                strategy for mapping palette colors to joints. Options are
+                ``INDEX`` (per-skeleton index), ``CLASS`` (per ``class_id``),
+                and ``KEYPOINT`` (per keypoint index; a joint takes the color of
+                its ``joint`` point).
+
+        Raises:
+            ValueError: If ``radius`` or ``thickness`` is not positive, or if
+                ``color_lookup`` is ``TRACK``;
+                :class:`~supervision.key_points.core.KeyPoints` carry no
+                ``tracker_id``.
+        """
+        if radius <= 0:
+            raise ValueError(f"radius must be positive, got {radius}.")
+        if thickness <= 0:
+            raise ValueError(f"thickness must be positive, got {thickness}.")
+        self.angles = tuple(angles)
+        self.color = color
+        self.thickness = thickness
+        self.radius = radius
+        self.show_value = show_value
+        self.text_color = text_color
+        self.text_scale = text_scale
+        self.text_thickness = text_thickness
+        self.text_padding = text_padding
+        self.color_lookup = _validate_keypoint_color_lookup(color_lookup)
+
+    @ensure_cv2_image_for_class_method
+    def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
+        """Annotates the given scene with an arc, and optionally the angle in
+        degrees, at every measurable joint of every skeleton.
+
+        Args:
+            scene: The image where the joint angles will be drawn. `ImageType` is a
+                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            key_points: A collection of key points. Only the first two coordinate
+                channels, x and y, determine angles and pixel positions.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+            ValueError: If a joint refers to a position outside the key points.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((200, 200, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[100, 50], [100, 100], [150, 100]]],
+            ...         dtype=np.float32,
+            ...     )
+            ... )
+            >>> from supervision.key_points.angles import JointAngle
+            >>> knee = JointAngle(name="knee", start=0, joint=1, end=2)
+            >>> annotator = sv.JointAngleAnnotator(angles=[knee])
+            >>> result = annotator.annotate(image.copy(), key_points)
+
+            ```
+        """
+        if len(key_points) == 0 or not self.angles:
+            return scene
+
+        values = joint_angles(key_points, self.angles)
+        xy = key_points.xy[..., :2].astype(np.float64)
+        measured = list(zip(*np.nonzero(np.isfinite(values))))
+        # Resolve every color before the first draw, as VertexLabelAnnotator does,
+        # so a lookup that raises leaves the caller's scene untouched.
+        joint_colors = [
+            self._resolve_joint_colors(
+                key_points, int(skeleton_index), self.angles[angle_index].joint
+            )
+            for skeleton_index, angle_index in measured
+        ]
+        for (skeleton_index, angle_index), (color, text_color) in zip(
+            measured, joint_colors
+        ):
+            angle = self.angles[angle_index]
+            joint_xy = xy[skeleton_index, angle.joint]
+            heading_start = self._heading(xy[skeleton_index, angle.start] - joint_xy)
+            heading_end = self._heading(xy[skeleton_index, angle.end] - joint_xy)
+            # The interior angle never exceeds 180 degrees, so the arc follows the
+            # shorter way round from ray start to ray end. Both backends draw an arc
+            # clockwise from the smaller to the larger angle in image coordinates.
+            sweep = (heading_end - heading_start + 180.0) % 360.0 - 180.0
+            start_angle, end_angle = sorted((heading_start, heading_start + sweep))
+            # Both backends draw whole degrees, so a sub-degree arc would collapse
+            # into a dot on the joint; such joints keep only their label.
+            if end_angle - start_angle >= 1.0:
+                _draw_antialiased(
+                    scene,
+                    color.as_bgr(),
+                    lambda image, draw_color: cv2.ellipse(
+                        image,
+                        (int(joint_xy[0]), int(joint_xy[1])),
+                        (self.radius, self.radius),
+                        0.0,
+                        start_angle,
+                        end_angle,
+                        draw_color,
+                        self.thickness,
+                        cv2.LINE_AA,
+                    ),
+                )
+            if text_color is not None:
+                self._draw_value(
+                    scene=scene,
+                    text=f"{values[skeleton_index, angle_index]:.0f}",
+                    color=color,
+                    text_color=text_color,
+                    joint_xy=joint_xy,
+                    bisector=np.radians(heading_start + sweep / 2.0),
+                )
+        return scene
+
+    def _resolve_joint_colors(
+        self, key_points: KeyPoints, skeleton_index: int, joint_index: int
+    ) -> tuple[Color, Color | None]:
+        """Return the arc color of a joint and its text color, or ``None`` for the text
+        color when no label is shown.
+
+        Both follow ``color_lookup``; under ``KEYPOINT`` a joint takes the colors of its
+        joint. A label that is not shown never resolves its text color, so an unused
+        ``text_color`` palette cannot raise.
+        """
+        color = _resolve_keypoint_color(
+            color=self.color,
+            color_lookup=self.color_lookup,
+            key_points=key_points,
+            instance_idx=skeleton_index,
+            keypoint_idx=joint_index,
+        )
+        if not self.show_value:
+            return color, None
+        text_color = _resolve_keypoint_color(
+            color=self.text_color,
+            color_lookup=self.color_lookup,
+            key_points=key_points,
+            instance_idx=skeleton_index,
+            keypoint_idx=joint_index,
+        )
+        return color, text_color
+
+    @staticmethod
+    def _heading(ray: npt.NDArray[np.float64]) -> float:
+        """Return the direction of a ray in degrees, clockwise from +x in the image."""
+        return float(np.degrees(np.arctan2(ray[1], ray[0])))
+
+    def _draw_value(
+        self,
+        scene: npt.NDArray[np.uint8],
+        text: str,
+        color: Color,
+        text_color: Color,
+        joint_xy: npt.NDArray[np.float64],
+        bisector: float,
+    ) -> None:
+        """Draw the label on the bisector, just outside the arc so it never covers the
+        arc or the joint itself."""
+        (text_width, text_height), _ = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+        )
+        half_diagonal = 0.5 * float(
+            np.hypot(
+                text_width + 2 * self.text_padding, text_height + 2 * self.text_padding
+            )
+        )
+        distance = self.radius + self.thickness + half_diagonal
+        center = joint_xy + distance * np.array([np.cos(bisector), np.sin(bisector)])
+        draw_text(
+            scene=scene,
+            text=text,
+            text_anchor=Point(x=float(center[0]), y=float(center[1])),
+            text_color=text_color,
+            text_scale=self.text_scale,
+            text_thickness=self.text_thickness,
+            text_padding=self.text_padding,
+            background_color=color,
         )

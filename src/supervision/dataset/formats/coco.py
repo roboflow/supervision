@@ -461,10 +461,12 @@ def coco_annotations_to_detections(
         ValueError: If an annotation's ``bbox`` has a negative width or height.
             A negative extent would place ``x_max`` before ``x_min`` once the
             corners are formed; a zero extent is accepted.
-        ValueError: If ``with_masks=True`` and ``mask_rasterizer`` or a polygon
-            vertex is invalid; see
-            :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`,
-            which also raises ``ImportError`` when ``supervision[coco]`` is missing.
+        ValueError: If ``with_masks=True`` and ``mask_rasterizer`` is invalid; see
+            :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`.
+        ValueError: If ``with_masks=True`` and a polygon vertex is invalid; see
+            :func:`~supervision.dataset.formats.coco.coco_annotations_to_masks`.
+        ImportError: If the ``pycocotools`` rasterizer is selected, a polygon
+            requires rasterization, and ``supervision[coco]`` is missing.
     """
     if not image_annotations:
         return Detections.empty()
