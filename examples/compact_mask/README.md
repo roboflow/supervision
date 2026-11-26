@@ -134,17 +134,17 @@ self._crop_shapes: npt.NDArray[np.int32]  # (N, 2) — crop (h, w) per mask
 self._offsets: npt.NDArray[np.int32]  # (N, 2) — (x1, y1) origin per mask
 ```
 
-Per-mask RLE size at 50% fill with 600-vertex polygons: ~4.7 KB (933 KB / 200). Per-mask dense size: 1920 x 1080 x 1 = 2.1 MB. Per-mask ratio: 2.1 MB / 4.7 KB = **~445x**.
+Per-mask RLE size at 50% fill with 600-vertex polygons: ~4.8 KB (958 KB / 200). Per-mask dense size: 1920 x 1080 x 1 = 2.1 MB. Per-mask ratio: 2.1 MB / 4.8 KB = **~433x**.
 
-Scaled to N=200: 200 x 4.7 KB = ~933 KB of RLE data, plus `_crop_shapes` (1.6 KB) and `_offsets` (1.6 KB). Python list + array object overhead roughly doubles the footprint for small N.
+Scaled to N=200: 200 x 4.8 KB = ~958 KB of RLE data, plus `_crop_shapes` (1.6 KB) and `_offsets` (1.6 KB). Measured allocation (`tracemalloc`) is 1.08 MB, about 13% above the raw buffers, from Python list and array object overhead.
 
 | Component       | Dense          | Compact     | Ratio     |
 | --------------- | -------------- | ----------- | --------- |
-| Mask data       | 414 MB         | **~933 KB** | ~445x     |
-| Python overhead | **negligible** | ~933 KB     | --        |
-| **Total**       | **414 MB**     | **~1.9 MB** | **~392x** |
+| Mask data       | 414 MB         | **~958 KB** | ~433x     |
+| Python overhead | **negligible** | ~127 KB     | --        |
+| **Total**       | **414 MB**     | **~1.1 MB** | **~382x** |
 
-At 5% fill with 8-vertex polygons, the ratio reaches 10 000x–20 000x because crops are tiny and RLEs are extremely short. The benchmark's 4K-200-5%-v8 scenario measures 21 786x (theory) / ~6 000x (malloc). The SAT-200-5%-v8 scenario reaches 62 968x theoretical.
+At 5% fill with 8-vertex polygons, the ratio reaches 10 000x–20 000x because crops are tiny and RLEs are extremely short. The benchmark's 4K-200-5%-v8 scenario measures 22 095x (theory) / ~12 000x (malloc). The SAT-200-5%-v8 scenario reaches 63 726x theoretical.
 
 ______________________________________________________________________
 
@@ -170,14 +170,14 @@ return int(np.sum(rle[1::2]))
 return np.array([_rle_area(r) for r in self._rles], dtype=np.int64)
 ```
 
-At FHD-200-50%-v600, dense `.area` takes 84.66 ms; compact takes 0.48 ms — a **71x speedup**. At SAT-200-20%-v128 the measured speedup reaches **1 204x** because the dense array is 13.4 GB and each sum must scan the entire canvas.
+At FHD-200-50%-v600, dense `.area` takes 10.77 ms; compact takes 0.80 ms — a **13x speedup**. At SAT-200-20%-v128 the measured speedup reaches **724x** because the dense array is 13.4 GB and each sum must scan the entire canvas.
 
-| Factor                             | Reduction   |
-| ---------------------------------- | ----------- |
-| RLE sums vs full-frame pixel reads | ~4 600x     |
-| int32 arithmetic vs bool reduction | ~2x         |
-| No (H, W) allocation per mask      | latency     |
-| **Combined**                       | **~1 000x** |
+| Factor                             | Reduction         |
+| ---------------------------------- | ----------------- |
+| RLE sums vs full-frame pixel reads | ~4 600x           |
+| int32 arithmetic vs bool reduction | ~2x               |
+| No (H, W) allocation per mask      | latency           |
+| **Measured range**                 | **8.4x – 4 332x** |
 
 ______________________________________________________________________
 
@@ -204,13 +204,13 @@ new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr]
 return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
 ```
 
-At FHD-200-50%-v600, dense `filter` takes 14.56 ms; compact takes 0.03 ms — a **500x speedup**. At SAT-200-20%-v128 the speedup reaches **14 757x**.
+At FHD-200-50%-v600, dense `filter` takes 7.31 ms; compact takes 0.70 ms — a **10x speedup**. At SAT-200-20%-v128 the speedup reaches **1 259x**.
 
-|             | Dense                   | Compact                             |
-| ----------- | ----------------------- | ----------------------------------- |
-| Data copied | K x H x W (full frames) | K Python references + K x 8 bytes   |
-| Allocation  | new `(K, H, W)` array   | new `CompactMask` shell (~trivial)  |
-| **Speedup** |                         | **hundreds to tens of thousands x** |
+|             | Dense                   | Compact                            |
+| ----------- | ----------------------- | ---------------------------------- |
+| Data copied | K x H x W (full frames) | K Python references + K x 8 bytes  |
+| Allocation  | new `(K, H, W)` array   | new `CompactMask` shell (~trivial) |
+| **Speedup** |                         | **5.2x – 13 137x measured**        |
 
 ______________________________________________________________________
 
@@ -237,14 +237,14 @@ crop_h, crop_w = crop_m.shape
 colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = color.as_bgr()
 ```
 
-`compact_mask.crop()` decodes the RLE into a `(crop_h, crop_w)` array. At FHD-200-50%-v600, dense `annotate` takes 848.95 ms; compact takes 32.67 ms — a **22x speedup**. At SAT-200-20%-v128 the speedup reaches **89x**.
+`compact_mask.crop()` decodes the RLE into a `(crop_h, crop_w)` array. At FHD-200-50%-v600, dense `annotate` takes 58.94 ms; compact takes 31.80 ms — a **1.9x speedup**. At SAT-200-20%-v128 the speedup reaches **6.8x**.
 
 | Factor                                             | Reduction           |
 | -------------------------------------------------- | ------------------- |
 | Crop decode vs full-frame boolean index (per mask) | crop-size dependent |
 | No full `(H, W)` allocation per integer index      | latency             |
 | x N masks                                          | compounds           |
-| **Combined**                                       | **~26 – 400x**      |
+| **Measured range**                                 | **1.2x – 21x**      |
 
 ______________________________________________________________________
 
@@ -303,15 +303,15 @@ Area is obtained from `_rle_area` (sum odd-indexed runs), never touching the pix
 areas_a: npt.NDArray[np.int64] = masks_true.area
 ```
 
-At FHD-200-50%-v600, dense IoU takes 23 915 ms; compact takes 51.58 ms — a **446x speedup**. At 5% fill / sparse scenarios the speedup is even larger because fewer bbox pairs overlap.
+At FHD-200-50%-v600, dense IoU takes 723.86 ms; compact takes 19.16 ms — a **38x speedup**. At 5% fill / sparse scenarios the speedup is even larger because fewer bbox pairs overlap.
 
-| Factor                               | Reduction       |
-| ------------------------------------ | --------------- |
-| Bbox pre-filter at sparse fill       | 25x             |
-| Sub-crop vs full frame per pair      | ~200x           |
-| Area from RLE, not `sum(axis=(1,2))` | ~10x            |
-| No 5 GB scratch allocation           | latency         |
-| **Combined**                         | **~100 – 500x** |
+| Factor                               | Reduction      |
+| ------------------------------------ | -------------- |
+| Bbox pre-filter at sparse fill       | 25x            |
+| Sub-crop vs full frame per pair      | ~200x          |
+| Area from RLE, not `sum(axis=(1,2))` | ~10x           |
+| No 5 GB scratch allocation           | latency        |
+| **Measured range**                   | **15x – 697x** |
 
 At 20% fill the gaps close — more pairs overlap, larger crops — speedup drops toward the lower end of the range.
 
@@ -330,14 +330,14 @@ ious = mask_iou_batch(masks, masks, overlap_metric)
 
 All three IoU optimisations apply to the compact path:
 
-| Factor                                | Reduction                    |
-| ------------------------------------- | ---------------------------- |
-| Bbox pre-filter eliminates most pairs | 25x at sparse fill           |
-| Sub-crop decode for remaining pairs   | ~200x                        |
-| Area from RLE, not pixel sum          | ~10x                         |
-| **Combined**                          | **same as IoU: ~100 – 500x** |
+| Factor                                | Reduction          |
+| ------------------------------------- | ------------------ |
+| Bbox pre-filter eliminates most pairs | 25x at sparse fill |
+| Sub-crop decode for remaining pairs   | ~200x              |
+| Area from RLE, not pixel sum          | ~10x               |
+| **Measured range**                    | **15x – 369x**     |
 
-At FHD-200-50%-v600, dense NMS takes 5 231 ms; compact takes 48.15 ms — a **481x speedup**. Dense IoU/NMS is skipped for scenarios above 1 GB (4K-200 and SAT-200 tiers); compact NMS still runs on those.
+At FHD-200-50%-v600, dense NMS takes 500.13 ms; compact takes 22.20 ms — a **23x speedup**. Dense IoU/NMS is skipped for scenarios above 1 GB (4K-200 and SAT-200 tiers); compact NMS still runs on those.
 
 ______________________________________________________________________
 
@@ -369,7 +369,7 @@ new_offsets: npt.NDArray[np.int32] = np.concatenate(
 
 `list.extend` copies N reference pointers. `np.concatenate` on `(N, 2)` int32 arrays copies N x 8 bytes per array.
 
-At FHD-200-50%-v600, dense merge takes 29.71 ms; compact takes 0.03 ms — a **929x speedup**. At SAT-200-20%-v128 the speedup reaches **89 046x**.
+At FHD-200-50%-v600, dense merge takes 10.57 ms; compact takes 0.06 ms — a **169x speedup**. At SAT-200-20%-v128 the speedup reaches **87 569x**.
 
 |             | Dense                   | Compact                    |
 | ----------- | ----------------------- | -------------------------- |
@@ -414,14 +414,14 @@ if not needs_clip.any():
 
 When a crop does overflow (e.g. object at a tile edge), only that crop is decoded, sliced, and re-encoded. Masks fully outside bounds get a 1x1 all-False stub without any decoding.
 
-At FHD-200-50%-v600, dense offset takes 42.30 ms; compact takes 0.02 ms — a **2 016x speedup**. At SAT-200-20%-v128 the speedup reaches **290 779x**.
+At FHD-200-50%-v600, dense offset takes 31.67 ms; compact takes 0.02 ms — a **1 623x speedup**. At SAT-200-20%-v128 the speedup reaches **153 104x**.
 
-|                   | Dense                                  | Compact (no-clip fast path)          |
-| ----------------- | -------------------------------------- | ------------------------------------ |
-| Work per mask     | allocate `(new_H, new_W)` + copy H x W | add scalar to offset row — O(1)      |
-| N=200 at FHD      | 200 x 2.1 MB = **414 MB** alloc + copy | two numpy ops on `(N, 2)` int32      |
-| Output allocation | new `(N, new_H, new_W)`                | shared RLE list + new `(N, 2)` array |
-| **Speedup**       |                                        | **effectively free (>1 000x)**       |
+|                   | Dense                                  | Compact (no-clip fast path)                     |
+| ----------------- | -------------------------------------- | ----------------------------------------------- |
+| Work per mask     | allocate `(new_H, new_W)` + copy H x W | add scalar to offset row — O(1)                 |
+| N=200 at FHD      | 200 x 2.1 MB = **414 MB** alloc + copy | two numpy ops on `(N, 2)` int32                 |
+| Output allocation | new `(N, new_H, new_W)`                | shared RLE list + new `(N, 2)` array            |
+| **Speedup**       |                                        | **effectively free (165x – 233 361x measured)** |
 
 In the `InferenceSlicer` pipeline the canvas is always expanded by the tile offset, so no crop ever overflows — the fast path is always taken. Clipping only activates for objects that genuinely straddle the image boundary.
 
@@ -452,13 +452,13 @@ cx = float(np.sum((crop_cols + 0.5)[crop])) / total + x1
 cy = float(np.sum((crop_rows + 0.5)[crop])) / total + y1
 ```
 
-At FHD-200-50%-v600, dense centroids takes 1 133.68 ms; compact takes 60.39 ms — a **13x speedup**. At SAT-200-20%-v128 the speedup reaches **857x** because the dense path must allocate and scan a 13.4 GB array.
+At FHD-200-50%-v600, dense centroids takes 335.90 ms; compact takes 33.39 ms — a **10x speedup**. At SAT-200-20%-v128 the speedup reaches **938x** because the dense path must allocate and scan a 13.4 GB array.
 
 | Factor                                    | Reduction           |
 | ----------------------------------------- | ------------------- |
 | Crop area vs full frame (per mask)        | fill-dependent      |
 | No global `np.indices((H, W))` allocation | saves large float64 |
-| **Combined (N=200)**                      | **~19 – 1 000x**    |
+| **Measured range**                        | **5.8x – 2 558x**   |
 
 ______________________________________________________________________
 
@@ -466,19 +466,19 @@ ______________________________________________________________________
 
 Measured speedups at the **FHD-200-50%-v600** operating point (dense fill, complex polygons — a realistic hard case). Dense baseline = 1x.
 
-| Operation        | Dense cost  | Compact cost | Speedup |
-| ---------------- | ----------- | ------------ | ------- |
-| Memory           | 414 MB      | **~1.9 MB**  | ~392x   |
-| `.area`          | 84.66 ms    | **0.48 ms**  | 71x     |
-| `filter`         | 14.56 ms    | **0.03 ms**  | 500x    |
-| `annotate`       | 848.95 ms   | **32.67 ms** | 22x     |
-| `mask_iou_batch` | 23 915 ms   | **51.58 ms** | 446x    |
-| NMS              | 5 231 ms    | **48.15 ms** | 481x    |
-| `merge`          | 29.71 ms    | **0.03 ms**  | 929x    |
-| `with_offset`    | 42.30 ms    | **0.02 ms**  | 2 016x  |
-| `centroids`      | 1 133.68 ms | **60.39 ms** | 13x     |
+| Operation        | Dense cost | Compact cost | Speedup |
+| ---------------- | ---------- | ------------ | ------- |
+| Memory           | 414 MB     | **~1.1 MB**  | ~382x   |
+| `.area`          | 10.77 ms   | **0.80 ms**  | 13x     |
+| `filter`         | 7.31 ms    | **0.70 ms**  | 10x     |
+| `annotate`       | 58.94 ms   | **31.80 ms** | 1.9x    |
+| `mask_iou_batch` | 723.86 ms  | **19.16 ms** | 38x     |
+| NMS              | 500.13 ms  | **22.20 ms** | 23x     |
+| `merge`          | 10.57 ms   | **0.06 ms**  | 169x    |
+| `with_offset`    | 31.67 ms   | **0.02 ms**  | 1 623x  |
+| `centroids`      | 335.90 ms  | **33.39 ms** | 10x     |
 
-All speedups are larger at sparser fill fractions and larger resolutions. At SAT-200-20%-v128, `.area` reaches 1 204x and `merge` reaches 89 046x. At the sparsest scenarios (5% fill, 8-vertex polygons), memory ratios exceed 60 000x.
+All speedups are larger at sparser fill fractions and larger resolutions. At SAT-200-20%-v128, `.area` reaches 724x and `merge` reaches 87 569x. At the sparsest scenarios (5% fill, 8-vertex polygons), memory ratios exceed 60 000x.
 
 ______________________________________________________________________
 
@@ -625,7 +625,7 @@ Dense timing is skipped automatically when the dense IoU/NMS array would exceed 
 - **Area x / Filter x / Annot x / IoU x / NMS x / Merge x / Offset x / Centroids x / Resize x** — compact speedup over dense for each operation
 - **†** — dense IoU+NMS skipped (dense array > 1 GB); compact still runs and is timed
 
-Ten representative scenarios out of the 54 in the matrix; the full per-scenario tables are printed by the benchmark script and saved to `results_<timestamp>.csv` / `.jsonl` next to it. All scenarios pass: pixel-perfect annotation, exact area, lossless `to_dense()` roundtrip, and matching IoU, NMS, merge, offset, centroids and resize results.
+Ten representative scenarios out of the 54 in the matrix; the full per-scenario tables are printed by the benchmark script and saved to `results_<timestamp>.csv` / `.jsonl` next to it. Every executed check passes in all 54 scenarios: pixel-perfect annotation, exact area, lossless `to_dense()` roundtrip, and matching IoU, merge, offset, centroids and resize results. Dense NMS does not run in the 18 † scenarios (4K-200 and SAT-200), so NMS outputs are compared only in the other 36; IoU is compared on a small subset where its dense timing is skipped.
 
 ### Sample results — YOLO loading
 
