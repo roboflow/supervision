@@ -937,10 +937,10 @@ class TestVertexLabelAnnotator:
         self,
         labels: list[str] | dict[int, list[str]] | None,
         points_count: int,
-        class_id: int,
+        class_id: int | None,
         match: str,
     ) -> None:
-        """Labels that do not match the key point count raise ValueError."""
+        """Labels of the wrong length or without a class to look up raise ValueError."""
         with pytest.raises(ValueError, match=match):
             sv.VertexLabelAnnotator._resolve_labels(labels, points_count, class_id)
 
