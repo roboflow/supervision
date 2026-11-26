@@ -7,6 +7,9 @@ ci:
   autofix_commit_msg: "fix(pre_commit): 🎨 auto format pre-commit hooks"
   autoupdate_commit_msg: "chore(pre_commit): ⬆ pre_commit autoupdate"
 
+# Vendored third-party files stay byte for byte as their package publishes them.
+exclude: ^docs/javascripts/vendor/
+
 repos:
   - repo: local
     hooks:

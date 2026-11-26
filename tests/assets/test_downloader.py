@@ -1,9 +1,15 @@
 import io
+import json
+import os
+import subprocess
+import sys
+from hashlib import md5
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
+import supervision
 from supervision.assets.downloader import (
     _download_asset,
     download_assets,
@@ -21,6 +27,105 @@ def _mock_streaming_response(payload: bytes = b"asset-bytes") -> MagicMock:
 
 
 class TestMD5HashMatching:
+    def test_uses_bounded_memory(self, tmp_path: Path) -> None:
+        """Avoid retaining the entire asset, even when reads are chunked."""
+        content = b"a" * (8 * 1024 * 1024) + b"tail"
+        filename = tmp_path / "asset.bin"
+        filename.write_bytes(content)
+        expected = md5(content, usedforsecurity=False).hexdigest()
+        environment = os.environ.copy()
+        environment.pop("PYTHONTRACEMALLOC", None)
+        # The child must import the same supervision build that pytest imported.
+        source_root = str(Path(supervision.__file__).resolve().parents[1])
+        environment["PYTHONPATH"] = os.pathsep.join(
+            filter(None, [source_root, environment.get("PYTHONPATH")])
+        )
+        script = """
+import json
+import sys
+import tracemalloc
+from supervision.assets.downloader import is_md5_hash_matching
+
+tracemalloc.start()
+matches = is_md5_hash_matching(sys.argv[1], sys.argv[2])
+_, peak_bytes = tracemalloc.get_traced_memory()
+print(json.dumps({"matches": matches, "peak_bytes": peak_bytes}))
+"""
+
+        completed = subprocess.run(
+            [sys.executable, "-c", script, str(filename), expected],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=environment,
+        )
+
+        measurement = json.loads(completed.stdout)
+        assert measurement["matches"]
+        # A whole-file buffer or a retained list of chunks exceeds this bound.
+        assert measurement["peak_bytes"] < len(content) // 2
+
+    @pytest.mark.parametrize("size", [0, 1, 65535, 1048576, 3145765])
+    @pytest.mark.parametrize("as_string", [False, True])
+    def test_matches_reference_for_complete_file(
+        self, tmp_path: Path, size: int, as_string: bool
+    ) -> None:
+        """Match hashlib for empty, small, and multi-chunk files with a tail."""
+        content = (bytes(range(256)) * ((size + 255) // 256))[:size]
+        filename = tmp_path / "asset.bin"
+        filename.write_bytes(content)
+        expected = md5(content, usedforsecurity=False).hexdigest()
+        target = str(filename) if as_string else filename
+
+        matches = is_md5_hash_matching(target, expected)
+
+        assert matches
+
+    def test_rejects_extra_bytes_after_full_chunks(self, tmp_path: Path) -> None:
+        """Reject a file whose short final chunk is absent from the expected hash."""
+        prefix = b"a" * (3 * 1024 * 1024)
+        filename = tmp_path / "asset.bin"
+        filename.write_bytes(prefix + b"tail")
+        expected = md5(prefix, usedforsecurity=False).hexdigest()
+
+        matches = is_md5_hash_matching(filename, expected)
+
+        assert not matches
+
+    def test_keeps_case_sensitive_comparison(self, tmp_path: Path) -> None:
+        """Preserve the catalog hash's existing case-sensitive comparison."""
+        content = b"asset bytes"
+        filename = tmp_path / "asset.bin"
+        filename.write_bytes(content)
+        expected = md5(content, usedforsecurity=False).hexdigest().upper()
+
+        matches = is_md5_hash_matching(filename, expected)
+
+        assert not matches
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            pytest.param(OSError("hash read failed"), id="read-error"),
+            pytest.param(KeyboardInterrupt(), id="cancelled-read"),
+        ],
+    )
+    def test_closes_file_when_later_read_fails(self, error: BaseException) -> None:
+        """Propagate read failures and cancellation while closing the input."""
+        reader = MagicMock(spec=io.BufferedReader)
+        reader.__enter__.return_value = reader
+        reader.read.side_effect = [b"first chunk", error]
+
+        with (
+            patch("builtins.open", return_value=reader),
+            patch("os.path.exists", return_value=True),
+            pytest.raises(type(error)),
+        ):
+            is_md5_hash_matching("asset.bin", "wrong hash")
+
+        reader.__exit__.assert_called_once()
+
     def test_file_exists_matching_hash(self) -> None:
         """Test is_md5_hash_matching when file exists and hash matches."""
         test_content = b"test content"
@@ -50,6 +155,41 @@ class TestMD5HashMatching:
 
 
 class TestDownloadAssets:
+    @pytest.mark.parametrize("custom_directory", [False, True])
+    def test_valid_cache_skips_download(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        custom_directory: bool,
+    ) -> None:
+        """Skip the download when the requested directory holds a valid asset."""
+        filename = VideoAssets.VEHICLES.filename
+        content = b"asset frame" * 1000 + b"tail"
+        cache_directory = tmp_path / "cache"
+        working_directory = tmp_path / "work"
+        cache_directory.mkdir()
+        working_directory.mkdir()
+        # Only the requested directory holds the valid bytes; the other one holds a
+        # same-named decoy, so hashing the wrong path would trigger a download.
+        valid_directory = cache_directory if custom_directory else working_directory
+        decoy_directory = working_directory if custom_directory else cache_directory
+        (valid_directory / filename).write_bytes(content)
+        (decoy_directory / filename).write_bytes(b"different bytes")
+        monkeypatch.chdir(working_directory)
+        expected_hash = md5(content, usedforsecurity=False).hexdigest()
+        monkeypatch.setitem(
+            MEDIA_ASSETS, filename, ("https://example.com", expected_hash)
+        )
+        directory = cache_directory if custom_directory else None
+        cached_path = str(cache_directory / filename)
+        expected_result = cached_path if custom_directory else filename
+
+        with patch("supervision.utils.file.requests.get") as network:
+            result = download_assets(VideoAssets.VEHICLES, directory=directory)
+
+        assert result == expected_result
+        network.assert_not_called()
+
     @patch("supervision.assets.downloader.logger")
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.exists", return_value=True)

@@ -7,6 +7,7 @@ from pathlib import Path
 import augment_links
 import pytest
 from check_doctest_fences import _check_content
+from pin_minimum_dependencies import pin_minimum
 from verify_clean_wheel import _validate_manifest
 
 
@@ -117,3 +118,32 @@ class TestValidateManifest:
 
         with pytest.raises(ValueError, match="unexpected fallback manifest"):
             _validate_manifest(manifest)
+
+
+class TestPinMinimum:
+    """Pinning of ``>=`` lower bounds to ``==`` for minimum-version CI."""
+
+    @pytest.mark.parametrize(
+        ("requirement", "selected", "expected"),
+        [
+            pytest.param("numpy>=1.21.2", set(), "numpy==1.21.2", id="pins-all"),
+            pytest.param(
+                "pydeprecate>=0.9,<0.16", set(), "pydeprecate==0.9", id="drops-upper"
+            ),
+            pytest.param(
+                "scipy[extra]>=1.10; python_version>='3.10'",
+                set(),
+                "scipy[extra]==1.10; python_version>='3.10'",
+                id="keeps-extras-and-marker",
+            ),
+            pytest.param("numpy>=1.21.2", {"numpy"}, "numpy==1.21.2", id="selected"),
+            pytest.param("pillow>=9.4", {"numpy"}, "pillow>=9.4", id="not-selected"),
+            pytest.param("Py_YAML>=5.3", {"py-yaml"}, "Py_YAML==5.3", id="normalized"),
+            pytest.param("tqdm<5", set(), "tqdm<5", id="no-lower-bound"),
+        ],
+    )
+    def test_pins_requirement(
+        self, requirement: str, selected: set[str], expected: str
+    ) -> None:
+        """Selected (or all) lower bounds become exact pins; the rest stay as is."""
+        assert pin_minimum(requirement, selected) == expected

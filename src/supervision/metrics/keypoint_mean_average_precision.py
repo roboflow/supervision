@@ -286,8 +286,9 @@ def _check_target_areas(targets: KeyPoints) -> None:
         targets: The ground-truth skeletons of one image.
 
     Raises:
-        ValueError: If the areas are not of shape `(N,)`, or any is negative or
-            not finite. An area of `0` is accepted.
+        ValueError: If the areas are not of shape `(N,)`.
+        ValueError: If any area is negative or not finite. An area of `0` is
+            accepted.
     """
     areas = targets.data.get(AREA_DATA_FIELD)
     if areas is None:
@@ -434,6 +435,8 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
     ) -> KeyPointMeanAveragePrecision:
         """Add predictions and targets of one or more images to the metric.
 
+        A rejected update leaves the metric unchanged.
+
         Args:
             predictions: The predicted key points, one
                 :class:`~supervision.key_points.core.KeyPoints` per image.
@@ -444,15 +447,20 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
             The updated metric instance.
 
         Raises:
-            ValueError: If the numbers of predictions and targets differ, a
-                skeleton has no keypoints, a skeleton's number of keypoints
-                differs from earlier ones or from the length of `sigmas`,
-                `sigmas` is missing for a skeleton that is not 17 points long,
-                `data["xyxy"]` of predictions or targets is not of shape
-                `(N, 4)`, `targets.data["iscrowd"]` is not of shape `(N,)`, or
-                `targets.data["area"]` is not of shape `(N,)` or holds a
-                negative or non-finite area. A rejected update leaves the
-                metric unchanged.
+            ValueError: If the numbers of predictions and targets differ.
+            ValueError: If a skeleton has no keypoints.
+            ValueError: If a skeleton's number of keypoints differs from earlier
+                ones.
+            ValueError: If a skeleton's number of keypoints differs from the length
+                of `sigmas`.
+            ValueError: If `sigmas` is missing for a skeleton that is not 17 points
+                long.
+            ValueError: If `data["xyxy"]` of predictions or targets is not of shape
+                `(N, 4)`.
+            ValueError: If `targets.data["iscrowd"]` is not of shape `(N,)`.
+            ValueError: If `targets.data["area"]` is not of shape `(N,)`.
+            ValueError: If `targets.data["area"]` holds a negative or non-finite
+                area.
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
@@ -510,9 +518,11 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
             while there are none.
 
         Raises:
-            ValueError: If the skeletons have no keypoints, the number of
-                keypoints differs from earlier skeletons or from the length of
-                `sigmas`, or `sigmas` is missing for a skeleton that is not 17
+            ValueError: If the skeletons have no keypoints.
+            ValueError: If the number of keypoints differs from earlier skeletons.
+            ValueError: If the number of keypoints differs from the length of
+                `sigmas`.
+            ValueError: If `sigmas` is missing for a skeleton that is not 17
                 points long.
         """
         if len(key_points) == 0:

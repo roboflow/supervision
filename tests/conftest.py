@@ -8,6 +8,7 @@ import pytest
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     import matplotlib
+    import matplotlib.pyplot  # old releases warn here on import
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -77,3 +78,33 @@ def sample_key_points() -> sv.KeyPoints:
 @pytest.fixture
 def empty_key_points() -> sv.KeyPoints:
     return sv.KeyPoints.empty()
+
+
+def _is_metrics_path(path: Path) -> bool:
+    """Tell whether a path belongs to the `supervision.metrics` code or its tests."""
+    posix_path = f"{path.as_posix()}/"
+    return "/tests/metrics/" in posix_path or "/supervision/metrics/" in posix_path
+
+
+def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
+    """Skip importing metrics modules when `-m` deselects them.
+
+    A deselected module is still imported during collection, and the reference packages
+    some metrics tests import at module level may not import in a minimal environment.
+    """
+    if "not metrics" in (config.option.markexpr or "") and _is_metrics_path(
+        collection_path
+    ):
+        return True
+    return None
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Mark every test and doctest of `supervision.metrics` with `metrics`.
+
+    The metrics package needs the optional `metrics` extra and reference packages that
+    some CI jobs do not install, so they deselect it with `-m "not metrics"`.
+    """
+    for item in items:
+        if _is_metrics_path(Path(str(item.path))):
+            item.add_marker(pytest.mark.metrics)

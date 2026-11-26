@@ -5,25 +5,12 @@ import numpy as np
 import pytest
 
 from supervision.config import (
-    HANDEDNESS_SCORE_DATA_FIELD,
+    KEYPOINT_COVARIANCE_DATA_FIELD,
     KEYPOINT_VISIBILITY_DATA_FIELD,
 )
 from supervision.key_points.core import KeyPoints
 from tests.helpers import (
     _create_key_points,
-    _FakeMediapipeClassification,
-    _FakeMediapipeHandedness,
-    _FakeMediapipeHandednessCategory,
-    _FakeMediapipeLandmark,
-    _FakeMediapipeLandmarkWithNoneVisibility,
-    _FakeMediapipeLandmarkWithoutVisibility,
-    _FakeMediapipeLandmarkWithZeroVisibility,
-    _FakeMediapipePose,
-    _FakeMediapipeResults,
-    _FakeTensor,
-    _FakeUltralyticsBoxes,
-    _FakeYoloNasKeyPoint,
-    _FakeYoloNasKeyPointResults,
 )
 
 KEY_POINTS = _create_key_points(
@@ -554,6 +541,117 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
     assert result == expected_result
 
 
+class TestKeyPointsSetItem:
+    """Tests for assigning `data` values through `KeyPoints.__setitem__`."""
+
+    @staticmethod
+    def _two_skeletons() -> KeyPoints:
+        """Build a two-object KeyPoints with one `name` entry per object."""
+        xy = np.array(
+            [[[10, 10], [20, 20]], [[30, 30], [40, 40]]],
+            dtype=np.float32,
+        )
+        key_points = KeyPoints(xy=xy, class_id=np.array([0, 1]))
+        key_points["name"] = ["a", "b"]
+        return key_points
+
+    @pytest.mark.parametrize(
+        ("value", "message"),
+        [
+            pytest.param(
+                ["a", "b", "c"],
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="long-list",
+            ),
+            pytest.param(
+                ["a"],
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="short-list",
+            ),
+            pytest.param(
+                [],
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="empty-list",
+            ),
+            pytest.param(
+                np.array(["a", "b", "c"]),
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="long-1d-array",
+            ),
+            pytest.param(
+                np.array(["a"]),
+                r"Shape of np.ndarray for key 'new' must be \(2,\)",
+                id="short-1d-array",
+            ),
+            pytest.param(
+                np.zeros((3, 2)),
+                r"First dimension of np.ndarray for key 'new' must have size 2",
+                id="wrong-first-dimension-2d-array",
+            ),
+        ],
+    )
+    def test_rejects_value_with_wrong_length(self, value: Any, message: str) -> None:
+        """Assigning a value whose length differs from `len(key_points)` raises."""
+        key_points = self._two_skeletons()
+
+        with pytest.raises(ValueError, match=message):
+            key_points["new"] = value
+
+    def test_failed_assignment_leaves_data_unchanged(self) -> None:
+        """A rejected assignment neither adds a new key nor overwrites an old one."""
+        key_points = self._two_skeletons()
+
+        with pytest.raises(ValueError, match=r"key 'new' must be \(2,\)"):
+            key_points["new"] = ["a", "b", "c"]
+        with pytest.raises(ValueError, match=r"key 'name' must be \(2,\)"):
+            key_points["name"] = np.array(["x"])
+
+        assert list(key_points.data) == ["name"]
+        np.testing.assert_array_equal(key_points.data["name"], np.array(["a", "b"]))
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            pytest.param(["x", "y"], id="list"),
+            pytest.param(np.array(["x", "y"]), id="1d-array"),
+            pytest.param(np.zeros((2, 2)), id="per-keypoint-2d-array"),
+            pytest.param(np.zeros((2, 2, 3)), id="per-keypoint-3d-array"),
+        ],
+    )
+    def test_accepts_value_with_matching_length(self, value: Any) -> None:
+        """A list or array with one entry per object is stored as an array."""
+        key_points = self._two_skeletons()
+
+        key_points["name"] = value
+
+        np.testing.assert_array_equal(key_points.data["name"], np.asarray(value))
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            pytest.param(1, id="scalar"),
+            pytest.param("ab", id="string"),
+            pytest.param(("a", "b"), id="tuple"),
+        ],
+    )
+    def test_rejects_value_that_is_not_list_or_ndarray(self, value: Any) -> None:
+        """Values other than lists and arrays raise `TypeError`, as in Detections."""
+        key_points = self._two_skeletons()
+
+        with pytest.raises(TypeError, match=r"Value must be a np\.ndarray or a list"):
+            key_points["new"] = value
+
+    def test_empty_key_points_accepts_empty_list(self) -> None:
+        """An empty KeyPoints accepts a zero-length value and rejects a longer one."""
+        key_points = KeyPoints.empty()
+
+        key_points["name"] = []
+
+        assert len(key_points.data["name"]) == 0
+        with pytest.raises(ValueError, match=r"must be \(0,\)"):
+            key_points["other"] = ["a"]
+
+
 class TestKeyPointsSelect:
     """Tests for selecting individual keypoints without losing their fields."""
 
@@ -999,217 +1097,6 @@ def test_key_points_setitem():
         key_points["invalid_data"] = 123
 
 
-@pytest.mark.parametrize(
-    ("key_points", "expected_xyxy", "expected_confidence", "expected_class_id"),
-    [
-        (
-            _create_key_points(
-                xy=[[[0, 1], [2, 3], [4, 5]]],
-                confidence=[[0.8, 0.9, 0.7]],
-                class_id=[0],
-            ),
-            np.array([[0, 1, 4, 5]], dtype=np.float32),
-            np.array([0.8], dtype=np.float32),
-            np.array([0]),
-        ),
-        (
-            _create_key_points(
-                xy=[[[0, 0], [2, 3], [4, 5]]],
-                confidence=[[0.8, 0.9, 0.7]],
-                class_id=[0],
-            ),
-            np.array([[2, 3, 4, 5]], dtype=np.float32),
-            np.array([0.8], dtype=np.float32),
-            np.array([0]),
-        ),
-    ],
-)
-def test_key_points_as_detections(
-    key_points, expected_xyxy, expected_confidence, expected_class_id
-):
-    """Test the as_detections method for KeyPoints objects."""
-    detections = key_points.as_detections()
-    assert len(detections) == len(expected_xyxy)
-    assert np.array_equal(detections.xyxy, expected_xyxy)
-    assert np.allclose(detections.confidence, expected_confidence)
-    assert np.array_equal(detections.class_id, expected_class_id)
-
-
-@pytest.mark.parametrize(
-    "dtype",
-    [pytest.param(np.float32, id="float32"), pytest.param(np.float64, id="float64")],
-)
-@pytest.mark.parametrize("depth", [1.0, np.nan, np.inf, -np.inf])
-@pytest.mark.parametrize("with_visibility", [False, True])
-class TestKeyPointsImageSpaceBoxes:
-    def test_conversion_ignores_extra_coordinate(
-        self,
-        dtype: type[np.float32] | type[np.float64],
-        depth: float,
-        with_visibility: bool,
-    ) -> None:
-        """Missing points and valid x/y bounds do not depend on depth."""
-        xy = np.array([[[0, 0], [10, 10], [20, 20]]], dtype=dtype)
-        extra = np.full((1, 3, 1), depth, dtype=dtype)
-        extra[:, 0] = 1
-        coordinates = np.concatenate((xy, extra), axis=2)
-        visible = np.ones((1, 3), dtype=bool) if with_visibility else None
-        key_points = KeyPoints(
-            xy=coordinates,
-            visible=visible,
-            class_id=np.array([3]),
-            data={"name": np.array(["person"])},
-        )
-        original = coordinates.copy()
-
-        detections = key_points.as_detections(selected_keypoint_indices=[0, 1, 2])
-
-        np.testing.assert_array_equal(detections.xyxy, [[10, 10, 20, 20]])
-        np.testing.assert_array_equal(detections.class_id, [3])
-        np.testing.assert_array_equal(detections.data["name"], ["person"])
-        np.testing.assert_array_equal(coordinates, original)
-
-    def test_suppression_ignores_extra_coordinate(
-        self,
-        dtype: type[np.float32] | type[np.float64],
-        depth: float,
-        with_visibility: bool,
-    ) -> None:
-        """NMS suppresses duplicate image boxes while retaining distant skeletons."""
-        xy = np.array(
-            [
-                [[0, 0], [100, 100], [120, 120]],
-                [[0, 0], [102, 102], [122, 122]],
-                [[0, 0], [140, 140], [160, 160]],
-            ],
-            dtype=dtype,
-        )
-        extra = np.full((3, 3, 1), depth, dtype=dtype)
-        extra[:, 0] = 1
-        coordinates = np.concatenate((xy, extra), axis=2)
-        visible = np.ones((3, 3), dtype=bool) if with_visibility else None
-        key_points = KeyPoints(
-            xy=coordinates,
-            visible=visible,
-            class_id=np.zeros(3, dtype=int),
-            detection_confidence=np.array([0.9, 0.8, 0.7]),
-            data={"name": np.array(["first", "duplicate", "distant"])},
-        )
-        original = coordinates.copy()
-
-        result = key_points.with_nms(threshold=0.5)
-
-        np.testing.assert_array_equal(result.xy, coordinates[[0, 2]])
-        np.testing.assert_array_equal(result.data["name"], ["first", "distant"])
-        np.testing.assert_array_equal(coordinates, original)
-
-
-def test_key_points_as_detections_empty():
-    """Test the as_detections method for empty KeyPoints objects."""
-    empty_key_points = KeyPoints.empty()
-    empty_detections = empty_key_points.as_detections()
-    assert empty_detections.is_empty()
-
-
-def test_key_points_as_detections_ignores_missing_keypoints():
-    """A [0, 0] keypoint is treated as missing and excluded from the box."""
-    key_points = _create_key_points(
-        xy=[[[0, 0], [10, 20], [30, 40]]],
-        confidence=[[0.0, 0.8, 0.6]],
-        class_id=[0],
-    )
-
-    detections = key_points.as_detections()
-
-    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
-
-
-def test_key_points_as_detections_uses_detection_confidence():
-    """detection_confidence is preferred over the keypoint-confidence mean."""
-    key_points = _create_key_points(
-        xy=[[[10, 20], [30, 40]]],
-        confidence=[[0.1, 0.2]],
-        class_id=[0],
-        detection_confidence=[0.95],
-    )
-
-    detections = key_points.as_detections()
-
-    assert np.allclose(detections.confidence, np.array([0.95], dtype=np.float32))
-
-
-def test_key_points_as_detections_selected_keypoint_indices():
-    """Only the selected keypoints contribute to the bounding box."""
-    key_points = _create_key_points(
-        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
-        confidence=[[0.5, 0.8, 0.6, 0.9]],
-        class_id=[0],
-    )
-
-    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
-
-    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
-
-
-def test_key_points_as_detections_confidence_over_selected_indices():
-    """Confidence mean uses only the selected keypoint columns, not all."""
-    key_points = _create_key_points(
-        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
-        confidence=[[0.5, 0.8, 0.6, 0.9]],
-        class_id=[0],
-    )
-
-    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
-
-    expected_confidence = np.mean([0.8, 0.6], dtype=np.float32)
-    assert np.isclose(detections.confidence[0], expected_confidence)
-
-
-def test_key_points_as_detections_mixed_valid_invalid_batch():
-    """Batch with one all-zero skeleton: invalid skeleton gets box zeroed."""
-    key_points = _create_key_points(
-        xy=[[[0, 0], [0, 0]], [[10, 20], [30, 40]]],
-        confidence=[[0.0, 0.0], [0.8, 0.6]],
-        class_id=[0, 1],
-    )
-
-    detections = key_points.as_detections()
-
-    # Only the skeleton with at least one valid keypoint survives
-    assert len(detections) == 1
-    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
-
-
-@pytest.mark.parametrize(
-    ("selected_keypoint_indices", "expected_xyxy"),
-    [
-        pytest.param(None, [[10, 20, 30, 40]], id="all-keypoints"),
-        pytest.param([1, 2], [[30, 40, 30, 40]], id="selected-keypoints"),
-    ],
-)
-def test_key_points_as_detections_ignores_invisible_keypoints(
-    selected_keypoint_indices: list[int] | None, expected_xyxy: list[list[int]]
-) -> None:
-    """Keypoints marked not visible stay out of the box, as they do in `with_nms`."""
-    key_points = KeyPoints(
-        xy=np.array(
-            [[[10, 20], [30, 40], [300, 400]], [[50, 60], [70, 80], [90, 100]]],
-            dtype=np.float32,
-        ),
-        class_id=np.array([0, 1]),
-        visible=np.array([[True, True, False], [False, False, False]]),
-    )
-
-    detections = key_points.as_detections(
-        selected_keypoint_indices=selected_keypoint_indices
-    )
-
-    np.testing.assert_array_equal(
-        detections.xyxy, np.array(expected_xyxy, dtype=np.float32)
-    )
-    np.testing.assert_array_equal(detections.class_id, np.array([0]))
-
-
 def test_key_points_getitem_empty_list():
     """Selecting with an empty list returns an empty KeyPoints, like Detections."""
     key_points = _create_key_points(
@@ -1221,113 +1108,6 @@ def test_key_points_getitem_empty_list():
 
     assert len(result) == 0
     assert result.is_empty()
-
-
-@pytest.mark.parametrize(
-    "selected_keypoint_indices",
-    [
-        pytest.param(np.array([0, 1]), id="numpy-array"),
-        pytest.param(iter([0, 1]), id="generator"),
-        pytest.param((0, 1), id="tuple"),
-    ],
-)
-def test_key_points_as_detections_index_container_types(selected_keypoint_indices):
-    """selected_keypoint_indices accepts any Iterable[int] container type."""
-    key_points = _create_key_points(
-        xy=[[[10, 10], [20, 20], [30, 15]]],
-        class_id=[0],
-    )
-
-    detections = key_points.as_detections(
-        selected_keypoint_indices=selected_keypoint_indices,
-    )
-
-    assert np.array_equal(detections.xyxy, np.array([[10, 10, 20, 20]]))
-
-
-def test_key_points_as_detections_empty_indices_selects_all():
-    """An empty selected_keypoint_indices behaves like None (selects all)."""
-    key_points = _create_key_points(
-        xy=[[[10, 10], [20, 20], [30, 15]]],
-        confidence=[[0.1, 0.3, 0.5]],
-        class_id=[0],
-        detection_confidence=[0.9],
-    )
-    key_points["custom_data"] = ["person"]
-
-    all_selected = key_points.as_detections()
-    empty_list_selected = key_points.as_detections(selected_keypoint_indices=[])
-
-    assert np.array_equal(all_selected.xyxy, empty_list_selected.xyxy)
-    assert np.array_equal(all_selected.confidence, empty_list_selected.confidence)
-    assert np.array_equal(all_selected.class_id, empty_list_selected.class_id)
-    assert np.array_equal(
-        all_selected.data["custom_data"], empty_list_selected.data["custom_data"]
-    )
-
-
-@pytest.mark.parametrize(
-    ("xy", "expected_xyxy"),
-    [
-        pytest.param(
-            [[[10, 20], [30, 20]]],
-            np.array([[10, 20, 30, 20]]),
-            id="collinear-keypoints",
-        ),
-        pytest.param(
-            [[[15, 25]]],
-            np.array([[15, 25, 15, 25]]),
-            id="single-keypoint",
-        ),
-    ],
-)
-def test_key_points_as_detections_keeps_degenerate_skeletons(xy, expected_xyxy):
-    """A skeleton with valid keypoints keeps its box even when the area is zero."""
-    key_points = _create_key_points(xy=xy, class_id=[0])
-
-    detections = key_points.as_detections()
-
-    assert len(detections) == 1
-    assert np.array_equal(detections.xyxy, expected_xyxy)
-
-
-def test_key_points_as_detections_filters_invalid_and_aligns_degenerate_metadata():
-    """Invalid skeletons are removed while valid degenerate metadata stays aligned."""
-    key_points = _create_key_points(
-        xy=[
-            [[0, 0], [0, 0]],
-            [[np.nan, 5], [0, 0]],
-            [[np.inf, 5], [0, 0]],
-            [[15, 25], [np.nan, 50]],
-            [[10, 20], [30, 20]],
-        ],
-        class_id=[0, 1, 2, 3, 4],
-        detection_confidence=[0.1, 0.2, 0.3, 0.4, 0.5],
-    )
-    key_points["custom_data"] = ["zero", "nan", "inf", "point", "line"]
-
-    detections = key_points.as_detections()
-
-    assert np.array_equal(
-        detections.xyxy,
-        np.array([[15, 25, 15, 25], [10, 20, 30, 20]], dtype=np.float32),
-    )
-    assert np.array_equal(detections.class_id, np.array([3, 4]))
-    assert np.array_equal(detections.confidence, np.array([0.4, 0.5], dtype=np.float32))
-    assert np.array_equal(detections.data["custom_data"], np.array(["point", "line"]))
-
-
-def test_key_points_as_detections_with_data():
-    """Test the as_detections method preserves data."""
-    key_points = _create_key_points(
-        xy=[[[0, 1], [2, 3], [4, 5]]],
-        confidence=[[0.8, 0.9, 0.7]],
-        class_id=[0],
-    )
-    key_points["custom_data"] = ["value1"]
-    detections = key_points.as_detections()
-    assert "custom_data" in detections.data
-    assert np.array_equal(detections.data["custom_data"], np.array(["value1"]))
 
 
 @pytest.mark.parametrize(
@@ -1550,33 +1330,6 @@ def test_key_points_iteration_no_confidence():
         assert kp_confidence is None
 
 
-def test_key_points_merge_then_with_nms_deduplicates_overlapping_detections():
-    """Test merge-then-NMS removes duplicated overlapping skeletons."""
-    key_points_list = [
-        _create_key_points(
-            xy=[[[100, 100], [200, 200]], [[400, 400], [500, 500]]],
-            detection_confidence=[0.9, 0.6],
-            class_id=[0, 0],
-        ),
-        _create_key_points(
-            xy=[[[100, 100], [200, 200]], [[700, 700], [800, 800]]],
-            detection_confidence=[0.85, 0.7],
-            class_id=[0, 0],
-        ),
-    ]
-
-    merged = KeyPoints.merge(key_points_list)
-    result = merged.with_nms(threshold=0.5, class_agnostic=False)
-
-    assert len(merged) == 4
-    assert len(result) == 3
-    assert len(result) < len(merged)
-    np.testing.assert_allclose(
-        np.sort(result.detection_confidence),
-        np.array([0.6, 0.7, 0.9], dtype=np.float32),
-    )
-
-
 @pytest.mark.parametrize(
     ("key_points1", "key_points2", "expected_equal"),
     [
@@ -1636,638 +1389,6 @@ def test_key_points_equality_with_data():
     assert key_points1 != key_points2
 
 
-@pytest.mark.parametrize(
-    ("inference_results", "expected_key_points"),
-    [
-        (
-            {
-                "predictions": [
-                    {
-                        "class_id": 1,
-                        "class": "person",
-                        "keypoints": [
-                            {"x": 100, "y": 150, "confidence": 0.9},
-                            {"x": 120, "y": 160, "confidence": 0.85},
-                        ],
-                    }
-                ]
-            },
-            _create_key_points(
-                xy=[[[100.0, 150.0], [120.0, 160.0]]],
-                confidence=[[0.9, 0.85]],
-                class_id=[1],
-                data={"class_name": np.array(["person"])},
-            ),
-        ),
-        ({"predictions": []}, KeyPoints.empty()),
-    ],
-)
-def test_from_inference_input(inference_results, expected_key_points):
-    """Test the from_inference method with valid input."""
-    key_points = KeyPoints.from_inference(inference_results)
-    assert key_points == expected_key_points
-
-
-def test_from_inference_invalid_input():
-    """Test the from_inference method with invalid input."""
-    key_points = _create_key_points(
-        xy=[[[0, 1], [2, 3]]], confidence=[[0.8, 0.9]], class_id=[0]
-    )
-    with pytest.raises(
-        ValueError, match=r"from_inference\(\) operates on a single result at a time.*"
-    ):
-        KeyPoints.from_inference([key_points])
-
-
-def _inference_keypoint(
-    keypoint_id: int, xy: tuple[float, float], confidence: float
-) -> dict:
-    """Build one key point the way Inference serializes it, with its skeleton index."""
-    return {
-        "x": xy[0],
-        "y": xy[1],
-        "confidence": confidence,
-        "class_id": keypoint_id,
-        "class": f"keypoint-{keypoint_id}",
-    }
-
-
-def _inference_pose_result(keypoint_lists: list[list[dict]]) -> dict:
-    """Wrap per-object key point lists in an Inference keypoint-detection response."""
-    return {
-        "image": {"width": 100, "height": 100},
-        "predictions": [
-            {
-                "x": 50,
-                "y": 50,
-                "width": 20,
-                "height": 40,
-                "confidence": 0.9,
-                "class": "person",
-                "class_id": 0,
-                "keypoints": keypoints,
-            }
-            for keypoints in keypoint_lists
-        ],
-    }
-
-
-class TestFromInferenceOmittedKeypoints:
-    """Inference leaves out key points below `keypoint_confidence`."""
-
-    @pytest.mark.parametrize(
-        ("keypoint_lists", "expected_xy", "expected_confidence"),
-        [
-            pytest.param(
-                [
-                    [
-                        _inference_keypoint(0, (10, 11), 0.9),
-                        _inference_keypoint(1, (20, 21), 0.8),
-                        _inference_keypoint(2, (30, 31), 0.7),
-                    ],
-                    [
-                        _inference_keypoint(0, (40, 41), 0.9),
-                        _inference_keypoint(2, (60, 61), 0.6),
-                    ],
-                ],
-                [[[10, 11], [20, 21], [30, 31]], [[40, 41], [0, 0], [60, 61]]],
-                [[0.9, 0.8, 0.7], [0.9, 0.0, 0.6]],
-                id="objects-with-different-keypoint-counts",
-            ),
-            pytest.param(
-                [
-                    [
-                        _inference_keypoint(0, (10, 11), 0.9),
-                        _inference_keypoint(1, (20, 21), 0.8),
-                    ],
-                    [
-                        _inference_keypoint(0, (40, 41), 0.9),
-                        _inference_keypoint(2, (60, 61), 0.6),
-                    ],
-                ],
-                [[[10, 11], [20, 21], [0, 0]], [[40, 41], [0, 0], [60, 61]]],
-                [[0.9, 0.8, 0.0], [0.9, 0.0, 0.6]],
-                id="objects-missing-different-keypoints",
-            ),
-        ],
-    )
-    def test_places_each_keypoint_at_its_skeleton_index(
-        self,
-        keypoint_lists: list[list[dict]],
-        expected_xy: list,
-        expected_confidence: list,
-    ) -> None:
-        """An omitted key point leaves its own slot empty instead of shifting others."""
-        result = _inference_pose_result(keypoint_lists)
-
-        key_points = KeyPoints.from_inference(result)
-
-        np.testing.assert_array_equal(
-            key_points.xy, np.array(expected_xy, dtype=np.float32)
-        )
-        np.testing.assert_allclose(
-            key_points.keypoint_confidence,
-            np.array(expected_confidence, dtype=np.float32),
-        )
-
-    def test_omitted_keypoint_is_left_out_of_the_detection_box(self) -> None:
-        """The empty slot does not stretch the box built by `as_detections`."""
-        result = _inference_pose_result(
-            [
-                [
-                    _inference_keypoint(0, (40, 41), 0.9),
-                    _inference_keypoint(2, (60, 61), 0.6),
-                ],
-                [
-                    _inference_keypoint(0, (10, 11), 0.9),
-                    _inference_keypoint(1, (20, 21), 0.8),
-                    _inference_keypoint(2, (30, 31), 0.7),
-                ],
-            ]
-        )
-
-        detections = KeyPoints.from_inference(result).as_detections()
-
-        np.testing.assert_array_equal(
-            detections.xyxy,
-            np.array([[40, 41, 60, 61], [10, 11, 30, 31]], dtype=np.float32),
-        )
-
-    def test_prediction_confidence_becomes_detection_confidence(self) -> None:
-        """Each prediction's score is kept as its `detection_confidence`."""
-        result = _inference_pose_result(
-            [
-                [
-                    _inference_keypoint(0, (10, 11), 0.6),
-                    _inference_keypoint(2, (30, 31), 0.4),
-                ],
-            ]
-        )
-
-        key_points = KeyPoints.from_inference(result)
-
-        assert key_points.detection_confidence is not None
-        np.testing.assert_allclose(key_points.detection_confidence, [0.9])
-        np.testing.assert_allclose(
-            key_points.as_detections().confidence, [0.9], rtol=1e-6
-        )
-
-    def test_mixed_prediction_confidence_uses_keypoint_mean_for_all(self) -> None:
-        """One missing object score makes the batch use keypoint means throughout."""
-        result = _inference_pose_result(
-            [
-                [
-                    _inference_keypoint(0, (10, 11), 0.6),
-                    _inference_keypoint(1, (20, 21), 0.4),
-                ],
-                [
-                    _inference_keypoint(0, (30, 31), 0.8),
-                    _inference_keypoint(1, (40, 41), 0.6),
-                ],
-            ]
-        )
-        result["predictions"][1].pop("confidence")
-
-        key_points = KeyPoints.from_inference(result)
-
-        assert key_points.detection_confidence is None
-        np.testing.assert_allclose(
-            key_points.as_detections().confidence, [0.5, 0.7], rtol=1e-6
-        )
-
-    def test_null_prediction_confidence_uses_keypoint_mean_for_all(self) -> None:
-        """A null object score is treated as missing across the prediction batch."""
-        result = _inference_pose_result(
-            [
-                [
-                    _inference_keypoint(0, (10, 11), 0.6),
-                    _inference_keypoint(1, (20, 21), 0.4),
-                ],
-                [
-                    _inference_keypoint(0, (30, 31), 0.8),
-                    _inference_keypoint(1, (40, 41), 0.6),
-                ],
-            ]
-        )
-        result["predictions"][1]["confidence"] = None
-
-        key_points = KeyPoints.from_inference(result)
-
-        assert key_points.detection_confidence is None
-        np.testing.assert_allclose(
-            key_points.as_detections().confidence, [0.5, 0.7], rtol=1e-6
-        )
-
-    def test_objects_without_keypoints_keep_their_class(self) -> None:
-        """Objects whose key points were all omitted still load, with no key points."""
-        result = _inference_pose_result([[], []])
-
-        key_points = KeyPoints.from_inference(result)
-
-        assert key_points.xy.shape == (2, 0, 2)
-        np.testing.assert_array_equal(key_points.class_id, np.array([0, 0]))
-
-    def test_objects_without_keypoints_convert_to_empty_detections(self) -> None:
-        """All-omitted Inference key points produce no detection boxes."""
-        result = _inference_pose_result([[], []])
-
-        detections = KeyPoints.from_inference(result).as_detections()
-
-        assert len(detections) == 0
-        np.testing.assert_array_equal(
-            detections.xyxy, np.empty((0, 4), dtype=np.float32)
-        )
-
-
-class _FakeUltralyticsPoseTensor(_FakeTensor):
-    """Tensor stand-in that also reports its element count like `torch.Tensor`."""
-
-    def numel(self) -> int:
-        """Return the number of elements in the wrapped array."""
-        return int(self._arr.size)
-
-
-class _FakeUltralyticsKeypoints:
-    """Ultralytics-like `Keypoints`: `conf` is `None` without a visibility column."""
-
-    def __init__(self, data: np.ndarray) -> None:
-        """Split `(N, K, 2)` or `(N, K, 3)` key point data into `xy` and `conf`."""
-        self.xy = _FakeUltralyticsPoseTensor(data[..., :2])
-        self.conf = _FakeTensor(data[..., 2]) if data.shape[-1] == 3 else None
-
-
-class _FakeUltralyticsPoseResults:
-    """Ultralytics-like pose `Results` holding boxes, names and key points."""
-
-    def __init__(
-        self,
-        keypoints: np.ndarray,
-        class_id: list[int],
-        box_confidence: list[float] | None = None,
-    ) -> None:
-        """Wrap key point data with one box, score and class id per skeleton."""
-        count = len(class_id)
-        conf = np.ones(count) if box_confidence is None else np.array(box_confidence)
-        self.keypoints = _FakeUltralyticsKeypoints(keypoints)
-        self.boxes = _FakeUltralyticsBoxes(
-            xyxy=np.zeros((count, 4)),
-            conf=conf,
-            cls=np.array(class_id, dtype=float),
-        )
-        self.names = {0: "person"}
-
-
-class TestFromUltralytics:
-    """KeyPoints.from_ultralytics for pose models with and without visibility."""
-
-    def test_keypoints_with_visibility_keep_their_confidence(self) -> None:
-        """A `(N, K, 3)` result maps the third column to `keypoint_confidence`."""
-        results = _FakeUltralyticsPoseResults(
-            keypoints=np.array(
-                [[[10.0, 20.0, 0.9], [30.0, 40.0, 0.4]]], dtype=np.float32
-            ),
-            class_id=[0],
-        )
-
-        key_points = KeyPoints.from_ultralytics(results)
-
-        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
-        assert key_points.keypoint_confidence is not None
-        np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.4]])
-        np.testing.assert_array_equal(key_points.class_id, [0])
-        np.testing.assert_array_equal(key_points.data["class_name"], ["person"])
-
-    def test_keypoints_without_visibility_load_without_confidence(self) -> None:
-        """A `(N, K, 2)` result, whose `conf` is `None`, loads with no confidence."""
-        results = _FakeUltralyticsPoseResults(
-            keypoints=np.array(
-                [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]],
-                dtype=np.float32,
-            ),
-            class_id=[0, 0],
-        )
-
-        key_points = KeyPoints.from_ultralytics(results)
-
-        np.testing.assert_array_equal(
-            key_points.xy,
-            [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]],
-        )
-        assert key_points.keypoint_confidence is None
-        np.testing.assert_array_equal(key_points.class_id, [0, 0])
-        np.testing.assert_array_equal(
-            key_points.data["class_name"], ["person", "person"]
-        )
-
-    def test_box_scores_become_detection_confidence(self) -> None:
-        """Each pose's box score is kept as its `detection_confidence`."""
-        results = _FakeUltralyticsPoseResults(
-            keypoints=np.array(
-                [
-                    [[10.0, 20.0, 0.9], [30.0, 40.0, 0.2]],
-                    [[50.0, 60.0, 0.3], [70.0, 80.0, 0.4]],
-                ],
-                dtype=np.float32,
-            ),
-            class_id=[0, 0],
-            box_confidence=[0.95, 0.6],
-        )
-
-        key_points = KeyPoints.from_ultralytics(results)
-
-        assert key_points.detection_confidence is not None
-        np.testing.assert_allclose(key_points.detection_confidence, [0.95, 0.6])
-        np.testing.assert_allclose(
-            key_points.as_detections().confidence, [0.95, 0.6], rtol=1e-6
-        )
-
-    @pytest.mark.parametrize("depth", [2, 3])
-    def test_result_without_keypoints_is_empty(self, depth: int) -> None:
-        """A result with no skeletons returns `KeyPoints.empty()`."""
-        results = _FakeUltralyticsPoseResults(
-            keypoints=np.zeros((0, 17, depth), dtype=np.float32), class_id=[]
-        )
-
-        key_points = KeyPoints.from_ultralytics(results)
-
-        assert key_points == KeyPoints.empty()
-
-
-class TestFromTransformers:
-    """KeyPoints.from_transformers for per-image pose results."""
-
-    @pytest.mark.parametrize(
-        "results",
-        [
-            pytest.param([], id="empty-list"),
-            pytest.param((), id="empty-tuple"),
-            pytest.param(
-                [
-                    {
-                        "keypoints": _FakeTensor(np.zeros((0, 2), dtype=np.float32)),
-                        "scores": _FakeTensor(np.zeros((0,), dtype=np.float32)),
-                    }
-                ],
-                id="empty-keypoints-tensor",
-            ),
-            pytest.param(
-                [{"scores": _FakeTensor(np.array([0.9], dtype=np.float32))}],
-                id="no-keypoints-key",
-            ),
-        ],
-    )
-    def test_result_without_poses_returns_empty_key_points(
-        self, results: object
-    ) -> None:
-        """A result that holds no poses returns `KeyPoints.empty()`."""
-        key_points = KeyPoints.from_transformers(results)
-
-        assert key_points == KeyPoints.empty()
-
-    def test_none_result_raises_type_error(self) -> None:
-        """A `None` result is a caller bug, not an image without poses."""
-        with pytest.raises(TypeError):
-            KeyPoints.from_transformers(None)
-
-    def test_pose_result_preserves_coordinates_and_scores(self) -> None:
-        """A nonempty pose result still carries its keypoints and scores."""
-        results = [
-            {
-                "keypoints": _FakeTensor(
-                    np.array([[10.0, 20.0], [30.0, 40.0]], dtype=np.float32)
-                ),
-                "scores": _FakeTensor(np.array([0.9, 0.7], dtype=np.float32)),
-            }
-        ]
-
-        key_points = KeyPoints.from_transformers(results)
-
-        assert key_points.xy.shape == (1, 2, 2)
-        assert key_points.xy.dtype == np.float32
-        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
-        assert key_points.keypoint_confidence is not None
-        np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
-        np.testing.assert_array_equal(key_points.class_id, [0])
-
-    def test_multiple_poses_are_stacked_with_one_shared_class_id(self) -> None:
-        """Several poses stack into one `(N, K, 2)` array, all with class ID `0`."""
-        results = [
-            {
-                "keypoints": _FakeTensor(
-                    np.array([[10.0, 20.0], [30.0, 40.0]], dtype=np.float32)
-                ),
-                "scores": _FakeTensor(np.array([0.9, 0.7], dtype=np.float32)),
-            },
-            {
-                "keypoints": _FakeTensor(
-                    np.array([[50.0, 60.0], [70.0, 80.0]], dtype=np.float32)
-                ),
-                "scores": _FakeTensor(np.array([0.6, 0.5], dtype=np.float32)),
-            },
-        ]
-
-        key_points = KeyPoints.from_transformers(results)
-
-        assert key_points.xy.shape == (2, 2, 2)
-        assert key_points.xy.dtype == np.float32
-        np.testing.assert_array_equal(key_points.class_id, [0, 0])
-
-
-class _FakeDetectron2Instances:
-    """Detectron2-like `Instances` holding key points, scores and classes."""
-
-    def __init__(
-        self, keypoints: np.ndarray, scores: list[float], class_id: list[int]
-    ) -> None:
-        """Wrap `(N, K, 3)` key points with one score and class id per object."""
-        self.pred_keypoints = _FakeTensor(keypoints)
-        self.scores = _FakeTensor(np.array(scores, dtype=np.float32))
-        self.pred_classes = _FakeTensor(np.array(class_id))
-
-
-class TestFromDetectron2:
-    """KeyPoints.from_detectron2 for keypoint R-CNN results."""
-
-    def test_instance_scores_become_detection_confidence(self) -> None:
-        """Each instance's score is kept as its `detection_confidence`."""
-        instances = _FakeDetectron2Instances(
-            keypoints=np.array(
-                [
-                    [[10.0, 20.0, 0.9], [30.0, 40.0, 0.2]],
-                    [[50.0, 60.0, 0.3], [70.0, 80.0, 0.4]],
-                ],
-                dtype=np.float32,
-            ),
-            scores=[0.95, 0.6],
-            class_id=[0, 0],
-        )
-
-        key_points = KeyPoints.from_detectron2({"instances": instances})
-
-        np.testing.assert_array_equal(
-            key_points.xy, [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]]
-        )
-        np.testing.assert_allclose(
-            key_points.keypoint_confidence, [[0.9, 0.2], [0.3, 0.4]]
-        )
-        assert key_points.detection_confidence is not None
-        np.testing.assert_allclose(key_points.detection_confidence, [0.95, 0.6])
-
-
-@pytest.mark.parametrize(
-    ("yolo_nas_results", "expected_key_points"),
-    [
-        (
-            _FakeYoloNasKeyPointResults(
-                _FakeYoloNasKeyPoint(
-                    poses=[[[100.0, 150.0, 0.9], [120.0, 160.0, 0.85]]],
-                    scores=[0.95],
-                    labels=[1],
-                ),
-            ),
-            _create_key_points(
-                xy=[[[100.0, 150.0], [120.0, 160.0]]],
-                confidence=[[0.9, 0.85]],
-                class_id=[1],
-                detection_confidence=[0.95],
-            ),
-        ),
-        (
-            _FakeYoloNasKeyPointResults(
-                _FakeYoloNasKeyPoint(
-                    poses=[],
-                    scores=[],
-                ),
-            ),
-            KeyPoints.empty(),
-        ),
-    ],
-)
-def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
-    """Test the from_yolo_nas method with valid input."""
-    key_points = KeyPoints.from_yolo_nas(yolo_nas_results)
-    assert key_points == expected_key_points
-
-
-@pytest.mark.parametrize(
-    ("mediapipe_results", "resolution_wh", "expected_key_points"),
-    [
-        (
-            _FakeMediapipeResults(
-                pose_landmarks=_FakeMediapipePose(
-                    landmarks=[
-                        _FakeMediapipeLandmark(0.5, 0.75, 0.9),
-                        _FakeMediapipeLandmark(0.6, 0.8, 0.85),
-                    ]
-                )
-            ),
-            (200, 200),
-            _create_key_points(
-                xy=[[[100.0, 150.0], [120.0, 160.0]]],
-                confidence=[[0.9, 0.85]],
-                class_id=None,
-            ),
-        ),
-        (
-            _FakeMediapipeResults(
-                pose_landmarks=[
-                    [
-                        _FakeMediapipeLandmark(0.5, 0.75, 0.9),
-                        _FakeMediapipeLandmark(0.6, 0.8, 0.85),
-                    ]
-                ]
-            ),
-            (200, 200),
-            _create_key_points(
-                xy=[[[100.0, 150.0], [120.0, 160.0]]],
-                confidence=[[0.9, 0.85]],
-                class_id=None,
-            ),
-        ),
-        (
-            _FakeMediapipeResults(
-                hand_landmarks=[
-                    [
-                        _FakeMediapipeLandmarkWithNoneVisibility(0.1, 0.2),
-                        _FakeMediapipeLandmarkWithNoneVisibility(0.3, 0.4),
-                    ]
-                ]
-            ),
-            (100, 200),
-            _create_key_points(
-                xy=[[[10.0, 40.0], [30.0, 80.0]]],
-                confidence=[[1.0, 1.0]],
-                class_id=None,
-            ),
-        ),  # hand_landmarks: Tasks API list-of-list; unset visibility -> forced to 1.0
-        (
-            _FakeMediapipeResults(
-                multi_hand_landmarks=[
-                    _FakeMediapipePose(
-                        landmarks=[
-                            _FakeMediapipeLandmarkWithZeroVisibility(0.1, 0.2),
-                            _FakeMediapipeLandmarkWithZeroVisibility(0.3, 0.4),
-                        ]
-                    )
-                ]
-            ),
-            (100, 200),
-            _create_key_points(
-                xy=[[[10.0, 40.0], [30.0, 80.0]]],
-                confidence=[[1.0, 1.0]],
-                class_id=None,
-            ),
-        ),  # multi_hand_landmarks: legacy proto2; visibility always forced to 1.0
-        (
-            _FakeMediapipeResults(
-                face_landmarks=[
-                    [
-                        _FakeMediapipeLandmarkWithNoneVisibility(0.1, 0.2),
-                        _FakeMediapipeLandmarkWithNoneVisibility(0.3, 0.4),
-                    ]
-                ]
-            ),
-            (100, 200),
-            _create_key_points(
-                xy=[[[10.0, 40.0], [30.0, 80.0]]],
-                confidence=[[1.0, 1.0]],
-                class_id=None,
-            ),
-        ),  # face_landmarks: Tasks API list-of-list; unset visibility -> forced to 1.0
-        (
-            _FakeMediapipeResults(
-                multi_face_landmarks=[
-                    _FakeMediapipePose(
-                        landmarks=[
-                            _FakeMediapipeLandmarkWithZeroVisibility(0.1, 0.2),
-                            _FakeMediapipeLandmarkWithZeroVisibility(0.3, 0.4),
-                        ]
-                    )
-                ]
-            ),
-            (100, 200),
-            _create_key_points(
-                xy=[[[10.0, 40.0], [30.0, 80.0]]],
-                confidence=[[1.0, 1.0]],
-                class_id=None,
-            ),
-        ),  # multi_face_landmarks: legacy proto2; visibility always forced to 1.0
-    ],
-)
-def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points):
-    """Test the from_mediapipe method with valid input."""
-    key_points = KeyPoints.from_mediapipe(
-        mediapipe_results, resolution_wh=resolution_wh
-    )
-    assert key_points == expected_key_points
-
-
-def test_from_mediapipe_unknown_result_type_raises() -> None:
-    """Unsupported Mediapipe result objects raise a descriptive ValueError."""
-    with pytest.raises(ValueError, match="Unsupported MediaPipe result"):
-        KeyPoints.from_mediapipe(object(), resolution_wh=(100, 100))
-
-
 class TestKeyPointsConstructor:
     """Tests for the `KeyPoints()` constructor."""
 
@@ -2304,605 +1425,93 @@ class TestKeyPointsConstructor:
         )
 
 
-@pytest.mark.parametrize(
-    ("key_points", "threshold", "class_agnostic", "expected_result"),
-    [
-        pytest.param(
-            KeyPoints.empty(),
-            0.5,
-            True,
-            KeyPoints.empty(),
-            id="empty",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[[[10, 20], [30, 40]]],
-                detection_confidence=[0.9],
-                class_id=[0],
-            ),
-            0.5,
-            False,
-            _create_key_points(
-                xy=[[[10, 20], [30, 40]]],
-                detection_confidence=[0.9],
-                class_id=[0],
-            ),
-            id="single-skeleton",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[10, 10], [20, 20]],
-                    [[500, 500], [600, 600]],
-                ],
-                detection_confidence=[0.9, 0.8],
-                class_id=[0, 0],
-            ),
-            0.5,
-            False,
-            _create_key_points(
-                xy=[
-                    [[10, 10], [20, 20]],
-                    [[500, 500], [600, 600]],
-                ],
-                detection_confidence=[0.9, 0.8],
-                class_id=[0, 0],
-            ),
-            id="two-non-overlapping",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[150, 150], [250, 250]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-            ),
-            0.9,
-            False,
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[150, 150], [250, 250]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-            ),
-            id="two-overlapping-below-threshold",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-            ),
-            0.3,
-            False,
-            _create_key_points(
-                xy=[[[100, 100], [200, 200]]],
-                detection_confidence=[0.9],
-                class_id=[0],
-            ),
-            id="two-overlapping-above-threshold",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                    [[500, 500], [600, 600]],
-                ],
-                detection_confidence=[0.9, 0.7, 0.8],
-                class_id=[0, 0, 0],
-            ),
-            0.3,
-            False,
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[500, 500], [600, 600]],
-                ],
-                detection_confidence=[0.9, 0.8],
-                class_id=[0, 0],
-            ),
-            id="three-skeletons-two-overlap",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 1],
-            ),
-            0.3,
-            False,
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 1],
-            ),
-            id="class-aware-different-classes-kept",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 1],
-            ),
-            0.3,
-            True,
-            _create_key_points(
-                xy=[[[100, 100], [200, 200]]],
-                detection_confidence=[0.9],
-                class_id=[0],
-            ),
-            id="class-agnostic-suppresses-across-classes",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[0, 0], [100, 100], [200, 200]],
-                    [[0, 0], [110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-            ),
-            0.3,
-            False,
-            _create_key_points(
-                xy=[[[0, 0], [100, 100], [200, 200]]],
-                detection_confidence=[0.9],
-                class_id=[0],
-            ),
-            id="zero-keypoints-excluded-from-bbox",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [150, 150], [200, 200]],
-                    [[np.nan, np.nan], [110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-            ),
-            0.3,
-            False,
-            _create_key_points(
-                xy=[[[100, 100], [150, 150], [200, 200]]],
-                detection_confidence=[0.9],
-                class_id=[0],
-            ),
-            id="non-finite-keypoints-excluded-from-bbox",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200], [0, 0], [0, 0]],
-                    [[0, 0], [0, 0], [110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 1],
-            ),
-            0.3,
-            False,
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200], [0, 0], [0, 0]],
-                    [[0, 0], [0, 0], [110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 1],
-            ),
-            id="multi-skeleton-schema-class-aware",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200], [0, 0], [0, 0]],
-                    [[0, 0], [0, 0], [110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 1],
-            ),
-            0.3,
-            True,
-            _create_key_points(
-                xy=[[[100, 100], [200, 200], [0, 0], [0, 0]]],
-                detection_confidence=[0.9],
-                class_id=[0],
-            ),
-            id="multi-skeleton-schema-class-agnostic",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[0, 0], [0, 0]],
-                    [[100, 100], [200, 200]],
-                ],
-                detection_confidence=[0.9, 0.8],
-                class_id=[0, 0],
-            ),
-            0.5,
-            False,
-            _create_key_points(
-                xy=[
-                    [[0, 0], [0, 0]],
-                    [[100, 100], [200, 200]],
-                ],
-                detection_confidence=[0.9, 0.8],
-                class_id=[0, 0],
-            ),
-            id="all-zero-skeleton-passes-through",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-                visible=[[True, False], [False, True]],
-            ),
-            0.3,
-            False,
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-                visible=[[True, False], [False, True]],
-            ),
-            id="visible-mask-excludes-keypoints-from-bbox",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [0, 0]],
-                    [[300, 300], [0, 0]],
-                ],
-                detection_confidence=[0.9, 0.8],
-                class_id=[0, 0],
-            ),
-            0.3,
-            False,
-            _create_key_points(
-                xy=[
-                    [[100, 100], [0, 0]],
-                    [[300, 300], [0, 0]],
-                ],
-                detection_confidence=[0.9, 0.8],
-                class_id=[0, 0],
-            ),
-            id="single-valid-keypoint-zero-area-bbox",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-            ),
-            0.0,
-            False,
-            _create_key_points(
-                xy=[[[100, 100], [200, 200]]],
-                detection_confidence=[0.9],
-                class_id=[0],
-            ),
-            id="threshold-zero-suppresses-any-overlap",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-            ),
-            1.0,
-            False,
-            _create_key_points(
-                xy=[
-                    [[100, 100], [200, 200]],
-                    [[110, 110], [210, 210]],
-                ],
-                detection_confidence=[0.9, 0.7],
-                class_id=[0, 0],
-            ),
-            id="threshold-one-keeps-all",
-        ),
-    ],
-)
-def test_with_nms(key_points, threshold, class_agnostic, expected_result):
-    """NMS filters overlapping keypoint skeletons."""
-    result = key_points.with_nms(threshold=threshold, class_agnostic=class_agnostic)
-    assert result == expected_result
+class TestCovarianceSelection:
+    """Keep each joint's uncertainty attached to its selected coordinates."""
 
-
-def test_with_nms_keeps_skeleton_without_any_finite_keypoint():
-    """A skeleton with no usable keypoint survives NMS rather than being dropped."""
-    key_points = _create_key_points(
-        xy=[
-            [[100, 100], [200, 200]],
-            [[np.nan, np.nan], [np.inf, np.inf]],
+    @pytest.mark.parametrize(
+        ("keypoint_count", "index", "rows"),
+        [
+            pytest.param(3, [1], [1], id="object-selection"),
+            pytest.param(2, (slice(None), [1, 0]), [0, 1], id="joint-permutation"),
+            pytest.param(
+                3,
+                np.array([[True, False, True], [False, True, True]]),
+                [0, 1],
+                id="per-row-mask",
+            ),
         ],
-        detection_confidence=[0.9, 0.7],
-        class_id=[0, 0],
     )
-
-    result = key_points.with_nms(threshold=0.3)
-
-    assert np.allclose(result.detection_confidence, [0.9, 0.7])
-
-
-class TestKeyPointsWithNmsEmptyJoints:
-    """NMS preserves skeletons with an empty keypoint axis."""
-
-    @pytest.mark.parametrize("skeleton_count", [1, 3])
-    @pytest.mark.parametrize("class_agnostic", [False, True])
-    def test_keeps_skeletons_and_aligned_fields(
-        self, skeleton_count: int, class_agnostic: bool
+    def test_preserves_per_object_covariance(
+        self, keypoint_count: int, index: Any, rows: list[int]
     ) -> None:
-        """Filtering out every joint preserves each skeleton and its aligned fields."""
+        """Per-object covariance remains independent of joint selection."""
+        covariance = np.arange(8, dtype=np.float32).reshape(2, 2, 2)
         key_points = KeyPoints(
-            xy=np.tile(
-                np.array([[[10, 10], [20, 20]]], dtype=np.float32),
-                (skeleton_count, 1, 1),
-            ),
-            keypoint_confidence=np.full((skeleton_count, 2), 0.8, dtype=np.float32),
-            detection_confidence=np.array([0.3, 0.9, 0.7], dtype=np.float32)[
-                :skeleton_count
-            ],
-            visible=np.ones((skeleton_count, 2), dtype=bool),
-            class_id=np.arange(skeleton_count) % 2,
-            data={"custom_data": np.arange(skeleton_count)},
-        )
-        filtered = key_points[np.zeros((skeleton_count, 2), dtype=bool)]
-
-        result = filtered.with_nms(threshold=0.0, class_agnostic=class_agnostic)
-
-        assert result.xy.shape == (skeleton_count, 0, 2)
-        assert result.xy.dtype == key_points.xy.dtype
-        assert result == filtered
-        assert result is not filtered
-
-    @pytest.mark.parametrize("skeleton_count", [1, 3])
-    def test_keeps_skeletons_without_optional_fields(self, skeleton_count: int) -> None:
-        """Class-agnostic NMS needs only detection confidence when joints are absent."""
-        key_points = KeyPoints(
-            xy=np.empty((skeleton_count, 0, 2), dtype=np.float32),
-            detection_confidence=np.full(skeleton_count, 0.9, dtype=np.float32),
+            xy=np.zeros((2, keypoint_count, 2)),
+            data={KEYPOINT_COVARIANCE_DATA_FIELD: covariance},
         )
 
-        result = key_points.with_nms(class_agnostic=True)
+        selected = key_points.select(index)
 
-        assert result == key_points
+        np.testing.assert_array_equal(
+            selected.data[KEYPOINT_COVARIANCE_DATA_FIELD], covariance[rows]
+        )
+
+    def test_preserves_ragged_per_object_covariance_list(self) -> None:
+        """Ragged per-object list values remain valid metadata."""
+        covariance = [[1, 2], [3]]
+        key_points = KeyPoints(
+            xy=np.zeros((2, 3, 2)), data={KEYPOINT_COVARIANCE_DATA_FIELD: covariance}
+        )
+
+        selected = key_points.select([1])
+
+        assert selected.data[KEYPOINT_COVARIANCE_DATA_FIELD] == [[3]]
 
     @pytest.mark.parametrize(
-        ("missing_field", "class_agnostic"),
+        ("index", "rows", "joints"),
         [
-            pytest.param("detection_confidence", False, id="class-aware-no-confidence"),
+            pytest.param((slice(None), [2, 0]), [0, 1], [[2, 0], [2, 0]], id="subset"),
             pytest.param(
-                "detection_confidence", True, id="class-agnostic-no-confidence"
+                (slice(None), [2, 1, 0]),
+                [0, 1],
+                [[2, 1, 0], [2, 1, 0]],
+                id="permutation",
             ),
-            pytest.param("class_id", False, id="class-aware-no-class-id"),
+            pytest.param((1, 2), [1], [[2]], id="scalar"),
+            pytest.param((slice(None), []), [0, 1], [[], []], id="empty-joints"),
+            pytest.param(
+                np.array([[True, False, True], [False, True, True]]),
+                [0, 1],
+                [[0, 2], [1, 2]],
+                id="per-row-mask",
+            ),
         ],
     )
-    def test_requires_nms_fields(
-        self, missing_field: str, class_agnostic: bool
+    def test_keeps_covariance_aligned(
+        self, index: Any, rows: list[int], joints: list[list[int]]
     ) -> None:
-        """An empty joint axis does not bypass required NMS fields."""
+        """Joint selection retains matching covariance matrices."""
+        xy = np.arange(12, dtype=np.float32).reshape(2, 3, 2)
+        covariance = np.arange(24, dtype=np.float32).reshape(2, 3, 2, 2)
+        boxes = np.arange(8, dtype=np.float32).reshape(2, 4)
         key_points = KeyPoints(
-            xy=np.empty((1, 0, 2), dtype=np.float32),
-            detection_confidence=np.array([0.9]),
-            class_id=np.array([0]),
-        )
-        setattr(key_points, missing_field, None)
-
-        with pytest.raises(ValueError, match=missing_field):
-            key_points.with_nms(class_agnostic=class_agnostic)
-
-    @pytest.mark.parametrize("threshold", [-0.1, 1.1])
-    def test_rejects_invalid_threshold(self, threshold: float) -> None:
-        """Empty joints still require an NMS threshold between zero and one."""
-        key_points = KeyPoints(
-            xy=np.empty((1, 0, 2), dtype=np.float32),
-            detection_confidence=np.array([0.9]),
-            class_id=np.array([0]),
+            xy=xy, data={KEYPOINT_COVARIANCE_DATA_FIELD: covariance, "xyxy": boxes}
         )
 
-        with pytest.raises(ValueError, match="iou_threshold"):
-            key_points.with_nms(threshold=threshold)
+        selected = key_points.select(index)
 
-
-@pytest.mark.parametrize(
-    ("key_points", "threshold", "class_agnostic", "match"),
-    [
-        pytest.param(
-            _create_key_points(
-                xy=[[[10, 20], [30, 40]]],
-                class_id=[0],
-            ),
-            0.5,
-            False,
-            "detection_confidence",
-            id="no-detection-confidence",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[[[10, 20], [30, 40]]],
-                detection_confidence=[0.9],
-            ),
-            0.5,
-            False,
-            "class_id",
-            id="no-class-id-class-aware",
-        ),
-        pytest.param(
-            _create_key_points(
-                xy=[[[10, 20], [30, 40]]],
-                class_id=[0],
-            ),
-            0.5,
-            True,
-            "detection_confidence",
-            id="no-detection-confidence-class-agnostic",
-        ),
-    ],
-)
-def test_with_nms_raises(key_points, threshold, class_agnostic, match):
-    """NMS raises when required fields are missing."""
-    with pytest.raises(ValueError, match=match):
-        key_points.with_nms(threshold=threshold, class_agnostic=class_agnostic)
-
-
-def _hand_landmarks(count: int) -> list[list[_FakeMediapipeLandmarkWithoutVisibility]]:
-    """Build `count` two-landmark hands for the Tasks API `hand_landmarks` shape."""
-    return [
-        [
-            _FakeMediapipeLandmarkWithoutVisibility(0.1, 0.2),
-            _FakeMediapipeLandmarkWithoutVisibility(0.3, 0.4),
-        ]
-        for _ in range(count)
-    ]
-
-
-def _legacy_hand_landmarks(count: int) -> list[_FakeMediapipePose]:
-    """Build `count` two-landmark hands for the legacy `multi_hand_landmarks` shape."""
-    return [_FakeMediapipePose(landmarks=hand) for hand in _hand_landmarks(count)]
-
-
-class TestFromMediapipeHandedness:
-    """Tests for handedness-derived `class_id` and `data` on MediaPipe hand results."""
-
-    @pytest.mark.parametrize(
-        "mediapipe_results",
-        [
-            pytest.param(
-                _FakeMediapipeResults(
-                    hand_landmarks=_hand_landmarks(2),
-                    handedness=[
-                        [_FakeMediapipeHandednessCategory("Left", 0.98)],
-                        [_FakeMediapipeHandednessCategory("Right", 0.75)],
-                    ],
-                ),
-                id="tasks-api",
-            ),
-            pytest.param(
-                _FakeMediapipeResults(
-                    multi_hand_landmarks=_legacy_hand_landmarks(2),
-                    multi_handedness=[
-                        _FakeMediapipeHandedness(
-                            [_FakeMediapipeClassification("Left", 0.98)]
-                        ),
-                        _FakeMediapipeHandedness(
-                            [_FakeMediapipeClassification("Right", 0.75)]
-                        ),
-                    ],
-                ),
-                id="legacy-solution",
-            ),
-        ],
-    )
-    def test_maps_labels_to_class_id_and_keeps_score_in_data(self, mediapipe_results):
-        """Left/Right map to stable class ids and the score lands in `data`.
-
-        Both MediaPipe generations report the same decision under different attribute
-        names, so each must yield an identical `KeyPoints` regardless of which API
-        produced the result.
-        """
-        key_points = KeyPoints.from_mediapipe(
-            mediapipe_results, resolution_wh=(100, 200)
+        row_index = np.array(rows)[:, None]
+        joint_index = np.array(joints, dtype=int)
+        np.testing.assert_array_equal(selected.xy, xy[row_index, joint_index])
+        np.testing.assert_array_equal(
+            selected.data[KEYPOINT_COVARIANCE_DATA_FIELD],
+            covariance[row_index, joint_index],
         )
-
-        np.testing.assert_array_equal(key_points.class_id, np.array([0, 1]))
-        np.testing.assert_allclose(
-            key_points.data[HANDEDNESS_SCORE_DATA_FIELD], np.array([0.98, 0.75])
+        np.testing.assert_array_equal(selected.data["xyxy"], boxes[rows])
+        np.testing.assert_array_equal(
+            key_points.data[KEYPOINT_COVARIANCE_DATA_FIELD], covariance
         )
-
-    def test_omits_handedness_when_absent(self):
-        """Hand results without handedness keep `class_id` and `data` unset.
-
-        Older callers and partial mocks supply landmarks alone; reading handedness must
-        stay optional rather than raising on the missing attribute.
-        """
-        mediapipe_results = _FakeMediapipeResults(hand_landmarks=_hand_landmarks(1))
-
-        key_points = KeyPoints.from_mediapipe(
-            mediapipe_results, resolution_wh=(100, 200)
-        )
-
-        assert key_points.class_id is None
-        assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
-
-    @pytest.mark.parametrize(
-        "mediapipe_results",
-        [
-            pytest.param(
-                _FakeMediapipeResults(
-                    hand_landmarks=_hand_landmarks(2),
-                    handedness=[[_FakeMediapipeHandednessCategory("Left", 0.98)]],
-                ),
-                id="fewer-handedness-entries-than-hands",
-            ),
-            pytest.param(
-                _FakeMediapipeResults(
-                    hand_landmarks=_hand_landmarks(1),
-                    handedness=[[_FakeMediapipeHandednessCategory("Middle", 0.98)]],
-                ),
-                id="unrecognised-label",
-            ),
-        ],
-    )
-    def test_drops_handedness_when_it_cannot_align_with_hands(self, mediapipe_results):
-        """Misaligned or unrecognised handedness is dropped whole, never guessed.
-
-        A per-hand fallback would silently shift every later `class_id` by one, so the
-        contract is all-or-nothing: emit both arrays or neither.
-        """
-        key_points = KeyPoints.from_mediapipe(
-            mediapipe_results, resolution_wh=(100, 200)
-        )
-
-        assert key_points.class_id is None
-        assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
-
-    def test_leaves_pose_results_untouched(self):
-        """Pose results keep their existing `class_id`/`data` behaviour.
-
-        Handedness handling is additive for hand branches only; this pins that the pose
-        path did not inherit an empty-but-present data field or a class id.
-        """
-        mediapipe_results = _FakeMediapipeResults(
-            pose_landmarks=_FakeMediapipePose(
-                landmarks=[_FakeMediapipeLandmark(0.5, 0.75, 0.9)]
-            )
-        )
-
-        key_points = KeyPoints.from_mediapipe(
-            mediapipe_results, resolution_wh=(200, 200)
-        )
-
-        assert key_points.class_id is None
-        assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
 
 
 class TestKeyPointsRemovedConfidence:

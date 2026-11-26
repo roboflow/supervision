@@ -256,7 +256,7 @@ Let's also remove the predictions that are not in the dataset classes.
 
 === "RF-DETR"
 
-    Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`. RF-DETR ships with COCO class configuration, matching the mapping used below. Filter the remapped class IDs rather than model-generated class names so the benchmark remains compatible with RF-DETR versions whose sparse COCO name lookup differs.
+    Loaded class IDs are positions in `dataset.classes`, so map predictions to those positions. They match the `data.yaml` keys only when `names` starts at 0 without gaps; for a dict such as `{1: cat, 2: dog}`, print `dataset.classes` to see the order. RF-DETR ships with COCO class configuration, matching the mapping used below. Filter the remapped class IDs rather than model-generated class names so the benchmark remains compatible with RF-DETR versions whose sparse COCO name lookup differs.
 
     ```python
     import numpy as np
@@ -292,7 +292,7 @@ Let's also remove the predictions that are not in the dataset classes.
 
 === "Inference"
 
-    Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`.
+    Loaded class IDs are positions in `dataset.classes`, so map predictions to those positions. They match the `data.yaml` keys only when `names` starts at 0 without gaps; for a dict such as `{1: cat, 2: dog}`, print `dataset.classes` to see the order.
 
     ```python
     import supervision as sv
@@ -325,7 +325,7 @@ Let's also remove the predictions that are not in the dataset classes.
 
 === "Ultralytics"
 
-    Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`.
+    Loaded class IDs are positions in `dataset.classes`, so map predictions to those positions. They match the `data.yaml` keys only when `names` starts at 0 without gaps; for a dict such as `{1: cat, 2: dog}`, print `dataset.classes` to see the order.
 
     Each model will have a different class mapping, so make sure to check the model's documentation. In this case, the model was trained on the COCO dataset, with a class configuration found [here](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8.yaml).
 
