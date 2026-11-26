@@ -4,6 +4,7 @@ from PIL import Image
 
 import supervision as sv
 from supervision import _cv2
+from supervision.key_points.angles import JointAngle
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import assert_image_mostly_same
 
@@ -1143,6 +1144,536 @@ class TestVertexLabelAnnotatorColorList:
             sv.VertexLabelAnnotator(**{argument: colors})
 
 
+JOINT = JointAngle(name="joint", start=0, joint=1, end=2)
+
+
+def _right_angle(visible: list[list[bool]] | None = None) -> sv.KeyPoints:
+    """One skeleton with a 90-degree joint at (50, 50), opening up and to the right."""
+    xy = np.array([[[90.0, 50.0], [50.0, 50.0], [50.0, 10.0]]], dtype=np.float32)
+    visibility = None if visible is None else np.array(visible)
+    return sv.KeyPoints(xy=xy, visible=visibility)
+
+
+#: Bisector of the :func:`_right_angle` joint, in radians: up and to the right.
+_RIGHT_ANGLE_BISECTOR = np.radians(-45.0)
+
+
+def _joint_from_headings(heading_start: float, heading_end: float) -> sv.KeyPoints:
+    """One skeleton with its joint at (50, 50) and rays at the given headings.
+
+    Headings are in degrees, clockwise from +x in image coordinates.
+    """
+    joint_xy = np.array([50.0, 50.0])
+    start = joint_xy + 40 * np.array(
+        [np.cos(np.radians(heading_start)), np.sin(np.radians(heading_start))]
+    )
+    end = joint_xy + 40 * np.array(
+        [np.cos(np.radians(heading_end)), np.sin(np.radians(heading_end))]
+    )
+    return sv.KeyPoints(xy=np.array([[start, joint_xy, end]], dtype=np.float32))
+
+
+def _patch_at(image: np.ndarray, direction: float, distance: float) -> np.ndarray:
+    """Return the 3x3 patch at `distance` from (50, 50) in `direction` (radians)."""
+    x = int(np.rint(50 + distance * np.cos(direction)))
+    y = int(np.rint(50 + distance * np.sin(direction)))
+    return image[y - 1 : y + 2, x - 1 : x + 2]
+
+
+class TestJointAngleAnnotator:
+    @pytest.mark.parametrize(
+        ("heading_start", "heading_end", "bisector"),
+        [
+            pytest.param(0.0, -90.0, -45.0, id="up-right"),
+            pytest.param(170.0, -170.0, 180.0, id="wraps-past-180"),
+            pytest.param(135.0, -135.0, 180.0, id="obtuse-left"),
+        ],
+    )
+    def test_draws_arc_inside_the_joint(
+        self,
+        scene: np.ndarray,
+        heading_start: float,
+        heading_end: float,
+        bisector: float,
+    ) -> None:
+        """The arc lies on the interior bisector, never on the opposite side."""
+        key_points = _joint_from_headings(heading_start, heading_end)
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.WHITE,
+            radius=20,
+            thickness=3,
+            show_value=False,
+        )
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert _patch_at(result, np.radians(bisector), 20.0).any()
+        assert not _patch_at(result, np.radians(bisector + 180.0), 20.0).any()
+
+    @pytest.mark.parametrize(
+        ("start", "end", "bisector"),
+        [
+            pytest.param([90.0, 50.0], [10.0, 50.0], -90.0, id="start-right-arc-above"),
+            pytest.param([10.0, 50.0], [90.0, 50.0], 90.0, id="start-left-arc-below"),
+        ],
+    )
+    def test_straight_joint_draws_half_arc_on_one_side(
+        self, scene: np.ndarray, start: list[float], end: list[float], bisector: float
+    ) -> None:
+        """A 180-degree joint draws a half arc on the side its start-to-end order
+        picks."""
+        xy = np.array([[start, [50.0, 50.0], end]], dtype=np.float32)
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.WHITE,
+            radius=20,
+            thickness=3,
+            show_value=False,
+        )
+
+        result = annotator.annotate(scene=scene.copy(), key_points=sv.KeyPoints(xy=xy))
+
+        assert _patch_at(result, np.radians(bisector), 20.0).any()
+        assert not _patch_at(result, np.radians(bisector + 180.0), 20.0).any()
+
+    def test_draws_every_joint_of_a_skeleton(self, scene: np.ndarray) -> None:
+        """Each requested joint of one skeleton gets its own arc on its own bisector."""
+        xy = np.array(
+            [[[90.0, 50.0], [50.0, 50.0], [50.0, 10.0], [10.0, 50.0]]],
+            dtype=np.float32,
+        )
+        joints = [
+            JointAngle(name="right", start=0, joint=1, end=2),
+            JointAngle(name="left", start=2, joint=1, end=3),
+        ]
+        annotator = sv.JointAngleAnnotator(
+            angles=joints,
+            color=sv.Color.WHITE,
+            radius=20,
+            thickness=3,
+            show_value=False,
+        )
+
+        result = annotator.annotate(scene=scene.copy(), key_points=sv.KeyPoints(xy=xy))
+
+        assert _patch_at(result, np.radians(-45.0), 20.0).any()
+        assert _patch_at(result, np.radians(-135.0), 20.0).any()
+        assert not _patch_at(result, np.radians(90.0), 20.0).any()
+
+    def test_joint_near_image_edge_is_clipped(self, scene: np.ndarray) -> None:
+        """A joint near the border draws its arc and clips its label at the edge."""
+        xy = np.array([[[120.0, 50.0], [80.0, 50.0], [80.0, 10.0]]], dtype=np.float32)
+        annotator = sv.JointAngleAnnotator(angles=[JOINT], color=sv.Color.WHITE)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=sv.KeyPoints(xy=xy))
+
+        # The arc's bisector point, 20 px up and to the right of the joint.
+        assert result[34:39, 92:97].any()
+        # The anti-aliased arc reaches the last column only from row 38 down, so
+        # above row 35 it is the label, cut by the border instead of moved inside.
+        assert result[:35, -1].any()
+
+    @pytest.mark.parametrize(
+        ("heading_start", "heading_end", "bisector"),
+        [
+            pytest.param(0.0, -90.0, -45.0, id="up-right"),
+            pytest.param(90.0, 150.0, 120.0, id="down-left"),
+        ],
+    )
+    def test_label_is_centred_on_the_interior_bisector(
+        self,
+        scene: np.ndarray,
+        heading_start: float,
+        heading_end: float,
+        bisector: float,
+    ) -> None:
+        """The label background is centred on the interior bisector of the joint."""
+        key_points = _joint_from_headings(heading_start, heading_end)
+        arc_only = sv.JointAngleAnnotator(
+            angles=[JOINT], color=sv.Color.WHITE, show_value=False
+        )
+        labelled = sv.JointAngleAnnotator(angles=[JOINT], color=sv.Color.WHITE)
+        arc = arc_only.annotate(scene=scene.copy(), key_points=key_points)
+
+        result = labelled.annotate(scene=scene.copy(), key_points=key_points)
+
+        rows, cols = np.nonzero(np.any(result != arc, axis=-1))
+        direction = np.arctan2(rows.mean() - 50, cols.mean() - 50)
+        np.testing.assert_allclose(
+            [np.cos(direction), np.sin(direction)],
+            [np.cos(np.radians(bisector)), np.sin(np.radians(bisector))],
+            atol=0.05,
+        )
+
+    def test_folded_joint_draws_no_arc(self, scene: np.ndarray) -> None:
+        """A joint narrower than one degree draws no arc."""
+        key_points = _joint_from_headings(0.0, 0.3)
+        annotator = sv.JointAngleAnnotator(angles=[JOINT], show_value=False)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        np.testing.assert_array_equal(result, scene)
+
+    def test_folded_joint_keeps_its_label(self, scene: np.ndarray) -> None:
+        """A joint narrower than one degree still gets its label, clear of the arc."""
+        key_points = _joint_from_headings(0.0, 0.3)
+        annotator = sv.JointAngleAnnotator(angles=[JOINT], radius=20, thickness=2)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        rows, cols = np.nonzero(result.any(axis=-1))
+        assert rows.size > 0
+        assert np.hypot(rows - 50, cols - 50).min() > 20
+
+    def test_draws_only_near_measurable_joints(self) -> None:
+        """Pixels change around the valid joint and nowhere near the hidden one."""
+        scene = np.zeros((200, 200, 3), dtype=np.uint8)
+        xy = np.array(
+            [
+                [[90, 50], [50, 50], [50, 10]],
+                [[190, 150], [150, 150], [150, 110]],
+            ],
+            dtype=np.float32,
+        )
+        visible = np.array([[True, True, True], [True, False, True]])
+        key_points = sv.KeyPoints(xy=xy, visible=visible)
+        annotator = sv.JointAngleAnnotator(angles=[JOINT], radius=20)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        rows, cols = np.nonzero(result.any(axis=-1))
+        assert rows.size > 0
+        # Arc radius 20 plus thickness, plus the label centred on the bisector.
+        assert np.hypot(rows - 50, cols - 50).max() < 60
+
+    @pytest.mark.parametrize("show_value", [False, True])
+    def test_label_is_drawn_beyond_the_arc(
+        self, scene: np.ndarray, show_value: bool
+    ) -> None:
+        """The value label sits on the bisector outside the arc, only when shown."""
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT], radius=20, thickness=2, show_value=show_value
+        )
+
+        result = annotator.annotate(scene=scene.copy(), key_points=_right_angle())
+
+        rows, cols = np.nonzero(result.any(axis=-1))
+        beyond_arc = np.hypot(rows - 50, cols - 50) > 20 + 2 + 2
+        assert bool(beyond_arc.any()) is show_value
+
+    @pytest.mark.parametrize(
+        ("key_points", "angles"),
+        [
+            pytest.param(sv.KeyPoints.empty(), [JOINT], id="no-skeletons"),
+            pytest.param(_right_angle(), [], id="no-angles"),
+        ],
+    )
+    def test_nothing_to_draw_leaves_scene_unchanged(
+        self, scene: np.ndarray, key_points: sv.KeyPoints, angles: list[JointAngle]
+    ) -> None:
+        """Nothing is drawn without skeletons or without joints to measure."""
+        annotator = sv.JointAngleAnnotator(angles=angles)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        np.testing.assert_array_equal(result, scene)
+
+    @pytest.mark.parametrize(
+        ("joint_xy", "visible"),
+        [
+            pytest.param([50.0, 50.0], [[True, False, True]], id="hidden"),
+            pytest.param([np.nan, 50.0], None, id="nan"),
+            pytest.param([0.0, 0.0], None, id="zero-marker"),
+        ],
+    )
+    def test_unmeasurable_joint_is_skipped(
+        self,
+        scene: np.ndarray,
+        joint_xy: list[float],
+        visible: list[list[bool]] | None,
+    ) -> None:
+        """A joint whose angle is NaN draws neither arc nor label."""
+        xy = np.array([[[90.0, 50.0], joint_xy, [50.0, 10.0]]], dtype=np.float32)
+        visibility = None if visible is None else np.array(visible)
+        key_points = sv.KeyPoints(xy=xy, visible=visibility)
+        annotator = sv.JointAngleAnnotator(angles=[JOINT])
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        np.testing.assert_array_equal(result, scene)
+
+    @pytest.mark.parametrize("depth", [0.5, np.nan])
+    def test_third_coordinate_does_not_change_rendering(
+        self, scene: np.ndarray, depth: float
+    ) -> None:
+        """Depth leaves the drawing identical to the x/y-only key points."""
+        reference = _right_angle()
+        xyz = np.concatenate([reference.xy, np.full((1, 3, 1), depth)], axis=2)
+        annotator = sv.JointAngleAnnotator(angles=[JOINT])
+        expected = annotator.annotate(scene=scene.copy(), key_points=reference)
+
+        result = annotator.annotate(
+            scene=scene.copy(), key_points=sv.KeyPoints(xy=xyz.astype(np.float32))
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_pil_scene_is_annotated_in_place(self) -> None:
+        """A PIL scene is drawn on in place and returned, like the other annotators."""
+        scene = Image.new("RGB", (100, 100))
+        annotator = sv.JointAngleAnnotator(angles=[JOINT])
+
+        result = annotator.annotate(scene=scene, key_points=_right_angle())
+
+        assert result is scene
+        assert np.asarray(result).any()
+
+    def test_numpy_scene_is_annotated_in_place(self, scene: np.ndarray) -> None:
+        """A NumPy scene is drawn on in place and returned; callers pass a copy."""
+        target = scene.copy()
+        annotator = sv.JointAngleAnnotator(angles=[JOINT])
+
+        result = annotator.annotate(scene=target, key_points=_right_angle())
+
+        assert result is target
+        assert target.any()
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((100, 100), id="grayscale"),
+            pytest.param((100, 100, 1), id="single-channel"),
+            pytest.param((100, 100, 4), id="bgra"),
+        ],
+    )
+    def test_non_bgr_scene_is_annotated(self, shape: tuple[int, ...]) -> None:
+        """Grayscale and four-channel scenes keep their shape and get the arc color."""
+        scene = np.zeros(shape, dtype=np.uint8)
+        color = sv.Color(r=10, g=20, b=200)
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT], color=color, thickness=3, show_value=False
+        )
+
+        result = annotator.annotate(scene=scene.copy(), key_points=_right_angle())
+
+        assert result.shape == shape
+        # Like the other annotators, a single-channel canvas takes the blue value.
+        assert np.atleast_3d(result)[..., 0].max() == color.as_bgr()[0]
+
+    @pytest.mark.parametrize("show_value", [False, True])
+    def test_bgra_drawing_turns_opaque_and_keeps_other_alpha(
+        self, show_value: bool
+    ) -> None:
+        """Drawn BGRA pixels become opaque; pixels away from the joint keep alpha."""
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        scene[..., 3] = np.arange(100, dtype=np.uint8)[:, None] + 100
+        original_alpha = scene[..., 3].copy()
+        rows, cols = np.indices(scene.shape[:2])
+        far_from_joint = np.hypot(rows - 50, cols - 50) >= 60
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT], thickness=3, show_value=show_value
+        )
+
+        result = annotator.annotate(scene=scene, key_points=_right_angle())
+
+        alpha = result[..., 3]
+        assert result is scene
+        assert np.all(alpha >= original_alpha)
+        assert _patch_at(alpha, _RIGHT_ANGLE_BISECTOR, 20.0).max() == 255
+        np.testing.assert_array_equal(
+            alpha[far_from_joint], original_alpha[far_from_joint]
+        )
+
+    def test_transparent_bgra_scene_shows_arc_and_label(self) -> None:
+        """Black arc and label on a fully transparent black scene become visible."""
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        rows, cols = np.indices(scene.shape[:2])
+        beyond_arc = np.hypot(rows - 50, cols - 50) > 20 + 3 + 2
+        far_from_joint = np.hypot(rows - 50, cols - 50) >= 60
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.BLACK,
+            text_color=sv.Color.BLACK,
+            thickness=3,
+        )
+
+        result = annotator.annotate(scene=scene, key_points=_right_angle())
+
+        # The drawing has the color of the canvas, so only alpha can reveal it.
+        alpha = result[..., 3]
+        assert _patch_at(alpha, _RIGHT_ANGLE_BISECTOR, 20.0).max() == 255
+        assert np.any(alpha[beyond_arc] == 255)
+        assert not alpha[far_from_joint].any()
+
+    def test_arc_ignores_hidden_bgra_color(self) -> None:
+        """A red arc over transparent green retains red at covered pixels."""
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        scene[..., 1] = 255
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT], color=sv.Color.RED, show_value=False
+        )
+
+        result = annotator.annotate(scene=scene, key_points=_right_angle())
+
+        covered = result[..., 3] > 0
+        assert covered.any()
+        assert np.all(result[..., 1][covered] == 0)
+        assert np.all(result[..., 2][covered] == 255)
+
+    def test_opaque_bgra_scene_stays_opaque(self) -> None:
+        """Annotating an opaque BGRA scene leaves every pixel opaque."""
+        scene = np.zeros((100, 100, 4), dtype=np.uint8)
+        scene[..., 3] = 255
+        annotator = sv.JointAngleAnnotator(angles=[JOINT])
+
+        result = annotator.annotate(scene=scene.copy(), key_points=_right_angle())
+
+        assert np.all(result[..., 3] == 255)
+        assert result[..., :3].any()
+
+    def test_grayscale_pil_scene_is_annotated_in_place(self) -> None:
+        """A single-channel PIL scene is drawn on in place and keeps its mode."""
+        scene = Image.new("L", (100, 100))
+        annotator = sv.JointAngleAnnotator(angles=[JOINT])
+
+        result = annotator.annotate(scene=scene, key_points=_right_angle())
+
+        assert result is scene
+        assert result.mode == "L"
+        assert np.asarray(result).any()
+
+    @pytest.mark.parametrize(
+        ("radius", "thickness", "message"),
+        [
+            pytest.param(0, 2, "radius must be positive", id="radius"),
+            pytest.param(20, 0, "thickness must be positive", id="thickness"),
+        ],
+    )
+    def test_constructor_raises_on_non_positive_size(
+        self, radius: int, thickness: int, message: str
+    ) -> None:
+        """Non-positive sizes are rejected when the annotator is created."""
+        with pytest.raises(ValueError, match=message):
+            sv.JointAngleAnnotator(angles=[JOINT], radius=radius, thickness=thickness)
+
+
+_PALETTE = sv.ColorPalette(
+    [sv.Color(255, 0, 0), sv.Color(0, 255, 0), sv.Color(0, 0, 255)]
+)
+
+
+def _two_right_angles(class_id: list[int] | None = None) -> sv.KeyPoints:
+    """Two skeletons with 90-degree joints at (50, 50) and (150, 50)."""
+    one = np.array([[90.0, 50.0], [50.0, 50.0], [50.0, 10.0]])
+    xy = np.stack([one, one + np.array([100.0, 0.0])]).astype(np.float32)
+    ids = None if class_id is None else np.array(class_id)
+    return sv.KeyPoints(xy=xy, class_id=ids)
+
+
+def _has_color(region: np.ndarray, color: sv.Color) -> bool:
+    """Report whether any pixel in the BGR region has exactly this color."""
+    return bool(np.any(np.all(region == color.as_bgr(), axis=-1)))
+
+
+class TestJointAngleAnnotatorColorPalette:
+    @pytest.mark.parametrize(
+        ("color_lookup", "class_id", "expected"),
+        [
+            pytest.param(sv.ColorLookup.INDEX, None, (0, 1), id="index"),
+            pytest.param(sv.ColorLookup.CLASS, [2, 0], (2, 0), id="class"),
+            pytest.param(sv.ColorLookup.KEYPOINT, None, (1, 1), id="keypoint-joint"),
+        ],
+    )
+    def test_arcs_take_palette_colors(
+        self,
+        color_lookup: sv.ColorLookup,
+        class_id: list[int] | None,
+        expected: tuple[int, int],
+    ) -> None:
+        """Each skeleton's arc takes the palette color its lookup selects."""
+        scene = np.zeros((100, 200, 3), dtype=np.uint8)
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=_PALETTE,
+            color_lookup=color_lookup,
+            show_value=False,
+        )
+
+        result = annotator.annotate(scene, _two_right_angles(class_id))
+
+        left, right = result[:, :100], result[:, 100:]
+        assert _has_color(left, _PALETTE.by_idx(expected[0]))
+        assert _has_color(right, _PALETTE.by_idx(expected[1]))
+
+    def test_label_text_takes_palette_color(self) -> None:
+        """A palette for text_color colors each label by the same lookup."""
+        scene = np.zeros((100, 200, 3), dtype=np.uint8)
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.BLACK,
+            text_color=_PALETTE,
+            color_lookup=sv.ColorLookup.INDEX,
+        )
+
+        result = annotator.annotate(scene, _two_right_angles())
+
+        assert _has_color(result[:, :100], _PALETTE.by_idx(0))
+        assert _has_color(result[:, 100:], _PALETTE.by_idx(1))
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    def test_unresolvable_text_color_raises_before_drawing(self, channels: int) -> None:
+        """A text palette CLASS lookup cannot resolve raises before any drawing."""
+        scene = np.full((100, 200, channels), 100, dtype=np.uint8)
+        original = scene.copy()
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.WHITE,
+            text_color=_PALETTE,
+            color_lookup=sv.ColorLookup.CLASS,
+        )
+
+        with pytest.raises(ValueError, match="class_id is not available"):
+            annotator.annotate(scene, _two_right_angles())
+
+        np.testing.assert_array_equal(scene, original)
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    def test_unresolvable_arc_color_raises_before_drawing(self, channels: int) -> None:
+        """An arc palette CLASS lookup cannot resolve raises and leaves the scene."""
+        scene = np.full((100, 200, channels), 100, dtype=np.uint8)
+        original = scene.copy()
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT], color=_PALETTE, color_lookup=sv.ColorLookup.CLASS
+        )
+
+        with pytest.raises(ValueError, match="class_id is not available"):
+            annotator.annotate(scene, _two_right_angles())
+
+        np.testing.assert_array_equal(scene, original)
+
+    def test_keypoint_lookup_colors_label_text_by_joint(self) -> None:
+        """Under KEYPOINT lookup every label takes the text color of the joint point."""
+        scene = np.zeros((100, 200, 3), dtype=np.uint8)
+        annotator = sv.JointAngleAnnotator(
+            angles=[JOINT],
+            color=sv.Color.BLACK,
+            text_color=_PALETTE,
+            color_lookup=sv.ColorLookup.KEYPOINT,
+        )
+
+        result = annotator.annotate(scene, _two_right_angles())
+
+        assert _has_color(result[:, :100], _PALETTE.by_idx(1))
+        assert _has_color(result[:, 100:], _PALETTE.by_idx(1))
+        assert not _has_color(result, _PALETTE.by_idx(0))
+
+    def test_track_lookup_rejected_at_construction(self) -> None:
+        """TRACK is rejected when the annotator is created, as for other annotators."""
+        with pytest.raises(ValueError, match="not supported for keypoint"):
+            sv.JointAngleAnnotator(angles=[JOINT], color_lookup=sv.ColorLookup.TRACK)
+
+
 class TestAnnotatorInputValidation:
     """Verify that all keypoint annotators reject invalid scene types."""
 
@@ -1159,6 +1690,11 @@ class TestAnnotatorInputValidation:
                 sv.VertexEllipseHaloAnnotator, {}, id="VertexEllipseHaloAnnotator"
             ),
             pytest.param(sv.VertexLabelAnnotator, {}, id="VertexLabelAnnotator"),
+            pytest.param(
+                sv.JointAngleAnnotator,
+                {"angles": [JointAngle(name="joint", start=0, joint=1, end=2)]},
+                id="JointAngleAnnotator",
+            ),
         ],
     )
     def test_annotate_wrong_scene_type_raises(
