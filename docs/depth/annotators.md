@@ -49,7 +49,7 @@ description: Colour depth, disparity, normal and gradient maps over images with 
 
     ![Normals derived from a Depth Anything V2 depth map, coloured with sv.NormalMapAnnotator](../assets/depth/normal-map-annotator-example.jpg){ align=center width="800" }
 
-    Image (left) and normals derived from a Depth Anything V2 relative depth map (right). The plaza faces the camera and takes the colour of the straight-on normal; the outlines of people tilt towards red, green and cyan.
+    Image (left) and an illustrative normal map derived from image-space gradients of a Depth Anything V2 relative inverse-depth map (right). Small gradients appear mostly violet, while depth edges shift towards red, green and cyan. These colours visualize a synthetic height field, not calibrated 3D surface orientations.
 
     </div>
 
