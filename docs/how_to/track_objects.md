@@ -455,6 +455,10 @@ Adding traces to the video involves overlaying the historical paths of the detec
 
 ## Keypoints
 
+!!! tip
+
+    To compare pose models, colour joints and measure joint angles with `sv.joint_angles`, see the [keypoint detection cookbook](../notebooks/keypoint-detection.ipynb).
+
 Models aren't limited to object detection and segmentation. Keypoint detection allows for detailed analysis of body joints and connections, especially valuable for applications like human pose estimation. This section introduces keypoint tracking. We'll walk through the steps of annotating keypoints, converting them into bounding box detections compatible with `ByteTrack`, and applying detection smoothing for enhanced stability.
 
 To make it easier for you to follow our tutorial, let's download the video we will use as an example. You can do this using the [`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
