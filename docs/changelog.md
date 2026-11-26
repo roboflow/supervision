@@ -7,7 +7,7 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
--
+- supervision now requires Pillow 10.4 or newer. `pillow>=9.4` let Pillow 9.4 to 10.3 install, where Pillow-scene features fail: `sv.RichLabelAnnotator` raised `UnicodeEncodeError` on a non-Latin label such as Hebrew or Chinese without the `rtl` extra (before Pillow 10.1), annotators drew nothing on a 16-bit (`I;16`) Pillow scene (before 10.4), annotating a palette (`P`, `PA`) scene changed pixels outside the drawing (before 10.1), and `sv.IconAnnotator` rejected a 16-bit grayscale icon (before 10.3). ([#3045](https://github.com/roboflow/supervision/pull/3045))
 
 ### 0.32.3 <small>Nov 26, 2026</small>
 

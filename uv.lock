@@ -4725,7 +4725,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.6" },
     { name = "numpy", specifier = ">=1.21.2" },
     { name = "pandas", marker = "extra == 'metrics'", specifier = ">=2" },
-    { name = "pillow", specifier = ">=9.4" },
+    { name = "pillow", specifier = ">=10.4" },
     { name = "pycocotools", marker = "extra == 'coco'", specifier = ">=2.0.11" },
     { name = "pydeprecate", specifier = ">=0.9,<0.16" },
     { name = "pyyaml", specifier = ">=5.3" },
