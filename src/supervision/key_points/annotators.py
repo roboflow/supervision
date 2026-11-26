@@ -1380,7 +1380,9 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
                 label backgrounds.
             thickness: The line thickness of the arcs.
             radius: The radius of the arcs, in pixels.
-            show_value: Whether to label each arc with its angle in whole degrees.
+            show_value: Whether to label each arc with its angle in whole degrees,
+                such as ``90°``. The label carries the degree sign, so a bare number
+                is never read as radians.
             text_color: The :class:`~supervision.draw.color.Color` or
                 :class:`~supervision.draw.color.ColorPalette` of the label text.
             text_scale: The font scale of the label text.
@@ -1497,7 +1499,7 @@ class JointAngleAnnotator(BaseKeyPointAnnotator):
             if text_color is not None:
                 self._draw_value(
                     scene=scene,
-                    text=f"{values[skeleton_index, angle_index]:.0f}",
+                    text=f"{values[skeleton_index, angle_index]:.0f}\N{DEGREE SIGN}",
                     color=color,
                     text_color=text_color,
                     joint_xy=joint_xy,
