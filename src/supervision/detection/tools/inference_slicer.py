@@ -116,9 +116,9 @@ def move_detections(
         confidence=(
             detections.confidence.copy() if detections.confidence is not None else None
         ),
-        class_id=(detections.class_id.copy()
-        if detections.class_id is not None
-        else None),
+        class_id=(
+            detections.class_id.copy() if detections.class_id is not None else None
+        ),
         tracker_id=(
             detections.tracker_id.copy() if detections.tracker_id is not None else None
         ),
