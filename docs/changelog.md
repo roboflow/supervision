@@ -7,6 +7,8 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.to_compact_masks()` and `sv.InferenceSlicer(..., compact_masks=True)` now encode dense masks using their tight foreground bounding boxes instead of the full canvas, restoring bounding-box pruning for compact inputs to `sv.mask_iou_batch` and reducing compact-mask NMS time and memory on high-resolution scenes. Compact self-overlap also reuses a single crop cache for self-IoU, and `sv.Detections` boolean and integer indexing skips a redundant array copy. ([#3037](https://github.com/roboflow/supervision/pull/3037))
+
 - **Semantic segmentation**: a class made of several separate patches can load as one detection per patch.
 
     - `sv.Detections.from_semantic_segmentation` accepts `split_components=True` to return one detection per 8-connected patch of each class, instead of one detection over every pixel of the class. Each patch keeps its class name and has its own mask and tight box, so a `water` class in flood imagery gives one box and area per flooded area. When a confidence map is supplied, each patch gets the mean `confidence` over its mask pixels. Entries are ordered by class id, then by the top-left corner of each patch's box, top to bottom and then left to right. The default `False` keeps one detection per class. ([#3032](https://github.com/roboflow/supervision/pull/3032))
