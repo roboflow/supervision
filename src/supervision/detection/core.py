@@ -929,6 +929,7 @@ class Detections:
         confidence_mask: Any = None,
         background_id: int | None = 0,
         compact_masks: bool = False,
+        split_components: bool = False,
     ) -> Detections:
         """
         Create a :class:`~supervision.detection.core.Detections` object from a
@@ -937,12 +938,15 @@ class Detections:
         segmentation model returns.
 
         Each class id present in the map becomes one detection with a mask
-        covering every pixel of that class and the tight box around it.
+        covering every pixel of that class and the tight box around it. Pass
+        `split_components=True` to get one detection per separate patch of a class
+        instead, for example each flooded area of a `water` class.
 
         :meth:`~supervision.detection.core.Detections.from_inference` calls this
         method for a semantic result, so a whole Inference result loads either way.
         Call this one directly for a raw map, to override the result's `class_map`
-        or `confidence_mask`, or to keep the background.
+        or `confidence_mask`, to keep the background, or to split classes into
+        separate patches.
 
         For Hugging Face Transformers models, use
         :meth:`~supervision.detection.core.Detections.from_transformers`, which takes
@@ -962,17 +966,26 @@ class Detections:
                 shape as the class ids, in the same formats except a one-bit PNG,
                 and in the range 0-255.
                 When available,
-                `confidence` is each class's mean over its pixels divided by
-                255; otherwise `confidence` is `None`. Overrides the one inside
+                `confidence` is each detection's mean over its mask pixels divided
+                by 255; otherwise `confidence` is `None`. Overrides the one inside
                 `segmentation_result`.
             background_id: Class id left out of the result. Pass `None` to keep
                 every class.
             compact_masks: When `True`, return
                 :class:`~supervision.detection.compact_mask.CompactMask`, built
-                one class at a time, instead of a dense `(N, H, W)` array.
+                one detection at a time, instead of a dense `(N, H, W)` array.
+            split_components: When `True`, split each class into its 8-connected
+                patches, so pixels touching only at a corner belong to the same
+                patch. Each patch becomes its own detection with its own mask, box
+                and mean `confidence`, and the name of its class. Entries are ordered
+                by class id, then by the top-left corner of each patch's box, top
+                to bottom and then left to right. A dense `mask`
+                holds one full `(H, W)` plane per patch, so pass `compact_masks=True`
+                to keep memory low when a map has many patches.
 
         Returns:
-            A Detections object with one entry per remaining class id.
+            A Detections object with one entry per remaining class id, or per
+                patch with `split_components`.
                 `detections.data["class_name"]` is always present, empty when
                 no class remains. An empty result keeps a zero-length `mask` of
                 the requested kind, and `confidence` follows the rule above.
@@ -1006,6 +1019,7 @@ class Detections:
             confidence_mask=confidence_mask,
             background_id=background_id,
             compact_masks=compact_masks,
+            split_components=split_components,
         )
         return cls(
             xyxy=xyxy, confidence=confidence, class_id=class_id, mask=masks, data=data

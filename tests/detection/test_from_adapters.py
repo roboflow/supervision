@@ -1,5 +1,6 @@
 import base64
 import io
+import tracemalloc
 from collections import UserDict
 from collections.abc import Callable
 from types import SimpleNamespace
@@ -1303,6 +1304,24 @@ def _png_b64(array: np.ndarray) -> str:
     return base64.b64encode(buffer.getvalue()).decode()
 
 
+def _peak_traced_detection_bytes(
+    convert: Callable[[], Detections],
+) -> tuple[Detections, int]:
+    """Measure peak allocations without stopping an existing tracer."""
+    started_tracing = not tracemalloc.is_tracing()
+    if started_tracing:
+        tracemalloc.start()
+    try:
+        baseline_bytes, _ = tracemalloc.get_traced_memory()
+        tracemalloc.reset_peak()
+        detections = convert()
+        _, peak_bytes = tracemalloc.get_traced_memory()
+    finally:
+        if started_tracing:
+            tracemalloc.stop()
+    return detections, peak_bytes - baseline_bytes
+
+
 class TestDetectionsFromSemanticSegmentation:
     """Detections.from_semantic_segmentation builds one detection per class id."""
 
@@ -1315,6 +1334,17 @@ class TestDetectionsFromSemanticSegmentation:
         "1": "road",
         "2": "car",
     }
+
+    PATCH_MAP: ClassVar[np.ndarray] = np.array(
+        [
+            [1, 1, 0, 0, 1],
+            [1, 1, 0, 0, 1],
+            [0, 0, 0, 0, 0],
+            [0, 3, 0, 2, 2],
+            [0, 0, 3, 0, 0],
+        ],
+        dtype=np.uint8,
+    )
 
     def test_decodes_base64_png_and_drops_background(self) -> None:
         """A base64 PNG yields a mask, box and name per class, background dropped.
@@ -1489,6 +1519,241 @@ class TestDetectionsFromSemanticSegmentation:
 
         assert detections.confidence is not None
         assert detections.confidence.shape == (0,)
+
+    def test_split_components_gives_each_patch_its_own_detection(self) -> None:
+        """Each separate patch of a class becomes its own detection with its own box.
+
+        A class such as water in flood imagery shows up as several patches, and a single
+        box over all of them would also cover the land between them.
+        """
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 1, 2, 3])
+        assert np.array_equal(
+            detections.xyxy, [[0, 0, 1, 1], [4, 0, 4, 1], [3, 3, 4, 3], [1, 3, 2, 4]]
+        )
+
+    def test_split_components_orders_patches_by_top_then_left_of_box(self) -> None:
+        """Patches are ordered by the top then left of their box, not by raster scan.
+
+        A raster scan meets the island at (row 0, column 2) before the diagonal patch,
+        whose first pixel is at column 6, yet the diagonal box starts further left. The
+        pixel at (row 2, column 0) shares that left edge, so ordering by (left, top)
+        would place it before the island.
+        """
+        label_map = np.zeros((7, 7), dtype=np.uint8)
+        label_map[np.arange(7), 6 - np.arange(7)] = 1
+        label_map[0, 2] = 1
+        label_map[2, 0] = 1
+
+        detections = Detections.from_semantic_segmentation(
+            label_map, split_components=True
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 1, 1])
+        assert np.array_equal(
+            detections.xyxy, [[0, 0, 6, 6], [2, 0, 2, 0], [0, 2, 0, 2]]
+        )
+
+    def test_split_components_masks_partition_each_class(self) -> None:
+        """The component masks of one class are disjoint and cover every class pixel."""
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True
+        )
+
+        assert isinstance(detections.mask, np.ndarray)
+        assert detections.class_id is not None
+        class_one = detections.mask[detections.class_id == 1]
+        assert np.array_equal(class_one.sum(axis=0), (self.PATCH_MAP == 1).astype(int))
+        assert np.array_equal(class_one.sum(axis=(1, 2)), [4, 2])
+
+    def test_split_components_joins_diagonal_pixels(self) -> None:
+        """Pixels touching only at a corner belong to the same patch."""
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True
+        )
+
+        assert detections.class_id is not None
+        assert np.count_nonzero(detections.class_id == 3) == 1
+
+    def test_split_components_default_keeps_one_detection_per_class(self) -> None:
+        """Without `split_components`, every patch of a class stays in one detection."""
+        detections = Detections.from_semantic_segmentation(self.PATCH_MAP)
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 2, 3])
+
+    def test_split_components_names_each_patch_after_its_class(self) -> None:
+        """Every patch carries the class name of the class it was split from."""
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, class_map={"1": "water"}, split_components=True
+        )
+
+        assert np.array_equal(
+            detections.data["class_name"], ["water", "water", "2", "3"]
+        )
+
+    def test_split_components_scores_each_patch_by_its_own_pixels(self) -> None:
+        """Confidence is the mean over the pixels of that patch, not of its class."""
+        confidence_map = np.full(self.PATCH_MAP.shape, 255, dtype=np.uint8)
+        confidence_map[1, 1] = 51
+        confidence_map[0:2, 4] = 51
+
+        detections = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, confidence_mask=confidence_map, split_components=True
+        )
+
+        # The left class-1 patch mixes 255, 255, 255 and 51, so its mean of 0.8 differs
+        # from its first, last, median, minimum and maximum pixel.
+        assert detections.confidence is not None
+        assert np.allclose(detections.confidence, [0.8, 0.2, 1.0, 1.0])
+
+    @pytest.mark.parametrize("compact_masks", [False, True])
+    def test_split_components_keeps_nested_patch_pixels_separate(
+        self, compact_masks: bool
+    ) -> None:
+        """A ring and nested island keep separate mask pixels, boxes, and scores."""
+        ring = np.zeros((5, 5), dtype=bool)
+        ring[[0, -1], :] = True
+        ring[:, [0, -1]] = True
+        island = np.zeros_like(ring)
+        island[2, 2] = True
+        label_map = (ring | island).astype(np.uint8)
+        confidence_map = np.full(label_map.shape, 255, dtype=np.uint8)
+        confidence_map[island] = 0
+
+        detections = Detections.from_semantic_segmentation(
+            label_map,
+            confidence_mask=confidence_map,
+            split_components=True,
+            compact_masks=compact_masks,
+        )
+
+        masks = detections.mask
+        assert masks is not None
+        dense_masks = masks.to_dense() if isinstance(masks, CompactMask) else masks
+        assert np.array_equal(dense_masks, [ring, island])
+        assert np.array_equal(detections.xyxy, [[0, 0, 4, 4], [2, 2, 2, 2]])
+        assert detections.confidence is not None
+        assert detections.confidence.tolist() == [1.0, 0.0]
+
+    def test_split_components_compact_masks_match_dense_masks(self) -> None:
+        """`compact_masks=True` returns a CompactMask with the same patch pixels."""
+        dense = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True
+        )
+
+        compact = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, split_components=True, compact_masks=True
+        )
+
+        assert isinstance(compact.mask, CompactMask)
+        assert isinstance(dense.mask, np.ndarray)
+        assert np.array_equal(compact.mask.to_dense(), dense.mask)
+        assert np.array_equal(compact.xyxy, dense.xyxy)
+
+    def test_split_components_compact_masks_match_dense_with_confidence(self) -> None:
+        """Compact and dense output agree on masks, boxes and per-patch confidence."""
+        confidence_map = np.full(self.PATCH_MAP.shape, 255, dtype=np.uint8)
+        confidence_map[1, 1] = 51
+        confidence_map[0:2, 4] = 102
+
+        dense = Detections.from_semantic_segmentation(
+            self.PATCH_MAP, confidence_mask=confidence_map, split_components=True
+        )
+        compact = Detections.from_semantic_segmentation(
+            self.PATCH_MAP,
+            confidence_mask=confidence_map,
+            split_components=True,
+            compact_masks=True,
+        )
+
+        assert isinstance(compact.mask, CompactMask)
+        assert isinstance(dense.mask, np.ndarray)
+        assert dense.confidence is not None
+        assert compact.confidence is not None
+        assert np.allclose(dense.confidence, [0.8, 0.4, 1.0, 1.0])
+        assert np.allclose(compact.confidence, dense.confidence)
+        assert np.array_equal(compact.mask.to_dense(), dense.mask)
+        assert np.array_equal(compact.xyxy, dense.xyxy)
+        assert compact.class_id is not None
+        assert dense.class_id is not None
+        assert np.array_equal(compact.class_id, dense.class_id)
+
+    def test_split_components_on_non_square_map_boxes_single_pixels(self) -> None:
+        """A wide map keeps rows and columns apart and boxes one-pixel patches."""
+        label_map = np.array(
+            [[2, 2, 0, 0, 0, 1], [2, 2, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0]],
+            dtype=np.uint8,
+        )
+
+        detections = Detections.from_semantic_segmentation(
+            label_map, split_components=True
+        )
+
+        assert isinstance(detections.mask, np.ndarray)
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 1, 2])
+        assert np.array_equal(
+            detections.xyxy, [[5, 0, 5, 0], [4, 2, 4, 2], [0, 0, 1, 1]]
+        )
+        assert detections.mask.shape == (3, 3, 6)
+        assert np.array_equal(detections.mask.sum(axis=(1, 2)), [1, 1, 4])
+        assert detections.mask[0, 0, 5]
+        assert detections.mask[1, 2, 4]
+
+    def test_split_components_keeps_background_patches_when_requested(self) -> None:
+        """`background_id=None` also splits the background into its patches."""
+        label_map = np.array([[0, 1, 0]], dtype=np.uint8)
+
+        detections = Detections.from_semantic_segmentation(
+            label_map, background_id=None, split_components=True
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [0, 0, 1])
+
+    def test_split_components_on_background_only_map_is_empty(self) -> None:
+        """A map holding only the background still yields no detections."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 3), dtype=np.uint8), split_components=True
+        )
+
+        assert len(detections) == 0
+
+    def test_split_components_compact_masks_never_hold_every_dense_mask(self) -> None:
+        """Compact output builds one patch at a time, not a dense mask per patch."""
+        label_map = np.zeros((1500, 1500), dtype=np.uint8)
+        label_map[::8, ::8][:15, :20] = 1
+        # One boolean plane is `label_map.size` bytes. Keeping a third of the 300 dense
+        # masks would hold 100 planes, which the budget below stays well under.
+        peak_budget_bytes = 75 * label_map.size
+        detections, peak_bytes = _peak_traced_detection_bytes(
+            lambda: Detections.from_semantic_segmentation(
+                label_map, split_components=True, compact_masks=True
+            )
+        )
+
+        assert len(detections) == 300
+        assert peak_bytes < peak_budget_bytes
+
+    def test_split_components_dense_masks_are_allocated_once(self) -> None:
+        """Dense output holds one `(N, H, W)` array, not a stacked copy of N masks."""
+        label_map = np.zeros((600, 600), dtype=np.uint8)
+        label_map[::8, ::8][:15, :20] = 1
+        dense_masks_bytes = 300 * label_map.size
+        detections, peak_bytes = _peak_traced_detection_bytes(
+            lambda: Detections.from_semantic_segmentation(
+                label_map, split_components=True
+            )
+        )
+
+        assert len(detections) == 300
+        assert peak_bytes < dense_masks_bytes * 3 // 2
 
     def test_names_classes_from_integer_keys(self) -> None:
         """An integer-keyed `id2label` names classes like a text-keyed `class_map`.
