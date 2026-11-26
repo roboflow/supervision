@@ -5,11 +5,23 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import MetricResult
+from supervision.metrics.core import MetricResult, _score_bar_label
+from supervision.metrics.keypoint_mean_average_precision import (
+    KeyPointMeanAveragePrecisionResult,
+)
+from supervision.metrics.mean_average_precision import MeanAveragePrecisionResult
+from supervision.metrics.mean_average_recall import MeanAverageRecallResult
 from supervision.metrics.utils.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
     import pandas as pd
+
+#: Result types that report an undefined score as the `-1` sentinel.
+_SENTINEL_RESULT_TYPES = (
+    KeyPointMeanAveragePrecisionResult,
+    MeanAveragePrecisionResult,
+    MeanAverageRecallResult,
+)
 
 
 def aggregate_metric_results(
@@ -37,8 +49,8 @@ def aggregate_metric_results(
         each metric value.
 
     Raises:
-        ValueError: If the list is empty or *model_names* length does not
-            match *metric_results*.
+        ValueError: If the list is empty.
+        ValueError: If *model_names* length does not match *metric_results*.
         TypeError: If the list contains mixed result types.
     """
     if not metric_results:
@@ -99,11 +111,13 @@ def plot_aggregate_metric_results(
         show: When ``True``, display the completed plot with ``plt.show()``.
 
     Raises:
-        ValueError: If the list is empty, *model_names* length does not
-            match *metric_results*, or results have mismatched plot details.
+        ValueError: If the list is empty.
+        ValueError: If *model_names* length does not match *metric_results*.
+        ValueError: If results have mismatched plot details.
         TypeError: If the list contains mixed result types.
     """
     from matplotlib import pyplot as plt
+    from matplotlib import rc_context
 
     if not metric_results:
         raise ValueError("metric_results must not be empty.")
@@ -150,38 +164,39 @@ def plot_aggregate_metric_results(
     x = np.arange(num_labels)
     bar_width = 0.8 / num_models
 
-    plt.rcParams["font.family"] = "monospace"
-    _, ax = plt.subplots(figsize=(max(10, num_labels * 1.5), 6))
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("Value", fontweight="bold")
-    ax.set_title(title, fontweight="bold")
+    with rc_context({"font.family": "monospace"}):
+        _, ax = plt.subplots(figsize=(max(10, num_labels * 1.5), 6))
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Value", fontweight="bold")
+        ax.set_title(title, fontweight="bold")
 
-    for model_idx, (name, details) in enumerate(zip(model_names, all_details)):
-        offset = (model_idx - num_models / 2 + 0.5) * bar_width
-        color = LEGACY_COLOR_PALETTE[model_idx % len(LEGACY_COLOR_PALETTE)]
-        bars = ax.bar(
-            x + offset,
-            details.values,
-            bar_width,
-            label=name,
-            color=color,
-        )
-        for bar in bars:
-            y_value = bar.get_height()
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                y_value + 0.02,
-                f"{y_value:.2f}",
-                ha="center",
-                va="bottom",
-                fontsize=max(6, 8 - num_models),
+        for model_idx, (name, details) in enumerate(zip(model_names, all_details)):
+            offset = (model_idx - num_models / 2 + 0.5) * bar_width
+            color = LEGACY_COLOR_PALETTE[model_idx % len(LEGACY_COLOR_PALETTE)]
+            bars = ax.bar(
+                x + offset,
+                details.values,
+                bar_width,
+                label=name,
+                color=color,
             )
+            has_sentinel = isinstance(metric_results[model_idx], _SENTINEL_RESULT_TYPES)
+            for bar in bars:
+                label, label_y = _score_bar_label(
+                    bar.get_height(), has_sentinel=has_sentinel
+                )
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    label_y,
+                    label,
+                    ha="center",
+                    va="bottom",
+                    fontsize=max(6, 8 - num_models),
+                )
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=45, ha="right")
-    ax.legend()
-
-    plt.rcParams["font.family"] = "sans-serif"
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.legend()
 
     plt.tight_layout()
     if show:

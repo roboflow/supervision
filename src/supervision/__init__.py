@@ -45,7 +45,12 @@ from supervision.dataset.core import (
     KeyPointsDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
-from supervision.depth.annotators import DepthAnnotator, DepthClipRange
+from supervision.depth.annotators import (
+    DepthAnnotator,
+    DepthClipRange,
+    GradientMapAnnotator,
+    NormalMapAnnotator,
+)
 from supervision.depth.colormaps import DepthColormap
 from supervision.depth.core import (
     DepthCamera,
@@ -109,6 +114,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
+    oriented_box_soft_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -209,6 +215,7 @@ __all__ = [
     "EdgeAnnotator",
     "EllipseAnnotator",
     "FPSMonitor",
+    "GradientMapAnnotator",
     "HaloAnnotator",
     "HeatMapAnnotator",
     "IconAnnotator",
@@ -223,6 +230,7 @@ __all__ = [
     "LineZoneAnnotator",
     "LineZoneAnnotatorMulticlass",
     "MaskAnnotator",
+    "NormalMapAnnotator",
     "OrientedBoxAnnotator",
     "OverlapFilter",
     "OverlapMetric",
@@ -301,6 +309,7 @@ __all__ = [
     "oriented_box_iou_batch",
     "oriented_box_non_max_merge",
     "oriented_box_non_max_suppression",
+    "oriented_box_soft_non_max_suppression",
     "pad_boxes",
     "pillow_to_cv2",
     "plot_image",

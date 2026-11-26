@@ -1614,8 +1614,9 @@ def _ellipse(
 
     Raises:
         TypeError: If `thickness` is not an integer, as in OpenCV.
-        ValueError: If `thickness` exceeds 32767, a rounded semi-axis is negative,
-            or `shift` is nonzero.
+        ValueError: If `thickness` exceeds 32767.
+        ValueError: If a rounded semi-axis is negative.
+        ValueError: If `shift` is nonzero.
 
     Example:
         A filled quarter ellipse includes the center and extends right and down.
@@ -1791,8 +1792,8 @@ def _draw_contours(
 
     Raises:
         TypeError: If `thickness` is not an integer, as in OpenCV.
-        ValueError: If `thickness` exceeds OpenCV's maximum of 32767, or if a
-            `hierarchy` is given.
+        ValueError: If `thickness` exceeds OpenCV's maximum of 32767.
+        ValueError: If a `hierarchy` is given.
     """
     del lineType, maxLevel
     thickness = _bounded_thickness(thickness, "Contour")
