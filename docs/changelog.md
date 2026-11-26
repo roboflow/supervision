@@ -7,13 +7,17 @@ date_modified: 2026-11-26
 
 ### Unreleased <small>upcoming</small>
 
-- Asset MD5 verification now reads bounded chunks instead of loading the complete file into memory, reducing peak Python allocations when checking cached videos. Hash comparison and download behavior are unchanged. ([#3031](https://github.com/roboflow/supervision/pull/3031))
+- `sv.DetectionDataset.from_yolo` and `sv.KeyPointsDataset.from_yolo` now load images in sorted path order, as `from_pascal_voc` does. They kept the order in which the filesystem listed files, so `image_paths`, iteration and `split(random_state=...)` depended on the filesystem: the same files and seed gave different train/test splits on ext4, which lists by name hash, and on tmpfs, which lists by creation order. ([#3081](https://github.com/roboflow/supervision/pull/3081))
 
 - supervision now requires Pillow 10.4 or newer. `pillow>=9.4` let Pillow 9.4 to 10.3 install, where Pillow-scene features fail: `sv.RichLabelAnnotator` raised `UnicodeEncodeError` on a non-Latin label such as Hebrew or Chinese without the `rtl` extra (before Pillow 10.1), annotators drew nothing on a 16-bit (`I;16`) Pillow scene (before 10.4), annotating a palette (`P`, `PA`) scene changed pixels outside the drawing (before 10.1), and `sv.IconAnnotator` rejected a 16-bit grayscale icon (before 10.3). ([#3045](https://github.com/roboflow/supervision/pull/3045))
 
 - The minimum `pillow` is now `10.4` (was `9.4`) and the minimum `av` is now `15.1` (was `14.2`). The CI job that installs every dependency at its declared minimum showed that cropping to an empty region and drawing on 16-bit images fail with older Pillow, and that measuring the frame rate of a video with variable frame timing reads `VideoFrame.duration`, which PyAV `14.2` and `15.0` do not provide. [#3068](https://github.com/roboflow/supervision/pull/3068)
 
 - Added `sv.DetectionDataset.empty` and `sv.DetectionDataset.add` to build a detection dataset image by image, for example from model predictions for semi-automatic annotation, before exporting it with `as_yolo`, `as_coco` or `as_pascal_voc`. `add` stores the image path and a copy of the annotation, validates class ids like the constructor, and raises `ValueError` for duplicate image paths or datasets holding in-memory images. ([#2868](https://github.com/roboflow/supervision/pull/2868))
+
+- `sv.mask_non_max_merge` and `sv.Detections.with_nmm` now group dense boolean masks on bit-packed copies with NumPy >= 2.0, keeping the merged candidate packed between steps instead of casting it to float32 again at every step. Groups are identical, and the PR author measured 39-45x faster merging for 50-100 masks. `sv.mask_iou_batch`, `sv.mask_non_max_suppression`, `sv.mask_soft_non_max_suppression` and `sv.Detections.with_nms` count overlaps of boolean masks on bit-packed copies only when the float32 copies would not fit `memory_limit`, which cuts their peak memory about 16x with identical results. Otherwise they keep the float matrix product, which can be faster than packed counting on a multithreaded BLAS with several hundred masks. With NumPy >= 2.0, boolean masks that exceed the float limit now raise the `memory_limit` warning only when the packed buffers themselves exceed it; older NumPy and non-boolean masks keep the previous behaviour. ([#2886](https://github.com/roboflow/supervision/pull/2886))
+
+- Asset MD5 verification now reads bounded chunks instead of loading the complete file into memory, reducing peak Python allocations when checking cached videos. Hash comparison and download behavior are unchanged. ([#3031](https://github.com/roboflow/supervision/pull/3031))
 
 ### 0.32.3 <small>Nov 26, 2026</small>
 

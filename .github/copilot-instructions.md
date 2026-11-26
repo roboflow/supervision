@@ -118,7 +118,7 @@ ______________________________________________________________________
 
 ## 🔍 Pull Request Reviews
 
-When reviewing pull requests or diffs, follow the [code-review skill](skills/code-review/SKILL.md) and the comprehensive [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines).
+When reviewing pull requests or diffs, follow the [code-review skill](skills/code-review/SKILL.md).
 
 ______________________________________________________________________
 
@@ -133,5 +133,5 @@ ______________________________________________________________________
 ## 🎯 Context-Aware Behavior
 
 - **For general development tasks**: Follow [AGENTS.md](../AGENTS.md)
-- **For pull request reviews**: Follow the [code-review skill](skills/code-review/SKILL.md) and [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines)
+- **For pull request reviews**: Follow the [code-review skill](skills/code-review/SKILL.md)
 - **For detailed processes**: Consult [CONTRIBUTING.md](CONTRIBUTING.md)

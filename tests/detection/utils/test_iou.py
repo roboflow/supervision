@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
@@ -21,6 +22,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
+    mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
@@ -1156,8 +1158,8 @@ class TestMaskIouBatch:
         """Detection > memory_limit emits UserWarning; result shape is still correct."""
         rng = np.random.default_rng(4)
         masks_true = rng.random((3, 32, 32)) > 0.5
-        # 500 x 1024 px x 4 bytes ~2 MB > memory_limit=1 MB triggers OOM warning.
-        masks_detection = rng.random((500, 32, 32)) > 0.5
+        # 500 x 32x32 float32 masks are ~2 MB > memory_limit=1 MB.
+        masks_detection = (rng.random((500, 32, 32)) > 0.5).astype(np.float32)
         with pytest.warns(UserWarning, match="exceed"):
             result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
         assert result.shape == (3, 500)
@@ -1300,3 +1302,499 @@ class TestBoxIouBatchWithJaccard:
             box_iou_batch_with_jaccard(
                 [[0.0, 0.0, 1.0, 1.0]], [[0.0, 0.0, 1.0, 1.0]], []
             )
+
+
+def _record_packed_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[tuple[int, int]]:
+    """Wrap the packed IoU driver and record the mask counts of every call."""
+    calls: list[tuple[int, int]] = []
+    original = iou_and_nms._mask_iou_batch_packed
+
+    def recording(
+        masks_true: np.ndarray, masks_detection: np.ndarray, *args: object
+    ) -> np.ndarray:
+        """Record one call, then run the real packed driver."""
+        calls.append((len(masks_true), len(masks_detection)))
+        return original(masks_true, masks_detection, *args)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(iou_and_nms, "_mask_iou_batch_packed", recording)
+    return calls
+
+
+def _naive_overlap(
+    masks_true: np.ndarray,
+    masks_detection: np.ndarray,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> np.ndarray:
+    """Pairwise IoU or IoS of two mask stacks computed pixel by pixel in float64."""
+    result = np.zeros((len(masks_true), len(masks_detection)))
+    for true_index, mask_true in enumerate(masks_true.astype(bool)):
+        for detection_index, mask_detection in enumerate(masks_detection.astype(bool)):
+            inter = np.logical_and(mask_true, mask_detection).sum()
+            if overlap_metric == OverlapMetric.IOU:
+                denom = np.logical_or(mask_true, mask_detection).sum()
+            else:
+                denom = min(mask_true.sum(), mask_detection.sum())
+            result[true_index, detection_index] = inter / denom if denom else 0.0
+    return result
+
+
+@pytest.mark.skipif(
+    not hasattr(np, "bitwise_count"), reason="bit-packed path needs NumPy >= 2.0"
+)
+class TestBitPackedMaskOverlap:
+    """Bit-packed dense mask overlap matches the float matmul path exactly."""
+
+    @pytest.mark.parametrize(
+        ("memory_limit", "expected_calls"),
+        [
+            pytest.param(1024 * 5, 0, id="float-copies-fit-keep-matmul"),
+            pytest.param(0, 1, id="float-copies-do-not-fit-use-packed"),
+        ],
+    )
+    def test_packed_path_runs_only_when_float_copies_exceed_limit(
+        self,
+        memory_limit: int,
+        expected_calls: int,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Bool masks take the packed path only when the float matmul would not fit."""
+        rng = np.random.default_rng(1)
+        masks = rng.random((4, 16, 16)) > 0.5
+        calls = _record_packed_calls(monkeypatch)
+
+        mask_iou_batch(masks, masks.copy(), memory_limit=memory_limit)
+
+        assert len(calls) == expected_calls
+
+    @pytest.mark.parametrize(
+        ("dtype_true", "dtype_detection"),
+        [
+            pytest.param(bool, np.uint8, id="bool-uint8"),
+            pytest.param(bool, np.float32, id="bool-float32"),
+            pytest.param(np.uint8, np.uint8, id="uint8-uint8"),
+            pytest.param(np.float32, bool, id="float32-bool"),
+        ],
+    )
+    def test_non_bool_pairs_keep_the_matmul_path(
+        self,
+        dtype_true: type,
+        dtype_detection: type,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Only a bool-by-bool pair is packed; any other dtype pair uses the matmul."""
+        rng = np.random.default_rng(2)
+        masks_true: np.ndarray = (rng.random((5, 12, 14)) > 0.5).astype(dtype_true)
+        masks_detection: np.ndarray = (rng.random((6, 12, 14)) > 0.5).astype(
+            dtype_detection
+        )
+        calls = _record_packed_calls(monkeypatch)
+
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=0)
+
+        assert not calls
+        np.testing.assert_allclose(
+            result, _naive_overlap(masks_true, masks_detection), rtol=1e-6
+        )
+
+    def test_packed_detection_below_limit_does_not_warn(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        """A packed detection batch below the limit must not report a float floor."""
+        masks_true = np.ones((3, 32, 32), dtype=bool)
+        masks_detection = np.ones((500, 32, 32), dtype=bool)
+
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        assert not [
+            warning for warning in recwarn if issubclass(warning.category, UserWarning)
+        ]
+        np.testing.assert_array_equal(result, np.ones((3, 500)))
+
+    def test_packed_detection_above_limit_warns(self) -> None:
+        """A packed detection batch exceeding the limit still reports its floor."""
+        masks_true = np.zeros((1, 128, 128), dtype=bool)
+        masks_detection = np.zeros((600, 128, 128), dtype=bool)
+
+        with pytest.warns(UserWarning, match="exceed"):
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        np.testing.assert_array_equal(result, np.zeros((1, 600)))
+
+    def test_floor_counts_pack_and_reduced_copies_of_the_detections(self) -> None:
+        """The warning floor covers the detections' pack and reduced copies, not one."""
+        masks_true = np.ones((1, 1024, 1024), dtype=bool)
+        # 5 packed masks take 640 KiB, below the 1 MiB limit, but packing them and
+        # keeping the reduced copy beside them needs about 1.3 MiB.
+        masks_detection = np.ones((5, 1024, 1024), dtype=bool)
+
+        with pytest.warns(UserWarning, match="exceed"):
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        np.testing.assert_array_equal(result, np.ones((1, 5)))
+
+    def test_strided_detection_view_below_limit_does_not_warn(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        """A strided batch with view-compatible masks does not warn."""
+        masks_true = np.ones((1, 1024, 1024), dtype=bool)
+        masks_detection = np.ones((10, 1024, 1024), dtype=bool)[::2]
+
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=4)
+
+        assert not [
+            warning for warning in recwarn if issubclass(warning.category, UserWarning)
+        ]
+        np.testing.assert_array_equal(result, np.ones((1, 5)))
+
+    def test_noncontiguous_detection_copy_above_limit_warns(self) -> None:
+        """A required detection reshape copy counts toward the warning floor."""
+        masks_true = np.ones((1, 1024, 1024), dtype=bool)
+        masks_detection = np.ones((5, 1024, 1024), dtype=bool).transpose(0, 2, 1)
+
+        with pytest.warns(UserWarning, match="exceed"):
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=4)
+
+        np.testing.assert_array_equal(result, np.ones((1, 5)))
+
+    def test_chunked_masks_pack_detections_once(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Chunking preserves IoU while packing the detection batch only once."""
+        masks_true = np.ones((100, 32, 32), dtype=bool)
+        masks_detection = np.ones((500, 32, 32), dtype=bool)
+        original_pack = iou_and_nms._pack_masks
+        detection_pack_count = 0
+        true_pack_count = 0
+
+        def count_pack(masks: np.ndarray) -> np.ndarray:
+            """Count packing of the original detection batch."""
+            nonlocal detection_pack_count, true_pack_count
+            if masks is masks_detection:
+                detection_pack_count += 1
+            else:
+                true_pack_count += 1
+            return original_pack(masks)
+
+        monkeypatch.setattr(iou_and_nms, "_pack_masks", count_pack)
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        assert detection_pack_count == 1
+        assert true_pack_count > 1
+        np.testing.assert_array_equal(result, np.ones((100, 500)))
+
+    def test_self_overlap_packs_the_stack_once(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Comparing a stack with itself slices its packed words for every chunk."""
+        rng = np.random.default_rng(9)
+        masks = rng.random((6, 10, 12)) > 0.5
+        original_pack = iou_and_nms._pack_masks
+        pack_count = 0
+
+        def count_pack(masks_to_pack: np.ndarray) -> np.ndarray:
+            """Count every packing call."""
+            nonlocal pack_count
+            pack_count += 1
+            return original_pack(masks_to_pack)
+
+        monkeypatch.setattr(iou_and_nms, "_pack_masks", count_pack)
+        result = mask_iou_batch(masks, masks, memory_limit=0)
+
+        assert pack_count == 1
+        np.testing.assert_array_equal(
+            result, mask_iou_batch(masks, masks.copy(), memory_limit=1024 * 5)
+        )
+
+    @pytest.mark.parametrize(
+        "overlap_metric",
+        [
+            pytest.param(OverlapMetric.IOU, id="iou"),
+            pytest.param(OverlapMetric.IOS, id="ios"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("n_true", "n_detection", "height", "width", "density"),
+        [
+            pytest.param(0, 3, 5, 7, 0.5, id="empty-true"),
+            pytest.param(3, 0, 5, 7, 0.5, id="empty-detection"),
+            pytest.param(4, 5, 5, 7, 0.0, id="all-false"),
+            pytest.param(4, 5, 5, 7, 1.0, id="all-true"),
+            pytest.param(6, 4, 3, 3, 0.5, id="pixels-not-multiple-of-8"),
+            pytest.param(6, 4, 9, 9, 0.3, id="pixels-not-multiple-of-64"),
+            pytest.param(8, 8, 32, 40, 0.1, id="sparse"),
+        ],
+    )
+    def test_mask_iou_batch_matches_float_path(
+        self,
+        n_true: int,
+        n_detection: int,
+        height: int,
+        width: int,
+        density: float,
+        overlap_metric: OverlapMetric,
+    ) -> None:
+        """Packed and matmul intersections give identical IoU and IoS matrices."""
+        rng = np.random.default_rng(5)
+        masks_true = rng.random((n_true, height, width)) < density
+        masks_detection = rng.random((n_detection, height, width)) < density
+        masks_detection[: min(n_true, n_detection)] = masks_true[:n_detection]
+
+        result = mask_iou_batch(
+            masks_true, masks_detection, overlap_metric, memory_limit=0
+        )
+        expected = mask_iou_batch(masks_true, masks_detection, overlap_metric)
+
+        assert result.dtype == expected.dtype
+        np.testing.assert_array_equal(result, expected)
+
+    def test_chunks_with_a_remainder_match_the_float_path(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Several chunks of random masks and a short last chunk keep exact IoU."""
+        rng = np.random.default_rng(10)
+        masks_true = rng.random((700, 40, 50)) > 0.7
+        masks_detection = rng.random((60, 40, 50)) > 0.7
+        original = iou_and_nms._packed_mask_iou_batch
+        chunk_sizes: list[int] = []
+
+        def recording(true_words: np.ndarray, *args: object) -> np.ndarray:
+            """Record the number of true masks of every chunk."""
+            chunk_sizes.append(len(true_words))
+            return original(true_words, *args)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(iou_and_nms, "_packed_mask_iou_batch", recording)
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=3)
+
+        assert len(chunk_sizes) > 1
+        assert 1 < chunk_sizes[-1] < chunk_sizes[0]
+        np.testing.assert_array_equal(
+            result, mask_iou_batch(masks_true, masks_detection)
+        )
+
+    @pytest.mark.parametrize(
+        "layout",
+        [
+            pytest.param("strided", id="strided-batch"),
+            pytest.param("fortran", id="fortran-order"),
+            pytest.param("transposed", id="transposed-spatial-axes"),
+            pytest.param("read-only", id="read-only"),
+        ],
+    )
+    def test_memory_layouts_of_random_masks_match_the_float_path(
+        self, layout: str
+    ) -> None:
+        """Views and unusual memory layouts give the same overlaps as a plain copy."""
+        rng = np.random.default_rng(11)
+        dense = rng.random((12, 20, 30)) > 0.6
+        views = {
+            "strided": dense[::2],
+            "fortran": np.asfortranarray(dense),
+            "transposed": np.ascontiguousarray(dense.transpose(0, 2, 1)).transpose(
+                0, 2, 1
+            ),
+            "read-only": dense,
+        }
+        masks_detection = views[layout]
+        if layout == "read-only":
+            masks_detection = dense.copy()
+            masks_detection.flags.writeable = False
+        masks_true = dense[3:9]
+
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=0)
+
+        expected = mask_iou_batch(masks_true, np.array(masks_detection, copy=True))
+        np.testing.assert_array_equal(result, expected)
+
+    def test_noncontiguous_true_masks_match_float_path(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Budget reshape copies while preserving packed overlap for true masks."""
+        masks_true = np.ones((100, 128, 128), dtype=bool).transpose(0, 2, 1)
+        masks_detection = np.ones((100, 128, 128), dtype=bool)
+        original = iou_and_nms._packed_mask_iou_batch
+        chunk_sizes: list[int] = []
+
+        def recording(true_words: np.ndarray, *args: object) -> np.ndarray:
+            """Record true-mask chunk sizes before computing overlaps."""
+            chunk_sizes.append(len(true_words))
+            return original(true_words, *args)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(iou_and_nms, "_packed_mask_iou_batch", recording)
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+        expected = mask_iou_batch(masks_true.copy(), masks_detection)
+
+        assert chunk_sizes == [13] * 7 + [9]
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "overlap_metric",
+        [
+            pytest.param(OverlapMetric.IOU, id="iou"),
+            pytest.param(OverlapMetric.IOS, id="ios"),
+        ],
+    )
+    @pytest.mark.parametrize("iou_threshold", [0.1, 0.5, 0.9])
+    @pytest.mark.parametrize("seed", [6, 16, 26])
+    def test_mask_non_max_merge_matches_fallback(
+        self,
+        seed: int,
+        iou_threshold: float,
+        overlap_metric: OverlapMetric,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Packed and original merging give identical groups, tied scores included."""
+        rng = np.random.default_rng(seed)
+        masks = rng.random((12, 9, 11)) < 0.5
+        masks[6:] = masks[0]
+        predictions = np.zeros((12, 6))
+        predictions[:, 4] = rng.integers(0, 3, 12) / 3
+
+        result = mask_non_max_merge(
+            predictions, masks, iou_threshold, overlap_metric=overlap_metric
+        )
+        monkeypatch.setattr(iou_and_nms, "_HAS_BITWISE_COUNT", False)
+        expected = mask_non_max_merge(
+            predictions, masks, iou_threshold, overlap_metric=overlap_metric
+        )
+
+        assert result == expected
+
+    def test_mask_non_max_merge_grows_the_candidate_with_each_merge(self) -> None:
+        """A mask that overlaps only the union of two merged masks joins their group."""
+        masks = np.zeros((3, 1, 16), dtype=bool)
+        masks[0, 0, 0:6] = True
+        masks[1, 0, 4:10] = True
+        masks[2, 0, [1, 8, 12, 13, 14, 15]] = True
+        predictions = np.array(
+            [[0, 0, 15, 0, 0.9, 0], [0, 0, 15, 0, 0.8, 0], [0, 0, 15, 0, 0.7, 0]]
+        )
+
+        result = mask_non_max_merge(
+            predictions, masks, iou_threshold=0.3, overlap_metric=OverlapMetric.IOS
+        )
+
+        assert result == [[0, 1, 2]]
+
+    def test_mask_non_max_merge_keeps_disjoint_masks_apart_at_zero_threshold(
+        self,
+    ) -> None:
+        """Disjoint boolean masks never share a group, even at an overlap of zero."""
+        masks = np.zeros((3, 4, 4), dtype=bool)
+        masks[0, :2, :2] = True
+        masks[1, 2:, 2:] = True
+        masks[2, :2, :2] = True
+        predictions = np.array(
+            [[0, 0, 3, 3, 0.9, 0], [0, 0, 3, 3, 0.8, 0], [0, 0, 3, 3, 0.7, 0]]
+        )
+
+        result = mask_non_max_merge(predictions, masks, iou_threshold=0.0)
+
+        assert result == [[0, 2], [1]]
+
+    @pytest.mark.parametrize(
+        "overlap_metric",
+        [
+            pytest.param(OverlapMetric.IOU, id="iou"),
+            pytest.param(OverlapMetric.IOS, id="ios"),
+        ],
+    )
+    def test_mask_non_max_suppression_matches_fallback(
+        self,
+        overlap_metric: OverlapMetric,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Packed and matmul overlaps give identical NMS keeps and Soft-NMS scores."""
+        rng = np.random.default_rng(7)
+        masks = rng.random((12, 9, 11)) < 0.5
+        masks[6:] = masks[0]
+        predictions = np.zeros((12, 6))
+        predictions[:, 4] = rng.random(12)
+        predictions[:, 5] = rng.integers(0, 2, 12)
+        expected_keep = mask_non_max_suppression(
+            predictions, masks, 0.3, overlap_metric=overlap_metric
+        )
+        expected_scores = mask_soft_non_max_suppression(
+            predictions, masks, overlap_metric=overlap_metric
+        )
+
+        original = iou_and_nms.mask_iou_batch
+
+        def packed_overlap(
+            masks_true: np.ndarray,
+            masks_detection: np.ndarray,
+            overlap_metric: OverlapMetric = OverlapMetric.IOU,
+        ) -> np.ndarray:
+            """Run the overlap with a limit that no float copy fits."""
+            return original(masks_true, masks_detection, overlap_metric, memory_limit=0)
+
+        monkeypatch.setattr(iou_and_nms, "mask_iou_batch", packed_overlap)
+        keep = mask_non_max_suppression(
+            predictions, masks, 0.3, overlap_metric=overlap_metric
+        )
+        scores = mask_soft_non_max_suppression(
+            predictions, masks, overlap_metric=overlap_metric
+        )
+
+        np.testing.assert_array_equal(keep, expected_keep)
+        np.testing.assert_array_equal(scores, expected_scores)
+
+    def test_mask_iou_batch_budgets_packed_masks(self) -> None:
+        """Bool masks whose float copies exceed memory_limit run without a warning."""
+        rng = np.random.default_rng(8)
+        masks_true = rng.random((3, 32, 32)) > 0.5
+        masks_detection = rng.random((500, 32, 32)) > 0.5
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        np.testing.assert_array_equal(
+            result, mask_iou_batch(masks_true, masks_detection)
+        )
+
+    @pytest.mark.parametrize("memory_limit", [1024 * 5, 0])
+    def test_mask_iou_batch_counts_exactly_above_2pow24_pixels(
+        self, memory_limit: int
+    ) -> None:
+        """Masks over 2**24 pixels count in float64, so a one-pixel gap is kept."""
+        masks_true = np.ones((1, 1, 2**24 + 8), dtype=bool)
+        masks_detection = masks_true.copy()
+        masks_detection[0, 0, 0] = False
+
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=memory_limit)
+
+        assert result[0, 0] == (2**24 + 7) / (2**24 + 8)
+
+
+class TestMaskNonMaxMergeDenseInputs:
+    """Dense inputs of mask NMM keep their values and shape contract on any NumPy."""
+
+    def test_float_mask_values_are_kept_in_the_first_overlap_step(self) -> None:
+        """Non-bool masks keep their raw values in the first overlap step."""
+        masks = np.zeros((2, 1, 4), dtype=np.float32)
+        masks[0] = 0.6
+        masks[1] = 1.0
+        predictions = np.array([[0, 0, 3, 0, 0.9, 0], [0, 0, 3, 0, 0.8, 0]])
+
+        result = mask_non_max_merge(predictions, masks, iou_threshold=0.7)
+
+        assert result == [[0], [1]]
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((3, 12), id="flattened-2d"),
+            pytest.param((3, 2, 3, 2), id="four-dimensional"),
+        ],
+    )
+    def test_rejects_masks_that_are_not_3d(self, shape: tuple[int, ...]) -> None:
+        """Boolean masks that are not (N, H, W) raise, as they do on the matmul path."""
+        masks = np.ones(shape, dtype=bool)
+        predictions = np.array(
+            [[0, 0, 1, 1, 0.9, 0], [0, 0, 1, 1, 0.8, 0], [0, 0, 1, 1, 0.7, 0]]
+        )
+
+        with pytest.raises(ValueError, match="3D"):
+            mask_non_max_merge(predictions, masks, iou_threshold=0.5)
