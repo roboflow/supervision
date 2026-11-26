@@ -397,6 +397,53 @@ class TestLoadPascalVocDeterministicClasses:
             p: _class_ids(d) for p, d in second[2].items()
         }
 
+    def test_classes_sorted_across_files(self, tmp_path: Path) -> None:
+        """Class ids follow sorted names, not the file a class first appears in."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "a_img", ["zebra"])
+        _write_voc_sample(images_dir, annotations_dir, "b_img", ["mango", "ant"])
+
+        classes, image_paths, annotations = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert classes == ["ant", "mango", "zebra"]
+        assert [_class_ids(annotations[path]) for path in image_paths] == [[2], [1, 0]]
+
+    def test_splits_with_same_classes_get_same_class_ids(self, tmp_path: Path) -> None:
+        """Two splits holding the same classes in a different file order agree."""
+        datasets = []
+        for split, first, second in [
+            ("train", "person", "car"),
+            ("valid", "car", "person"),
+        ]:
+            images_dir = tmp_path / split / "images"
+            images_dir.mkdir(parents=True)
+            annotations_dir = tmp_path / split / "annotations"
+            annotations_dir.mkdir(parents=True)
+            _write_voc_sample(images_dir, annotations_dir, "a_img", [first])
+            _write_voc_sample(images_dir, annotations_dir, "b_img", [second])
+            datasets.append(
+                DetectionDataset.from_pascal_voc(
+                    images_directory_path=str(images_dir),
+                    annotations_directory_path=str(annotations_dir),
+                )
+            )
+
+        train, valid = datasets
+        assert train.classes == valid.classes == ["car", "person"]
+        for dataset, names in [(train, ["person", "car"]), (valid, ["car", "person"])]:
+            loaded = [
+                dataset.classes[class_id]
+                for path in dataset.image_paths
+                for class_id in _class_ids(dataset.annotations[path])
+            ]
+            assert loaded == names
+
 
 class TestLoadPascalVocBackgroundImages:
     """Regression tests for VOC images that contain no annotated objects."""

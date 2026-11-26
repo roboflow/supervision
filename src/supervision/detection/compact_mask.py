@@ -177,7 +177,8 @@ def _validate_uniform_image_shape(
         The ``image_shape`` shared by every mask in ``masks_list``.
 
     Raises:
-        ValueError: If ``masks_list`` is empty or image shapes differ.
+        ValueError: If ``masks_list`` is empty.
+        ValueError: If image shapes differ.
     """
     if not masks_list:
         raise ValueError(f"Cannot {action} an empty list of CompactMask objects.")
@@ -385,7 +386,8 @@ def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
         containing a single tight union mask.
 
     Raises:
-        ValueError: If ``masks_list`` is empty or image shapes differ.
+        ValueError: If ``masks_list`` is empty.
+        ValueError: If image shapes differ.
     """
     image_shape = _validate_uniform_image_shape(masks_list, action="union")
 
@@ -975,6 +977,62 @@ class CompactMask:
         return cls(rles, crop_shapes, offsets, image_shape)
 
     @classmethod
+    def _from_dense_tight(
+        cls,
+        masks: npt.NDArray[np.bool_],
+        image_shape: tuple[int, int],
+    ) -> CompactMask:
+        """Create a lossless CompactMask cropped tightly to each mask's foreground.
+
+        Scans each mask's actual True pixels to derive tight inclusive crop bounds
+        instead of relying on declared detection boxes or tiling the full image. All
+        foreground pixels are preserved while keeping downstream crop decodes
+        O(object_area) rather than O(image_area).
+        """
+        img_h, img_w = image_shape
+        num_masks = len(masks)
+        if num_masks == 0:
+            return cls(
+                [],
+                np.empty((0, 2), dtype=np.int32),
+                np.empty((0, 2), dtype=np.int32),
+                image_shape,
+            )
+
+        rles: list[npt.NDArray[np.int32]] = []
+        crop_shapes_list: list[tuple[int, int]] = []
+        offsets_list: list[tuple[int, int]] = []
+        empty_rle = np.array([1], dtype=np.int32)
+
+        for mask_idx in range(num_masks):
+            # Clip padded masks to the requested canvas before scanning bounds.
+            mask = np.asarray(masks[mask_idx, :img_h, :img_w], dtype=np.bool_)
+            scan_h, scan_w = mask.shape
+            row_any = np.asarray(mask.any(axis=1))
+            if not row_any.any():
+                rles.append(empty_rle.copy())
+                crop_shapes_list.append((1, 1))
+                offsets_list.append((0, 0))
+                continue
+            y1 = int(row_any.argmax())
+            y2 = scan_h - 1 - int(row_any[::-1].argmax())
+            band = mask[y1 : y2 + 1]
+            col_any = np.asarray(band.any(axis=0))
+            x1 = int(col_any.argmax())
+            x2 = scan_w - 1 - int(col_any[::-1].argmax())
+            crop = band[:, x1 : x2 + 1]
+            rles.append(_mask_to_rle_counts(crop))
+            crop_shapes_list.append((y2 - y1 + 1, x2 - x1 + 1))
+            offsets_list.append((x1, y1))
+
+        return cls(
+            rles,
+            np.array(crop_shapes_list, dtype=np.int32),
+            np.array(offsets_list, dtype=np.int32),
+            image_shape,
+        )
+
+    @classmethod
     def from_coco_rle(
         cls,
         rles: Sequence[Mapping[str, Any]],
@@ -1003,8 +1061,10 @@ class CompactMask:
             A new :class:`~supervision.detection.compact_mask.CompactMask` instance.
 
         Raises:
-            ValueError: If the RLE payloads are malformed, are not aligned with
-                ``xyxy``, or their sizes/counts do not match ``image_shape``.
+            ValueError: If the RLE payloads are malformed.
+            ValueError: If the RLE payloads are not aligned with ``xyxy``.
+            ValueError: If the RLE payload sizes/counts do not match
+                ``image_shape``.
 
         Examples:
             ```pycon
@@ -1472,12 +1532,13 @@ class CompactMask:
     @overload
     def __getitem__(
         self,
-        index: slice
-        | list[int]
-        | list[bool]
-        | npt.NDArray[np.int_]
-        | npt.NDArray[np.bool_],
+        index: slice | list[int] | list[bool] | npt.NDArray[np.bool_],
     ) -> CompactMask: ...
+
+    @overload
+    def __getitem__(
+        self, index: npt.NDArray[np.int_]
+    ) -> npt.NDArray[np.bool_] | CompactMask: ...
 
     def __getitem__(
         self,
@@ -1493,17 +1554,19 @@ class CompactMask:
     ) -> npt.NDArray[np.bool_] | CompactMask:
         """Index into the mask collection.
 
-        * ``int`` → dense ``(H, W)`` bool array (for annotators, iterators).
-        * ``slice | list | ndarray`` → new
+        * ``int`` or 0-d integer ``ndarray`` → dense ``(H, W)`` bool array (for
+          annotators, iterators).
+        * ``slice | list | ndarray`` with at least one dimension → new
           :class:`~supervision.detection.compact_mask.CompactMask` (for filtering).
 
         Args:
-            index: An integer returns a dense ``(H, W)`` mask.  Any other
-                supported index type returns a new
+            index: An integer or 0-d integer array returns a dense ``(H, W)``
+                mask.  Any other supported index type returns a new
                 :class:`~supervision.detection.compact_mask.CompactMask`.
 
         Returns:
-            Dense ``(H, W)`` ``np.ndarray`` for integer index, or a new
+            Dense ``(H, W)`` ``np.ndarray`` for an integer or 0-d integer array
+            index, or a new
             :class:`~supervision.detection.compact_mask.CompactMask` for all
             other index types.
 
@@ -1522,7 +1585,11 @@ class CompactMask:
 
             ```
         """
-        if isinstance(index, (int, np.integer)):
+        if isinstance(index, (int, np.integer)) or (
+            isinstance(index, np.ndarray)
+            and index.ndim == 0
+            and np.issubdtype(index.dtype, np.integer)
+        ):
             idx = int(index)
             img_h, img_w = self._image_shape
             result: npt.NDArray[np.bool_] = np.zeros((img_h, img_w), dtype=bool)
@@ -1647,7 +1714,8 @@ class CompactMask:
             containing every mask from the inputs, in order.
 
         Raises:
-            ValueError: If ``masks_list`` is empty or image shapes differ.
+            ValueError: If ``masks_list`` is empty.
+            ValueError: If image shapes differ.
 
         Examples:
             ```pycon

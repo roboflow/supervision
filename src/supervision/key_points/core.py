@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -12,6 +12,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     HANDEDNESS_SCORE_DATA_FIELD,
     KEYPOINT_ALIGNED_DATA_FIELDS,
+    KEYPOINT_COVARIANCE_DATA_FIELD,
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import (
@@ -28,13 +29,32 @@ from supervision.detection.utils.iou_and_nms import (
     box_non_max_suppression,
 )
 from supervision.utils.internal import _to_numpy
-from supervision.validators import _validate_keypoints_fields
+from supervision.validators import _validate_data, _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    _AnyInteger: TypeAlias = np.integer[Any]
+else:
+    try:
+        _AnyInteger = np.integer[Any]
+    except TypeError:  # NumPy < 1.22 cannot subscript scalar types.
+        _AnyInteger = np.integer
+
+
+def _is_joint_aligned_covariance(
+    value: _DetectionDataValueType, shape: tuple[int, int]
+) -> bool:
+    """Recognize per-joint covariance without reinterpreting per-object metadata."""
+    try:
+        return np.asarray(value).shape == (*shape, 2, 2)
+    except ValueError:
+        return False
+
+
 Index1D = (
     int
-    | np.integer[Any]
+    | _AnyInteger
     | slice
     | list[int]
     | list[bool]
@@ -42,7 +62,7 @@ Index1D = (
     | npt.NDArray[np.bool_]
 )
 Index2D = tuple[Index1D, Index1D]
-_RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
+_RowIndexInput = int | _AnyInteger | npt.NDArray[np.generic] | list[Any] | slice
 _NormalizedRowIndex = npt.NDArray[np.generic] | list[Any] | slice
 
 
@@ -279,7 +299,9 @@ class KeyPoints:
             outputs = pose_estimation_model(**inputs)
 
         results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
-        key_point = sv.KeyPoints.from_transformers(results[0])
+        key_point = sv.KeyPoints.from_transformers(
+            results[0], num_keypoints=len(pose_estimation_model.config.id2label)
+        )
         ```
 
     Attributes:
@@ -299,7 +321,11 @@ class KeyPoints:
         data: A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data of length `n`
-            (one entry per detected object).
+            (one entry per detected object), or a zero-dimensional NumPy array
+            containing data shared across objects. Scalar arrays are preserved by
+            object selection, but :meth:`~supervision.key_points.core.KeyPoints.merge`
+            does not support them. Keypoint-aligned data fields require an array with
+            both object and keypoint dimensions.
     """  # noqa: E501 // docs
 
     xy: npt.NDArray[np.floating[Any]]
@@ -434,7 +460,9 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: Any) -> KeyPoints:
+    def from_inference(
+        cls, inference_result: Any, *, num_keypoints: int | None = None
+    ) -> KeyPoints:
         """
         Create a :class:`~supervision.key_points.core.KeyPoints` object from the
         [Roboflow](https://roboflow.com/)
@@ -444,6 +472,12 @@ class KeyPoints:
         Args:
             inference_result: The result from the
                 Roboflow API or Inference package containing predictions with keypoints.
+            num_keypoints: Full skeleton size, when known. Inference leaves out key
+                points scored below the request's `keypoint_confidence`, so without
+                it the key point axis ends at the largest key point index any
+                object kept. Supply it to keep trailing key points that every
+                object lost, so frames load with the same number of key points,
+                including when no objects are detected.
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
@@ -453,7 +487,14 @@ class KeyPoints:
                 prediction has a non-`None` object confidence; if any prediction
                 omits it or sets it to `None`, the field is `None` for the batch and
                 `as_detections()` uses keypoint-confidence means for all predictions.
-                Two-value keypoints have `keypoint_confidence=None`.
+                Two-value keypoints have `keypoint_confidence=None`. Omitted key
+                points are zero-filled slots.
+
+        Raises:
+            ValueError: If `inference_result` is a list.
+            ValueError: If `num_keypoints` is not positive.
+            ValueError: If `num_keypoints` cannot contain the retained key point
+                indices.
 
         Examples:
             ```python
@@ -480,7 +521,7 @@ class KeyPoints:
             )
 
             result = client.infer(image, model_id="<POSE_MODEL_ID>")
-            key_points = sv.KeyPoints.from_inference(result)
+            key_points = sv.KeyPoints.from_inference(result, num_keypoints=17)
             ```
         """
         if isinstance(inference_result, list):
@@ -488,13 +529,22 @@ class KeyPoints:
                 "from_inference() operates on a single result at a time."
                 "You can retrieve it like so:  inference_result = model.infer(image)[0]"
             )
+        if num_keypoints is not None and num_keypoints <= 0:
+            raise ValueError("num_keypoints must be positive.")
 
         if hasattr(inference_result, "dict"):
             inference_result = inference_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(inference_result, "json"):
             inference_result = inference_result.json()
         if not inference_result.get("predictions"):
-            return cls.empty()
+            if num_keypoints is None:
+                return cls.empty()
+            return cls(
+                xy=np.empty((0, num_keypoints, 2), dtype=np.float32),
+                class_id=np.array([], dtype=int),
+                keypoint_confidence=np.empty((0, num_keypoints), dtype=np.float32),
+                detection_confidence=np.array([], dtype=np.float32),
+            )
 
         predictions = inference_result["predictions"]
 
@@ -515,6 +565,10 @@ class KeyPoints:
             (max(object_slots) + 1 for object_slots in slots if object_slots),
             default=0,
         )
+        if num_keypoints is not None:
+            if keypoint_count > num_keypoints:
+                raise ValueError("num_keypoints must include all retained key points.")
+            keypoint_count = num_keypoints
 
         xy = np.zeros((len(predictions), keypoint_count, 2), dtype=np.float32)
         confidence = np.zeros((len(predictions), keypoint_count), dtype=np.float32)
@@ -929,7 +983,9 @@ class KeyPoints:
             return cls.empty()
 
     @classmethod
-    def from_transformers(cls, transformers_results: Any) -> KeyPoints:
+    def from_transformers(
+        cls, transformers_results: Any, *, num_keypoints: int | None = None
+    ) -> KeyPoints:
         """
         Create a :class:`~supervision.key_points.core.KeyPoints` object from the
         [Transformers](https://github.com/huggingface/transformers) inference result.
@@ -938,6 +994,10 @@ class KeyPoints:
             transformers_results: The per-image output of a Transformers pose
                 post-processor: a list with one dict of prediction data per
                 detected pose. An empty list means no poses were detected.
+            num_keypoints: Full skeleton size, when known. Supply this to retain
+                trailing joints removed by confidence filtering. Defaults to the
+                largest retained joint label plus one. A pose with no retained
+                joints is kept as zero-filled slots when this is supplied.
 
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
@@ -946,6 +1006,17 @@ class KeyPoints:
                 object category and reports no class of its own. An empty
                 `transformers_results` returns
                 :meth:`~supervision.key_points.core.KeyPoints.empty`.
+                Joint `labels` retain their skeleton indices after confidence
+                filtering. Missing slots have zero coordinates and confidence;
+                the joint axis ends at the largest retained label unless
+                `num_keypoints` is supplied. Results without `labels` use their
+                keypoint list order.
+
+        Raises:
+            ValueError: If `num_keypoints` is not positive.
+            ValueError: If `num_keypoints` cannot contain the retained joint
+                labels.
+            ValueError: If a pose has a negative or repeated joint label.
 
         Examples:
             ```python
@@ -991,31 +1062,60 @@ class KeyPoints:
                 outputs = pose_estimation_model(**inputs)
 
             results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
-            key_point = sv.KeyPoints.from_transformers(results[0])
+            key_point = sv.KeyPoints.from_transformers(
+                results[0], num_keypoints=len(pose_estimation_model.config.id2label)
+            )
             ```
 
         """  # noqa: E501 // docs
+
+        if num_keypoints is not None and num_keypoints <= 0:
+            raise ValueError("num_keypoints must be positive.")
 
         if len(transformers_results) == 0:
             return cls.empty()
 
         if "keypoints" in transformers_results[0]:
-            if transformers_results[0]["keypoints"].cpu().numpy().size == 0:
-                return cls.empty()
 
-            result_data = [
-                (
-                    result["keypoints"].cpu().numpy(),
-                    result["scores"].cpu().numpy(),
+            def pose_to_numpy(value: Any) -> npt.NDArray[Any]:
+                """Detach tensor inputs while preserving NumPy pose arrays."""
+                return _to_numpy(value.detach() if hasattr(value, "detach") else value)
+
+            result_data = []
+            for result in transformers_results:
+                points = pose_to_numpy(result["keypoints"])
+                labels = (
+                    pose_to_numpy(result["labels"])
+                    if "labels" in result
+                    else np.arange(len(points))
                 )
-                for result in transformers_results
-            ]
-
-            xy, scores = zip(*result_data)
+                # Labels index the joint axis directly: NumPy would wrap a negative
+                # label onto a valid joint, and a repeated label would overwrite an
+                # earlier prediction for the same joint.
+                if np.any(labels < 0):
+                    raise ValueError("Joint labels must be non-negative.")
+                if np.unique(labels).size != labels.size:
+                    raise ValueError("Joint labels must not repeat within a pose.")
+                result_data.append((points, pose_to_numpy(result["scores"]), labels))
+            keypoint_count = max(
+                (int(labels.max()) + 1 for _, _, labels in result_data if labels.size),
+                default=0,
+            )
+            if num_keypoints is not None:
+                if keypoint_count > num_keypoints:
+                    raise ValueError("num_keypoints must include all retained joints.")
+                keypoint_count = num_keypoints
+            if keypoint_count == 0:
+                return cls.empty()
+            xy = np.zeros((len(result_data), keypoint_count, 2), dtype=np.float32)
+            scores = np.zeros((len(result_data), keypoint_count), dtype=np.float32)
+            for index, (points, confidence, labels) in enumerate(result_data):
+                xy[index, labels] = points
+                scores[index, labels] = confidence
 
             return cls(
-                xy=np.stack(xy).astype(np.float32),
-                keypoint_confidence=np.stack(scores).astype(np.float32),
+                xy=xy,
+                keypoint_confidence=scores,
                 class_id=np.zeros(len(xy), dtype=int),
             )
         else:
@@ -1053,9 +1153,10 @@ class KeyPoints:
             containing only the keypoints selected by the mask for each object.
 
         Raises:
-            ValueError: If `mask.shape[0]` does not match the number of objects, if
-                `mask.shape[1]` does not match the number of keypoints, or if
-                different rows of the mask select different numbers of `True` values.
+            ValueError: If `mask.shape[0]` does not match the number of objects.
+            ValueError: If `mask.shape[1]` does not match the number of keypoints.
+            ValueError: If different rows of the mask select different numbers of
+                `True` values.
         """
         n = len(self.xy)
         if mask.shape[0] != n:
@@ -1113,6 +1214,10 @@ class KeyPoints:
         columns = np.nonzero(mask)[1].reshape(n, k)
         rows = np.arange(n)[:, np.newaxis]
         for key in KEYPOINT_ALIGNED_DATA_FIELDS & data_selected.keys():
+            if key == KEYPOINT_COVARIANCE_DATA_FIELD and not (
+                _is_joint_aligned_covariance(self.data[key], self.xy.shape[:2])
+            ):
+                continue
             data_selected[key] = np.asarray(self.data[key])[rows, columns]
 
         return KeyPoints(
@@ -1297,6 +1402,10 @@ class KeyPoints:
         # fix-ups above only restore size-1 axes a scalar index dropped, so
         # reshaping to the leading axes of `xy` restores them here as well.
         for key in KEYPOINT_ALIGNED_DATA_FIELDS & data_selected.keys():
+            if key == KEYPOINT_COVARIANCE_DATA_FIELD and not (
+                _is_joint_aligned_covariance(self.data[key], self.xy.shape[:2])
+            ):
+                continue
             value = np.asarray(self.data[key])
             data_selected[key] = value[i, j].reshape(
                 xy_selected.shape[:2] + value.shape[2:]
@@ -1397,7 +1506,11 @@ class KeyPoints:
 
         Args:
             key: The key in the data dictionary to set.
-            value: The value to set for the key.
+            value: A list or array with one entry per object, or a zero-dimensional
+                NumPy array containing data shared across objects. Scalar arrays are
+                preserved by object selection but are not supported by
+                :meth:`~supervision.key_points.core.KeyPoints.merge`. Keypoint-aligned
+                data fields require object and keypoint dimensions.
 
         Examples:
             ```python
@@ -1431,6 +1544,12 @@ class KeyPoints:
             array(['person', 'dog'], dtype='<U6')
 
             ```
+
+        Raises:
+            TypeError: If `value` is not a `np.ndarray` or `list`.
+            ValueError: If `value` has one or more dimensions and its first
+                dimension does not match the number of objects in the
+                :class:`~supervision.key_points.core.KeyPoints` object.
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")
@@ -1438,6 +1557,7 @@ class KeyPoints:
         if isinstance(value, list):
             value = np.array(value)
 
+        _validate_data({key: value}, len(self))
         self.data[key] = value
 
     @classmethod
@@ -1603,6 +1723,24 @@ class KeyPoints:
             data=data,
         )
 
+    def _usable_mask(self) -> npt.NDArray[np.bool_]:
+        """Return the ``(n, m)`` mask of key points whose x/y position can be used.
+
+        A key point is usable when its x/y coordinates are finite, are not exactly
+        ``[0, 0]`` (the marker some frameworks use for a missing point), and, when
+        ``visible`` is set, it is marked visible; callers hide unreliable key points
+        that way instead of removing them. An extra coordinate such as depth is
+        ignored. :meth:`~supervision.key_points.core.KeyPoints.with_nms`,
+        :meth:`~supervision.key_points.core.KeyPoints.as_detections` and
+        :func:`~supervision.key_points.angles.joint_angles` share this rule.
+        """
+        xy = self.xy[..., :2]
+        not_missing = ~np.all(xy == 0, axis=-1)
+        usable: npt.NDArray[np.bool_] = not_missing & np.isfinite(xy).all(axis=-1)
+        if self.visible is not None:
+            usable &= self.visible.astype(bool)
+        return usable
+
     def with_nms(
         self,
         threshold: float = 0.5,
@@ -1692,11 +1830,8 @@ class KeyPoints:
         # A non-finite keypoint marks an undetected joint, so it must not reach the
         # box: `xy == 0` does not catch it and `np.min`/`np.max` propagate it into
         # every corner, leaving an all-`NaN` box that compares False against every
-        # IoU threshold and therefore suppresses nothing. `as_detections` applies
-        # the same rule.
-        valid = ~np.all(xy == 0, axis=-1) & np.isfinite(xy).all(axis=-1)
-        if self.visible is not None:
-            valid = valid & self.visible
+        # IoU threshold and therefore suppresses nothing.
+        valid = self._usable_mask()
         has_valid = valid.any(axis=1)
         x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1, initial=np.inf)
         y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1, initial=np.inf)
@@ -1748,6 +1883,11 @@ class KeyPoints:
         Returns:
             detections: The converted detections object.
 
+        Raises:
+            IndexError: If an index in `selected_keypoint_indices` is out of range
+                for the number of key points, also when there are no skeletons. A
+                zero-length key point axis is exempt from this check.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -1761,28 +1901,48 @@ class KeyPoints:
 
             ```
         """
-        # Inference can retain objects after every keypoint is omitted; an empty
-        # keypoint axis has no coordinates from which to construct a detection box.
-        if self.is_empty() or self.xy.shape[1] == 0:
-            return Detections.empty()
-
-        xy = self.xy[..., :2]
         indices: npt.NDArray[np.intp] | None = None
         if selected_keypoint_indices is not None:
             candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
             if candidate.size > 0:
                 indices = candidate
+        keypoint_count = self.xy.shape[1]
+        # Check indices before the empty return, so a frame without poses rejects
+        # the same indices as a frame with poses. A zero-length key point axis is
+        # exempt: Inference returns it when every joint was omitted.
+        if indices is not None and keypoint_count > 0:
+            out_of_range = (indices < -keypoint_count) | (indices >= keypoint_count)
+            if out_of_range.any():
+                raise IndexError(
+                    f"selected_keypoint_indices {indices[out_of_range].tolist()} "
+                    f"are out of range for {keypoint_count} key points."
+                )
+
+        # Inference can retain objects after every keypoint is omitted; an empty
+        # keypoint axis has no coordinates from which to construct a detection box.
+        if self.is_empty() or keypoint_count == 0:
+            # Drop every row but keep `data` keys and the class_id dtype, as for
+            # skeletons whose key points are all invalid. A missing class_id and the
+            # confidence stay empty arrays, as in `Detections.empty()`, so existing
+            # callers see the same fields as before.
+            count = len(self)
+            class_id = self.class_id
+            if class_id is None:
+                class_id = np.zeros(count, dtype=int)
+            detections = Detections(
+                xyxy=np.zeros((count, 4), dtype=np.float32),
+                confidence=np.zeros(count, dtype=np.float32),
+                class_id=class_id,
+                data=self.data,
+            )
+            return detections.select(np.zeros(count, dtype=bool))
+
+        xy = self.xy[..., :2]
+        valid = self._usable_mask()  # (N, M)
         if indices is not None:
             xy = xy[:, indices, :]
-
-        # [0, 0] is used by some frameworks to indicate a missing keypoint. Non-finite
-        # coordinates cannot form a valid detection box, so both cases are excluded.
-        valid = ~np.all(xy == 0, axis=2) & np.isfinite(xy).all(axis=2)  # (N, M)
-        # Callers hide unreliable keypoints through `visible` instead of removing
-        # them; `with_nms` already builds its boxes from visible keypoints only.
-        if self.visible is not None:
-            valid &= self.visible if indices is None else self.visible[:, indices]
-        has_valid = valid.any(axis=1)  # (N,)
+            valid = valid[:, indices]
+        has_valid = cast(npt.NDArray[np.bool_], valid.any(axis=1))  # (N,)
 
         x, y = xy[:, :, 0], xy[:, :, 1]
         x_min = np.where(valid, x, np.inf).min(axis=1)

@@ -8,6 +8,7 @@ import pytest
 from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    _color_for_canvas,
     _map_to_drawing_coordinates,
     draw_filled_polygon,
     draw_filled_rectangle,
@@ -456,6 +457,27 @@ class TestDrawImageSceneLayouts:
         np.testing.assert_array_equal(result[..., 3], np.full((4, 4), expected_alpha))
 
 
+class TestColorForCanvas:
+    @pytest.mark.parametrize(
+        ("canvas_shape", "expected"),
+        [
+            pytest.param((4, 4), (10,), id="grayscale-2d"),
+            pytest.param((4, 4, 1), (10,), id="grayscale-3d"),
+            pytest.param((4, 4, 3), (10, 20, 30), id="bgr"),
+            pytest.param((4, 4, 4), (10, 20, 30, 255), id="bgra"),
+        ],
+    )
+    def test_matches_canvas_channels(
+        self, canvas_shape: tuple[int, ...], expected: tuple[int, ...]
+    ) -> None:
+        """The pixel value has one entry per canvas channel; BGRA gets opaque alpha."""
+        canvas = np.zeros(canvas_shape, dtype=np.uint8)
+
+        result = _color_for_canvas((10, 20, 30), canvas)
+
+        assert result == expected
+
+
 _POLYGON = np.array([[5, 5], [40, 8], [35, 40], [8, 30]])
 _RECT = Rect(x=10, y=10, width=20, height=20)
 
@@ -559,6 +581,40 @@ class TestDrawOnBgraScene:
 
         np.testing.assert_allclose(result[20, 20], expected_pixel, atol=1)
         np.testing.assert_array_equal(result[45, 45], (40, 40, 40, scene_alpha))
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((0, 10, 4), id="no-rows"),
+            pytest.param((10, 0, 4), id="no-columns"),
+            pytest.param((0, 0, 4), id="no-pixels"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "draw",
+        [
+            pytest.param(
+                lambda scene: draw_filled_rectangle(scene, _RECT, Color.RED, 0.5),
+                id="filled-rectangle",
+            ),
+            pytest.param(
+                lambda scene: draw_filled_polygon(scene, _POLYGON, Color.RED, 0.5),
+                id="filled-polygon",
+            ),
+        ],
+    )
+    def test_translucent_fill_returns_empty_scene_unchanged(
+        self,
+        draw: Callable[[npt.NDArray[np.uint8]], npt.NDArray[np.uint8]],
+        shape: tuple[int, int, int],
+    ) -> None:
+        """A translucent fill on a zero-size BGRA scene returns that scene."""
+        scene = np.zeros(shape, dtype=np.uint8)
+
+        result = draw(scene)
+
+        assert result is scene
+        assert result.shape == shape
 
     @pytest.mark.parametrize("scene_alpha", [0, 128])
     def test_text_keeps_its_color_on_see_through_scene(self, scene_alpha: int) -> None:

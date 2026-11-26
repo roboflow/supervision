@@ -547,8 +547,9 @@ class DepthMap:
                 no metric scale for a camera to give, so it takes none.
 
         Raises:
-            ValueError: If the values are not a 2D float array, or the camera is
-                invalid or given for a `relative_inverse` map.
+            ValueError: If the values are not a 2D float array.
+            ValueError: If the camera is invalid or given for a `relative_inverse`
+                map.
         """
         array = np.asarray(values)
         if array.ndim != 2 or array.size == 0:
@@ -648,8 +649,9 @@ class DepthMap:
             A `relative_inverse` :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the result is a list or carries no `normalized_depth`, or
-                the depth is not a decodable single (H, W) map.
+            ValueError: If the result is a list.
+            ValueError: If the result carries no `normalized_depth`.
+            ValueError: If the depth is not a decodable single (H, W) map.
 
         Examples:
             ```python
@@ -708,8 +710,9 @@ class DepthMap:
             A `depth_m` :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the result is a list or carries no depth map, or the depth
-                is not a single (H, W) map.
+            ValueError: If the result is a list.
+            ValueError: If the result carries no depth map.
+            ValueError: If the depth is not a single (H, W) map.
 
         Examples:
             ```python
@@ -765,8 +768,10 @@ class DepthMap:
             A float32 :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the result is a list or has no `predicted_depth`, the depth
-                is not a single (H, W) map, or `kind` names no kind.
+            ValueError: If the result is a list.
+            ValueError: If the result has no `predicted_depth`.
+            ValueError: If the depth is not a single (H, W) map.
+            ValueError: If `kind` names no kind.
 
         Examples:
             ```python
@@ -815,8 +820,9 @@ class DepthMap:
             A float32 :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the file is not a single-channel 16-bit PNG, `scale` is
-                not a usable positive number, or `kind` names no kind.
+            ValueError: If the file is not a single-channel 16-bit PNG.
+            ValueError: If `scale` is not a usable positive number.
+            ValueError: If `kind` names no kind.
 
         Examples:
             ```python
@@ -861,7 +867,8 @@ class DepthMap:
 
         Raises:
             ValueError: If the file is not a valid grayscale PFM (bad header, scale
-                or truncated), or `kind` names no kind.
+                or truncated).
+            ValueError: If `kind` names no kind.
 
         Examples:
             ```python
@@ -884,8 +891,8 @@ class DepthMap:
             A `depth_m` map with float32 values.
 
         Raises:
-            ValueError: If the map is `relative_inverse`, or a disparity map without
-                a camera.
+            ValueError: If the map is `relative_inverse`.
+            ValueError: If the map is a disparity map without a camera.
         """
         if self.kind is DepthKind.DEPTH_M:
             return self
@@ -944,7 +951,8 @@ class DepthMap:
             A new :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the resolution is not positive or the method is unknown.
+            ValueError: If the resolution is not positive.
+            ValueError: If the method is unknown.
 
         Examples:
             ```pycon
@@ -1007,8 +1015,8 @@ class DepthMap:
             A new :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
-            ValueError: If the box is not four finite numbers or does not overlap
-                the map.
+            ValueError: If the box is not four finite numbers.
+            ValueError: If the box does not overlap the map.
 
         Examples:
             ```pycon
@@ -1153,8 +1161,8 @@ class DepthMap:
             columns) rather than copying them.
 
         Raises:
-            ValueError: If `resolution_wh` is not two positive integers, or the masks
-                do not match the map's size or `resolution_wh`.
+            ValueError: If `resolution_wh` is not two positive integers.
+            ValueError: If the masks do not match the map's size or `resolution_wh`.
 
         Examples:
             ```pycon

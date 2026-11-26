@@ -12,7 +12,10 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
-from supervision.utils.internal import _DEPRECATION_WARNING_STREAM
+from supervision.utils.internal import (
+    _DEPRECATION_TEMPLATE_KEYWORD,
+    _DEPRECATION_WARNING_STREAM,
+)
 
 PENDING_TRACK_COLOR = Color.GREY
 PENDING_TRACK_ID = -1
@@ -194,7 +197,7 @@ def _resolve_detection_color_idx(
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _DETECTION_COLOR_HELPER_DEPRECATION},
 )
 def resolve_color_idx(
     detections: Detections,
@@ -282,7 +285,7 @@ def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    template_mgs=_PALETTE_COLOR_HELPER_DEPRECATION,
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _PALETTE_COLOR_HELPER_DEPRECATION},
 )
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     """Deprecated: pick the color drawn for a palette index."""
@@ -327,7 +330,7 @@ def _resolve_detection_color(
     deprecated_in="0.32.0",
     remove_in="0.35.0",
     stream=_DEPRECATION_WARNING_STREAM,
-    template_mgs=_DETECTION_COLOR_HELPER_DEPRECATION,
+    **{_DEPRECATION_TEMPLATE_KEYWORD: _DETECTION_COLOR_HELPER_DEPRECATION},
 )
 def resolve_color(
     color: Color | ColorPalette,
@@ -739,7 +742,8 @@ def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
         Hex color string in the format "#RRGGBBAA".
 
     Raises:
-        ValueError: If `rgba` is not a 4-tuple or contains values outside 0-255.
+        ValueError: If `rgba` is not a 4-tuple.
+        ValueError: If `rgba` contains values outside 0-255.
 
     Examples:
         ```pycon

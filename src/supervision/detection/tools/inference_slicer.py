@@ -77,33 +77,54 @@ def move_detections(
     Returns:
         Repositioned Detections object.
     """
-    detections = detections.select(slice(None))
-    detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
-    if ORIENTED_BOX_COORDINATES in detections.data:
-        detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
-            xyxyxyxy=cast(
-                npt.NDArray[np.number], detections.data[ORIENTED_BOX_COORDINATES]
-            ),
+    if detections.mask is not None and resolution_wh is None:
+        raise ValueError(
+            "Resolution width and height are required for moving segmentation "
+            "detections. This should be the same as (width, height) of image shape."
+        )
+    # Build a fresh Detections without first copying the dense mask stack, since
+    # `move_masks` / `with_offset` immediately constructs a new relocated mask.
+    moved_xyxy = move_boxes(xyxy=detections.xyxy.copy(), offset=offset)
+    moved_data = {
+        key: value.copy() if isinstance(value, np.ndarray) else list(value)
+        for key, value in detections.data.items()
+    }
+    if ORIENTED_BOX_COORDINATES in moved_data:
+        moved_data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
+            xyxyxyxy=cast(npt.NDArray[np.number], moved_data[ORIENTED_BOX_COORDINATES]),
             offset=offset,
         )
-    if detections.mask is not None:
-        if resolution_wh is None:
-            raise ValueError(
-                "Resolution width and height are required for moving segmentation "
-                "detections. This should be the same as (width, height) of image shape."
-            )
-        if isinstance(detections.mask, CompactMask):
-            # Preserve move_masks clipping semantics without dense materialisation.
-            detections.mask = detections.mask.with_offset(
-                dx=int(offset[0]),
-                dy=int(offset[1]),
-                new_image_shape=(resolution_wh[1], resolution_wh[0]),
-            )
-        else:
-            detections.mask = move_masks(
-                masks=detections.mask, offset=offset, resolution_wh=resolution_wh
-            )
-    return detections
+    moved_mask: npt.NDArray[np.bool_] | CompactMask | None
+    if detections.mask is None:
+        moved_mask = None
+    elif isinstance(detections.mask, CompactMask):
+        assert resolution_wh is not None
+        # Snapshot callback-owned run arrays before the callback can reuse them.
+        moved_mask = detections.mask[:].with_offset(
+            dx=int(offset[0]),
+            dy=int(offset[1]),
+            new_image_shape=(resolution_wh[1], resolution_wh[0]),
+        )
+    else:
+        assert resolution_wh is not None
+        moved_mask = move_masks(
+            masks=detections.mask, offset=offset, resolution_wh=resolution_wh
+        )
+    return Detections(
+        xyxy=moved_xyxy,
+        mask=moved_mask,
+        confidence=(
+            detections.confidence.copy() if detections.confidence is not None else None
+        ),
+        class_id=(
+            detections.class_id.copy() if detections.class_id is not None else None
+        ),
+        tracker_id=(
+            detections.tracker_id.copy() if detections.tracker_id is not None else None
+        ),
+        data=moved_data,
+        metadata=dict(detections.metadata),
+    )
 
 
 class InferenceSlicer:
@@ -161,10 +182,9 @@ class InferenceSlicer:
             without ever materialising a full ``(N, H, W)`` array.
             Defaults to ``False`` for backward compatibility.
 
-            When ``compact_masks=True``, each detection's CompactMask crop spans
-            the entire slice tile bbox (not the tight detection bbox). Call
-            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
-            merged result to tighten crops to the detection bounding boxes.
+            Dense masks are cropped to their foreground before relocation from tile
+            coordinates to image coordinates. Masks returned in compact form keep
+            their existing crops, clipped to the image as needed.
         batch_size: Number of slices passed to the callback per call.
             Defaults to ``1``, which uses the single-image callback contract
             (``np.ndarray`` → :class:`~supervision.detection.core.Detections`).
@@ -178,8 +198,9 @@ class InferenceSlicer:
             Must be a positive integer.
 
     Raises:
-        ValueError: If ``slice_wh``, ``overlap_wh``, or ``thread_workers`` are
-            invalid or inconsistent.
+        ValueError: If ``slice_wh`` is invalid.
+        ValueError: If ``overlap_wh`` is invalid or inconsistent with ``slice_wh``.
+        ValueError: If ``thread_workers`` is invalid.
         ValueError: If ``batch_size < 1``.
         ValueError: If the callback returns a non-list when ``batch_size > 1``.
         ValueError: If the callback returns a list whose length differs from the
@@ -643,13 +664,8 @@ class InferenceSlicer:
             and isinstance(detections.mask, np.ndarray)
         ):
             slice_w, slice_h = get_image_resolution_wh(image_slice)
-            full_slice_xyxy = np.tile(
-                np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
-                (len(detections), 1),
-            )
-            compact_mask = CompactMask.from_dense(
+            compact_mask = CompactMask._from_dense_tight(
                 detections.mask,
-                full_slice_xyxy,
                 image_shape=(slice_h, slice_w),
             )
             # A shallow copy preserves callback buffers without copying dense masks.
@@ -740,13 +756,8 @@ class InferenceSlicer:
             ):
                 if det.mask is not None and isinstance(det.mask, np.ndarray):
                     slice_w, slice_h = get_image_resolution_wh(image_slice)
-                    full_slice_xyxy = np.tile(
-                        np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
-                        (len(det), 1),
-                    )
-                    compact_mask = CompactMask.from_dense(
+                    compact_mask = CompactMask._from_dense_tight(
                         det.mask,
-                        full_slice_xyxy,
                         image_shape=(slice_h, slice_w),
                     )
                     det = copy(det)

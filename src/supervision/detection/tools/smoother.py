@@ -159,6 +159,8 @@ class DetectionsSmoother:
         Detections with a negative `tracker_id` belong to tracks the tracker has not
         confirmed yet and may share one ID, so they are not smoothed and have no
         history. They are returned unchanged, after the smoothed tracks.
+        If a confirmed tracker ID appears more than once in a frame, only its
+        first detection contributes to the history and output.
         When the current frame has oriented corners but confirmed tracks cannot
         retain smoothed corners, all confirmed tracks use corners of their
         axis-aligned smoothed bounds so unconfirmed detections retain their original
@@ -186,9 +188,13 @@ class DetectionsSmoother:
         # Unconfirmed tracks share a negative ID; pooling them would average unrelated
         # boxes, so they skip the history and are returned unchanged.
         unconfirmed = tracker_ids < 0
+        active_ids: set[int] = set()
         for detection_idx in np.flatnonzero(~unconfirmed):
             idx = int(detection_idx)
             tracker_id = int(tracker_ids[idx])
+            if tracker_id in active_ids:
+                continue
+            active_ids.add(tracker_id)
             track = self.tracks[tracker_id]
             # Older history frames only contribute xyxy/confidence/OBB corners;
             # release stale masks on superseded entries so each track retains at
@@ -199,7 +205,6 @@ class DetectionsSmoother:
                     break
             track.append(detections.select(idx))
 
-        active_ids = set(tracker_ids[~unconfirmed].tolist())
         self._age_tracks(active_ids=active_ids)
         smoothed = self.get_smoothed_detections(track_ids=active_ids)
         if not unconfirmed.any():

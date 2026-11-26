@@ -9,6 +9,7 @@ from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.utils.internal import _to_numpy
 
 
 def process_transformers_detection_result(
@@ -22,10 +23,13 @@ def process_transformers_detection_result(
     class names instead of `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo give the index
     of the matched text query in `labels`, used as the class ID. Grounding DINO gives
     the matched phrases in `labels` instead, so its class IDs are `None`.
+    Class-agnostic results, such as SAM 3 `post_process_object_detection`, which has
+    no `labels`, and OWL-ViT and OWLv2 `post_process_image_guided_detection`, which
+    set them to `None`, also give `None` class IDs.
 
     Args:
         detection_result: Dictionary containing detection results with keys
-            'boxes', 'labels', and 'scores', and optionally 'text_labels'.
+            'boxes' and 'scores', and optionally 'labels' and 'text_labels'.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -36,23 +40,25 @@ def process_transformers_detection_result(
     """
     # Grounding DINO warns on reading `labels`, which repeats its `text_labels`;
     # the base `dict` lookup reads the entry without that warning.
-    labels = dict.__getitem__(detection_result, "labels")
+    labels = dict.get(detection_result, "labels")
     text_labels = detection_result.get("text_labels")
-    if isinstance(labels, list):
+    if labels is None:
+        class_ids, data = None, {}
+    elif isinstance(labels, list):
         # Phrases rather than query indices, so there is no class ID to give.
         class_ids = None
         phrases = labels if text_labels is None else text_labels
         data = {CLASS_NAME_DATA_FIELD: np.array(phrases, dtype=str)}
     else:
-        class_ids = labels.cpu().detach().numpy().astype(int)
+        class_ids = _to_numpy(labels.detach()).astype(int)
         if text_labels is None:
             data = append_class_names_to_data(class_ids, id2label, {})
         else:
             data = {CLASS_NAME_DATA_FIELD: np.array(text_labels, dtype=str)}
 
     return dict(
-        xyxy=detection_result["boxes"].cpu().detach().numpy(),
-        confidence=detection_result["scores"].cpu().detach().numpy(),
+        xyxy=_to_numpy(detection_result["boxes"].detach()),
+        confidence=_to_numpy(detection_result["scores"].detach()),
         class_id=class_ids,
         data=data,
     )
@@ -63,11 +69,12 @@ def process_transformers_v4_segmentation_result(
 ) -> dict[str, Any]:
     """Process the result of Transformers segmentation functions such as
     `post_process_panoptic`, `post_process_segmentation`, and `post_process_instance`
-    (v4).
+    (v4), and of SAM 3 `post_process_instance_segmentation`, whose `(N, H, W)` masks
+    come with boxes but without `labels`, so its class IDs are `None`.
 
     Args:
         segmentation_result: Dictionary containing segmentation results with keys
-            'masks', 'labels', and 'scores'.
+            'masks' and 'scores', and optionally 'labels'.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -83,16 +90,23 @@ def process_transformers_v4_segmentation_result(
     else:
         boxes = None
         if "boxes" in segmentation_result:
-            boxes = segmentation_result["boxes"].cpu().detach().numpy()
-        masks = segmentation_result["masks"].cpu().detach().numpy().astype(bool)
-        class_ids = segmentation_result["labels"].cpu().detach().numpy().astype(int)
+            boxes = _to_numpy(segmentation_result["boxes"].detach())
+        masks = _to_numpy(segmentation_result["masks"].detach()).astype(bool)
+        if boxes is not None and masks.ndim == 4:
+            masks = np.squeeze(masks, axis=1)
+        labels = segmentation_result.get("labels")
+        class_ids = None
+        data: dict[str, Any] = {}
+        if labels is not None:
+            class_ids = _to_numpy(labels.detach()).astype(int)
+            data = append_class_names_to_data(class_ids, id2label, data)
 
         return dict(
             xyxy=boxes if boxes is not None else mask_to_xyxy(masks),
-            mask=np.squeeze(masks, axis=1) if boxes is not None else masks,
-            confidence=segmentation_result["scores"].cpu().detach().numpy(),
+            mask=masks,
+            confidence=_to_numpy(segmentation_result["scores"].detach()),
             class_id=class_ids,
-            data=append_class_names_to_data(class_ids, id2label, {}),
+            data=data,
         )
 
 
@@ -128,7 +142,7 @@ def process_transformers_v5_segmentation_result(
             cast(dict[str, Any], segmentation_result), id2label
         )
 
-    segmentation_array = semantic_map.cpu().detach().numpy()
+    segmentation_array = _to_numpy(semantic_map.detach())
     return process_transformers_v5_panoptic_segmentation_result(
         segmentation_array, id2label
     )
@@ -155,7 +169,7 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
             scores, class IDs, and data.
     """
     segments_info = segmentation_result["segments_info"]
-    segmentation_array = segmentation_result["segmentation"].cpu().detach().numpy()
+    segmentation_array = _to_numpy(segmentation_result["segmentation"].detach())
     scores = np.array([segment["score"] for segment in segments_info], dtype=float)
     class_ids = np.array([segment["label_id"] for segment in segments_info], dtype=int)
     if len(segments_info) == 0:

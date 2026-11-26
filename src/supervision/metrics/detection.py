@@ -310,8 +310,9 @@ def detections_to_tensor(
         ValueError: If `detections.class_id` is `None`.
         ValueError: If `with_confidence=True` and `detections.confidence` is `None`.
         ValueError: If `metric_target` is `MetricTarget.ORIENTED_BOUNDING_BOXES`
-            and `detections.data` does not contain `ORIENTED_BOX_COORDINATES`,
-            or if the stored array does not have exactly `N * 8` elements.
+            and `detections.data` does not contain `ORIENTED_BOX_COORDINATES`.
+        ValueError: If `metric_target` is `MetricTarget.ORIENTED_BOUNDING_BOXES`
+            and the stored array does not have exactly `N * 8` elements.
 
     Examples:
         ```pycon
@@ -953,12 +954,14 @@ class ConfusionMatrix:
             New instance of ConfusionMatrix.
 
         Raises:
-            ValueError: If `predictions` and `targets` differ in length, if any
-                :class:`~supervision.detection.core.Detections` lacks
-                `class_id`, if a prediction lacks
-                `confidence`, or if `MetricTarget.MASKS` is requested and a
-                non-empty :class:`~supervision.detection.core.Detections` lacks
-                `mask` or the masks of one image differ in resolution.
+            ValueError: If `predictions` and `targets` differ in length.
+            ValueError: If any :class:`~supervision.detection.core.Detections` lacks
+                `class_id`.
+            ValueError: If a prediction lacks `confidence`.
+            ValueError: If `MetricTarget.MASKS` is requested and a non-empty
+                :class:`~supervision.detection.core.Detections` lacks `mask`.
+            ValueError: If `MetricTarget.MASKS` is requested and the masks of one
+                image differ in resolution.
 
         Examples:
             ```pycon
@@ -1450,10 +1453,17 @@ class ConfusionMatrix:
         array = self.matrix.astype(np.float64)
 
         if normalize:
-            eps = 1e-8
-            array = array / (array.sum(1).reshape(-1, 1) + eps)
+            # Divide only populated rows by their exact sums, so a row of many
+            # small shares still sums to 1 and an empty row stays all zero.
+            row_sums = array.sum(axis=1, keepdims=True)
+            array = np.divide(
+                array, row_sums, out=np.zeros_like(array), where=row_sums > 0
+            )
 
-        array[array < 0.005] = np.nan
+        # Hide only empty cells; a positive share too small to print stays visible
+        # in the heatmap and is skipped by the text cutoff below.
+        array[array <= 0] = np.nan
+        text_cutoff = 0.005
 
         fig, ax = plt.subplots(figsize=fig_size, tight_layout=True, facecolor="white")
 
@@ -1488,7 +1498,7 @@ class ConfusionMatrix:
             for i in range(array.shape[0]):
                 for j in range(array.shape[1]):
                     n_preds = array[i, j]
-                    if not np.isnan(n_preds):
+                    if n_preds >= text_cutoff:
                         ax.text(
                             j,
                             i,

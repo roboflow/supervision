@@ -5,6 +5,7 @@ from PIL import Image
 from supervision import _cv2 as cv2
 from supervision.draw.base import ImageType
 from supervision.utils.conversion import pillow_to_cv2
+from supervision.utils.image import _is_single_channel
 
 
 def plot_image(
@@ -16,7 +17,8 @@ def plot_image(
         image: The frame to be displayed ImageType
              is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
         size: The size of the plot in inches.
-        cmap: the colormap to use for single channel images.
+        cmap: the colormap to use for single channel images, shaped `(H, W)` or
+            `(H, W, 1)`.
 
     Examples:
         ```pycon
@@ -40,8 +42,10 @@ def plot_image(
 
     plt.figure(figsize=size)
 
-    if image_np.ndim == 2:
-        plt.imshow(image_np, cmap=cmap)
+    if _is_single_channel(image_np):
+        # An (H, W, 1) image is grayscale too; BGR to RGB conversion needs 3 or 4
+        # channels, so drop the channel axis and draw it with the colormap.
+        plt.imshow(image_np.reshape(image_np.shape[:2]), cmap=cmap)
     else:
         plt.imshow(cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB))
 
@@ -67,7 +71,8 @@ def plot_images_grid(
             Defaults to None.
        size: A tuple specifying the width and
             height of the entire plot in inches.
-       cmap: the colormap to use for single channel images.
+       cmap: the colormap to use for single channel images, shaped `(H, W)`
+            or `(H, W, 1)`.
 
     Raises:
        ValueError: If the number of images exceeds the grid size.
@@ -109,8 +114,8 @@ def plot_images_grid(
 
     for idx, ax in enumerate(axes.flat):
         if idx < len(images_np):
-            if images_np[idx].ndim == 2:
-                ax.imshow(images_np[idx], cmap=cmap)
+            if _is_single_channel(images_np[idx]):
+                ax.imshow(images_np[idx].reshape(images_np[idx].shape[:2]), cmap=cmap)
             else:
                 ax.imshow(cv2.cvtColor(images_np[idx], cv2.COLOR_BGR2RGB))
 
