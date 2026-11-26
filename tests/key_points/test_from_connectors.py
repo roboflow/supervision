@@ -1,5 +1,7 @@
 """Tests for the `KeyPoints.from_*` model connectors."""
 
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -47,19 +49,21 @@ from tests.helpers import (
                 xy=[[[100.0, 150.0], [120.0, 160.0]]],
                 confidence=[[0.9, 0.85]],
                 class_id=[1],
-                data={"class_name": np.array(["person"])},
+                data={"class_name": ["person"]},
             ),
         ),
         ({"predictions": []}, KeyPoints.empty()),
     ],
 )
-def test_from_inference_input(inference_results, expected_key_points):
+def test_from_inference_input(
+    inference_results: dict[str, Any], expected_key_points: KeyPoints
+) -> None:
     """Test the from_inference method with valid input."""
     key_points = KeyPoints.from_inference(inference_results)
     assert key_points == expected_key_points
 
 
-def test_from_inference_invalid_input():
+def test_from_inference_invalid_input() -> None:
     """Test the from_inference method with invalid input."""
     key_points = _create_key_points(
         xy=[[[0, 1], [2, 3]]], confidence=[[0.8, 0.9]], class_id=[0]
@@ -72,7 +76,7 @@ def test_from_inference_invalid_input():
 
 def _inference_keypoint(
     keypoint_id: int, xy: tuple[float, float], confidence: float
-) -> dict:
+) -> dict[str, Any]:
     """Build one key point the way Inference serializes it, with its skeleton index."""
     return {
         "x": xy[0],
@@ -83,7 +87,9 @@ def _inference_keypoint(
     }
 
 
-def _inference_pose_result(keypoint_lists: list[list[dict]]) -> dict:
+def _inference_pose_result(
+    keypoint_lists: list[list[dict[str, Any]]],
+) -> dict[str, Any]:
     """Wrap per-object key point lists in an Inference keypoint-detection response."""
     return {
         "image": {"width": 100, "height": 100},
@@ -144,9 +150,9 @@ class TestFromInferenceOmittedKeypoints:
     )
     def test_places_each_keypoint_at_its_skeleton_index(
         self,
-        keypoint_lists: list[list[dict]],
-        expected_xy: list,
-        expected_confidence: list,
+        keypoint_lists: list[list[dict[str, Any]]],
+        expected_xy: list[list[list[float]]],
+        expected_confidence: list[list[float]],
     ) -> None:
         """An omitted key point leaves its own slot empty instead of shifting others."""
         result = _inference_pose_result(keypoint_lists)
@@ -156,6 +162,7 @@ class TestFromInferenceOmittedKeypoints:
         np.testing.assert_array_equal(
             key_points.xy, np.array(expected_xy, dtype=np.float32)
         )
+        assert key_points.keypoint_confidence is not None
         np.testing.assert_allclose(
             key_points.keypoint_confidence,
             np.array(expected_confidence, dtype=np.float32),
@@ -199,9 +206,9 @@ class TestFromInferenceOmittedKeypoints:
 
         assert key_points.detection_confidence is not None
         np.testing.assert_allclose(key_points.detection_confidence, [0.9])
-        np.testing.assert_allclose(
-            key_points.as_detections().confidence, [0.9], rtol=1e-6
-        )
+        detections = key_points.as_detections()
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.9], rtol=1e-6)
 
     def test_mixed_prediction_confidence_uses_keypoint_mean_for_all(self) -> None:
         """One missing object score makes the batch use keypoint means throughout."""
@@ -222,9 +229,9 @@ class TestFromInferenceOmittedKeypoints:
         key_points = KeyPoints.from_inference(result)
 
         assert key_points.detection_confidence is None
-        np.testing.assert_allclose(
-            key_points.as_detections().confidence, [0.5, 0.7], rtol=1e-6
-        )
+        detections = key_points.as_detections()
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.5, 0.7], rtol=1e-6)
 
     def test_null_prediction_confidence_uses_keypoint_mean_for_all(self) -> None:
         """A null object score is treated as missing across the prediction batch."""
@@ -245,9 +252,9 @@ class TestFromInferenceOmittedKeypoints:
         key_points = KeyPoints.from_inference(result)
 
         assert key_points.detection_confidence is None
-        np.testing.assert_allclose(
-            key_points.as_detections().confidence, [0.5, 0.7], rtol=1e-6
-        )
+        detections = key_points.as_detections()
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.5, 0.7], rtol=1e-6)
 
     def test_objects_without_keypoints_keep_their_class(self) -> None:
         """Objects whose key points were all omitted still load, with no key points."""
@@ -424,9 +431,9 @@ class TestFromUltralytics:
 
         assert key_points.detection_confidence is not None
         np.testing.assert_allclose(key_points.detection_confidence, [0.95, 0.6])
-        np.testing.assert_allclose(
-            key_points.as_detections().confidence, [0.95, 0.6], rtol=1e-6
-        )
+        detections = key_points.as_detections()
+        assert detections.confidence is not None
+        np.testing.assert_allclose(detections.confidence, [0.95, 0.6], rtol=1e-6)
 
     @pytest.mark.parametrize("depth", [2, 3])
     def test_result_without_keypoints_is_empty(self, depth: int) -> None:
@@ -738,6 +745,7 @@ class TestFromDetectron2:
         np.testing.assert_array_equal(
             key_points.xy, [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]]
         )
+        assert key_points.keypoint_confidence is not None
         np.testing.assert_allclose(
             key_points.keypoint_confidence, [[0.9, 0.2], [0.3, 0.4]]
         )
@@ -774,7 +782,9 @@ class TestFromDetectron2:
         ),
     ],
 )
-def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
+def test_from_yolo_nas_input(
+    yolo_nas_results: _FakeYoloNasKeyPointResults, expected_key_points: KeyPoints
+) -> None:
     """Test the from_yolo_nas method with valid input."""
     key_points = KeyPoints.from_yolo_nas(yolo_nas_results)
     assert key_points == expected_key_points
@@ -885,7 +895,11 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
         ),  # multi_face_landmarks: legacy proto2; visibility always forced to 1.0
     ],
 )
-def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points):
+def test_from_mediapipe_input(
+    mediapipe_results: _FakeMediapipeResults,
+    resolution_wh: tuple[int, int],
+    expected_key_points: KeyPoints,
+) -> None:
     """Test the from_mediapipe method with valid input."""
     key_points = KeyPoints.from_mediapipe(
         mediapipe_results, resolution_wh=resolution_wh
@@ -947,7 +961,9 @@ class TestFromMediapipeHandedness:
             ),
         ],
     )
-    def test_maps_labels_to_class_id_and_keeps_score_in_data(self, mediapipe_results):
+    def test_maps_labels_to_class_id_and_keeps_score_in_data(
+        self, mediapipe_results: _FakeMediapipeResults
+    ) -> None:
         """Left/Right map to stable class ids and the score lands in `data`.
 
         Both MediaPipe generations report the same decision under different attribute
@@ -959,11 +975,13 @@ class TestFromMediapipeHandedness:
         )
 
         np.testing.assert_array_equal(key_points.class_id, np.array([0, 1]))
+        handedness_score = key_points.data[HANDEDNESS_SCORE_DATA_FIELD]
+        assert isinstance(handedness_score, np.ndarray)
         np.testing.assert_allclose(
-            key_points.data[HANDEDNESS_SCORE_DATA_FIELD], np.array([0.98, 0.75])
+            handedness_score.astype(np.float64), np.array([0.98, 0.75])
         )
 
-    def test_omits_handedness_when_absent(self):
+    def test_omits_handedness_when_absent(self) -> None:
         """Hand results without handedness keep `class_id` and `data` unset.
 
         Older callers and partial mocks supply landmarks alone; reading handedness must
@@ -997,7 +1015,9 @@ class TestFromMediapipeHandedness:
             ),
         ],
     )
-    def test_drops_handedness_when_it_cannot_align_with_hands(self, mediapipe_results):
+    def test_drops_handedness_when_it_cannot_align_with_hands(
+        self, mediapipe_results: _FakeMediapipeResults
+    ) -> None:
         """Misaligned or unrecognised handedness is dropped whole, never guessed.
 
         A per-hand fallback would silently shift every later `class_id` by one, so the
@@ -1010,7 +1030,7 @@ class TestFromMediapipeHandedness:
         assert key_points.class_id is None
         assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
 
-    def test_leaves_pose_results_untouched(self):
+    def test_leaves_pose_results_untouched(self) -> None:
         """Pose results keep their existing `class_id`/`data` behaviour.
 
         Handedness handling is additive for hand branches only; this pins that the pose
