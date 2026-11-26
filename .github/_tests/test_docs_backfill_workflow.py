@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import textwrap
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
@@ -1136,6 +1137,22 @@ REQUIREJS_PUBLISHED = (
     'require.min.js"></script>'
 )
 SEGMENT_PUBLISHED = '<script src="../javascripts/segment.js"></script>'
+MATHJAX_CONFIG_PUBLISHED = '<script src="../javascripts/mathjax.js"></script>'
+# A formula as pymdownx.arithmatex renders it: what the MathJax config typesets.
+ARITHMATEX_SPAN = r'<span class="arithmatex">\(|A \cap B|\)</span>'
+# The tag MathJax 3 is pinned to, by this script and by its first version alike.
+MATHJAX_3_PINNED = (
+    '<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" '
+    'integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/'
+    '1Nxveei" crossorigin="anonymous"></script>'
+)
+# The tag the script's first version pinned MathJax 2 to.
+MATHJAX_2_FIRST_PIN = (
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js'
+    '?config=TeX-AMS_CHTML-full,Safe" '
+    'integrity="sha384-vi9R4hb1goLJPJDHY+dOmXxcY3HGv6tJIwHxy5JunOTxJGHbsSuubPgl++'
+    'SNxYYi" crossorigin="anonymous"></script>'
+)
 
 
 def test_backfill_wires_the_cdn_pinning_script(workflow_step: StepLookup) -> None:
@@ -1168,12 +1185,6 @@ def test_backfill_drops_segment_only_after_the_carrier_step_anchored_on_it(
             id="mathjax-3-floating-major",
         ),
         pytest.param(
-            MATHJAX_2_PUBLISHED,
-            "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js"
-            "?config=TeX-AMS_CHTML-full,Safe",
-            id="mathjax-2-latest-js",
-        ),
-        pytest.param(
             DOMPURIFY_PUBLISHED,
             "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.5.0/purify.min.js",
             id="dompurify-3.0.8",
@@ -1186,18 +1197,18 @@ def test_pin_cdn_scripts_pins_each_published_tag_in_place(
     published: str,
     pinned_src: str,
 ) -> None:
-    """Swap a hash-less tag for a pinned one the browser checks, on the same line."""
+    """Swap a hash-less tag a page with math still needs for a pinned one, in place."""
     module = load_script("pin_cdn_scripts")
     page = tmp_path / "latest" / "index.html"
     page.parent.mkdir(parents=True)
-    page.write_text(f"<body>\n        {published}\n</body>")
+    page.write_text(f"<body>{ARITHMATEX_SPAN}\n        {published}\n</body>")
 
     rewritten, changes = module.patch_directory(page.parent)
 
     assert rewritten == [page]
     assert sum(changes.values()) == 1
     before, pinned, after = page.read_text().split("\n")
-    assert (before, after) == ("<body>", "</body>")
+    assert (before, after) == (f"<body>{ARITHMATEX_SPAN}", "</body>")
     assert re.fullmatch(
         rf'        <script src="{re.escape(pinned_src)}" '
         r'integrity="sha384-[A-Za-z0-9+/]{64}" crossorigin="anonymous"></script>',
@@ -1208,6 +1219,8 @@ def test_pin_cdn_scripts_pins_each_published_tag_in_place(
 @pytest.mark.parametrize(
     "published_line",
     [
+        pytest.param(MATHJAX_2_PUBLISHED, id="mathjax-2-latest-js"),
+        pytest.param(MATHJAX_2_FIRST_PIN, id="mathjax-2-first-pin"),
         pytest.param(REQUIREJS_PUBLISHED, id="requirejs"),
         pytest.param(
             '        <script src="javascripts/segment.js"></script>', id="segment-root"
@@ -1222,7 +1235,7 @@ def test_pin_cdn_scripts_pins_each_published_tag_in_place(
 def test_pin_cdn_scripts_drops_unused_tags_with_their_line(
     tmp_path: Path, load_script: Callable[[str], ModuleType], published_line: str
 ) -> None:
-    """Drop RequireJS and Segment, line and all, so no blank line takes their place."""
+    """Drop MathJax 2, RequireJS and Segment, line and all, leaving no blank line."""
     module = load_script("pin_cdn_scripts")
     page = tmp_path / "latest" / "index.html"
     page.parent.mkdir(parents=True)
@@ -1233,6 +1246,100 @@ def test_pin_cdn_scripts_drops_unused_tags_with_their_line(
     assert rewritten == [page]
     assert sum(changes.values()) == 1
     assert page.read_text() == "<body>\n  <p>kept</p>\n</body>"
+
+
+@pytest.mark.parametrize(
+    "mathjax_3_tag",
+    [
+        pytest.param(MATHJAX_3_PUBLISHED, id="published"),
+        pytest.param(MATHJAX_3_PINNED, id="pinned-by-the-first-version"),
+    ],
+)
+def test_pin_cdn_scripts_drops_mathjax_and_its_config_from_a_page_without_math(
+    tmp_path: Path, load_script: Callable[[str], ModuleType], mathjax_3_tag: str
+) -> None:
+    """Drop MathJax 3 and the config that drives it from a page with no formula."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        "<body>\n"
+        f"        {MATHJAX_CONFIG_PUBLISHED}\n"
+        f"        {mathjax_3_tag}\n"
+        "  <p>kept</p>\n"
+        "</body>"
+    )
+
+    _, changes = module.patch_directory(page.parent)
+
+    assert changes == Counter({"MathJax 3 dropped": 1, "MathJax config dropped": 1})
+    assert page.read_text() == "<body>\n  <p>kept</p>\n</body>"
+
+
+def test_pin_cdn_scripts_keeps_the_mathjax_config_on_a_page_with_math(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Pin MathJax 3 on a page with a formula and keep the config that drives it."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "0.26.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        f"{ARITHMATEX_SPAN}\n{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PUBLISHED}\n"
+    )
+
+    _, changes = module.patch_directory(page.parent)
+
+    assert changes == Counter({"MathJax 3 pinned": 1})
+    assert page.read_text() == (
+        f"{ARITHMATEX_SPAN}\n{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PINNED}\n"
+    )
+
+
+def test_pin_cdn_scripts_keeps_the_config_of_a_mathjax_it_does_not_know(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Leave the config alone where MathJax loads from somewhere this script skips."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    original = (
+        f"{MATHJAX_CONFIG_PUBLISHED}\n"
+        '<script src="../javascripts/vendor/mathjax/tex-mml-chtml.js"></script>\n'
+    )
+    page.write_text(original)
+
+    rewritten, _ = module.patch_directory(page.parent)
+
+    assert rewritten == []
+    assert page.read_text() == original
+
+
+@pytest.mark.parametrize(
+    ("math", "kept"),
+    [
+        pytest.param(
+            f"{ARITHMATEX_SPAN}\n",
+            f"{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PINNED}\n",
+            id="page-with-math",
+        ),
+        pytest.param("", "", id="page-without-math"),
+    ],
+)
+def test_pin_cdn_scripts_finishes_a_page_its_first_version_pinned(
+    tmp_path: Path, load_script: Callable[[str], ModuleType], math: str, kept: str
+) -> None:
+    """Drop the pins a page does not need from a page the first version rewrote."""
+    module = load_script("pin_cdn_scripts")
+    page = tmp_path / "0.26.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        f"{math}{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PINNED}\n"
+        f"{MATHJAX_2_FIRST_PIN}\n{module.DOMPURIFY_TAG}\n"
+    )
+
+    module.patch_directory(page.parent)
+
+    assert page.read_text() == f"{math}{kept}{module.DOMPURIFY_TAG}\n"
 
 
 def test_pin_cdn_scripts_is_idempotent(
@@ -1334,12 +1441,17 @@ def test_pin_cdn_scripts_main_reports_per_directory_and_total_counts(
     module = load_script("pin_cdn_scripts")
     (tmp_path / "latest").mkdir()
     (tmp_path / "latest" / "index.html").write_text(
-        f"{DOMPURIFY_PUBLISHED}\n{MATHJAX_3_PUBLISHED}\n{SEGMENT_PUBLISHED}\n"
+        f"{DOMPURIFY_PUBLISHED}\n{MATHJAX_CONFIG_PUBLISHED}\n{MATHJAX_3_PUBLISHED}\n"
+        f"{SEGMENT_PUBLISHED}\n"
     )
     (tmp_path / "develop").mkdir()
     (tmp_path / "0.24.0").mkdir()
     (tmp_path / "0.24.0" / "index.html").write_text(
         f"{REQUIREJS_PUBLISHED}\n{MATHJAX_2_PUBLISHED}\n"
+    )
+    (tmp_path / "0.26.0").mkdir()
+    (tmp_path / "0.26.0" / "index.html").write_text(
+        f"{ARITHMATEX_SPAN}\n{MATHJAX_3_PUBLISHED}\n"
     )
     monkeypatch.setattr(module.sys, "argv", ["pin_cdn_scripts.py", str(tmp_path)])
 
@@ -1347,10 +1459,12 @@ def test_pin_cdn_scripts_main_reports_per_directory_and_total_counts(
 
     assert exit_code == 0
     assert capsys.readouterr().out.splitlines() == [
-        "latest: rewrote 1 page(s) (MathJax 3 pinned 1, DOMPurify pinned 1, "
-        "Segment dropped 1)",
+        "latest: rewrote 1 page(s) (MathJax 3 dropped 1, MathJax config dropped 1, "
+        "DOMPurify pinned 1, Segment dropped 1)",
         "develop: rewrote 0 page(s)",
-        "0.24.0: rewrote 1 page(s) (MathJax 2 pinned 1, RequireJS dropped 1)",
-        "total: rewrote 2 page(s) (MathJax 3 pinned 1, MathJax 2 pinned 1, "
-        "DOMPurify pinned 1, RequireJS dropped 1, Segment dropped 1)",
+        "0.24.0: rewrote 1 page(s) (MathJax 2 dropped 1, RequireJS dropped 1)",
+        "0.26.0: rewrote 1 page(s) (MathJax 3 pinned 1)",
+        "total: rewrote 3 page(s) (MathJax 3 pinned 1, MathJax 3 dropped 1, "
+        "MathJax config dropped 1, MathJax 2 dropped 1, DOMPurify pinned 1, "
+        "RequireJS dropped 1, Segment dropped 1)",
     ]
