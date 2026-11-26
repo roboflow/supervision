@@ -19,6 +19,8 @@ date_modified: 2026-11-26
 
 - `sv.mask_non_max_merge` and `sv.Detections.with_nmm` now group dense boolean masks on bit-packed copies with NumPy >= 2.0, keeping the merged candidate packed between steps instead of casting it to float32 again at every step. Groups are identical, and the PR author measured 39-45x faster merging for 50-100 masks. `sv.mask_iou_batch`, `sv.mask_non_max_suppression`, `sv.mask_soft_non_max_suppression` and `sv.Detections.with_nms` count overlaps of boolean masks on bit-packed copies only when the float32 copies would not fit `memory_limit`, which cuts their peak memory about 16x with identical results. Otherwise they keep the float matrix product, which can be faster than packed counting on a multithreaded BLAS with several hundred masks. With NumPy >= 2.0, boolean masks that exceed the float limit now raise the `memory_limit` warning only when the packed buffers themselves exceed it; older NumPy and non-boolean masks keep the previous behaviour. ([#2886](https://github.com/roboflow/supervision/pull/2886))
 
+- Asset MD5 verification now reads bounded chunks instead of loading the complete file into memory, reducing peak Python allocations when checking cached videos. Hash comparison and download behavior are unchanged. ([#3031](https://github.com/roboflow/supervision/pull/3031))
+
 ### 0.32.3 <small>Nov 26, 2026</small>
 
 - **Detection**: oriented soft-NMS decays boxes by their rotated bodies, NMM and NMS keep precision at large coordinates and for float64 unions, and Ultralytics masks, 0-d indices and class-agnostic Transformers results load correctly.
