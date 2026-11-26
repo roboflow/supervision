@@ -4729,6 +4729,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p><code>sv.mask_non_max_merge</code> and <code>sv.Detections.with_nmm</code> now group dense boolean masks on bit-packed copies with NumPy &gt;= 2.0, keeping the merged candidate packed between steps instead of casting it to float32 again at every step. Groups are identical, and the PR author measured 39-45x faster merging for 50-100 masks. <code>sv.mask_iou_batch</code>, <code>sv.mask_non_max_suppression</code>, <code>sv.mask_soft_non_max_suppression</code> and <code>sv.Detections.with_nms</code> count overlaps of boolean masks on bit-packed copies only when the float32 copies would not fit <code>memory_limit</code>, which cuts their peak memory about 16x with identical results. Otherwise they keep the float matrix product, which can be faster than packed counting on a multithreaded BLAS with several hundred masks. With NumPy &gt;= 2.0, boolean masks that exceed the float limit now raise the <code>memory_limit</code> warning only when the packed buffers themselves exceed it; older NumPy and non-boolean masks keep the previous behaviour. (<a href="https://github.com/roboflow/supervision/pull/2886">#2886</a>)</p>
 </li>
+<li>
+<p>Asset MD5 verification now reads bounded chunks instead of loading the complete file into memory, reducing peak Python allocations when checking cached videos. Hash comparison and download behavior are unchanged. (<a href="https://github.com/roboflow/supervision/pull/3031">#3031</a>)</p>
+</li>
 </ul>
 <h3 id="0323-nov-26-2026">0.32.3 <small>Nov 26, 2026</small><a class="headerlink" href="#0323-nov-26-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -7279,7 +7282,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 12:12:06 UTC">November 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 12:46:24 UTC">November 26, 2026</span>
   </span>
 
     
@@ -7307,9 +7310,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Nikhila-Dhevi-R" class="md-author" title="@Nikhila-Dhevi-R">
+        <a href="https://github.com/voropaevv" class="md-author" title="@voropaevv">
           
-          <img src="https://avatars.githubusercontent.com/u/178061112?v=4&size=72" alt="Nikhila-Dhevi-R">
+          <img src="https://avatars.githubusercontent.com/u/43608848?v=4&size=72" alt="voropaevv">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7317,14 +7320,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Nikhila-Dhevi-R" class="md-author" title="@Nikhila-Dhevi-R">
+          
+          <img src="https://avatars.githubusercontent.com/u/178061112?v=4&size=72" alt="Nikhila-Dhevi-R">
+        </a>
+      
         <a href="https://github.com/SajjadPSavoji" class="md-author" title="@SajjadPSavoji">
           
           <img src="https://avatars.githubusercontent.com/u/44399382?v=4&size=72" alt="SajjadPSavoji">
-        </a>
-      
-        <a href="https://github.com/AhmetMert01" class="md-author" title="@AhmetMert01">
-          
-          <img src="https://avatars.githubusercontent.com/u/190357674?v=4&size=72" alt="AhmetMert01">
         </a>
       
       
