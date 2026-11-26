@@ -4605,6 +4605,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p>The minimum <code>pillow</code> is now <code>10.4</code> (was <code>9.4</code>) and the minimum <code>av</code> is now <code>15.1</code> (was <code>14.2</code>). The CI job that installs every dependency at its declared minimum showed that cropping to an empty region and drawing on 16-bit images fail with older Pillow, and that measuring the frame rate of a video with variable frame timing reads <code>VideoFrame.duration</code>, which PyAV <code>14.2</code> and <code>15.0</code> do not provide. <a href="https://github.com/roboflow/supervision/pull/3068">#3068</a></p>
 </li>
+<li>
+<p>Added <code>sv.DetectionDataset.empty</code> and <code>sv.DetectionDataset.add</code> to build a detection dataset image by image, for example from model predictions for semi-automatic annotation, before exporting it with <code>as_yolo</code>, <code>as_coco</code> or <code>as_pascal_voc</code>. <code>add</code> stores the image path and a copy of the annotation, validates class ids like the constructor, and raises <code>ValueError</code> for duplicate image paths or datasets holding in-memory images. (<a href="https://github.com/roboflow/supervision/pull/2868">#2868</a>)</p>
+</li>
 </ul>
 <h3 id="0323-nov-26-2026">0.32.3 <small>Nov 26, 2026</small><a class="headerlink" href="#0323-nov-26-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -7155,7 +7158,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 09:52:47 UTC">November 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 26, 2026 10:01:44 UTC">November 26, 2026</span>
   </span>
 
     
@@ -7183,9 +7186,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/rishi02102017" class="md-author" title="@rishi02102017">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/107503099?v=4&size=72" alt="rishi02102017">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7193,21 +7196,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/bhargavchintam" class="md-author" title="@bhargavchintam">
           
           <img src="https://avatars.githubusercontent.com/u/33771260?v=4&size=72" alt="bhargavchintam">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +38
+            +39
           </a>
         
       
