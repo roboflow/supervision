@@ -1,5 +1,7 @@
 """Regression tests for version-dependent output in the custom docs theme."""
 
+import base64
+import hashlib
 import json
 import re
 import shutil
@@ -286,3 +288,15 @@ def test_cookbooks_page_loads_the_vendored_dompurify(
     assert sources == ["../javascripts/vendor/purify.min.js"]
     vendored = repo_root / "docs" / "javascripts" / "vendor" / "purify.min.js"
     assert vendored.read_bytes().startswith(b"/*! @license DOMPurify ")
+
+
+def test_vendored_dompurify_matches_its_pinned_integrity(repo_root: Path) -> None:
+    """Fail when vendored DOMPurify differs from its pinned hash."""
+    pin_script = (repo_root / ".github" / "scripts" / "pin_cdn_scripts.py").read_text()
+    pinned = re.search(r'DOMPURIFY_INTEGRITY = \(\s*"(sha384-[^"]+)"', pin_script)
+    assert pinned is not None
+    vendored = repo_root / "docs" / "javascripts" / "vendor" / "purify.min.js"
+
+    digest = base64.b64encode(hashlib.sha384(vendored.read_bytes()).digest()).decode()
+
+    assert f"sha384-{digest}" == pinned.group(1)
