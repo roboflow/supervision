@@ -38,8 +38,8 @@ def _follow_border_fast(
 ) -> list[tuple[int, int]]:
     """Trace one border in 1-pixel padded coordinates using flat Python sequences.
 
-    Operates on flat byte and integer buffers with a 1-pixel zero border so each
-    step avoids NumPy scalar indexing, bounds checks, and tuple search. Returns `(x, y)`
+    Operates on flat byte and integer buffers with a 1-pixel zero border so each step
+    avoids NumPy scalar indexing, bounds checks, and tuple search. Returns `(x, y)`
     coordinates in unpadded crop space (shifted by `-1`).
     """
     neighbors = _NEIGHBORS
