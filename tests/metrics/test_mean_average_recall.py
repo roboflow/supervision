@@ -18,6 +18,73 @@ from supervision.utils.internal import SupervisionWarnings
 from tests.metrics.coco_reference import evaluate_detections
 
 
+class TestMeanAverageRecallResultParity:
+    def test_mask_recall_follows_logical_boolean_values(self) -> None:
+        """Identical foreground is recalled even when true bytes differ."""
+        boxes = np.array([[0, 0, 2, 1]], dtype=np.float32)
+        class_id = np.array([0])
+        predictions = Detections(
+            xyxy=boxes,
+            mask=np.ones((1, 1, 2), dtype=bool),
+            class_id=class_id,
+            confidence=np.array([0.9]),
+        )
+        target_mask = np.array([[[1, 255]]], dtype=np.uint8).view(np.bool_)
+        targets = Detections(xyxy=boxes, mask=target_mask, class_id=class_id)
+
+        result = (
+            MeanAverageRecall(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        np.testing.assert_array_equal(result.recall_per_class, np.ones((3, 1, 10)))
+        assert result.small_objects is not None
+        np.testing.assert_array_equal(
+            result.small_objects.recall_per_class, np.ones((3, 1, 10))
+        )
+
+    def test_oriented_target_with_area_and_no_corners_is_a_miss(self) -> None:
+        """An area-only oriented target yields zero recall."""
+        boxes = np.array([[0, 0, 10, 10]], dtype=np.float32)
+        class_id = np.array([0])
+        corners = np.array([[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=np.float32)
+        predictions = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        targets = Detections(
+            xyxy=boxes, class_id=class_id, data={AREA_DATA_FIELD: np.array([100.0])}
+        )
+
+        result = (
+            MeanAverageRecall(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        np.testing.assert_array_equal(result.recall_per_class, np.zeros((3, 1, 10)))
+        assert result.small_objects is not None
+        np.testing.assert_array_equal(
+            result.small_objects.recall_per_class, np.zeros((3, 1, 10))
+        )
+
+    def test_bucket_thresholds_have_independent_storage(self) -> None:
+        """Changing a bucket's thresholds leaves overall and sibling results intact."""
+        result = MeanAverageRecall().compute()
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+
+        result.small_objects.iou_thresholds[0] = 0
+
+        assert result.iou_thresholds[0] == 0.5
+        assert result.medium_objects.iou_thresholds[0] == 0.5
+        assert result.large_objects.iou_thresholds[0] == 0.5
+
+
 class TestMeanAverageRecallScalarMetadata:
     """Size buckets preserve data shared by every target."""
 
@@ -1194,3 +1261,84 @@ class TestMeanAverageRecallCocoSizeBuckets:
         boxes = np.array([[0, 0, 256, 256]], dtype=np.float16)
         areas = get_detection_areas(Detections(xyxy=boxes))
         np.testing.assert_allclose(areas, [65536.0])
+
+    def test_computes_per_image_iou_once_across_size_buckets(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Caching per-image IoU avoids recomputing IoU per COCO size bucket."""
+        import supervision.metrics.mean_average_recall as mar_mod
+        from supervision.detection.utils.iou_and_nms import (
+            box_iou_batch as original_box_iou,
+        )
+
+        calls = 0
+
+        def counting_box_iou(*args: Any, **kwargs: Any) -> np.ndarray:
+            """Count box_iou_batch invocations while delegating to original."""
+            nonlocal calls
+            calls += 1
+            return original_box_iou(*args, **kwargs)
+
+        monkeypatch.setattr(mar_mod, "box_iou_batch", counting_box_iou)
+        boxes = np.array(
+            [
+                [0, 0, 10, 10],  # small (100)
+                [100, 100, 160, 160],  # medium (3600)
+                [200, 200, 320, 320],  # large (14400)
+            ],
+            dtype=np.float32,
+        )
+        preds = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.8, 0.7], dtype=np.float32),
+            class_id=np.array([0, 0, 1], dtype=np.int32),
+        )
+        targets = Detections(
+            xyxy=boxes.copy(),
+            class_id=np.array([0, 0, 1], dtype=np.int32),
+        )
+
+        result = mar_mod.MeanAverageRecall().update([preds], [targets]).compute()
+
+        assert calls == 1
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+        assert result.mAR_at_100 == pytest.approx(1.0)
+        assert result.small_objects.mAR_at_100 == pytest.approx(1.0)
+        assert result.medium_objects.mAR_at_100 == pytest.approx(1.0)
+        assert result.large_objects.mAR_at_100 == pytest.approx(1.0)
+
+    def test_mask_target_raises_on_maskless_background_or_empty_preds(self) -> None:
+        """MetricTarget.MASKS rejects maskless inputs even on background/empty sides."""
+        maskless_preds = Detections(
+            xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0], dtype=np.int32),
+            data={"area": np.array([400.0], dtype=np.float32)},
+        )
+        ignored_target = Detections(
+            xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+            class_id=np.array([0], dtype=np.int32),
+            data={ISCROWD_DATA_FIELD: np.array([1])},
+        )
+        maskless_targets = Detections(
+            xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+            class_id=np.array([0], dtype=np.int32),
+            data={"area": np.array([400.0], dtype=np.float32)},
+        )
+
+        with pytest.raises(ValueError, match="masks"):
+            MeanAverageRecall(metric_target=MetricTarget.MASKS).update(
+                maskless_preds, Detections.empty()
+            ).compute()
+
+        with pytest.raises(ValueError, match="masks"):
+            MeanAverageRecall(metric_target=MetricTarget.MASKS).update(
+                maskless_preds, ignored_target
+            ).compute()
+
+        with pytest.raises(ValueError, match="masks"):
+            MeanAverageRecall(metric_target=MetricTarget.MASKS).update(
+                Detections.empty(), maskless_targets
+            ).compute()

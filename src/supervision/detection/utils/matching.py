@@ -105,28 +105,61 @@ def _match_detection_batch_with_target_indices(
         ```
     """
     num_predictions = predictions_classes.shape[0]
+    num_targets = target_classes.shape[0]
     num_iou_levels = iou_thresholds.shape[0]
     correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
     matched_targets = np.full((num_predictions, num_iou_levels), -1, dtype=np.int32)
+    if num_predictions == 0 or num_targets == 0 or num_iou_levels == 0:
+        return correct, matched_targets
+
     correct_class = target_classes[:, None] == predictions_classes
+    min_threshold = float(iou_thresholds.min())
+    base_mask = (iou >= min_threshold) & correct_class
+    if not base_mask.any():
+        return correct, matched_targets
 
-    for i, iou_level in enumerate(iou_thresholds):
-        candidate_pairs = (iou >= iou_level) & correct_class
-        if target_scored_mask is None:
-            match_rounds = [candidate_pairs]
-        else:
-            match_rounds = [
-                candidate_pairs & target_scored_mask[:, None],
-                candidate_pairs & ~target_scored_mask[:, None],
-            ]
+    def _prepare_sorted_pairs(
+        mask: npt.NDArray[np.bool_],
+    ) -> tuple[npt.NDArray[np.float32], list[int], list[int]]:
+        """Extract and sort candidate (target, pred) pairs once by descending IoU."""
+        t_idx, p_idx = np.nonzero(mask)
+        if len(t_idx) == 0:
+            return np.empty(0, dtype=np.float32), [], []
+        vals = iou[t_idx, p_idx]
+        order = np.argsort(-vals, kind="stable")
+        return vals[order], t_idx[order].tolist(), p_idx[order].tolist()
 
-        for round_pairs in match_rounds:
-            unmatched_predictions = matched_targets[:, i] < 0
-            matched_indices = np.where(round_pairs & unmatched_predictions)
+    # Pre-sort all candidate pairs once above the minimum threshold instead of
+    # re-running np.where + np.argsort on every threshold level.
+    if target_scored_mask is None:
+        rounds = [_prepare_sorted_pairs(base_mask)]
+    else:
+        rounds = [
+            _prepare_sorted_pairs(base_mask & target_scored_mask[:, None]),
+            _prepare_sorted_pairs(base_mask & ~target_scored_mask[:, None]),
+        ]
 
-            for target_idx, prediction_idx in _greedy_match(iou, matched_indices):
-                correct[prediction_idx, i] = True
-                matched_targets[prediction_idx, i] = target_idx
+    for i, iou_level in enumerate(iou_thresholds.tolist()):
+        pred_used = [False] * num_predictions
+        for sorted_vals, sorted_t, sorted_p in rounds:
+            if len(sorted_vals) == 0:
+                continue
+            # `sorted_vals` is descending, so all pairs >= iou_level form a prefix.
+            cutoff = int(np.searchsorted(-sorted_vals, -iou_level, side="right"))
+            if cutoff == 0:
+                continue
+            target_used = [False] * num_targets
+            for k in range(cutoff):
+                p = sorted_p[k]
+                if pred_used[p]:
+                    continue
+                t = sorted_t[k]
+                if target_used[t]:
+                    continue
+                target_used[t] = True
+                pred_used[p] = True
+                correct[p, i] = True
+                matched_targets[p, i] = t
 
     return correct, matched_targets
 
