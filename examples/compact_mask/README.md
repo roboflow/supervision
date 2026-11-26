@@ -527,7 +527,7 @@ Run on any machine — no GPU or real model required:
 uv run python examples/compact_mask/benchmark.py
 ```
 
-For a focused benchmark of the Roboflow inference-result parser API, run:
+`--section yolo` runs only the YOLO loading comparison and `--section matrix` only the synthetic matrix. For a focused benchmark of the Roboflow inference-result parser API (no GPU needed, but it downloads supervision assets and runs a real model), run:
 
 ```bash
 uv run python examples/compact_mask/bench_inference_api.py
@@ -565,23 +565,25 @@ The default run includes a `synthetic-dense-64` row (64×64 image, 4 fully-fille
 
 ### Sample results — inference API
 
+<!-- keep in sync: docs/how_to/use_compact_masks.md, "Performance Notes" table (`from_inference` row: speedup range and median). When this table changes, update that row. -->
+
 Measured on macOS Apple M4 Max, 50 reps after 3 warmups, using `rfdetr-seg-large` via Roboflow Inference.
 
 | src                        | res       | seg | dense ms | CM ms     | speedup | peak MB (dense/compact) | mask MB (dense/compact) | ok  |
 | -------------------------- | --------- | --- | -------- | --------- | ------- | ----------------------- | ----------------------- | --- |
-| synthetic-dense-64         | 64×64     | 4   | **0.03** | 0.11      | 0.31×   | 0.04 / 0.05             | 0.02 / 0.00             | ✓   |
-| people-walking.jpg         | 1920×1080 | 53  | 85.56    | **12.55** | 6.82×   | 219.86 / 0.11           | 109.90 / 0.02           | ✓   |
-| soccer.jpg                 | 398×224   | 21  | 1.36     | **1.07**  | 1.27×   | 3.77 / 0.05             | 1.87 / 0.00             | ✓   |
-| vehicles.mp4#269           | 3840×2160 | 7   | 46.03    | **2.60**  | 18×     | 116.13 / 0.07           | 58.06 / 0.00            | ✓   |
-| milk-bottling-plant.mp4#94 | 1920×1080 | 9   | 15.61    | **11.57** | 1.35×   | 37.34 / 0.53            | 18.66 / 0.03            | ✓   |
-| vehicles-2.mp4#637         | 1920×1080 | 47  | 76.87    | **13.59** | 5.66×   | 194.97 / 0.13           | 97.46 / 0.03            | ✓   |
-| grocery-store.mp4#501      | 3840×2160 | 4   | 27.20    | **4.36**  | 6.24×   | 66.36 / 0.22            | 33.18 / 0.01            | ✓   |
-| subway.mp4#649             | 2160×3840 | 42  | 325.71   | **32.21** | 10×     | 696.78 / 0.80           | 348.36 / 0.09           | ✓   |
-| market-square.mp4#237      | 2160×3840 | 96  | 732.98   | **27.24** | 27×     | 1592.61 / 0.22          | 796.26 / 0.05           | ✓   |
-| people-walking.mp4#170     | 1920×1080 | 60  | 100.99   | **12.69** | 7.96×   | 248.89 / 0.12           | 124.42 / 0.02           | ✓   |
-| beach-1.mp4#223            | 3840×2160 | 33  | 223.50   | **13.39** | 17×     | 547.47 / 0.12           | 273.72 / 0.02           | ✓   |
-| basketball-1.mp4#238       | 1920×1080 | 2   | 3.61     | **2.05**  | 1.76×   | 8.30 / 0.15             | 4.15 / 0.01             | ✓   |
-| skiing.mp4#176             | 1920×1080 | 11  | 16.47    | **3.07**  | 5.37×   | 45.63 / 0.08            | 22.81 / 0.01            | ✓   |
+| synthetic-dense-64         | 64×64     | 4   | **0.04** | 0.12      | 0.34×   | 0.04 / 0.05             | 0.02 / 0.00             | ✓   |
+| people-walking.jpg         | 1920×1080 | 54  | 73.22    | **10.48** | 6.99×   | 224.00 / 0.14           | 111.97 / 0.02           | ✓   |
+| soccer.jpg                 | 398×224   | 21  | 1.34     | **0.87**  | 1.54×   | 3.77 / 0.05             | 1.87 / 0.00             | ✓   |
+| vehicles.mp4#269           | 3840×2160 | 6   | 36.64    | **1.85**  | 20×     | 99.54 / 0.06            | 49.77 / 0.00            | ✓   |
+| milk-bottling-plant.mp4#94 | 1920×1080 | 10  | 17.22    | **11.85** | 1.45×   | 41.48 / 0.69            | 20.74 / 0.04            | ✓   |
+| vehicles-2.mp4#637         | 1920×1080 | 50  | 68.13    | **11.71** | 5.82×   | 207.41 / 0.15           | 103.68 / 0.03           | ✓   |
+| grocery-store.mp4#501      | 3840×2160 | 3   | 19.21    | **3.14**  | 6.11×   | 49.77 / 0.23            | 24.88 / 0.01            | ✓   |
+| subway.mp4#649             | 2160×3840 | 45  | 313.73   | **27.12** | 12×     | 746.54 / 0.73           | 373.25 / 0.09           | ✓   |
+| market-square.mp4#237      | 2160×3840 | 96  | 674.62   | **22.74** | 30×     | 1592.60 / 0.27          | 796.26 / 0.05           | ✓   |
+| people-walking.mp4#170     | 1920×1080 | 59  | 79.05    | **10.53** | 7.51×   | 244.74 / 0.15           | 122.34 / 0.02           | ✓   |
+| beach-1.mp4#223            | 3840×2160 | 32  | 195.42   | **11.00** | 18×     | 530.88 / 0.11           | 265.42 / 0.02           | ✓   |
+| basketball-1.mp4#238       | 1920×1080 | 2   | 3.80     | **1.75**  | 2.17×   | 8.30 / 0.15             | 4.15 / 0.01             | ✓   |
+| skiing.mp4#176             | 1920×1080 | 11  | 15.83    | **2.56**  | 6.18×   | 45.63 / 0.08            | 22.81 / 0.01            | ✓   |
 
 - **seg** — number of instance segmentations returned by the model
 - **dense ms / CM ms** — median parse time for `from_inference()` vs `from_inference(compact_masks=True)`
@@ -605,26 +607,25 @@ Dense timing is skipped automatically when the dense IoU/NMS array would exceed 
 
 ### Sample results (macOS, Apple M4 Max, REPS=4)
 
-| Scenario         | Dense mem | Compact theor. | Mem x   | Area x | Filter x | Annot x | IoU x | NMS x | Merge x  | Offset x | Centroids x |
-| ---------------- | --------- | -------------- | ------- | ------ | -------- | ------- | ----- | ----- | -------- | -------- | ----------- |
-| FHD-100-5%-v8    | 207 MB    | 28 KB          | 7 418x  | —      | —        | —       | —     | —     | —        | —        | —           |
-| FHD-100-50%-v600 | 207 MB    | 913 KB         | 227x    | —      | —        | —       | —     | —     | —        | —        | —           |
-| FHD-200-50%-v600 | 415 MB    | 933 KB         | 445x    | 71x    | 500x     | 22x     | 446x  | 481x  | 929x     | 2 016x   | 13x         |
-| FHD-400-5%-v8    | 829 MB    | 60 KB          | 13 937x | —      | —        | —       | —     | —     | —        | —        | —           |
-| 4K-100-5%-v8     | 829 MB    | 53 KB          | 15 554x | —      | —        | —       | —     | —     | —        | —        | —           |
-| 4K-100-20%-v128  | 829 MB    | 586 KB         | 1 415x  | —      | —        | —       | —     | —     | —        | —        | —           |
-| 4K-200-5%-v8     | 1 659 MB  | 76 KB          | 21 786x | —      | —        | —       | —     | —     | —        | —        | —           |
-| SAT-200-5%-v8    | 13 422 MB | 213 KB         | 62 968x | 6 942x | 30 255x  | 204x    | †     | †     | 105 545x | 251 629x | 2 173x      |
-| SAT-200-20%-v128 | 13 422 MB | 2 596 KB       | 5 171x  | 1 204x | 14 757x  | 89x     | †     | †     | 89 046x  | 290 779x | 857x        |
-| SAT-200-50%-v600 | 13 422 MB | 14 222 KB      | 944x    | —      | —        | —       | †     | †     | —        | —        | —           |
+| Scenario         | Dense mem | Compact theor. | Mem x   | Area x | Filter x | Annot x | IoU x | NMS x | Merge x  | Offset x | Centroids x | Resize x |
+| ---------------- | --------- | -------------- | ------- | ------ | -------- | ------- | ----- | ----- | -------- | -------- | ----------- | -------- |
+| FHD-100-5%-v8    | 207 MB    | 29 KB          | 7 281x  | 179x   | 57x      | 2.6x    | 220x  | 369x  | 201x     | 1 599x   | 51x         | 2.7x     |
+| FHD-100-50%-v600 | 207 MB    | 910 KB         | 228x    | 28x    | 7.0x     | 1.2x    | 15x   | 15x   | 65x      | 345x     | 5.9x        | 1.9x     |
+| FHD-200-50%-v600 | 415 MB    | 958 KB         | 433x    | 13x    | 10x      | 1.9x    | 38x   | 23x   | 169x     | 1 623x   | 10x         | 4.0x     |
+| FHD-400-5%-v8    | 829 MB    | 60 KB          | 13 857x | 78x    | 263x     | 4.1x    | 257x  | 178x  | 608x     | 1 613x   | 166x        | 13x      |
+| 4K-100-5%-v8     | 829 MB    | 55 KB          | 15 229x | 371x   | 472x     | 6.2x    | 84x   | 59x   | 634x     | 2 927x   | 331x        | 32x      |
+| 4K-100-20%-v128  | 829 MB    | 538 KB         | 1 541x  | 50x    | 59x      | 2.7x    | 50x   | 44x   | 651x     | 2 359x   | 176x        | 17x      |
+| 4K-200-5%-v8     | 1 659 MB  | 75 KB          | 22 095x | 946x   | 397x     | 7.7x    | †     | †     | 1 465x   | 14 210x  | 415x        | 41x      |
+| SAT-200-5%-v8    | 13 422 MB | 211 KB         | 63 726x | 4 332x | 13 137x  | 21x     | †     | †     | 112 345x | 172 920x | 2 558x      | 1 949x   |
+| SAT-200-20%-v128 | 13 422 MB | 2 532 KB       | 5 300x  | 724x   | 1 259x   | 6.8x    | †     | †     | 87 569x  | 153 104x | 938x        | 886x     |
+| SAT-200-50%-v600 | 13 422 MB | 14 310 KB      | 938x    | 282x   | 382x     | 3.2x    | †     | †     | 72 512x  | 164 838x | 320x        | 440x     |
 
 - **Compact theor.** — sum of internal numpy buffer `nbytes`
 - **Mem x** — dense / compact theoretical ratio
-- **Area x / Filter x / Annot x / IoU x / NMS x / Merge x / Offset x / Centroids x** — compact speedup over dense for each operation
+- **Area x / Filter x / Annot x / IoU x / NMS x / Merge x / Offset x / Centroids x / Resize x** — compact speedup over dense for each operation
 - **†** — dense IoU+NMS skipped (dense array > 1 GB); compact still runs and is timed
-- **—** — not shown; full per-scenario tables are printed by the benchmark script
 
-All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `to_dense()` roundtrip.
+Ten representative scenarios out of the 54 in the matrix; the full per-scenario tables are printed by the benchmark script and saved to `results_<timestamp>.csv` / `.jsonl` next to it. All scenarios pass: pixel-perfect annotation, exact area, lossless `to_dense()` roundtrip, and matching IoU, NMS, merge, offset, centroids and resize results.
 
 ______________________________________________________________________
 
@@ -648,11 +649,33 @@ ______________________________________________________________________
 
 ## Non-Maximum Merging Benchmark
 
-Run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096` on each revision to compare compact `Detections.with_nmm`. It holds twelve 64×64 mask crops fixed while varying the logical canvas. Solid, checkerboard and seeded random masks expose the effect of RLE fragmentation. No model, image download or GPU is required.
+<!-- keep in sync: docs/how_to/use_compact_masks.md, NMM paragraph (200-pixel checkerboard and solid peak/time figures). When this section changes, update that paragraph. -->
+
+Run on any machine — no GPU or real model required:
+
+```bash
+uv run python examples/compact_mask/benchmark_nmm.py
+```
+
+Run it on each revision to compare compact `Detections.with_nmm`. By default it holds twelve 64×64 mask crops fixed while varying the logical canvas (512, 2048 and 4096). Solid, checkerboard and seeded random masks expose the effect of RLE fragmentation. Everything is synthesized with NumPy, so no model, image download or GPU is needed.
 
 The output table includes input RLE count, median uninstrumented wall time, peak traced allocation measured in separate calls, and output count/area. The memory number is Python/NumPy allocation tracked by `tracemalloc`, not process RSS. Input construction is excluded. `--crop-size`, `--duplicates` (default: three per group) and `--repeats` control crop size, group size and repetitions. After the compact NMM union change, `--canvas 100000` can demonstrate that increasing canvas dimensions alone no longer allocates full image unions. Avoid that size when benchmarking the old implementation, which materializes several complete images.
 
 The RLE union sorts `K` foreground column intervals. Mask fragmentation and the columns foreground runs cross determine `K`; enlarging the canvas with fixed encoded crops does not. A cheap O(masks) run-count check (`_should_union_densely`) flags mask sets fragmented enough that the sort would cost more than a single dense pass, and unions those via a bbox-local dense OR instead — bounded to a 16 Mi-pixel bbox so it never re-introduces the full-canvas materialization this union function exists to avoid. Above that bbox cap, the interval path runs regardless of fragmentation, since a dense fallback there would cost more memory, not less. NMM overlap evaluation still decodes overlapping crops, and large or loose crops remain expensive.
+
+Default sweep on the current implementation (`uv run python examples/compact_mask/benchmark_nmm.py`, three duplicates in each of four groups). Time and traced peak are identical across canvas sizes within noise, since fixed encoded crops do not grow with the canvas:
+
+| Canvas | Crop | Pattern      | Input RLE runs | Output area | Time (median, ms) | Peak traced (MiB) |
+| ------ | ---- | ------------ | -------------- | ----------- | ----------------- | ----------------- |
+| 512    | 64   | solid        | 24             | 16384       | 1.367             | 0.045             |
+| 512    | 64   | checkerboard | 48408          | 8192        | 1.636             | 0.551             |
+| 512    | 64   | random       | 24048          | 8308        | 2.373             | 0.417             |
+| 2048   | 64   | solid        | 24             | 16384       | 1.341             | 0.044             |
+| 2048   | 64   | checkerboard | 48408          | 8192        | 1.546             | 0.551             |
+| 2048   | 64   | random       | 24048          | 8308        | 2.361             | 0.417             |
+| 4096   | 64   | solid        | 24             | 16384       | 1.387             | 0.045             |
+| 4096   | 64   | checkerboard | 48408          | 8192        | 1.578             | 0.551             |
+| 4096   | 64   | random       | 24048          | 8308        | 2.487             | 0.417             |
 
 Measured on Python 3.13.15 / NumPy 2.3.1, comparing the parent of `035079270` (dense unions) with the current fragmentation-aware implementation. Both revisions used the same benchmark script, with four disjoint groups in a 2×2 grid. Peak columns are maximum traced allocation over three complete NMM calls, excluding input construction; time columns are median wall time of the same calls, uninstrumented.
 
@@ -671,7 +694,7 @@ Ratios in parentheses are interval/dense; under 1× means the interval path wins
 
 This does not eliminate the tradeoff in general, only bounds where it can occur: the dense fallback is capped at a 16 Mi-pixel union bbox specifically so a handful of tiny, widely separated fragmented crops cannot force a large dense allocation. A single mask crop larger than 4096×4096 pixels exceeds that cap and takes the interval path regardless of fragmentation, paying the full `K log K` sort with no dense fallback — measured at 4100×4100 (just past the cap, three duplicates): 2,309 MiB / 1,371 ms, the same order of cost as the forced-interval comparison above. The theoretical worst case from before persists only past this exact boundary, for a single object that size — not exercised by the table rows.
 
-Reproduce the small-object row with `python examples/compact_mask/benchmark_nmm.py --crop-size 32 --canvas 512 --duplicates 50 --pattern checkerboard solid --repeats 3`, and the large-crop rows with `python examples/compact_mask/benchmark_nmm.py --crop-size 400 --canvas 1024 2048 4096 --pattern checkerboard solid --repeats 3`, on the current implementation; check out the parent of `035079270` for the dense-union baseline. Foreground area matched between revisions per row: 2,048 (32×32 checkerboard) / 4,096 (32×32 solid) / 320,000 (400×400 checkerboard) / 640,000 (400×400 solid). Absolute measurements depend on the Python/NumPy environment.
+Reproduce the small-object row with `uv run python examples/compact_mask/benchmark_nmm.py --crop-size 32 --canvas 512 --duplicates 50 --pattern checkerboard solid --repeats 3`, and the large-crop rows with `uv run python examples/compact_mask/benchmark_nmm.py --crop-size 400 --canvas 1024 2048 4096 --pattern checkerboard solid --repeats 3`, on the current implementation; check out the parent of `035079270` for the dense-union baseline. Foreground area matched between revisions per row: 2,048 (32×32 checkerboard) / 4,096 (32×32 solid) / 320,000 (400×400 checkerboard) / 640,000 (400×400 solid). Absolute measurements depend on the Python/NumPy environment.
 
 ______________________________________________________________________
 

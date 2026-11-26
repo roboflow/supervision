@@ -209,7 +209,9 @@ The same path is used by `InferenceSlicer(compact_masks=True, overlap_filter=sv.
 
 Union cost depends on the number of foreground column intervals (`K`), determined by mask fragmentation and the columns foreground runs cross, not by the logical canvas area. Highly fragmented masks can take more time and temporary memory than a dense union, including with large crops. Holding the encoded crops fixed keeps this interval cost independent of canvas size. Overlap evaluation still decodes overlapping crops and allocates pairwise overlap arrays, so a very large or loose crop can still be expensive. This change removes the additional full-image union allocations.
 
-A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096`. To expose fragmentation overhead, run `python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard`: twelve masks in four groups of three duplicates increased peak traced NMM allocation from **4.34 MiB to 7.79 MiB (1.79×)** when comparing the pre-change dense-union implementation with the interval implementation (maximum of three repeats; input construction excluded). This measures the complete NMM call, not just union storage; see the [benchmark results](https://github.com/roboflow/supervision/tree/develop/examples/compact_mask#non-maximum-merging-benchmark) for the matching solid-mask case.
+<!-- keep in sync: examples/compact_mask/README.md, section "Non-Maximum Merging Benchmark". When either changes, update the other. -->
+
+A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run `uv run python examples/compact_mask/benchmark_nmm.py`. To expose fragmentation overhead, run `uv run python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard`: twelve masks in four groups of three duplicates peak at **4.34 MiB and 6.2 ms** per NMM call. Heavily fragmented masks like this checkerboard are unioned through a bbox-local dense OR, which matches the pre-change dense-union peak of 4.34 MiB. The earlier interval-only implementation increased that peak to **7.79 MiB (1.79×)** (maximum of three repeats; input construction excluded). This measures the complete NMM call, not just union storage; the matching solid-mask case peaks at 0.14 MiB and 2.0 ms. See the [benchmark results](https://github.com/roboflow/supervision/tree/develop/examples/compact_mask#non-maximum-merging-benchmark) for more rows.
 
 ---
 
@@ -228,7 +230,7 @@ ds = sv.DetectionDataset.from_yolo(
 )
 ```
 
-Compression depends on mask complexity: it usually reduces retained memory, but highly fragmented masks can use more memory than dense storage. See [Process Datasets](process_datasets.md) for the full loading options and caveats. A reproducible benchmark is available with `python examples/compact_mask/benchmark.py --section yolo` from a repository checkout.
+Compression depends on mask complexity: it usually reduces retained memory, but highly fragmented masks can use more memory than dense storage. See [Process Datasets](process_datasets.md) for the full loading options and caveats. A reproducible benchmark is available with `uv run python examples/compact_mask/benchmark.py --section yolo` from a repository checkout.
 
 ---
 
@@ -236,12 +238,15 @@ Compression depends on mask complexity: it usually reduces retained memory, but 
 
 These estimates apply to the **parsing and annotation stage**, not end-to-end pipeline FPS. Model inference typically dominates total runtime.
 
-| Optimisation                 | Realistic gain             | Applies when                                                  |
-| ---------------------------- | -------------------------- | ------------------------------------------------------------- |
-| `from_coco_rle` ingestion    | 25–60% faster parse        | Full-frame COCO RLE payload; current dense decode path        |
-| `MaskAnnotator` ROI blending | 10–35% faster annotation   | Many small, sparse masks on high-res frames                   |
-| `PolygonAnnotator` crop path | 15–45% faster polygon draw | Many compact masks; full-frame materialise was the bottleneck |
-| Mixed-mask merge             | 5–20% faster merge         | Mix of compact and dense sources (e.g. multi-camera stitch)   |
+<!-- keep in sync: the `from_inference` row below mirrors examples/compact_mask/README.md, table "Sample results — inference API". When either changes, update the other. -->
+
+| Optimisation                 | Realistic gain                     | Applies when                                                        |
+| ---------------------------- | ---------------------------------- | ------------------------------------------------------------------- |
+| `from_inference` ingestion   | 1.4–30× faster parse (median 6.6×) | Native RLE masks on real frames; slower on tiny, fully filled masks |
+| `from_coco_rle` ingestion    | 25–60% faster parse                | Full-frame COCO RLE payload; current dense decode path              |
+| `MaskAnnotator` ROI blending | 10–35% faster annotation           | Many small, sparse masks on high-res frames                         |
+| `PolygonAnnotator` crop path | 15–45% faster polygon draw         | Many compact masks; full-frame materialise was the bottleneck       |
+| Mixed-mask merge             | 5–20% faster merge                 | Mix of compact and dense sources (e.g. multi-camera stitch)         |
 
 Upper-end gains assume: ≥1080p frames, tens to hundreds of instances, masks covering less than ~20% of total pixels.
 

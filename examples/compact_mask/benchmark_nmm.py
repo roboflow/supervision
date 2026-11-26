@@ -1,14 +1,15 @@
 """Measure compact NMM with fixed mask crops and varying canvas/fragmentation.
 
-Run from the checkout being measured (NumPy and supervision are sufficient)::
+Run with:
+    uv run python examples/compact_mask/benchmark_nmm.py
 
-    python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096
-    python examples/compact_mask/benchmark_nmm.py --canvas 512 --crop-size 200 \\
-        --pattern checkerboard
-    python examples/compact_mask/benchmark_nmm.py --canvas 512 --crop-size 200 \\
-        --pattern solid
+``--canvas``, ``--crop-size``, ``--pattern``, ``--duplicates`` and ``--repeats`` select
+the scenario. For example, ``uv run python examples/compact_mask/benchmark_nmm.py
+--canvas 512 --crop-size 200 --pattern checkerboard``.
 
-Compare the same command on the base and proposed revisions. Input construction is
+No GPU or real model is required — everything is synthesized with NumPy. Run from the
+checkout being measured and compare the same command on the base and proposed
+revisions. Input construction is
 excluded from measurements. Python and NumPy allocations are measured by tracemalloc;
 this is peak traced allocation during NMM, not process RSS or GPU memory. Each table row
 reports median uninstrumented wall time and maximum traced peak from separate calls over
@@ -21,6 +22,7 @@ measures a large, clean mask with the same crop and canvas dimensions.
 
 import argparse
 import gc
+import shutil
 import statistics
 import time
 import tracemalloc
@@ -33,7 +35,12 @@ from rich.table import Table
 import supervision as sv
 from supervision.detection.compact_mask import CompactMask
 
-console = Console(width=140, force_terminal=True)
+# Width of the results table; the table and console share it so they line up.
+REPORT_WIDTH = 110
+console = Console(
+    width=min(REPORT_WIDTH, shutil.get_terminal_size((REPORT_WIDTH, 24)).columns),
+    force_terminal=True,
+)
 
 GROUP_COUNT = 4
 
@@ -109,6 +116,7 @@ def build_table(rows: list[dict[str, int | float | str]]) -> Table:
         title="Compact NMM union benchmark",
         box=box.ROUNDED,
         header_style="bold",
+        width=console.width,
     )
     table.add_column("Canvas", justify="right")
     table.add_column("Crop", justify="right")

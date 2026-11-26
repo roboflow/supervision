@@ -34,6 +34,7 @@ import dataclasses
 import gc
 import json
 import math
+import shutil
 import statistics
 import subprocess
 import sys
@@ -69,7 +70,12 @@ try:
 except ImportError:  # Windows has no POSIX resource module
     resource = None
 
-console = Console(width=240, force_terminal=True)
+# Width of the summary table; section rules and tables share it so they line up.
+REPORT_WIDTH = 258
+console = Console(
+    width=min(REPORT_WIDTH, shutil.get_terminal_size((REPORT_WIDTH, 24)).columns),
+    force_terminal=True,
+)
 
 REPETITIONS = 4
 # How many reps to run concurrently in time_reps. Each thread times itself
@@ -970,7 +976,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
         box=box.ROUNDED,
         show_lines=True,
         header_style="bold cyan",
-        min_width=console.width,
+        width=console.width,
     )
     table.add_column("Scenario", style="bold", min_width=22)
     table.add_column("Objects", justify="right", min_width=7)
