@@ -9,7 +9,7 @@ from supervision.detection._geometry_dispatch import detection_area, detection_i
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     OverlapMetric,
     box_iou_batch,
     mask_iou_batch,

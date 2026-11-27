@@ -6,11 +6,8 @@ import pytest
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
-from supervision.detection.utils.iou_and_nms import (
-    OverlapMetric,
-    OverlapOn,
-    _box_weighted_box_fusion,
-)
+from supervision.detection.utils.iou import OverlapMetric, OverlapOn
+from supervision.detection.utils.nms import _box_weighted_box_fusion
 
 
 def _pair(**overrides: object) -> Detections:

@@ -54,10 +54,15 @@ from supervision.detection.utils.internal import (
     process_semantic_segmentation,
     read_semantic_result,
 )
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     OverlapMetric,
     OverlapOn,
     _validate_iou_threshold,
+)
+from supervision.detection.utils.masks import (
+    calculate_masks_centroids,
+)
+from supervision.detection.utils.nms import (
     _validate_num_models,
     box_non_max_merge,  # noqa: F401  (re-exported for existing imports from this module)
     box_non_max_suppression,  # noqa: F401
@@ -68,9 +73,6 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_non_max_merge,  # noqa: F401
     oriented_box_non_max_suppression,  # noqa: F401
     oriented_box_soft_non_max_suppression,  # noqa: F401
-)
-from supervision.detection.utils.masks import (
-    calculate_masks_centroids,
 )
 from supervision.detection.vlm import (
     VLM,

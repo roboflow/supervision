@@ -231,7 +231,7 @@ def test_geometry_consumers_use_fallback_bindings(
 ) -> None:
     """Exercise production geometry consumers with private fallback bindings."""
     from supervision.detection.utils.converters import mask_to_polygons, polygon_to_mask
-    from supervision.detection.utils.iou_and_nms import oriented_box_iou_batch
+    from supervision.detection.utils.iou import oriented_box_iou_batch
     from supervision.detection.utils.masks import (
         contains_multiple_segments,
         filter_segments_by_distance,

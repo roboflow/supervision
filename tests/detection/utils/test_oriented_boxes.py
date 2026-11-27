@@ -11,12 +11,14 @@ import pytest
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     OverlapMetric,
-    _oriented_box_non_max_suppression,
-    _oriented_box_soft_non_max_suppression,
     box_iou_batch,
     oriented_box_iou_batch,
+)
+from supervision.detection.utils.nms import (
+    _oriented_box_non_max_suppression,
+    _oriented_box_soft_non_max_suppression,
     oriented_box_non_max_merge,
 )
 

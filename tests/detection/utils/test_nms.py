@@ -6,8 +6,8 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.detection.utils.iou_and_nms import (
-    OverlapMetric,
+from supervision.detection.utils.iou import OverlapMetric
+from supervision.detection.utils.nms import (
     _box_non_max_suppression,
     _box_soft_non_max_suppression,
     _box_weighted_box_fusion,
@@ -1998,3 +1998,35 @@ class TestNonMaxMergeZeroThreshold:
         groups = _nmm_groups(kind, rectangles)
 
         assert sorted(sorted(group) for group in groups) == expected_groups
+
+
+class TestMaskNonMaxMergeDenseInputs:
+    """Dense inputs of mask NMM keep their values and shape contract on any NumPy."""
+
+    def test_float_mask_values_are_kept_in_the_first_overlap_step(self) -> None:
+        """Non-bool masks keep their raw values in the first overlap step."""
+        masks = np.zeros((2, 1, 4), dtype=np.float32)
+        masks[0] = 0.6
+        masks[1] = 1.0
+        predictions = np.array([[0, 0, 3, 0, 0.9, 0], [0, 0, 3, 0, 0.8, 0]])
+
+        result = mask_non_max_merge(predictions, masks, iou_threshold=0.7)
+
+        assert result == [[0], [1]]
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((3, 12), id="flattened-2d"),
+            pytest.param((3, 2, 3, 2), id="four-dimensional"),
+        ],
+    )
+    def test_rejects_masks_that_are_not_3d(self, shape: tuple[int, ...]) -> None:
+        """Boolean masks that are not (N, H, W) raise, as they do on the matmul path."""
+        masks = np.ones(shape, dtype=bool)
+        predictions = np.array(
+            [[0, 0, 1, 1, 0.9, 0], [0, 0, 1, 1, 0.8, 0], [0, 0, 1, 1, 0.7, 0]]
+        )
+
+        with pytest.raises(ValueError, match="3D"):
+            mask_non_max_merge(predictions, masks, iou_threshold=0.5)

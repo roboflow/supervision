@@ -13,7 +13,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     box_iou_batch,
     mask_iou_batch,
     oriented_box_iou_batch,
@@ -1206,9 +1206,9 @@ class ConfusionMatrix:
                 Detections with lower iou will be classified as `FP`.
             metric_target: The type of detection data to use.
                 Determines IoU function
-                (:func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
+                (:func:`~supervision.detection.utils.iou.box_iou_batch`
                 vs
-                :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`)
+                :func:`~supervision.detection.utils.iou.oriented_box_iou_batch`)
                 and coordinate column count. Masks
                 have no tensor row layout, so `MetricTarget.MASKS` is rejected
                 here; use

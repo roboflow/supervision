@@ -65,7 +65,7 @@ from rich.table import Table
 
 import supervision as sv
 from supervision.detection.compact_mask import CompactMask, _nearest_source_index
-from supervision.detection.utils.iou_and_nms import _mask_non_max_suppression
+from supervision.detection.utils.nms import _mask_non_max_suppression
 
 try:
     import resource

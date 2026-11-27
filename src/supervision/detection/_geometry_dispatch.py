@@ -10,9 +10,15 @@ import numpy.typing as npt
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.boxes import obb_polygon_area
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     OverlapMetric,
     OverlapOn,
+    box_iou_batch,
+    mask_iou_batch,
+    oriented_box_iou_batch,
+)
+from supervision.detection.utils.masks import count_mask_pixels
+from supervision.detection.utils.nms import (
     _box_non_max_merge_from_arrays,
     _box_non_max_suppression_from_arrays,
     _box_soft_non_max_suppression_from_arrays,
@@ -21,13 +27,9 @@ from supervision.detection.utils.iou_and_nms import (
     _mask_soft_non_max_suppression,
     _oriented_box_non_max_suppression,
     _oriented_box_soft_non_max_suppression,
-    box_iou_batch,
-    mask_iou_batch,
     mask_non_max_merge,
-    oriented_box_iou_batch,
     oriented_box_non_max_merge,
 )
-from supervision.detection.utils.masks import count_mask_pixels
 
 if TYPE_CHECKING:
     from supervision.detection.core import Detections

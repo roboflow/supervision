@@ -14,7 +14,7 @@ from supervision.detection.tools.inference_slicer import (
     InferenceSlicer,
     move_detections,
 )
-from supervision.detection.utils.iou_and_nms import OverlapFilter
+from supervision.detection.utils.iou import OverlapFilter
 from supervision.utils.internal import SupervisionWarnings
 
 

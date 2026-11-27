@@ -253,7 +253,7 @@ ______________________________________________________________________
 Dense `mask_iou_batch` on N=200, FHD:
 
 ```python
-# detection/utils/iou_and_nms.py — _mask_iou_batch_split
+# detection/utils/iou.py — _mask_iou_batch_split
 intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
     axis=(2, 3)
 )
@@ -322,7 +322,7 @@ ______________________________________________________________________
 Both dense and compact paths now call `mask_iou_batch(masks, masks)` directly, computing exact mask IoU on the original (unresized) masks. There is no intermediate resize step.
 
 ```python
-# detection/utils/iou_and_nms.py — NMS (both paths)
+# detection/utils/nms.py — NMS (both paths)
 ious = mask_iou_batch(masks, masks, overlap_metric)
 ```
 

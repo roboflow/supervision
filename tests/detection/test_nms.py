@@ -11,11 +11,8 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import (
     Detections,
 )
-from supervision.detection.utils import iou_and_nms
-from supervision.detection.utils.iou_and_nms import (
-    OverlapMetric,
-    OverlapOn,
-)
+from supervision.detection.utils import nms
+from supervision.detection.utils.iou import OverlapMetric, OverlapOn
 from tests.detection.helpers import _make_obb_detections, _rotated_rect
 
 
@@ -35,7 +32,7 @@ class TestDetectionCoreCompatibility:
     )
     def test_legacy_overlap_kernel_is_a_direct_alias(self, name: str) -> None:
         """An existing import from detection.core resolves to the original kernel."""
-        expected = getattr(iou_and_nms, name)
+        expected = getattr(nms, name)
 
         actual = getattr(core, name)
 

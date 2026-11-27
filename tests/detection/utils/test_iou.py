@@ -10,19 +10,21 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.detection.utils import iou_and_nms
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils import iou
+from supervision.detection.utils.iou import (
     OverlapMetric,
+    box_iou,
+    box_iou_batch,
+    box_iou_batch_with_jaccard,
+    mask_iou_batch,
+)
+from supervision.detection.utils.nms import (
     _box_non_max_suppression,
     _box_weighted_box_fusion,
     _mask_non_max_suppression,
     _mask_soft_non_max_suppression,
     _oriented_box_non_max_suppression,
-    box_iou,
-    box_iou_batch,
-    box_iou_batch_with_jaccard,
     box_non_max_merge,
-    mask_iou_batch,
     mask_non_max_merge,
     oriented_box_non_max_merge,
 )
@@ -839,7 +841,7 @@ class TestBoxIouBatchLargeIntegerCoordinates:
         def _fail_if_called(*args: object, **kwargs: object) -> object:
             raise AssertionError("_large_integer_box_areas should not be called")
 
-        monkeypatch.setattr(iou_and_nms, "_large_integer_box_areas", _fail_if_called)
+        monkeypatch.setattr(iou, "_large_integer_box_areas", _fail_if_called)
         boxes_true = np.array([[0, 0, 10, 10]], dtype=np.int64)
         boxes_detection = np.array([[5, 5, 15, 15]], dtype=np.int64)
 
@@ -1309,7 +1311,7 @@ def _record_packed_calls(
 ) -> list[tuple[int, int]]:
     """Wrap the packed IoU driver and record the mask counts of every call."""
     calls: list[tuple[int, int]] = []
-    original = iou_and_nms._mask_iou_batch_packed
+    original = iou._mask_iou_batch_packed
 
     def recording(
         masks_true: np.ndarray, masks_detection: np.ndarray, *args: object
@@ -1318,7 +1320,7 @@ def _record_packed_calls(
         calls.append((len(masks_true), len(masks_detection)))
         return original(masks_true, masks_detection, *args)  # type: ignore[arg-type]
 
-    monkeypatch.setattr(iou_and_nms, "_mask_iou_batch_packed", recording)
+    monkeypatch.setattr(iou, "_mask_iou_batch_packed", recording)
     return calls
 
 
@@ -1464,7 +1466,7 @@ class TestBitPackedMaskOverlap:
         """Chunking preserves IoU while packing the detection batch only once."""
         masks_true = np.ones((100, 32, 32), dtype=bool)
         masks_detection = np.ones((500, 32, 32), dtype=bool)
-        original_pack = iou_and_nms._pack_masks
+        original_pack = iou._pack_masks
         detection_pack_count = 0
         true_pack_count = 0
 
@@ -1477,7 +1479,7 @@ class TestBitPackedMaskOverlap:
                 true_pack_count += 1
             return original_pack(masks)
 
-        monkeypatch.setattr(iou_and_nms, "_pack_masks", count_pack)
+        monkeypatch.setattr(iou, "_pack_masks", count_pack)
         result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
 
         assert detection_pack_count == 1
@@ -1490,7 +1492,7 @@ class TestBitPackedMaskOverlap:
         """Comparing a stack with itself slices its packed words for every chunk."""
         rng = np.random.default_rng(9)
         masks = rng.random((6, 10, 12)) > 0.5
-        original_pack = iou_and_nms._pack_masks
+        original_pack = iou._pack_masks
         pack_count = 0
 
         def count_pack(masks_to_pack: np.ndarray) -> np.ndarray:
@@ -1499,7 +1501,7 @@ class TestBitPackedMaskOverlap:
             pack_count += 1
             return original_pack(masks_to_pack)
 
-        monkeypatch.setattr(iou_and_nms, "_pack_masks", count_pack)
+        monkeypatch.setattr(iou, "_pack_masks", count_pack)
         result = mask_iou_batch(masks, masks, memory_limit=0)
 
         assert pack_count == 1
@@ -1556,7 +1558,7 @@ class TestBitPackedMaskOverlap:
         rng = np.random.default_rng(10)
         masks_true = rng.random((700, 40, 50)) > 0.7
         masks_detection = rng.random((60, 40, 50)) > 0.7
-        original = iou_and_nms._packed_mask_iou_batch
+        original = iou._packed_mask_iou_batch
         chunk_sizes: list[int] = []
 
         def recording(true_words: np.ndarray, *args: object) -> np.ndarray:
@@ -1564,7 +1566,7 @@ class TestBitPackedMaskOverlap:
             chunk_sizes.append(len(true_words))
             return original(true_words, *args)  # type: ignore[arg-type]
 
-        monkeypatch.setattr(iou_and_nms, "_packed_mask_iou_batch", recording)
+        monkeypatch.setattr(iou, "_packed_mask_iou_batch", recording)
         result = mask_iou_batch(masks_true, masks_detection, memory_limit=3)
 
         assert len(chunk_sizes) > 1
@@ -1613,7 +1615,7 @@ class TestBitPackedMaskOverlap:
         """Budget reshape copies while preserving packed overlap for true masks."""
         masks_true = np.ones((100, 128, 128), dtype=bool).transpose(0, 2, 1)
         masks_detection = np.ones((100, 128, 128), dtype=bool)
-        original = iou_and_nms._packed_mask_iou_batch
+        original = iou._packed_mask_iou_batch
         chunk_sizes: list[int] = []
 
         def recording(true_words: np.ndarray, *args: object) -> np.ndarray:
@@ -1621,7 +1623,7 @@ class TestBitPackedMaskOverlap:
             chunk_sizes.append(len(true_words))
             return original(true_words, *args)  # type: ignore[arg-type]
 
-        monkeypatch.setattr(iou_and_nms, "_packed_mask_iou_batch", recording)
+        monkeypatch.setattr(iou, "_packed_mask_iou_batch", recording)
         result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
         expected = mask_iou_batch(masks_true.copy(), masks_detection)
 
@@ -1654,7 +1656,7 @@ class TestBitPackedMaskOverlap:
         result = mask_non_max_merge(
             predictions, masks, iou_threshold, overlap_metric=overlap_metric
         )
-        monkeypatch.setattr(iou_and_nms, "_HAS_BITWISE_COUNT", False)
+        monkeypatch.setattr(iou, "_HAS_BITWISE_COUNT", False)
         expected = mask_non_max_merge(
             predictions, masks, iou_threshold, overlap_metric=overlap_metric
         )
@@ -1719,7 +1721,7 @@ class TestBitPackedMaskOverlap:
             predictions, masks, overlap_metric=overlap_metric
         )
 
-        original = iou_and_nms.mask_iou_batch
+        original = iou.mask_iou_batch
 
         def packed_overlap(
             masks_true: np.ndarray,
@@ -1729,7 +1731,7 @@ class TestBitPackedMaskOverlap:
             """Run the overlap with a limit that no float copy fits."""
             return original(masks_true, masks_detection, overlap_metric, memory_limit=0)
 
-        monkeypatch.setattr(iou_and_nms, "mask_iou_batch", packed_overlap)
+        monkeypatch.setattr(iou, "mask_iou_batch", packed_overlap)
         keep = _mask_non_max_suppression(
             predictions, masks, 0.3, overlap_metric=overlap_metric
         )
@@ -1766,35 +1768,3 @@ class TestBitPackedMaskOverlap:
         result = mask_iou_batch(masks_true, masks_detection, memory_limit=memory_limit)
 
         assert result[0, 0] == (2**24 + 7) / (2**24 + 8)
-
-
-class TestMaskNonMaxMergeDenseInputs:
-    """Dense inputs of mask NMM keep their values and shape contract on any NumPy."""
-
-    def test_float_mask_values_are_kept_in_the_first_overlap_step(self) -> None:
-        """Non-bool masks keep their raw values in the first overlap step."""
-        masks = np.zeros((2, 1, 4), dtype=np.float32)
-        masks[0] = 0.6
-        masks[1] = 1.0
-        predictions = np.array([[0, 0, 3, 0, 0.9, 0], [0, 0, 3, 0, 0.8, 0]])
-
-        result = mask_non_max_merge(predictions, masks, iou_threshold=0.7)
-
-        assert result == [[0], [1]]
-
-    @pytest.mark.parametrize(
-        "shape",
-        [
-            pytest.param((3, 12), id="flattened-2d"),
-            pytest.param((3, 2, 3, 2), id="four-dimensional"),
-        ],
-    )
-    def test_rejects_masks_that_are_not_3d(self, shape: tuple[int, ...]) -> None:
-        """Boolean masks that are not (N, H, W) raise, as they do on the matmul path."""
-        masks = np.ones(shape, dtype=bool)
-        predictions = np.array(
-            [[0, 0, 1, 1, 0.9, 0], [0, 0, 1, 1, 0.8, 0], [0, 0, 1, 1, 0.7, 0]]
-        )
-
-        with pytest.raises(ValueError, match="3D"):
-            mask_non_max_merge(predictions, masks, iou_threshold=0.5)

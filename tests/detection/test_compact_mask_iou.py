@@ -12,11 +12,13 @@ import numpy as np
 import pytest
 
 from supervision.detection.compact_mask import CompactMask
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     OverlapMetric,
-    _mask_non_max_suppression,
     compact_mask_iou_batch,
     mask_iou_batch,
+)
+from supervision.detection.utils.nms import (
+    _mask_non_max_suppression,
     mask_non_max_merge,
 )
 

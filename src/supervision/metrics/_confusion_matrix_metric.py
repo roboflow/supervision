@@ -27,7 +27,7 @@ from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import xyxy_to_xywh
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     _has_coordinates_beyond_float64_exact_int,
     _large_integer_box_areas,
     box_iou_batch,

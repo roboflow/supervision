@@ -6,8 +6,8 @@ from typing import Any
 import numpy as np
 import pytest
 
-from supervision.detection.utils.iou_and_nms import (
-    OverlapMetric,
+from supervision.detection.utils.iou import OverlapMetric
+from supervision.detection.utils.nms import (
     _box_non_max_suppression,
     _box_soft_non_max_suppression,
     _box_weighted_box_fusion,

@@ -577,9 +577,7 @@ class TestComputeF1:
     ) -> None:
         """F1Score computes per-image IoU once across ANY/SMALL/MEDIUM/LARGE."""
         import supervision.metrics._confusion_matrix_metric as cmm_mod
-        from supervision.detection.utils.iou_and_nms import (
-            box_iou_batch as original_box_iou,
-        )
+        from supervision.detection.utils.iou import box_iou_batch as original_box_iou
         from supervision.metrics.f1_score import F1Score as LiveF1Score
 
         calls = 0

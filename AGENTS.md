@@ -24,7 +24,7 @@ src/supervision/
 │   ├── core.py          — Detections dataclass; all model connectors as classmethods
 │   ├── compact_mask.py  — compact mask representation
 │   ├── vlm.py           — VLM connectors (Florence-2, Gemini, Qwen, PaliGemma)
-│   ├── utils/           — pure NumPy helpers: boxes, converters, iou_and_nms, masks, polygons
+│   ├── utils/           — pure NumPy helpers: boxes, converters, iou, masks, nms, polygons
 │   ├── line_zone.py     — LineZone
 │   └── tools/           — InferenceSlicer, PolygonZone, CSVSink, JSONSink, DetectionsSmoother
 ├── annotators/core.py   — BoxAnnotator, MaskAnnotator, LabelAnnotator, … each: .annotate(scene, detections)

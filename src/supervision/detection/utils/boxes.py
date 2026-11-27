@@ -3,7 +3,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.detection.utils.iou import box_iou_batch
 from supervision.geometry.core import Position
 
 # Built once: subscripting `npt.NDArray[...]` inside `cast` costs ~1.5 µs per call.
@@ -188,7 +188,7 @@ def _sort_box_corners(
 
     `Detections.xyxy` is defined as `(x_min, y_min, x_max, y_max)`, and every
     box operation in the library relies on that ordering:
-    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
+    :func:`~supervision.detection.utils.iou.box_iou_batch`
     clamps its intersection widths at zero, so a box whose corners arrive
     swapped scores an IoU of `0` even against itself. The box area calculation
     hides the problem rather than surfacing it, because negating both sides leaves

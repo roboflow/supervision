@@ -21,7 +21,7 @@ from supervision.config import (
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_xyxy
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     _compact_mask_intersections,
     _oriented_box_pair_intersections,
     _polygon_areas,
@@ -602,7 +602,7 @@ def _oriented_box_iou_with_jaccard(
     boxes (gt), following the COCO convention: a detection may match any subregion of a
     crowd ground truth, so for crowd rows the union collapses to the detection area
     (oriented box counterpart of
-    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch_with_jaccard`).
+    :func:`~supervision.detection.utils.iou.box_iou_batch_with_jaccard`).
 
     Args:
         boxes_true: Ground-truth oriented boxes of shape `(N, 4, 2)`.
@@ -701,7 +701,7 @@ def _mask_iou_with_jaccard(
     following the COCO convention: a detection may match any subregion of a
     crowd ground truth, so for crowd rows the union collapses to the detection
     area (mask counterpart of
-    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch_with_jaccard`).
+    :func:`~supervision.detection.utils.iou.box_iou_batch_with_jaccard`).
 
     Args:
         masks_true: Ground-truth masks as dense `(H, W)` arrays or compact row

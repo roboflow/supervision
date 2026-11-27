@@ -19,7 +19,7 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
 from supervision.detection.utils.internal import merge_metadata_lenient
-from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
+from supervision.detection.utils.iou import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
 from supervision.utils.image import crop_image, get_image_resolution_wh

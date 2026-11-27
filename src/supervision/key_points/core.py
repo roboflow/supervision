@@ -24,10 +24,8 @@ from supervision.detection.utils.internal import (
     is_data_equal,
     merge_data,
 )
-from supervision.detection.utils.iou_and_nms import (
-    OverlapMetric,
-    _box_non_max_suppression,
-)
+from supervision.detection.utils.iou import OverlapMetric
+from supervision.detection.utils.nms import _box_non_max_suppression
 from supervision.utils.internal import _to_numpy
 from supervision.validators import _validate_data, _validate_keypoints_fields
 

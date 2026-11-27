@@ -23,7 +23,7 @@ from supervision.detection.utils.boxes import (
     spread_out_boxes,
     xyxyxyxy_to_xyxy,
 )
-from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.detection.utils.iou import box_iou_batch
 from supervision.geometry.core import Position
 
 _ALL_ANCHORS = [

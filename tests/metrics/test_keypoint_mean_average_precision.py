@@ -9,10 +9,7 @@ import pytest
 from faster_coco_eval import COCO, COCOeval_faster
 from pycocotools.cocoeval import Params
 
-from supervision.detection.utils.iou_and_nms import (
-    _COCO_KEYPOINT_SIGMAS,
-    _keypoint_oks_batch,
-)
+from supervision.detection.utils.iou import _COCO_KEYPOINT_SIGMAS, _keypoint_oks_batch
 from supervision.key_points.core import KeyPoints
 from supervision.metrics.keypoint_mean_average_precision import (
     KeyPointMeanAveragePrecision,

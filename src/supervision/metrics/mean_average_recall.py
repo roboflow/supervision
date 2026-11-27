@@ -12,7 +12,7 @@ from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     box_iou_batch,
     mask_iou_batch,
     oriented_box_iou_batch,
