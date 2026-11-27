@@ -19,7 +19,7 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
 from supervision.detection.utils.internal import merge_metadata_lenient
-from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
+from supervision.detection.utils.iou import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
 from supervision.utils.image import crop_image, get_image_resolution_wh
@@ -158,7 +158,7 @@ class InferenceSlicer:
         overlap_wh: Overlap size `(width, height)` between slices. If int, both
             width and height are set to this value.
         overlap_filter: Strategy to merge overlapping detections
-            (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `NONE`).
+            (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `KEEP_ALL`).
         iou_threshold: IOU threshold used in merging overlap filtering.
         overlap_metric: Metric to compute overlap (`IOU` or `IOS`).
         thread_workers: Number of threads for concurrent slice inference.
@@ -610,7 +610,7 @@ class InferenceSlicer:
 
     def _apply_overlap_filter(self, merged: Detections) -> Detections:
         """Apply the configured overlap filter strategy to merged detections."""
-        if self.overlap_filter == OverlapFilter.NONE:
+        if self.overlap_filter == OverlapFilter.KEEP_ALL:
             return merged
         if self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
             return merged.with_nms(

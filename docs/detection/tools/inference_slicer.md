@@ -34,7 +34,7 @@ slicer = sv.InferenceSlicer(
     callback=callback,
     slice_wh=(256, 256),
     overlap_wh=(64, 64),
-    overlap_filter=sv.OverlapFilter.NONE,
+    overlap_filter=sv.OverlapFilter.KEEP_ALL,
 )
 
 with rasterio.open("RGB.byte.tif") as dataset:

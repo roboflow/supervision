@@ -86,7 +86,7 @@ class TestInferenceSlicerCompactMasks:
             callback=callback if batch_size == 1 else batch_callback,
             slice_wh=4,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             compact_masks=compact_masks,
             batch_size=batch_size,
         )
@@ -121,7 +121,7 @@ class TestInferenceSlicerCompactMasks:
             callback=callback,
             slice_wh=1,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             thread_workers=1,
             compact_masks=True,
         )
@@ -155,7 +155,7 @@ class TestInferenceSlicerCompactMasks:
             callback=callback if batch_size == 1 else batch_callback,
             slice_wh=4,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             compact_masks=True,
             batch_size=batch_size,
             thread_workers=thread_workers,
@@ -175,7 +175,7 @@ class TestInferenceSlicerCompactMasks:
             callback=_fake_seg_callback,
             slice_wh=200,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             compact_masks=True,
         )
         result = slicer(image)
@@ -190,7 +190,7 @@ class TestInferenceSlicerCompactMasks:
             callback=_fake_seg_callback,
             slice_wh=200,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             compact_masks=False,
         )
         result = slicer(image)
@@ -261,14 +261,14 @@ class TestInferenceSlicerCompactMasks:
             callback=callback,
             slice_wh=100,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             compact_masks=False,
         )(image)
         compact = sv.InferenceSlicer(
             callback=callback,
             slice_wh=100,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             compact_masks=True,
         )(image)
 
@@ -295,7 +295,7 @@ class TestInferenceSlicerCompactMasks:
             callback=callback,
             slice_wh=120,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             compact_masks=True,
         )(image)
 
@@ -345,7 +345,7 @@ class TestInferenceSlicerCompactMasks:
             callback=box_only_callback,
             slice_wh=200,
             overlap_wh=0,
-            overlap_filter=sv.OverlapFilter.NONE,
+            overlap_filter=sv.OverlapFilter.KEEP_ALL,
             compact_masks=True,
         )
         result = slicer(image)

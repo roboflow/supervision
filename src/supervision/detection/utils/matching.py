@@ -33,10 +33,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.core import Detections
-from supervision.detection.utils.iou_and_nms import (
-    _validate_iou_threshold,
-    box_iou_batch,
-)
+from supervision.detection.utils.iou import _validate_iou_threshold, box_iou_batch
 
 
 def _greedy_match(

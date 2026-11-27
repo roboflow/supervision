@@ -65,6 +65,7 @@ from rich.table import Table
 
 import supervision as sv
 from supervision.detection.compact_mask import CompactMask, _nearest_source_index
+from supervision.detection.utils.nms import _mask_non_max_suppression
 
 try:
     import resource
@@ -518,17 +519,17 @@ def stage_nms(
     predictions = np.c_[xyxy, confidence, class_ids.astype(float)]
 
     compact_nms_s = time_reps(
-        lambda: sv.mask_non_max_suppression(predictions, compact_mask)
+        lambda: _mask_non_max_suppression(predictions, compact_mask)
     )
     if dense_skipped or iou_dense_skipped:
         return math.nan, compact_nms_s, None, 0
 
-    keep_dense = sv.mask_non_max_suppression(predictions, masks_dense)
-    keep_compact = sv.mask_non_max_suppression(predictions, compact_mask)
+    keep_dense = _mask_non_max_suppression(predictions, masks_dense)
+    keep_compact = _mask_non_max_suppression(predictions, compact_mask)
     n_diff = int(np.sum(keep_dense != keep_compact))
     nms_ok = n_diff == 0
     dense_nms_s = time_reps(
-        lambda: sv.mask_non_max_suppression(predictions, masks_dense),
+        lambda: _mask_non_max_suppression(predictions, masks_dense),
         repeats=IOU_NMS_REPS,
     )
     return dense_nms_s, compact_nms_s, nms_ok, n_diff

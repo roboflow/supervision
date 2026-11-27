@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import AREA_DATA_FIELD, ISCROWD_DATA_FIELD, XYXY_DATA_FIELD
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     _keypoint_oks_batch,
     _resolve_keypoint_sigmas,
     _validate_keypoint_sigmas,

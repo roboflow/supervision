@@ -14,7 +14,7 @@ from supervision.detection.tools.inference_slicer import (
     InferenceSlicer,
     move_detections,
 )
-from supervision.detection.utils.iou_and_nms import OverlapFilter
+from supervision.detection.utils.iou import OverlapFilter
 from supervision.utils.internal import SupervisionWarnings
 
 
@@ -549,7 +549,7 @@ class TestInferenceSlicerBatch:
             overlap_wh=0,
             batch_size=batch_size,
             thread_workers=4,
-            overlap_filter=OverlapFilter.NONE,
+            overlap_filter=OverlapFilter.KEEP_ALL,
         )
 
         with pytest.warns(SupervisionWarnings, match="oriented bounding boxes"):
@@ -692,7 +692,7 @@ class TestInferenceSlicerBatch:
             overlap_wh=0,
             batch_size=2,
             thread_workers=4,
-            overlap_filter=OverlapFilter.NONE,
+            overlap_filter=OverlapFilter.KEEP_ALL,
         )
         detections = slicer(image)
 
@@ -732,7 +732,7 @@ class TestInferenceSlicerBatch:
             overlap_wh=0,
             batch_size=2,
             thread_workers=4,
-            overlap_filter=OverlapFilter.NONE,
+            overlap_filter=OverlapFilter.KEEP_ALL,
         )
 
         with pytest.warns(SupervisionWarnings, match="oriented bounding boxes"):
@@ -756,7 +756,7 @@ class TestInferenceSlicerBatch:
             slice_wh=64,
             overlap_wh=0,
             batch_size=2,
-            overlap_filter=OverlapFilter.NONE,
+            overlap_filter=OverlapFilter.KEEP_ALL,
         )
         with pytest.warns(SupervisionWarnings, match="outside the slice bounds"):
             slicer(image)
@@ -879,7 +879,7 @@ class TestInferenceSlicerOrdering:
             slice_wh=64,
             overlap_wh=0,
             thread_workers=thread_workers,
-            overlap_filter=OverlapFilter.NONE,
+            overlap_filter=OverlapFilter.KEEP_ALL,
         )
 
         detections = slicer(image)
@@ -931,7 +931,7 @@ class TestInferenceSlicerOrdering:
             overlap_wh=0,
             batch_size=batch_size,
             thread_workers=2,
-            overlap_filter=OverlapFilter.NONE,
+            overlap_filter=OverlapFilter.KEEP_ALL,
         )
 
         detections = slicer(image)
@@ -982,7 +982,7 @@ class TestInferenceSlicerOrdering:
             overlap_wh=0,
             batch_size=batch_size,
             thread_workers=4,
-            overlap_filter=OverlapFilter.NONE,
+            overlap_filter=OverlapFilter.KEEP_ALL,
         )
 
         detections = slicer(image)

@@ -98,25 +98,15 @@ from supervision.detection.utils.converters import (
     xyxy_to_xcycarh,
     xyxy_to_xywh,
 )
-from supervision.detection.utils.iou_and_nms import (
+from supervision.detection.utils.iou import (
     OverlapFilter,
     OverlapMetric,
     OverlapOn,
     box_iou,
     box_iou_batch,
     box_iou_batch_with_jaccard,
-    box_non_max_merge,
-    box_non_max_suppression,
-    box_soft_non_max_suppression,
-    box_weighted_box_fusion,
     mask_iou_batch,
-    mask_non_max_merge,
-    mask_non_max_suppression,
-    mask_soft_non_max_suppression,
     oriented_box_iou_batch,
-    oriented_box_non_max_merge,
-    oriented_box_non_max_suppression,
-    oriented_box_soft_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -127,6 +117,18 @@ from supervision.detection.utils.masks import (
     move_masks,
 )
 from supervision.detection.utils.matching import match_detections
+from supervision.detection.utils.nms import (
+    box_non_max_merge,
+    box_non_max_suppression,
+    box_soft_non_max_suppression,
+    box_weighted_box_fusion,
+    mask_non_max_merge,
+    mask_non_max_suppression,
+    mask_soft_non_max_suppression,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
+    oriented_box_soft_non_max_suppression,
+)
 from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,

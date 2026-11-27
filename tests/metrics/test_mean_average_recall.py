@@ -1267,9 +1267,7 @@ class TestMeanAverageRecallCocoSizeBuckets:
     ) -> None:
         """Caching per-image IoU avoids recomputing IoU per COCO size bucket."""
         import supervision.metrics.mean_average_recall as mar_mod
-        from supervision.detection.utils.iou_and_nms import (
-            box_iou_batch as original_box_iou,
-        )
+        from supervision.detection.utils.iou import box_iou_batch as original_box_iou
 
         calls = 0
 

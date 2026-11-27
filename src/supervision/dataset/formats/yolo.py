@@ -83,7 +83,7 @@ def _parse_relative_xyxy(values: list[str]) -> tuple[float, float, float, float]
     ``nan`` would pass the extent check below unnoticed. A negative width or
     height would place ``x_min`` past ``x_max``, breaking the ordering every
     consumer of ``xyxy`` assumes:
-    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch` reports no
+    :func:`~supervision.detection.utils.iou.box_iou_batch` reports no
     overlap between identical regions,
     :meth:`~supervision.detection.core.Detections.with_nms` stops suppressing,
     and the :class:`~supervision.detection.core.Detections` ``area`` property

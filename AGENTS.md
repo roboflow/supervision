@@ -24,7 +24,7 @@ src/supervision/
 │   ├── core.py          — Detections dataclass; all model connectors as classmethods
 │   ├── compact_mask.py  — compact mask representation
 │   ├── vlm.py           — VLM connectors (Florence-2, Gemini, Qwen, PaliGemma)
-│   ├── utils/           — pure NumPy helpers: boxes, converters, iou_and_nms, masks, polygons
+│   ├── utils/           — pure NumPy helpers: boxes, converters, iou, masks, nms, polygons
 │   ├── line_zone.py     — LineZone
 │   └── tools/           — InferenceSlicer, PolygonZone, CSVSink, JSONSink, DetectionsSmoother
 ├── annotators/core.py   — BoxAnnotator, MaskAnnotator, LabelAnnotator, … each: .annotate(scene, detections)
@@ -112,7 +112,7 @@ def old_name(x: int) -> str:
     return void(x)  # type: ignore[no-any-return]
 ```
 
-- Do not write tests that assert the deprecation warning is emitted; that is `pydeprecate`'s behavior, not ours.
+- Do not write tests that assert the deprecation warning is emitted, or that internal code emits none; the warning is `pydeprecate`'s behavior, not ours. Test only that a deprecated name forwards its arguments. If a test must catch a warning, use `pytest.warns(..., match=...)` with a specific message pattern, and silence the rest with `@pytest.mark.filterwarnings("ignore::supervision.utils.internal.SupervisionWarnings")`.
 - Do not cast the return value of `void(...)`; add `# type: ignore[no-any-return]` instead.
 
 ______________________________________________________________________
