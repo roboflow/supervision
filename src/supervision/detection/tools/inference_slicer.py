@@ -158,7 +158,7 @@ class InferenceSlicer:
         overlap_wh: Overlap size `(width, height)` between slices. If int, both
             width and height are set to this value.
         overlap_filter: Strategy to merge overlapping detections
-            (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `NONE`).
+            (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `KEEP_ALL`).
         iou_threshold: IOU threshold used in merging overlap filtering.
         overlap_metric: Metric to compute overlap (`IOU` or `IOS`).
         thread_workers: Number of threads for concurrent slice inference.
@@ -610,7 +610,7 @@ class InferenceSlicer:
 
     def _apply_overlap_filter(self, merged: Detections) -> Detections:
         """Apply the configured overlap filter strategy to merged detections."""
-        if self.overlap_filter == OverlapFilter.NONE:
+        if self.overlap_filter == OverlapFilter.KEEP_ALL:
             return merged
         if self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
             return merged.with_nms(

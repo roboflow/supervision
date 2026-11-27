@@ -12,6 +12,7 @@ import pytest
 
 from supervision.detection.utils import iou
 from supervision.detection.utils.iou import (
+    OverlapFilter,
     OverlapMetric,
     box_iou,
     box_iou_batch,
@@ -1768,3 +1769,30 @@ class TestBitPackedMaskOverlap:
         result = mask_iou_batch(masks_true, masks_detection, memory_limit=memory_limit)
 
         assert result[0, 0] == (2**24 + 7) / (2**24 + 8)
+
+
+class TestOverlapFilterKeepAll:
+    """`KEEP_ALL` replaces `NONE`, which stays an alias of the same member."""
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            pytest.param(OverlapFilter.KEEP_ALL, id="member"),
+            pytest.param(OverlapFilter.NONE, id="legacy-member"),
+            pytest.param("keep_all", id="new-string"),
+            pytest.param("KEEP_ALL", id="new-string-uppercase"),
+            pytest.param("none", id="legacy-string"),
+            pytest.param("NONE", id="legacy-string-uppercase"),
+        ],
+    )
+    def test_from_value_resolves_to_keep_all(self, value: OverlapFilter | str) -> None:
+        """Every spelling of the no-filter strategy resolves to `KEEP_ALL`."""
+        result = OverlapFilter.from_value(value)
+
+        assert result is OverlapFilter.KEEP_ALL
+
+    def test_list_names_each_strategy_once(self) -> None:
+        """The alias adds no entry to the listed values."""
+        result = OverlapFilter.list()
+
+        assert result == ["keep_all", "non_max_suppression", "non_max_merge"]

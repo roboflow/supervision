@@ -55,7 +55,8 @@ class OverlapFilter(Enum):
     """Enum specifying the strategy for filtering overlapping detections.
 
     Attributes:
-        NONE: Do not filter detections based on overlap.
+        KEEP_ALL: Do not filter detections based on overlap; keep every detection.
+            `NONE` and the string `"none"` remain accepted as aliases of this member.
         NON_MAX_SUPPRESSION: Filter detections using non-max suppression. This means,
             detections that overlap by more than a set threshold will be discarded,
             except for the one with the highest confidence.
@@ -64,9 +65,18 @@ class OverlapFilter(Enum):
             into a single detection.
     """
 
-    NONE = "none"
+    KEEP_ALL = "keep_all"
     NON_MAX_SUPPRESSION = "non_max_suppression"
     NON_MAX_MERGE = "non_max_merge"
+    # Same value as `KEEP_ALL`, so Enum makes it an alias of that member.
+    NONE = "keep_all"
+
+    @classmethod
+    def _missing_(cls, value: object) -> OverlapFilter | None:
+        """Resolve the legacy string `"none"` to `KEEP_ALL`."""
+        if value == "none":
+            return cls.KEEP_ALL
+        return None
 
     @classmethod
     def list(cls) -> list[str]:
