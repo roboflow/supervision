@@ -101,6 +101,7 @@ from supervision.detection.utils.converters import (
 from supervision.detection.utils.iou_and_nms import (
     OverlapFilter,
     OverlapMetric,
+    OverlapOn,
     box_iou,
     box_iou_batch,
     box_iou_batch_with_jaccard,
@@ -239,6 +240,7 @@ __all__ = [
     "OrientedBoxAnnotator",
     "OverlapFilter",
     "OverlapMetric",
+    "OverlapOn",
     "PercentageBarAnnotator",
     "PixelateAnnotator",
     "Point",

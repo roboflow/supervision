@@ -13,7 +13,13 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
-from supervision.detection._geometry_dispatch import detection_area
+from supervision.detection._geometry_dispatch import (
+    detection_area,
+    nmm_groups,
+    nms_keep_mask,
+    resolve_overlap_geometry,
+    soft_nms_confidence,
+)
 from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
@@ -52,18 +58,10 @@ from supervision.detection.utils.internal import (
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    _box_non_max_merge_from_arrays,
-    _box_non_max_suppression_from_arrays,
-    _box_soft_non_max_suppression_from_arrays,
+    OverlapOn,
     box_non_max_merge,  # noqa: F401  (re-exported for existing imports from this module)
     box_non_max_suppression,  # noqa: F401
     box_soft_non_max_suppression,  # noqa: F401
-    mask_non_max_merge,
-    mask_non_max_suppression,
-    mask_soft_non_max_suppression,
-    oriented_box_non_max_merge,
-    oriented_box_non_max_suppression,
-    oriented_box_soft_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -3028,13 +3026,15 @@ class Detections:
         self,
         threshold: float = 0.5,
         class_agnostic: bool = False,
-        overlap_metric: OverlapMetric = OverlapMetric.IOU,
+        overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+        overlap_on: OverlapOn | str | None = None,
     ) -> Detections:
         """Performs non-max suppression on detection set.
 
         Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
         oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
         oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
+        Pass `overlap_on` to choose the geometry explicitly.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -3045,6 +3045,11 @@ class Detections:
                 will be ignored. Defaults to False.
             overlap_metric: Metric used to compute the degree of
                 overlap between pairs of masks or boxes (e.g., IoU, IoS).
+            overlap_on: Geometry to measure overlap on: `"box"` uses the
+                oriented box when `data["xyxyxyxy"]` is present and the
+                axis-aligned box otherwise, ignoring masks (they are carried
+                through); `"mask"` uses the masks. `None` (default) picks the
+                richest geometry present: mask, then oriented box, then box.
 
         Returns:
             A new Detections object containing the subset of detections
@@ -3053,7 +3058,11 @@ class Detections:
         Raises:
             ValueError: If `confidence` is None and class_agnostic is False.
             ValueError: If `class_id` is None and class_agnostic is False.
+            ValueError: If `overlap_on` is not a valid value, or is `"mask"`
+                and the detections have no mask.
         """
+        overlap_on = None if overlap_on is None else OverlapOn.from_value(overlap_on)
+
         if len(self) == 0:
             return self
 
@@ -3062,31 +3071,10 @@ class Detections:
                 "Detections confidence must be given for NMS to be executed."
             )
 
-        if self.mask is not None:
-            predictions = self._build_nms_predictions(class_agnostic, "NMS")
-            indices = mask_non_max_suppression(
-                predictions=predictions,
-                masks=self.mask,
-                iou_threshold=threshold,
-                overlap_metric=overlap_metric,
-            )
-        elif ORIENTED_BOX_COORDINATES in self.data:
-            predictions = self._build_nms_predictions(class_agnostic, "NMS")
-            indices = oriented_box_non_max_suppression(
-                predictions=predictions,
-                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
-                iou_threshold=threshold,
-                overlap_metric=overlap_metric,
-            )
-        else:
-            categories = self._resolve_nms_categories(class_agnostic, "NMS")
-            indices = _box_non_max_suppression_from_arrays(
-                boxes=self.xyxy,
-                scores=self.confidence,
-                categories=categories,
-                iou_threshold=threshold,
-                overlap_metric=overlap_metric,
-            )
+        geometry = resolve_overlap_geometry(self, overlap_on)
+        indices = nms_keep_mask(
+            self, geometry, class_agnostic, threshold, overlap_metric
+        )
 
         return self.select(indices)
 
@@ -3095,12 +3083,15 @@ class Detections:
         sigma: float = 0.5,
         class_agnostic: bool = False,
         score_threshold: float | None = None,
+        overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+        overlap_on: OverlapOn | str | None = None,
     ) -> Detections:
         """Performs Gaussian Soft Non-Maximum Suppression on detection set.
 
         Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
         oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
         oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
+        Pass `overlap_on` to choose the geometry explicitly.
 
         Unlike :meth:`~supervision.detection.core.Detections.with_nms`, which
         discards overlapping detections outright,
@@ -3127,6 +3118,13 @@ class Detections:
                 `None` (default), all detections are
                 kept, with their confidence rescaled in place on the returned
                 copy.
+            overlap_metric: Metric used to compute the degree of
+                overlap between pairs of masks or boxes (e.g., IoU, IoS).
+            overlap_on: Geometry to measure overlap on: `"box"` uses the
+                oriented box when `data["xyxyxyxy"]` is present and the
+                axis-aligned box otherwise, ignoring masks (they are carried
+                through); `"mask"` uses the masks. `None` (default) picks the
+                richest geometry present: mask, then oriented box, then box.
 
         Returns:
             A new Detections object with decayed confidence scores and,
@@ -3138,6 +3136,8 @@ class Detections:
             ValueError: If `confidence` is None.
             ValueError: If `class_id` is None and class_agnostic is False.
             ValueError: If `sigma` is not greater than `0`.
+            ValueError: If `overlap_on` is not a valid value, or is `"mask"`
+                and the detections have no mask.
 
         Example:
             Two identical boxes show that Soft-NMS decays the lower score but
@@ -3161,6 +3161,8 @@ class Detections:
 
             ```
         """
+        overlap_on = None if overlap_on is None else OverlapOn.from_value(overlap_on)
+
         if len(self) == 0:
             return self
 
@@ -3169,28 +3171,10 @@ class Detections:
                 "Detections confidence must be given for Soft-NMS to be executed."
             )
 
-        if self.mask is not None:
-            predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
-            decayed_confidence = mask_soft_non_max_suppression(
-                predictions=predictions,
-                masks=self.mask,
-                sigma=sigma,
-            )
-        elif ORIENTED_BOX_COORDINATES in self.data:
-            predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
-            decayed_confidence = oriented_box_soft_non_max_suppression(
-                predictions=predictions,
-                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
-                sigma=sigma,
-            )
-        else:
-            categories = self._resolve_nms_categories(class_agnostic, "Soft-NMS")
-            decayed_confidence = _box_soft_non_max_suppression_from_arrays(
-                boxes=self.xyxy,
-                scores=self.confidence,
-                categories=categories,
-                sigma=sigma,
-            )
+        geometry = resolve_overlap_geometry(self, overlap_on)
+        decayed_confidence = soft_nms_confidence(
+            self, geometry, class_agnostic, sigma, overlap_metric
+        )
 
         result = self.select(np.arange(len(self)))
         result.confidence = decayed_confidence
@@ -3203,13 +3187,15 @@ class Detections:
         self,
         threshold: float = 0.5,
         class_agnostic: bool = False,
-        overlap_metric: OverlapMetric = OverlapMetric.IOU,
+        overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+        overlap_on: OverlapOn | str | None = None,
     ) -> Detections:
         """
         Perform non-maximum merging on the current set of object detections.
         Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
         oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
         oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
+        Pass `overlap_on` to choose the geometry explicitly.
 
         Merged axis-aligned boxes use the common dtype of their coordinates.
         Integer dtypes are retained and floating dtypes widen to at least
@@ -3229,6 +3215,12 @@ class Detections:
                 will be ignored. Defaults to False.
             overlap_metric: Metric used to compute the degree of
                 overlap between pairs of masks or boxes (e.g., IoU, IoS).
+            overlap_on: Geometry to measure overlap on: `"box"` uses the
+                oriented box when `data["xyxyxyxy"]` is present and the
+                axis-aligned box otherwise, ignoring masks for overlap (the
+                masks of a merge group are still unioned); `"mask"` uses the
+                masks. `None` (default) picks the richest geometry present:
+                mask, then oriented box, then box.
 
         Returns:
             A new Detections object containing the subset of detections
@@ -3248,9 +3240,13 @@ class Detections:
         Raises:
             ValueError: If `confidence` is None.
             ValueError: If `class_id` is None and class_agnostic is False.
+            ValueError: If `overlap_on` is not a valid value, or is `"mask"`
+                and the detections have no mask.
 
         ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width="800" }
         """  # noqa: E501 // docs
+        overlap_on = None if overlap_on is None else OverlapOn.from_value(overlap_on)
+
         if len(self) == 0:
             return self
 
@@ -3259,31 +3255,10 @@ class Detections:
                 "Detections confidence must be given for NMM to be executed."
             )
 
-        if self.mask is not None:
-            predictions = self._build_nms_predictions(class_agnostic, "NMM")
-            merge_groups = mask_non_max_merge(
-                predictions=predictions,
-                masks=self.mask,
-                iou_threshold=threshold,
-                overlap_metric=overlap_metric,
-            )
-        elif ORIENTED_BOX_COORDINATES in self.data:
-            predictions = self._build_nms_predictions(class_agnostic, "NMM")
-            merge_groups = oriented_box_non_max_merge(
-                predictions=predictions,
-                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
-                iou_threshold=threshold,
-                overlap_metric=overlap_metric,
-            )
-        else:
-            categories = self._resolve_nms_categories(class_agnostic, "NMM")
-            merge_groups = _box_non_max_merge_from_arrays(
-                boxes=self.xyxy,
-                scores=self.confidence,
-                categories=categories,
-                iou_threshold=threshold,
-                overlap_metric=overlap_metric,
-            )
+        geometry = resolve_overlap_geometry(self, overlap_on)
+        merge_groups = nmm_groups(
+            self, geometry, class_agnostic, threshold, overlap_metric
+        )
 
         result: list[Detections] = []
         for merge_group in merge_groups:

@@ -17,6 +17,12 @@ comments: true
 :::supervision.detection.utils.iou_and_nms.OverlapMetric
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.iou_and_nms.OverlapOn">OverlapOn</a></h2>
+</div>
+
+:::supervision.detection.utils.iou_and_nms.OverlapOn
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.iou_and_nms.utils.box_iou">box_iou</a></h2>
 </div>
 

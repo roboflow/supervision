@@ -12,6 +12,7 @@ from supervision.detection.core import (
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
+    OverlapOn,
 )
 from tests.detection.helpers import _make_obb_detections, _rotated_rect
 
@@ -1086,3 +1087,225 @@ class TestDetectionsWithNMM:
         assert len(result) == 2
         assert [0, 0, 19, 19] in result.xyxy.tolist()
         assert [100, 100, 110, 110] in result.xyxy.tolist()
+
+
+def _disjoint_mask_detections() -> Detections:
+    """Two heavily overlapping boxes whose masks do not touch."""
+    masks = np.zeros((2, 20, 20), dtype=bool)
+    masks[0, 0:10, 0:5] = True
+    masks[1, 0:10, 6:11] = True
+    return Detections(
+        xyxy=np.array([[0, 0, 10, 10], [1, 0, 11, 10]], dtype=np.float32),
+        mask=masks,
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=int),
+    )
+
+
+def _x_pattern_obb_detections() -> Detections:
+    """Two crossed oriented boxes whose envelopes overlap heavily."""
+    return _make_obb_detections(
+        [_rotated_rect(50, 50, 100, 10, +45), _rotated_rect(50, 50, 100, 10, -45)],
+        [0.9, 0.85],
+        [0, 0],
+    )
+
+
+def _nested_detections(kind: str) -> Detections:
+    """A 5x5 box inside a 10x10 box, as boxes, masks or oriented boxes."""
+    arguments: dict[str, object] = {
+        "xyxy": np.array([[0, 0, 10, 10], [0, 0, 5, 5]], dtype=np.float32),
+        "confidence": np.array([0.9, 0.8], dtype=np.float32),
+        "class_id": np.array([0, 0], dtype=int),
+    }
+    if kind == "mask":
+        masks = np.zeros((2, 20, 20), dtype=bool)
+        masks[0, :10, :10] = True
+        masks[1, :5, :5] = True
+        arguments["mask"] = masks
+    elif kind == "obb":
+        arguments["data"] = {
+            ORIENTED_BOX_COORDINATES: np.stack(
+                [_rotated_rect(5, 5, 10, 10, 0), _rotated_rect(2.5, 2.5, 5, 5, 0)]
+            )
+        }
+    return Detections(**arguments)  # type: ignore[arg-type]
+
+
+class TestOverlapOn:
+    """`overlap_on` picks the geometry `with_nms`, `with_soft_nms`, `with_nmm` use."""
+
+    @pytest.mark.parametrize("method", ["with_nms", "with_nmm"])
+    @pytest.mark.parametrize(
+        ("overlap_on", "expected_len"),
+        [
+            (None, 2),
+            ("mask", 2),
+            ("MASK", 2),
+            (OverlapOn.MASK, 2),
+            ("box", 1),
+            ("BOX", 1),
+            (OverlapOn.BOX, 1),
+        ],
+    )
+    def test_selects_overlap_geometry(
+        self, method: str, overlap_on: OverlapOn | str | None, expected_len: int
+    ) -> None:
+        """Mask overlap keeps both detections, box overlap collapses them."""
+        detections = _disjoint_mask_detections()
+
+        result = getattr(detections, method)(threshold=0.5, overlap_on=overlap_on)
+
+        assert len(result) == expected_len
+
+    @pytest.mark.parametrize(
+        ("overlap_on", "expected_decay"),
+        [(None, False), ("mask", False), ("box", True), (OverlapOn.BOX, True)],
+    )
+    def test_soft_nms_selects_overlap_geometry(
+        self, overlap_on: OverlapOn | str | None, expected_decay: bool
+    ) -> None:
+        """Soft-NMS decays the lower score only when overlap is measured on boxes."""
+        detections = _disjoint_mask_detections()
+
+        result = detections.with_soft_nms(overlap_on=overlap_on)
+
+        assert result.confidence is not None
+        assert bool(result.confidence[1] < 0.8 - 1e-6) is expected_decay
+
+    def test_box_overlap_keeps_masks_of_survivors(self) -> None:
+        """NMS on boxes carries the surviving detection's mask through."""
+        detections = _disjoint_mask_detections()
+
+        result = detections.with_nms(threshold=0.5, overlap_on="box")
+
+        assert detections.mask is not None
+        assert result.mask is not None
+        np.testing.assert_array_equal(result.mask, detections.mask[:1])
+
+    def test_nmm_on_boxes_unions_masks_of_merge_group(self) -> None:
+        """NMM grouped on boxes still unions the masks of each merge group."""
+        detections = _disjoint_mask_detections()
+
+        result = detections.with_nmm(threshold=0.5, overlap_on="box")
+
+        assert detections.mask is not None
+        assert result.mask is not None
+        np.testing.assert_array_equal(
+            result.mask, (detections.mask[0] | detections.mask[1])[None]
+        )
+
+    @pytest.mark.parametrize("method", ["with_nms", "with_nmm"])
+    @pytest.mark.parametrize("overlap_on", [None, "box", OverlapOn.BOX])
+    def test_oriented_overlap_is_used_for_obb_data(
+        self, method: str, overlap_on: OverlapOn | str | None
+    ) -> None:
+        """Crossed oriented boxes both survive, as box overlap is oriented."""
+        detections = _x_pattern_obb_detections()
+
+        result = getattr(detections, method)(threshold=0.5, overlap_on=overlap_on)
+
+        assert len(result) == 2
+
+    def test_soft_nms_box_overlap_matches_default_for_obb_data(self) -> None:
+        """Explicit box overlap on oriented boxes equals the default dispatch."""
+        detections = _x_pattern_obb_detections()
+
+        result = detections.with_soft_nms(overlap_on="box")
+
+        assert result.confidence is not None
+        np.testing.assert_array_equal(
+            result.confidence, detections.with_soft_nms().confidence
+        )
+
+    @pytest.mark.parametrize("method", ["with_nms", "with_soft_nms", "with_nmm"])
+    @pytest.mark.parametrize("overlap_on", ["mask", OverlapOn.MASK])
+    def test_mask_overlap_requires_masks(
+        self, method: str, overlap_on: OverlapOn | str
+    ) -> None:
+        """Asking for mask overlap on mask-less detections raises."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match=r"requires `Detections\.mask`"):
+            getattr(detections, method)(overlap_on=overlap_on)
+
+    @pytest.mark.parametrize("method", ["with_nms", "with_soft_nms", "with_nmm"])
+    def test_rejects_unknown_value_even_for_empty_detections(self, method: str) -> None:
+        """An invalid `overlap_on` raises before the empty-input early return."""
+        detections = Detections.empty()
+
+        with pytest.raises(ValueError, match="Invalid value"):
+            getattr(detections, method)(overlap_on="polygon")
+
+    @pytest.mark.parametrize("method", ["with_nms", "with_soft_nms", "with_nmm"])
+    def test_empty_detections_skip_missing_mask_error(self, method: str) -> None:
+        """Mask overlap on empty detections returns them, as the default does."""
+        detections = Detections.empty()
+
+        result = getattr(detections, method)(overlap_on="mask")
+
+        assert result is detections
+
+
+class TestSoftNmsOverlapMetric:
+    """`with_soft_nms(overlap_metric=...)` measures overlap on every geometry."""
+
+    @pytest.mark.parametrize("kind", ["box", "mask", "obb"])
+    @pytest.mark.parametrize(
+        ("overlap_metric", "overlap"),
+        [
+            (OverlapMetric.IOU, 0.25),
+            ("ios", 1.0),
+            (OverlapMetric.IOS, 1.0),
+        ],
+    )
+    def test_decay_follows_overlap_metric(
+        self, kind: str, overlap_metric: OverlapMetric | str, overlap: float
+    ) -> None:
+        """A box inside a larger one has IoU 0.25 and IoS 1.0, so decays differ."""
+        detections = _nested_detections(kind)
+
+        result = detections.with_soft_nms(sigma=0.5, overlap_metric=overlap_metric)
+
+        assert result.confidence is not None
+        assert result.confidence[0] == pytest.approx(0.9)
+        assert result.confidence[1] == pytest.approx(
+            0.8 * np.exp(-(overlap**2) / 0.5), rel=1e-4
+        )
+
+    def test_default_metric_is_iou(self) -> None:
+        """Omitting `overlap_metric` keeps the IoU decay of earlier releases."""
+        detections = _nested_detections("box")
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        assert result.confidence is not None
+        assert result.confidence[1] == pytest.approx(
+            0.8 * np.exp(-(0.25**2) / 0.5), rel=1e-4
+        )
+
+
+class TestStringOverlapMetric:
+    """`overlap_metric` accepts a string on every geometry."""
+
+    @pytest.mark.parametrize("method", ["with_nms", "with_nmm"])
+    @pytest.mark.parametrize("kind", ["box", "mask", "obb"])
+    @pytest.mark.parametrize(
+        ("overlap_metric", "expected_len"),
+        [("iou", 2), ("IOU", 2), ("ios", 1), ("IOS", 1)],
+    )
+    def test_string_metric_selects_overlap_measure(
+        self, method: str, kind: str, overlap_metric: str, expected_len: int
+    ) -> None:
+        """A box inside a larger one survives IoU 0.25 but not IoS 1.0."""
+        detections = _nested_detections(kind)
+
+        result = getattr(detections, method)(
+            threshold=0.5, overlap_metric=overlap_metric
+        )
+
+        assert len(result) == expected_len
