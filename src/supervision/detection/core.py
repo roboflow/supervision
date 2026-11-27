@@ -24,6 +24,7 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
+from supervision.detection.utils._mask_fusion import _paint_fused_masks
 from supervision.detection.utils._obb_frame import (
     corners_to_frame,
     frame_to_corners,
@@ -3306,12 +3307,11 @@ class Detections:
 
         Detections are clustered within their class (across all of them when
         `class_agnostic=True`). They are visited in descending confidence order
-        and each one is compared with the current fused box of every cluster. It
-        joins the cluster with the highest overlap only when that overlap is
-        strictly greater than `threshold`; otherwise it starts a new cluster.
-        Because a fused box moves as detections join it, a detection can join a
-        cluster even when its overlap with the cluster's best detection alone is
-        too low.
+        and compared with each cluster's current fused geometry. A detection
+        joins the cluster with the highest overlap when that overlap is strictly
+        greater than `threshold`. Otherwise it starts a new cluster. As the
+        fused geometry changes, a detection can join a cluster even if its
+        overlap with the highest-confidence member alone is too low.
 
         !!! warning
 
@@ -3325,8 +3325,20 @@ class Detections:
         the cluster's highest-confidence member (the first one on ties). Fused
         detections come back ordered by descending confidence. Ties follow class
         ID and then cluster creation order, or just cluster creation order with
-        `class_agnostic=True`. When masks are present and `overlap_on="box"`, a
-        fused detection carries the union of its members' masks, as
+        `class_agnostic=True`.
+
+        Detections that carry masks are fused by mask overlap (`overlap_on=None` or
+        `"mask"`): each detection is compared with the current fused mask of every
+        cluster. The fused mask of a cluster is the confidence-weighted vote of its
+        members: a pixel is kept when its votes are at least half the cluster's total
+        confidence. Ties keep the pixel, and members of all-zero clusters vote
+        equally. The winner's mask is used if no pixel survives. For two members of
+        unequal confidence the vote gives the winner's mask. Equal confidence
+        gives their union. The fused `xyxy` is the confidence-weighted mean of the
+        members' boxes. A detection that joins no cluster keeps its mask
+        and `xyxy`. This extends published WBF, which fuses boxes only. With
+        `overlap_on="box"` clustering uses box overlap and a fused detection carries
+        the union of its members' masks, as
         :meth:`~supervision.detection.core.Detections.with_nmm` does.
 
         Detections that carry oriented boxes (`data["xyxyxyxy"]`) are fused as
@@ -3343,7 +3355,8 @@ class Detections:
         within rounding of `threshold` can cluster differently from the
         axis-aligned path.
 
-        Fusion runs in float64. The fused `xyxy` and `confidence` use the dtype
+        Fusion evaluates coordinates and scores as float64, and counts mask
+        votes exactly for those scores. The fused `xyxy` and `confidence` use the dtype
         that stacking `xyxy`, `confidence` and, unless `class_agnostic=True`,
         `class_id` into one array would give, widened to at least float32; a
         float32 input with `class_agnostic=True` therefore stays float32 and
@@ -3358,16 +3371,15 @@ class Detections:
 
         Args:
             threshold: Overlap a detection must strictly exceed to join a cluster,
-                measured against the cluster's current fused box. Defaults to 0.5.
+                measured against its current fused mask or box. Defaults to 0.5.
             class_agnostic: Whether to fuse detections of different classes
                 together. If True, `class_id` is ignored. Defaults to False.
-            overlap_metric: Metric used to compute the degree of overlap between
-                pairs of boxes (e.g., IoU, IoS).
+            overlap_metric: Metric used to measure overlap in the selected
+                geometry (e.g., IoU or IoS).
             overlap_on: Geometry to measure overlap on. `"box"` fuses the detections'
                 own boxes (oriented when oriented-box coordinates are present,
-                else axis-aligned) and ignores masks for overlap. `None` (default)
-                picks the richest geometry present. Fusion by mask is not
-                supported yet, so it raises.
+                else axis-aligned) and ignores masks for overlap. `"mask"` fuses by
+                mask overlap. `None` (default) picks the richest geometry present.
             num_models: Number of models (or test-time augmentations) whose
                 detections were concatenated. When set, each fused confidence is
                 multiplied by `min(T, num_models) / num_models`, where `T` is the
@@ -3388,8 +3400,6 @@ class Detections:
             ValueError: If `num_models` is not `None` and not a positive integer.
             ValueError: If `overlap_on` is not a valid value, or is `"mask"` and
                 nonempty detections have no mask.
-            ValueError: If the detections carry masks and `overlap_on` is not
-                `"box"`.
             ValueError: If oriented-box coordinates do not have shape `(N, 4, 2)` or
                 `(N, 8)`, or have nonfinite values.
             ValueError: If the detections carry both masks and oriented-box
@@ -3437,6 +3447,26 @@ class Detections:
 
             ```
 
+            Fuse masks. Two members of unequal confidence give the winner's mask:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> masks = np.zeros((2, 8, 8), dtype=bool)
+            >>> masks[0, 0:4, 0:4] = True
+            >>> masks[1, 0:4, 1:5] = True
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 3, 3], [1, 0, 4, 3]], dtype=float),
+            ...     mask=masks,
+            ...     confidence=np.array([0.9, 0.6]),
+            ...     class_id=np.array([0, 0]),
+            ... )
+            >>> fused = detections.with_fusion()
+            >>> len(fused), bool((fused.mask[0] == masks[0]).all())
+            (1, True)
+
+            ```
+
             Fuse oriented boxes. The fused corners go to `data["xyxyxyxy"]`:
 
             ```pycon
@@ -3480,8 +3510,10 @@ class Detections:
             )
 
         strategy = resolve_overlap_strategy(self, overlap_on)
-        fused_geometry, fused_confidence, labels = strategy.fusion_clusters(
-            self, class_agnostic, threshold, overlap_metric, num_models
+        fused_geometry, fused_confidence, labels, cluster_masks = (
+            strategy.fusion_clusters(
+                self, class_agnostic, threshold, overlap_metric, num_models
+            )
         )
 
         # The winner of a cluster is its first member in stable descending
@@ -3491,6 +3523,43 @@ class Detections:
         _, first_visited = np.unique(labels[visit_order], return_index=True)
         winner_rows = visit_order[first_visited]
 
+        if cluster_masks is not None:
+            if type(self) is Detections:
+                # The painter builds the mask result from the original source.
+                without_mask = copy(self)
+                without_mask.mask = None
+                result = without_mask.select(winner_rows)
+            else:
+                result = self.select(winner_rows)
+            result.mask = _paint_fused_masks(
+                cast(npt.NDArray[Any] | CompactMask, self.mask),
+                winner_rows,
+                cluster_masks,
+            )
+        else:
+            result = self._select_winners_with_united_masks(winner_rows, labels)
+        if fused_geometry.ndim == 3:
+            self._set_fused_oriented_boxes(
+                result, fused_geometry, winner_rows, labels, fused_confidence.dtype
+            )
+        else:
+            result.xyxy = fused_geometry
+        result.confidence = fused_confidence
+        return result
+
+    def _select_winners_with_united_masks(
+        self, winner_rows: npt.NDArray[np.intp], labels: npt.NDArray[np.int64]
+    ) -> Detections:
+        """Select the winners of fused clusters and unite each cluster's masks.
+
+        Args:
+            winner_rows: Input row of each cluster's winner.
+            labels: Fused row of each input row.
+
+        Returns:
+            The winners, with the union of its members' masks on each when masks
+                are present.
+        """
         mask = self.mask
         if type(self) is Detections and isinstance(mask, CompactMask):
             # Compact unions are built separately, so skip copying winner masks.
@@ -3514,13 +3583,6 @@ class Detections:
             # Keep the union independent of a subclass's selection behavior and
             # preserve the output dtype rules for deprecated non-boolean masks.
             result.mask = _union_cluster_masks(mask, labels, len(winner_rows))
-        if fused_geometry.ndim == 3:
-            self._set_fused_oriented_boxes(
-                result, fused_geometry, winner_rows, labels, fused_confidence.dtype
-            )
-        else:
-            result.xyxy = fused_geometry
-        result.confidence = fused_confidence
         return result
 
     def _set_fused_oriented_boxes(

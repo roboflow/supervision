@@ -9,6 +9,7 @@ import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
+from supervision.detection.utils._mask_fusion import _mask_weighted_fusion_clusters
 from supervision.detection.utils.boxes import obb_polygon_area
 from supervision.detection.utils.iou import (
     OverlapMetric,
@@ -190,6 +191,29 @@ def _oriented_box_operands(
     }
 
 
+def _mask_fusion_operands(
+    detections: Detections, class_agnostic: bool, operation_name: str
+) -> dict[str, Any]:
+    """Build the keyword operands of the mask fusion kernel.
+
+    Args:
+        detections: Detections with `mask` and `confidence` set.
+        class_agnostic: Whether class ids are ignored.
+        operation_name: Operation label used in missing-`class_id` errors.
+
+    Returns:
+        Keyword arguments for the mask fusion kernel.
+    """
+    return {
+        "boxes": detections.xyxy,
+        "scores": detections.confidence,
+        "categories": detections._resolve_nms_categories(
+            class_agnostic, operation_name
+        ),
+        "masks": detections.mask,
+    }
+
+
 def _oriented_box_fusion_operands(
     detections: Detections, class_agnostic: bool, operation_name: str
 ) -> dict[str, Any]:
@@ -252,11 +276,10 @@ class OverlapStrategy:
         soft_nms_kernel: Gaussian soft-NMS kernel returning decayed confidence.
         nmm_kernel: Non-max merge kernel returning merge groups.
         fusion_kernel: Weighted Box Fusion kernel returning fused geometry, fused
-            scores and the fused row of each input, or `None` while this geometry
-            cannot be fused. The geometry is `(m, 4)` boxes or `(m, 4, 2)` corners.
+            scores and the fused row of each input, plus the fused masks when it
+            fuses by mask. The geometry is `(m, 4)` boxes or `(m, 4, 2)` corners.
         fusion_operands: Builds the operands of `fusion_kernel` when they differ
             from `operands`, or `None` to reuse `operands`.
-        fusion_unsupported: Error text raised when `fusion_kernel` is `None`.
     """
 
     name: str
@@ -266,9 +289,8 @@ class OverlapStrategy:
     nms_kernel: Callable[..., Any]
     soft_nms_kernel: Callable[..., Any]
     nmm_kernel: Callable[..., Any]
-    fusion_kernel: Callable[..., Any] | None = None
+    fusion_kernel: Callable[..., Any]
     fusion_operands: Callable[[Detections, bool, str], dict[str, Any]] | None = None
-    fusion_unsupported: str = ""
 
     def nms_keep_mask(
         self,
@@ -358,7 +380,9 @@ class OverlapStrategy:
         iou_threshold: float,
         overlap_metric: OverlapMetric | str,
         num_models: int | None,
-    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64]]:
+    ) -> tuple[
+        npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64], list[Any] | None
+    ]:
         """Run Weighted Box Fusion clustering and return the fused rows.
 
         The fused scores, and the fused boxes of an axis-aligned fusion, use the
@@ -376,30 +400,25 @@ class OverlapStrategy:
 
         Returns:
             Fused geometry, `(m, 4)` boxes or `(m, 4, 2)` corners, fused scores
-                `(m,)`, both sorted by descending fused score, and `labels` `(n,)`,
-                the fused row of each input row.
-
-        Raises:
-            ValueError: If this geometry cannot be fused yet.
+                `(m,)`, both sorted by descending fused score, `labels` `(n,)`, the
+                fused row of each input row, and the fused masks of the rows, `None`
+                for a geometry other than masks.
         """
-        if self.fusion_kernel is None:
-            raise ValueError(self.fusion_unsupported)
         overlap_metric = OverlapMetric.from_value(overlap_metric)
         build_operands = self.fusion_operands or self.operands
         operands = build_operands(detections, class_agnostic, "Fusion")
         dtypes = [detections.xyxy.dtype, operands["scores"].dtype]
         if operands["categories"] is not None:
             dtypes.append(operands["categories"].dtype)
-        return cast(
-            tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64]],
-            self.fusion_kernel(
-                **operands,
-                iou_threshold=iou_threshold,
-                overlap_metric=overlap_metric,
-                num_models=num_models,
-                output_dtype=np.result_type(*dtypes, np.float32),
-            ),
+        fused = self.fusion_kernel(
+            **operands,
+            iou_threshold=iou_threshold,
+            overlap_metric=overlap_metric,
+            num_models=num_models,
+            output_dtype=np.result_type(*dtypes, np.float32),
         )
+        geometry, scores, labels, *fused_masks = fused
+        return geometry, scores, labels, fused_masks[0] if fused_masks else None
 
 
 #: Strategies in priority order: the richest geometry present wins.
@@ -412,10 +431,8 @@ _OVERLAP_STRATEGIES: tuple[OverlapStrategy, ...] = (
         nms_kernel=_mask_non_max_suppression,
         soft_nms_kernel=_mask_soft_non_max_suppression,
         nmm_kernel=mask_non_max_merge,
-        fusion_unsupported=(
-            "with_fusion cannot fuse by mask overlap yet; pass overlap_on='box' to "
-            "fuse the boxes (the masks of a cluster are united) or drop the masks."
-        ),
+        fusion_kernel=_mask_weighted_fusion_clusters,
+        fusion_operands=_mask_fusion_operands,
     ),
     OverlapStrategy(
         name="oriented_box",

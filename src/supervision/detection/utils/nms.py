@@ -1365,7 +1365,7 @@ def _box_weighted_fusion_clusters(
         sources,
         box_weights,
         _fuse_single_class_boxes,
-    )
+    )[:3]
 
 
 def _fuse_by_class(
@@ -1380,7 +1380,9 @@ def _fuse_by_class(
     sources: npt.NDArray[np.integer] | None,
     box_weights: _FusionBoxWeights,
     fuse_single_class: Callable[..., Any],
-) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64]]:
+) -> tuple[
+    npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64], npt.NDArray[np.intp]
+]:
     """Run a single-class fusion kernel per class and order the fused rows.
 
     Shared by the axis-aligned and the oriented fusion: `fuse_single_class` fuses
@@ -1403,9 +1405,11 @@ def _fuse_by_class(
         fuse_single_class: Fusion kernel of one class.
 
     Returns:
-        A tuple `(fused_geometry, fused_scores, labels)` sorted by descending fused
-            score; `labels[i]` is the returned row of the cluster input row `i`
-            joined.
+        A tuple `(fused_geometry, fused_scores, labels, order)` sorted by descending
+            fused score; `labels[i]` is the returned row of the cluster input row `i`
+            joined, and `order[r]` is the position, in class-then-creation order, of
+            the cluster that returned row `r` holds, for callers that carry
+            per-cluster data of their own.
     """
     box_count = len(geometry)
     if categories is None:
@@ -1456,6 +1460,7 @@ def _fuse_by_class(
         cast_geometry[descending_score],
         cast_scores[descending_score],
         rank_of_cluster[cluster_of_box],
+        descending_score,
     )
 
 
@@ -1750,7 +1755,7 @@ def _oriented_box_weighted_fusion_clusters(
         sources,
         box_weights,
         _fuse_single_class_oriented_boxes,
-    )
+    )[:3]
 
 
 def _box_weighted_box_fusion(
