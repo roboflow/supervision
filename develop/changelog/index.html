@@ -4740,7 +4740,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p>Added <code>sv.Detections.with_fusion</code>, Weighted Box Fusion (WBF) for detections: overlapping detections of a class (or of all classes with <code>class_agnostic=True</code>) become one detection whose box is the confidence-weighted average of the cluster and whose confidence is the cluster's mean. Each fused detection takes <code>class_id</code>, <code>tracker_id</code> and <code>data</code> from the cluster's highest-confidence member, and <code>num_models</code> rescales confidences as in the WBF paper, which is how to fuse the output of several models after <code>sv.Detections.merge</code>. It fuses axis-aligned boxes; with masks, pass <code>overlap_on="box"</code> to unite the masks of each cluster, and mask overlap, oriented boxes and detections carrying both raise <code>ValueError</code> for now. Fusion rejects negative or nonfinite scores, unordered or nonfinite box coordinates, and nonfinite class IDs in class-aware mode. Migrating from <code>sv.box_weighted_box_fusion</code>: pass the original <code>overlap_metric</code> and <code>num_models</code> to <code>with_fusion</code>. For five-column predictions, omit <code>class_id</code> and set <code>class_agnostic=True</code>. (<a href="https://github.com/roboflow/supervision/pull/3091">#3091</a>)</p>
+<p>Added <code>sv.Detections.with_fusion</code>, Weighted Box Fusion (WBF) for detections: overlapping detections of a class (or of all classes with <code>class_agnostic=True</code>) become one detection whose box is the confidence-weighted average of the cluster and whose confidence is the cluster's mean. Each fused detection takes <code>class_id</code>, <code>tracker_id</code> and <code>data</code> from the cluster's highest-confidence member, and <code>num_models</code> rescales confidences as in the WBF paper, which is how to fuse the output of several models after <code>sv.Detections.merge</code>. It fuses axis-aligned boxes; with masks, pass <code>overlap_on="box"</code> to unite the masks of each cluster, and mask overlap and detections carrying both masks and oriented boxes raise <code>ValueError</code> for now. Fusion rejects negative or nonfinite scores, unordered or nonfinite box coordinates, and nonfinite class IDs in class-aware mode. Migrating from <code>sv.box_weighted_box_fusion</code>: pass the original <code>overlap_metric</code> and <code>num_models</code> to <code>with_fusion</code>. For five-column predictions, omit <code>class_id</code> and set <code>class_agnostic=True</code>. (<a href="https://github.com/roboflow/supervision/pull/3091">#3091</a>)</p>
+</li>
+<li>
+<p>Added oriented-box support to <code>sv.Detections.with_fusion</code>: detections that carry <code>data["xyxyxyxy"]</code> are fused as oriented boxes. Overlap is measured between the rotated boxes, and each cluster is fused in the frame of its highest-confidence member (its first edge is the x axis) as the confidence-weighted mean of the members' per-axis extremes, rotated back. The fused corners are written to <code>data["xyxyxyxy"]</code> in the input layout (<code>(N, 4, 2)</code> or <code>(N, 8)</code>) as float64, <code>xyxy</code> is their envelope, and a detection that joins no cluster keeps its corners and <code>xyxy</code> to the precision of their output dtypes. Large integer corners are translated before overlap is measured to preserve local geometry. Overlap runs in float32 polygon arithmetic, so a pair whose overlap equals the threshold can cluster differently from axis-aligned fusion. (<a href="https://github.com/roboflow/supervision/pull/3092">#3092</a>)</p>
 </li>
 <li>
 <p>Deprecated <code>sv.box_non_max_suppression</code>, <code>sv.mask_non_max_suppression</code>, <code>sv.oriented_box_non_max_suppression</code>, <code>sv.box_soft_non_max_suppression</code>, <code>sv.mask_soft_non_max_suppression</code>, <code>sv.oriented_box_soft_non_max_suppression</code> and <code>sv.box_weighted_box_fusion</code> in <code>0.33.0</code>, to be removed in <code>0.36.0</code>. Use <code>sv.Detections.with_nms</code>, <code>with_soft_nms</code> or <code>with_fusion</code>. Pass the original <code>overlap_metric</code>, and use <code>overlap_on="box"</code> to retain oriented-box suppression when masks are also present. To keep the surviving row indices, set <code>detections.data["index"] = np.arange(len(detections))</code> before <code>with_nms</code> and read <code>data["index"]</code> afterwards. The <code>*_non_max_merge</code> functions stay public. (<a href="https://github.com/roboflow/supervision/pull/3091">#3091</a>)</p>
@@ -4925,7 +4928,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </ul>
 <h3 id="0320-nov-18-2026">0.32.0 <small>Nov 18, 2026</small><a class="headerlink" href="#0320-nov-18-2026" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Zones</strong>: <code>sv.PolygonZone</code> counts entries and exits per class and measures dwell time, and the zone annotators accept a <code>coord_transform</code>.<ul>
+<li>
+<p><strong>Zones</strong>: <code>sv.PolygonZone</code> counts entries and exits per class and measures dwell time, and the zone annotators accept a <code>coord_transform</code>.</p>
+<ul>
 <li><code>sv.PolygonZone</code> now counts tracked objects entering and leaving the zone, per <code>tracker_id</code>, and reports the current count per class. <code>in_count</code>, <code>out_count</code>, <code>in_count_per_class</code> and <code>out_count_per_class</code> match <code>sv.LineZone</code>; <code>current_count_per_class</code> needs no tracker. An object first seen inside has not entered, and detections with an invalid <code>tracker_id</code> are never counted. The new <code>minimum_crossing_threshold</code> ignores anchors flickering across the boundary, <code>max_absent_frames</code> keeps a track through short occlusions, and <code>reset()</code> clears all state. <code>trigger</code> and <code>current_count</code> are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2770">#2770</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 <li><code>sv.PolygonZone.time_in_zone(detections)</code> returns how long each tracked object has been inside the zone, and <code>NaN</code> for objects not confirmed inside. <code>trigger</code> gains an optional <code>timestamp</code>, such as <code>frame_index / fps</code> or <code>time.monotonic()</code>; without one, dwell is measured in frames. A stay starts at a confirmed entry, or when an object is first seen inside, and ends at a confirmed exit, so boundary flicker and short absences do not interrupt it. <code>trigger</code> raises <code>ValueError</code> for a timestamp that is non-finite or earlier than the previous frame's. (<a href="https://github.com/roboflow/supervision/pull/2770">#2770</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 <li><code>sv.PolygonZone.occupancy_ratio</code> returns the share of zone pixels, from <code>0.0</code> to <code>1.0</code>, covered by the union of the detections, so overlapping detections count once. Each footprint is the detection's mask (dense or <code>sv.CompactMask</code>), else its oriented box in <code>data["xyxyxyxy"]</code>, else its axis-aligned box. Detections must use the pixel coordinates of the frame the zone was drawn on. (<a href="https://github.com/roboflow/supervision/pull/1667">#1667</a>)</li>
@@ -4935,39 +4940,51 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>The <code>examples/time_in_zone</code> file example <code>ultralytics_file_example.py</code> accepts <code>--output_video_path</code> to save the annotated video with <code>sv.VideoSink</code>, trying the <code>H264</code> codec and then <code>XVID</code>. It raises an error when no codec opens or when the path is the source video. (<a href="https://github.com/roboflow/supervision/pull/1964">#1964</a>)</li>
 </ul>
 </li>
-<li><strong>Semantic segmentation</strong>: semantic maps load into <code>sv.Detections</code> from raw class maps, Roboflow Inference and Ultralytics.<ul>
+<li>
+<p><strong>Semantic segmentation</strong>: semantic maps load into <code>sv.Detections</code> from raw class maps, Roboflow Inference and Ultralytics.</p>
+<ul>
 <li>Added <code>sv.Detections.from_semantic_segmentation</code>, which <code>from_inference</code> uses for semantic results. Call it directly for a class map alone (a base64 PNG or an integer array), to override <code>class_map</code> or <code>confidence_mask</code>, or to keep the background with <code>background_id=None</code>. (<a href="https://github.com/roboflow/supervision/pull/2898">#2898</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 <li><code>sv.Detections.from_inference</code> now loads Roboflow Inference semantic segmentation results, such as RF-DETR semantic models, as one detection per class id, instead of failing with an opaque <code>TypeError</code>. The background id <code>0</code> is dropped, classes are named from <code>class_map</code>, and a <code>confidence_mask</code> gives each class's mean confidence. (<a href="https://github.com/roboflow/supervision/pull/2898">#2898</a>)</li>
 <li><code>sv.Detections.from_ultralytics</code> now loads Ultralytics semantic segmentation results (<code>task="semantic"</code>), which returned empty <code>Detections</code>. Each class in <code>Results.semantic_mask</code> becomes one detection with a mask of all its pixels and its class name, without confidence. A <code>semantic_mask</code> that is not a single-channel integer <code>(H, W)</code> map raises <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2915">#2915</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 <li><code>sv.Detections.from_semantic_segmentation</code> now rejects non-PNG encoded maps, confidence values outside 0–255, and unsigned class IDs beyond the <code>int64</code> range instead of accepting invalid scores or failing with an indexing error. (<a href="https://github.com/roboflow/supervision/pull/2898">#2898</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 </ul>
 </li>
-<li><strong>Key points</strong>: <code>sv.KeyPointsDataset</code> reads and writes YOLO pose datasets, and key point annotators take color palettes.<ul>
+<li>
+<p><strong>Key points</strong>: <code>sv.KeyPointsDataset</code> reads and writes YOLO pose datasets, and key point annotators take color palettes.</p>
+<ul>
 <li>Added <code>sv.KeyPointsDataset</code>, the keypoint counterpart of <code>sv.DetectionDataset</code>: lazy image loading, indexing, iteration, <code>split</code>, <code>merge</code>, <code>from_yolo</code> and <code>as_yolo</code> for the YOLO pose format. Each image is annotated with <code>sv.KeyPoints</code> carrying the object box under <code>data['xyxy']</code>. For a <code>kpt_shape</code> of <code>[K, 3]</code>, <code>KeyPoints.visible</code> marks occluded and visible keypoints alike, so <code>sv.metrics.KeyPointMeanAveragePrecision</code> scores them as COCO does, and the raw flags are kept under <code>data['keypoint_visibility']</code>. Coordinates load as <code>float64</code>, so <code>from_yolo</code> then <code>as_yolo</code> retains label coordinates. A missing images or labels directory raises <code>FileNotFoundError</code> instead of loading every image as a negative example, and <code>as_yolo</code> validates every annotation before writing any file. (<a href="https://github.com/roboflow/supervision/pull/2745">#2745</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 <li><code>sv.VertexAnnotator</code>, <code>sv.EdgeAnnotator</code> and <code>sv.VertexLabelAnnotator</code> now accept a <code>sv.ColorPalette</code> and a <code>color_lookup</code> argument. <code>sv.ColorLookup.INDEX</code> and <code>sv.ColorLookup.CLASS</code> work as for detection annotators, and the new <code>sv.ColorLookup.KEYPOINT</code> colors each keypoint by its index within the skeleton. <code>sv.ColorLookup.TRACK</code> is not supported for keypoints and is rejected when the annotator is created. (<a href="https://github.com/roboflow/supervision/pull/2343">#2343</a>)</li>
 </ul>
 </li>
-<li><strong>Datasets</strong>: COCO polygons can be rasterized with <code>pycocotools</code>, YOLO segmentation loads as compact masks, and <code>sv.Detections.remap_classes</code> aligns predictions with a class list.<ul>
+<li>
+<p><strong>Datasets</strong>: COCO polygons can be rasterized with <code>pycocotools</code>, YOLO segmentation loads as compact masks, and <code>sv.Detections.remap_classes</code> aligns predictions with a class list.</p>
+<ul>
 <li><code>sv.DetectionDataset.from_coco</code> accepts <code>mask_rasterizer="pycocotools"</code> to load COCO polygons with the COCO reference rasterization, which matches the masks COCO evaluation builds. Install <code>supervision[coco]</code> for this mode. Omitting <code>mask_rasterizer</code> keeps the current fill (<code>"supervision"</code>), but relying on that default for a file with polygon segmentation is deprecated in <code>0.32.0</code> and emits a <code>SupervisionWarnings</code> warning, because the default changes to <code>"pycocotools"</code> no earlier than <code>0.35.0</code>. (<a href="https://github.com/roboflow/supervision/pull/2714">#2714</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 <li><code>sv.DetectionDataset.from_yolo(..., compact_masks=True)</code> now keeps segmentation masks as <code>sv.CompactMask</code>, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and <code>force_masks=True</code> can also produce compact box masks. (<a href="https://github.com/roboflow/supervision/pull/2834">#2834</a>)</li>
 <li>Added <code>sv.Detections.remap_classes</code> to line model predictions up with a dataset's class list. It optionally renames classes with <code>class_name_mapping</code>, drops detections whose name is not in <code>classes</code>, and rewrites <code>class_id</code> to the index of each name in <code>classes</code>. Duplicate names in <code>classes</code> and mapping targets missing from <code>classes</code> raise an error instead of silently dropping or misassigning detections. (<a href="https://github.com/roboflow/supervision/pull/1846">#1846</a>)</li>
 </ul>
 </li>
-<li><strong>Utilities and sinks</strong>: <code>sv.box_weighted_box_fusion</code> fuses ensemble boxes, the box and image helpers no longer wrap or lose pixels, and <code>sv.JSONSink</code> rejects additional data that reuses a built-in field name.<ul>
+<li>
+<p><strong>Utilities and sinks</strong>: <code>sv.box_weighted_box_fusion</code> fuses ensemble boxes, the box and image helpers no longer wrap or lose pixels, and <code>sv.JSONSink</code> rejects additional data that reuses a built-in field name.</p>
+<ul>
 <li><code>sv.box_weighted_box_fusion</code> — Weighted Box Fusion (WBF), a confidence-weighted alternative to <code>sv.box_non_max_suppression</code>. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into one box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence. Invalid rows, such as non-finite coordinates or <code>x2 &lt; x1</code>, raise <code>ValueError</code>. Based on Solovyev et al. (2019) (<a href="https://github.com/roboflow/supervision/pull/2455">#2455</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>).</li>
 <li><code>sv.xyxy_to_xywh</code> now computes integer box widths and heights without wraparound. Integer inputs return <code>int64</code>, or <code>float64</code> when an output value exceeds the <code>int64</code> range, instead of negative extents caused by overflow. (<a href="https://github.com/roboflow/supervision/pull/2951">#2951</a>)</li>
 <li><code>sv.resize_image</code> with <code>keep_aspect_ratio=True</code> and <code>sv.letterbox_image</code> no longer lose 1 pixel on the fitted axis when its exact size is a whole number, for example a 640x427 image letterboxed to 640x640, which was resampled to 640x426 instead of only padded. The size is now calculated with integer arithmetic. (<a href="https://github.com/roboflow/supervision/pull/2952">#2952</a>)</li>
 <li><code>sv.JSONSink</code> now rejects additional data whose names collide with built-in detection fields, preventing custom metadata from silently overwriting coordinates, class IDs, confidence scores or tracker IDs. Rename such metadata fields, for example to <code>calibrated_confidence</code>. (<a href="https://github.com/roboflow/supervision/pull/2949">#2949</a>)</li>
 </ul>
 </li>
-<li><strong>Performance</strong>: compact-mask area, mAR target selection, class remapping and dataset merging do less work.<ul>
+<li>
+<p><strong>Performance</strong>: compact-mask area, mAR target selection, class remapping and dataset merging do less work.</p>
+<ul>
 <li><code>sv.CompactMask.area</code> now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, about 3–9× faster for 100 to 500 typical masks and about 2× for heavily fragmented ones. It also accumulates in int64, avoiding overflow for areas above the int32 limit with NumPy 1.x on Windows. (<a href="https://github.com/roboflow/supervision/pull/2744">#2744</a>)</li>
 <li><code>sv.metrics.MeanAverageRecall</code> selects targets by size before copying their rows. The size filter no longer copies every target mask for each range or fails on unused image metadata that cannot be deep-copied. (<a href="https://github.com/roboflow/supervision/pull/2953">#2953</a>)</li>
 <li><code>sv.Detections.remap_classes</code> skips repeated full-list scans when the target class names are unique, preserving the existing duplicate-name error. (<a href="https://github.com/roboflow/supervision/pull/2986">#2986</a>)</li>
 <li>Dataset merging builds a class-name lookup per dataset instead of rescanning the merged class list for every class. (<a href="https://github.com/roboflow/supervision/pull/3017">#3017</a>)</li>
 </ul>
 </li>
-<li><strong>Removals and deprecations</strong>: APIs deprecated in <code>0.29.0</code> are removed, and new deprecations are scheduled for removal in <code>0.35.0</code>.<ul>
+<li>
+<p><strong>Removals and deprecations</strong>: APIs deprecated in <code>0.29.0</code> are removed, and new deprecations are scheduled for removal in <code>0.35.0</code>.</p>
+<ul>
 <li>Removed the APIs deprecated in <code>0.29.0</code>, as scheduled for <code>0.32.0</code>: the public <code>validate_*</code> helpers (in <code>supervision.validators</code>, <code>supervision.detection.vlm</code>, <code>supervision.detection.core</code>, <code>supervision.annotators.utils</code> and <code>supervision.metrics.detection</code>), <code>sv.PercentageBarAnnotator.validate_custom_values</code>, <code>merge_inner_detection_object_pair</code>, <code>merge_inner_detections_objects</code> and <code>merge_inner_detections_objects_without_iou</code> in <code>supervision.detection.core</code>, and the <code>confidence</code> argument and attribute of <code>sv.KeyPoints</code>. Use <code>sv.KeyPoints.keypoint_confidence</code> instead; assigning to <code>sv.KeyPoints.confidence</code> now raises an <code>AttributeError</code> that points to it. (<a href="https://github.com/roboflow/supervision/pull/3019">#3019</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
 <li>Passing a <code>list[sv.Color]</code> as <code>color</code> or <code>text_color</code> to <code>sv.VertexLabelAnnotator</code> is deprecated in <code>0.32.0</code> and will be removed in <code>0.35.0</code>. Use a single <code>sv.Color</code>, or a <code>sv.ColorPalette</code> together with <code>color_lookup=sv.ColorLookup.KEYPOINT</code>. The palette alone colors by class, so every key point of an object gets the same color, while the old list gave each key point its own. (<a href="https://github.com/roboflow/supervision/pull/2343">#2343</a>)</li>
 <li><code>resolve_color</code>, <code>resolve_color_idx</code> and <code>get_color_by_index</code> in <code>supervision.annotators.utils</code> are deprecated in <code>0.32.0</code> and will be removed in <code>0.35.0</code>. Pass a <code>sv.ColorPalette</code> as <code>color</code> together with <code>color_lookup</code> to the annotators instead, or use <code>sv.ColorPalette.by_idx</code> in place of <code>get_color_by_index</code>. <code>resolve_color</code> stays importable from <code>supervision.annotators.core</code> until <code>0.35.0</code> and warns the same way. (<a href="https://github.com/roboflow/supervision/pull/2343">#2343</a>, <a href="https://github.com/roboflow/supervision/pull/3021">#3021</a>)</li>
@@ -7360,7 +7377,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 27, 2026 18:50:45 UTC">November 27, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 27, 2026 19:58:34 UTC">November 27, 2026</span>
   </span>
 
     
@@ -7388,9 +7405,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7398,9 +7415,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
         <a href="https://github.com/cpruijsen" class="md-author" title="@cpruijsen">
@@ -7412,7 +7429,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +41
+            +40
           </a>
         
       
