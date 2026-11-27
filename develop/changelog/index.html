@@ -4740,6 +4740,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.scale_image</code> no longer drops a pixel when the scaled size is a whole number that float multiplication lands just below. A 720p frame scaled by <code>0.7</code> came out 503 pixels high instead of 504, because <code>720 * 0.7</code> is <code>503.99999999999994</code>. The correction is limited to binary64 products immediately below a whole pixel. <code>sv.CropAnnotator</code> scales its crops through this function. (<a href="https://github.com/roboflow/supervision/pull/3089">#3089</a>)</p>
+</li>
+<li>
 <p>Added <code>overlap_on</code> to <code>sv.Detections.with_nms</code>, <code>with_soft_nms</code> and <code>with_nmm</code>, and <code>overlap_metric</code> to <code>with_soft_nms</code>. <code>overlap_on</code> takes <code>"box"</code>, <code>"mask"</code> or the new <code>sv.OverlapOn</code> enum and picks the geometry overlap is measured on: <code>"box"</code> uses the oriented box when <code>data["xyxyxyxy"]</code> is present and the axis-aligned box otherwise, and carries masks through (<code>with_nmm</code> still unions the masks of each merge group); <code>"mask"</code> uses the masks and raises <code>ValueError</code> if a nonempty input has no masks. Empty inputs are returned unchanged after validating <code>overlap_on</code>. The default <code>None</code> keeps today's choice of mask, then oriented box, then box. <code>overlap_metric</code> on <code>with_soft_nms</code> selects IoU or IoS as in <code>with_nms</code>, and all three methods now accept it as a string such as <code>"ios"</code> on every geometry; the mask and oriented-box kernels used to reject a string. (<a href="https://github.com/roboflow/supervision/pull/3090">#3090</a>)</p>
 </li>
 <li>
@@ -7340,7 +7343,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 27, 2026 10:41:16 UTC">November 27, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 27, 2026 11:53:38 UTC">November 27, 2026</span>
   </span>
 
     
@@ -7368,9 +7371,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/cpruijsen" class="md-author" title="@cpruijsen">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/3891941?v=4&size=72" alt="cpruijsen">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -7378,21 +7381,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/shubhamgoel27" class="md-author" title="@shubhamgoel27">
           
           <img src="https://avatars.githubusercontent.com/u/6277335?v=4&size=72" alt="shubhamgoel27">
-        </a>
-      
-        <a href="https://github.com/Acedia11" class="md-author" title="@Acedia11">
-          
-          <img src="https://avatars.githubusercontent.com/u/193300475?v=4&size=72" alt="Acedia11">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +40
+            +41
           </a>
         
       
