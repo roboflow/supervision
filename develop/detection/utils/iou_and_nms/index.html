@@ -7848,12 +7848,7 @@ from <code>0</code> to <code>1</code>.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/detection/utils/nms.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1816">1816</a></span>
-<span class="normal"><a href="#__codelineno-0-1817">1817</a></span>
-<span class="normal"><a href="#__codelineno-0-1818">1818</a></span>
-<span class="normal"><a href="#__codelineno-0-1819">1819</a></span>
-<span class="normal"><a href="#__codelineno-0-1820">1820</a></span>
-<span class="normal"><a href="#__codelineno-0-1821">1821</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1821">1821</a></span>
 <span class="normal"><a href="#__codelineno-0-1822">1822</a></span>
 <span class="normal"><a href="#__codelineno-0-1823">1823</a></span>
 <span class="normal"><a href="#__codelineno-0-1824">1824</a></span>
@@ -7867,26 +7862,31 @@ from <code>0</code> to <code>1</code>.</p>
 <span class="normal"><a href="#__codelineno-0-1832">1832</a></span>
 <span class="normal"><a href="#__codelineno-0-1833">1833</a></span>
 <span class="normal"><a href="#__codelineno-0-1834">1834</a></span>
-<span class="normal"><a href="#__codelineno-0-1835">1835</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1816"><a id="__codelineno-0-1816" name="__codelineno-0-1816"></a><span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[untyped-decorator]</span>
-</span><span id="__span-0-1817"><a id="__codelineno-0-1817" name="__codelineno-0-1817"></a>    <span class="n">target</span><span class="o">=</span><span class="n">_box_weighted_box_fusion</span><span class="p">,</span>
-</span><span id="__span-0-1818"><a id="__codelineno-0-1818" name="__codelineno-0-1818"></a>    <span class="o">**</span><span class="n">_ARRAY_KERNEL_DEPRECATED_DETAILS</span><span class="p">,</span>
-</span><span id="__span-0-1819"><a id="__codelineno-0-1819" name="__codelineno-0-1819"></a>    <span class="o">**</span><span class="p">{</span>
-</span><span id="__span-0-1820"><a id="__codelineno-0-1820" name="__codelineno-0-1820"></a>        <span class="n">_DEPRECATION_TEMPLATE_KEYWORD</span><span class="p">:</span> <span class="n">_array_kernel_deprecation</span><span class="p">(</span>
-</span><span id="__span-0-1821"><a id="__codelineno-0-1821" name="__codelineno-0-1821"></a>            <span class="s2">&quot;`sv.Detections(xyxy=..., confidence=..., class_id=...)&quot;</span>
-</span><span id="__span-0-1822"><a id="__codelineno-0-1822" name="__codelineno-0-1822"></a>            <span class="s2">&quot;.with_fusion(threshold=..., overlap_metric=..., num_models=...)`&quot;</span>
-</span><span id="__span-0-1823"><a id="__codelineno-0-1823" name="__codelineno-0-1823"></a>        <span class="p">)</span>
-</span><span id="__span-0-1824"><a id="__codelineno-0-1824" name="__codelineno-0-1824"></a>    <span class="p">},</span>
-</span><span id="__span-0-1825"><a id="__codelineno-0-1825" name="__codelineno-0-1825"></a><span class="p">)</span>
-</span><span id="__span-0-1826"><a id="__codelineno-0-1826" name="__codelineno-0-1826"></a><span class="k">def</span><span class="w"> </span><span class="nf">box_weighted_box_fusion</span><span class="p">(</span>
-</span><span id="__span-0-1827"><a id="__codelineno-0-1827" name="__codelineno-0-1827"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
-</span><span id="__span-0-1828"><a id="__codelineno-0-1828" name="__codelineno-0-1828"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-1829"><a id="__codelineno-0-1829" name="__codelineno-0-1829"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
-</span><span id="__span-0-1830"><a id="__codelineno-0-1830" name="__codelineno-0-1830"></a>    <span class="n">num_models</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-1831"><a id="__codelineno-0-1831" name="__codelineno-0-1831"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
-</span><span id="__span-0-1832"><a id="__codelineno-0-1832" name="__codelineno-0-1832"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fuse overlapping object detection predictions with Weighted Box Fusion.&quot;&quot;&quot;</span>
-</span><span id="__span-0-1833"><a id="__codelineno-0-1833" name="__codelineno-0-1833"></a>    <span class="k">return</span> <span class="n">void</span><span class="p">(</span>  <span class="c1"># type: ignore[no-any-return]</span>
-</span><span id="__span-0-1834"><a id="__codelineno-0-1834" name="__codelineno-0-1834"></a>        <span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="p">,</span> <span class="n">num_models</span>
-</span><span id="__span-0-1835"><a id="__codelineno-0-1835" name="__codelineno-0-1835"></a>    <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-1835">1835</a></span>
+<span class="normal"><a href="#__codelineno-0-1836">1836</a></span>
+<span class="normal"><a href="#__codelineno-0-1837">1837</a></span>
+<span class="normal"><a href="#__codelineno-0-1838">1838</a></span>
+<span class="normal"><a href="#__codelineno-0-1839">1839</a></span>
+<span class="normal"><a href="#__codelineno-0-1840">1840</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1821"><a id="__codelineno-0-1821" name="__codelineno-0-1821"></a><span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[untyped-decorator]</span>
+</span><span id="__span-0-1822"><a id="__codelineno-0-1822" name="__codelineno-0-1822"></a>    <span class="n">target</span><span class="o">=</span><span class="n">_box_weighted_box_fusion</span><span class="p">,</span>
+</span><span id="__span-0-1823"><a id="__codelineno-0-1823" name="__codelineno-0-1823"></a>    <span class="o">**</span><span class="n">_ARRAY_KERNEL_DEPRECATED_DETAILS</span><span class="p">,</span>
+</span><span id="__span-0-1824"><a id="__codelineno-0-1824" name="__codelineno-0-1824"></a>    <span class="o">**</span><span class="p">{</span>
+</span><span id="__span-0-1825"><a id="__codelineno-0-1825" name="__codelineno-0-1825"></a>        <span class="n">_DEPRECATION_TEMPLATE_KEYWORD</span><span class="p">:</span> <span class="n">_array_kernel_deprecation</span><span class="p">(</span>
+</span><span id="__span-0-1826"><a id="__codelineno-0-1826" name="__codelineno-0-1826"></a>            <span class="s2">&quot;`sv.Detections(xyxy=..., confidence=..., class_id=...)&quot;</span>
+</span><span id="__span-0-1827"><a id="__codelineno-0-1827" name="__codelineno-0-1827"></a>            <span class="s2">&quot;.with_fusion(threshold=..., overlap_metric=..., num_models=...)`&quot;</span>
+</span><span id="__span-0-1828"><a id="__codelineno-0-1828" name="__codelineno-0-1828"></a>        <span class="p">)</span>
+</span><span id="__span-0-1829"><a id="__codelineno-0-1829" name="__codelineno-0-1829"></a>    <span class="p">},</span>
+</span><span id="__span-0-1830"><a id="__codelineno-0-1830" name="__codelineno-0-1830"></a><span class="p">)</span>
+</span><span id="__span-0-1831"><a id="__codelineno-0-1831" name="__codelineno-0-1831"></a><span class="k">def</span><span class="w"> </span><span class="nf">box_weighted_box_fusion</span><span class="p">(</span>
+</span><span id="__span-0-1832"><a id="__codelineno-0-1832" name="__codelineno-0-1832"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
+</span><span id="__span-0-1833"><a id="__codelineno-0-1833" name="__codelineno-0-1833"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-1834"><a id="__codelineno-0-1834" name="__codelineno-0-1834"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
+</span><span id="__span-0-1835"><a id="__codelineno-0-1835" name="__codelineno-0-1835"></a>    <span class="n">num_models</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-1836"><a id="__codelineno-0-1836" name="__codelineno-0-1836"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
+</span><span id="__span-0-1837"><a id="__codelineno-0-1837" name="__codelineno-0-1837"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fuse overlapping object detection predictions with Weighted Box Fusion.&quot;&quot;&quot;</span>
+</span><span id="__span-0-1838"><a id="__codelineno-0-1838" name="__codelineno-0-1838"></a>    <span class="k">return</span> <span class="n">void</span><span class="p">(</span>  <span class="c1"># type: ignore[no-any-return]</span>
+</span><span id="__span-0-1839"><a id="__codelineno-0-1839" name="__codelineno-0-1839"></a>        <span class="n">predictions</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="p">,</span> <span class="n">num_models</span>
+</span><span id="__span-0-1840"><a id="__codelineno-0-1840" name="__codelineno-0-1840"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8306,12 +8306,7 @@ from <code>0</code> to <code>1</code>.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/detection/utils/nms.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1905">1905</a></span>
-<span class="normal"><a href="#__codelineno-0-1906">1906</a></span>
-<span class="normal"><a href="#__codelineno-0-1907">1907</a></span>
-<span class="normal"><a href="#__codelineno-0-1908">1908</a></span>
-<span class="normal"><a href="#__codelineno-0-1909">1909</a></span>
-<span class="normal"><a href="#__codelineno-0-1910">1910</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1910">1910</a></span>
 <span class="normal"><a href="#__codelineno-0-1911">1911</a></span>
 <span class="normal"><a href="#__codelineno-0-1912">1912</a></span>
 <span class="normal"><a href="#__codelineno-0-1913">1913</a></span>
@@ -8326,27 +8321,32 @@ from <code>0</code> to <code>1</code>.</p>
 <span class="normal"><a href="#__codelineno-0-1922">1922</a></span>
 <span class="normal"><a href="#__codelineno-0-1923">1923</a></span>
 <span class="normal"><a href="#__codelineno-0-1924">1924</a></span>
-<span class="normal"><a href="#__codelineno-0-1925">1925</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1905"><a id="__codelineno-0-1905" name="__codelineno-0-1905"></a><span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[untyped-decorator]</span>
-</span><span id="__span-0-1906"><a id="__codelineno-0-1906" name="__codelineno-0-1906"></a>    <span class="n">target</span><span class="o">=</span><span class="n">_oriented_box_non_max_suppression</span><span class="p">,</span>
-</span><span id="__span-0-1907"><a id="__codelineno-0-1907" name="__codelineno-0-1907"></a>    <span class="o">**</span><span class="n">_ARRAY_KERNEL_DEPRECATED_DETAILS</span><span class="p">,</span>
-</span><span id="__span-0-1908"><a id="__codelineno-0-1908" name="__codelineno-0-1908"></a>    <span class="o">**</span><span class="p">{</span>
-</span><span id="__span-0-1909"><a id="__codelineno-0-1909" name="__codelineno-0-1909"></a>        <span class="n">_DEPRECATION_TEMPLATE_KEYWORD</span><span class="p">:</span> <span class="n">_array_kernel_deprecation</span><span class="p">(</span>
-</span><span id="__span-0-1910"><a id="__codelineno-0-1910" name="__codelineno-0-1910"></a>            <span class="s2">&quot;`sv.Detections(..., data={&#39;xyxyxyxy&#39;: corners}).with_nms(&quot;</span>
-</span><span id="__span-0-1911"><a id="__codelineno-0-1911" name="__codelineno-0-1911"></a>            <span class="s2">&quot;threshold=..., overlap_metric=..., overlap_on=&#39;box&#39;)`&quot;</span><span class="p">,</span>
-</span><span id="__span-0-1912"><a id="__codelineno-0-1912" name="__codelineno-0-1912"></a>            <span class="n">_KEEP_INDICES_NOTE</span><span class="p">,</span>
-</span><span id="__span-0-1913"><a id="__codelineno-0-1913" name="__codelineno-0-1913"></a>        <span class="p">)</span>
-</span><span id="__span-0-1914"><a id="__codelineno-0-1914" name="__codelineno-0-1914"></a>    <span class="p">},</span>
-</span><span id="__span-0-1915"><a id="__codelineno-0-1915" name="__codelineno-0-1915"></a><span class="p">)</span>
-</span><span id="__span-0-1916"><a id="__codelineno-0-1916" name="__codelineno-0-1916"></a><span class="k">def</span><span class="w"> </span><span class="nf">oriented_box_non_max_suppression</span><span class="p">(</span>
-</span><span id="__span-0-1917"><a id="__codelineno-0-1917" name="__codelineno-0-1917"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
-</span><span id="__span-0-1918"><a id="__codelineno-0-1918" name="__codelineno-0-1918"></a>    <span class="n">oriented_boxes</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
-</span><span id="__span-0-1919"><a id="__codelineno-0-1919" name="__codelineno-0-1919"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-1920"><a id="__codelineno-0-1920" name="__codelineno-0-1920"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
-</span><span id="__span-0-1921"><a id="__codelineno-0-1921" name="__codelineno-0-1921"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
-</span><span id="__span-0-1922"><a id="__codelineno-0-1922" name="__codelineno-0-1922"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform Non-Maximum Suppression on oriented bounding box predictions.&quot;&quot;&quot;</span>
-</span><span id="__span-0-1923"><a id="__codelineno-0-1923" name="__codelineno-0-1923"></a>    <span class="k">return</span> <span class="n">void</span><span class="p">(</span>  <span class="c1"># type: ignore[no-any-return]</span>
-</span><span id="__span-0-1924"><a id="__codelineno-0-1924" name="__codelineno-0-1924"></a>        <span class="n">predictions</span><span class="p">,</span> <span class="n">oriented_boxes</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">,</span> <span class="n">overlap_metric</span>
-</span><span id="__span-0-1925"><a id="__codelineno-0-1925" name="__codelineno-0-1925"></a>    <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-1925">1925</a></span>
+<span class="normal"><a href="#__codelineno-0-1926">1926</a></span>
+<span class="normal"><a href="#__codelineno-0-1927">1927</a></span>
+<span class="normal"><a href="#__codelineno-0-1928">1928</a></span>
+<span class="normal"><a href="#__codelineno-0-1929">1929</a></span>
+<span class="normal"><a href="#__codelineno-0-1930">1930</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1910"><a id="__codelineno-0-1910" name="__codelineno-0-1910"></a><span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[untyped-decorator]</span>
+</span><span id="__span-0-1911"><a id="__codelineno-0-1911" name="__codelineno-0-1911"></a>    <span class="n">target</span><span class="o">=</span><span class="n">_oriented_box_non_max_suppression</span><span class="p">,</span>
+</span><span id="__span-0-1912"><a id="__codelineno-0-1912" name="__codelineno-0-1912"></a>    <span class="o">**</span><span class="n">_ARRAY_KERNEL_DEPRECATED_DETAILS</span><span class="p">,</span>
+</span><span id="__span-0-1913"><a id="__codelineno-0-1913" name="__codelineno-0-1913"></a>    <span class="o">**</span><span class="p">{</span>
+</span><span id="__span-0-1914"><a id="__codelineno-0-1914" name="__codelineno-0-1914"></a>        <span class="n">_DEPRECATION_TEMPLATE_KEYWORD</span><span class="p">:</span> <span class="n">_array_kernel_deprecation</span><span class="p">(</span>
+</span><span id="__span-0-1915"><a id="__codelineno-0-1915" name="__codelineno-0-1915"></a>            <span class="s2">&quot;`sv.Detections(..., data={&#39;xyxyxyxy&#39;: corners}).with_nms(&quot;</span>
+</span><span id="__span-0-1916"><a id="__codelineno-0-1916" name="__codelineno-0-1916"></a>            <span class="s2">&quot;threshold=..., overlap_metric=..., overlap_on=&#39;box&#39;)`&quot;</span><span class="p">,</span>
+</span><span id="__span-0-1917"><a id="__codelineno-0-1917" name="__codelineno-0-1917"></a>            <span class="n">_KEEP_INDICES_NOTE</span><span class="p">,</span>
+</span><span id="__span-0-1918"><a id="__codelineno-0-1918" name="__codelineno-0-1918"></a>        <span class="p">)</span>
+</span><span id="__span-0-1919"><a id="__codelineno-0-1919" name="__codelineno-0-1919"></a>    <span class="p">},</span>
+</span><span id="__span-0-1920"><a id="__codelineno-0-1920" name="__codelineno-0-1920"></a><span class="p">)</span>
+</span><span id="__span-0-1921"><a id="__codelineno-0-1921" name="__codelineno-0-1921"></a><span class="k">def</span><span class="w"> </span><span class="nf">oriented_box_non_max_suppression</span><span class="p">(</span>
+</span><span id="__span-0-1922"><a id="__codelineno-0-1922" name="__codelineno-0-1922"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
+</span><span id="__span-0-1923"><a id="__codelineno-0-1923" name="__codelineno-0-1923"></a>    <span class="n">oriented_boxes</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
+</span><span id="__span-0-1924"><a id="__codelineno-0-1924" name="__codelineno-0-1924"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-1925"><a id="__codelineno-0-1925" name="__codelineno-0-1925"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
+</span><span id="__span-0-1926"><a id="__codelineno-0-1926" name="__codelineno-0-1926"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
+</span><span id="__span-0-1927"><a id="__codelineno-0-1927" name="__codelineno-0-1927"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform Non-Maximum Suppression on oriented bounding box predictions.&quot;&quot;&quot;</span>
+</span><span id="__span-0-1928"><a id="__codelineno-0-1928" name="__codelineno-0-1928"></a>    <span class="k">return</span> <span class="n">void</span><span class="p">(</span>  <span class="c1"># type: ignore[no-any-return]</span>
+</span><span id="__span-0-1929"><a id="__codelineno-0-1929" name="__codelineno-0-1929"></a>        <span class="n">predictions</span><span class="p">,</span> <span class="n">oriented_boxes</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">,</span> <span class="n">overlap_metric</span>
+</span><span id="__span-0-1930"><a id="__codelineno-0-1930" name="__codelineno-0-1930"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8373,12 +8373,7 @@ from <code>0</code> to <code>1</code>.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/detection/utils/nms.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1963">1963</a></span>
-<span class="normal"><a href="#__codelineno-0-1964">1964</a></span>
-<span class="normal"><a href="#__codelineno-0-1965">1965</a></span>
-<span class="normal"><a href="#__codelineno-0-1966">1966</a></span>
-<span class="normal"><a href="#__codelineno-0-1967">1967</a></span>
-<span class="normal"><a href="#__codelineno-0-1968">1968</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1968">1968</a></span>
 <span class="normal"><a href="#__codelineno-0-1969">1969</a></span>
 <span class="normal"><a href="#__codelineno-0-1970">1970</a></span>
 <span class="normal"><a href="#__codelineno-0-1971">1971</a></span>
@@ -8392,26 +8387,31 @@ from <code>0</code> to <code>1</code>.</p>
 <span class="normal"><a href="#__codelineno-0-1979">1979</a></span>
 <span class="normal"><a href="#__codelineno-0-1980">1980</a></span>
 <span class="normal"><a href="#__codelineno-0-1981">1981</a></span>
-<span class="normal"><a href="#__codelineno-0-1982">1982</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1963"><a id="__codelineno-0-1963" name="__codelineno-0-1963"></a><span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[untyped-decorator]</span>
-</span><span id="__span-0-1964"><a id="__codelineno-0-1964" name="__codelineno-0-1964"></a>    <span class="n">target</span><span class="o">=</span><span class="n">_oriented_box_soft_non_max_suppression</span><span class="p">,</span>
-</span><span id="__span-0-1965"><a id="__codelineno-0-1965" name="__codelineno-0-1965"></a>    <span class="o">**</span><span class="n">_ARRAY_KERNEL_DEPRECATED_DETAILS</span><span class="p">,</span>
-</span><span id="__span-0-1966"><a id="__codelineno-0-1966" name="__codelineno-0-1966"></a>    <span class="o">**</span><span class="p">{</span>
-</span><span id="__span-0-1967"><a id="__codelineno-0-1967" name="__codelineno-0-1967"></a>        <span class="n">_DEPRECATION_TEMPLATE_KEYWORD</span><span class="p">:</span> <span class="n">_array_kernel_deprecation</span><span class="p">(</span>
-</span><span id="__span-0-1968"><a id="__codelineno-0-1968" name="__codelineno-0-1968"></a>            <span class="s2">&quot;`sv.Detections(..., data={&#39;xyxyxyxy&#39;: corners}).with_soft_nms(&quot;</span>
-</span><span id="__span-0-1969"><a id="__codelineno-0-1969" name="__codelineno-0-1969"></a>            <span class="s2">&quot;sigma=..., overlap_metric=..., overlap_on=&#39;box&#39;)`&quot;</span>
-</span><span id="__span-0-1970"><a id="__codelineno-0-1970" name="__codelineno-0-1970"></a>        <span class="p">)</span>
-</span><span id="__span-0-1971"><a id="__codelineno-0-1971" name="__codelineno-0-1971"></a>    <span class="p">},</span>
-</span><span id="__span-0-1972"><a id="__codelineno-0-1972" name="__codelineno-0-1972"></a><span class="p">)</span>
-</span><span id="__span-0-1973"><a id="__codelineno-0-1973" name="__codelineno-0-1973"></a><span class="k">def</span><span class="w"> </span><span class="nf">oriented_box_soft_non_max_suppression</span><span class="p">(</span>
-</span><span id="__span-0-1974"><a id="__codelineno-0-1974" name="__codelineno-0-1974"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
-</span><span id="__span-0-1975"><a id="__codelineno-0-1975" name="__codelineno-0-1975"></a>    <span class="n">oriented_boxes</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
-</span><span id="__span-0-1976"><a id="__codelineno-0-1976" name="__codelineno-0-1976"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-1977"><a id="__codelineno-0-1977" name="__codelineno-0-1977"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
-</span><span id="__span-0-1978"><a id="__codelineno-0-1978" name="__codelineno-0-1978"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
-</span><span id="__span-0-1979"><a id="__codelineno-0-1979" name="__codelineno-0-1979"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform Soft Non-Maximum Suppression on oriented bounding box predictions.&quot;&quot;&quot;</span>
-</span><span id="__span-0-1980"><a id="__codelineno-0-1980" name="__codelineno-0-1980"></a>    <span class="k">return</span> <span class="n">void</span><span class="p">(</span>  <span class="c1"># type: ignore[no-any-return]</span>
-</span><span id="__span-0-1981"><a id="__codelineno-0-1981" name="__codelineno-0-1981"></a>        <span class="n">predictions</span><span class="p">,</span> <span class="n">oriented_boxes</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">overlap_metric</span>
-</span><span id="__span-0-1982"><a id="__codelineno-0-1982" name="__codelineno-0-1982"></a>    <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-1982">1982</a></span>
+<span class="normal"><a href="#__codelineno-0-1983">1983</a></span>
+<span class="normal"><a href="#__codelineno-0-1984">1984</a></span>
+<span class="normal"><a href="#__codelineno-0-1985">1985</a></span>
+<span class="normal"><a href="#__codelineno-0-1986">1986</a></span>
+<span class="normal"><a href="#__codelineno-0-1987">1987</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1968"><a id="__codelineno-0-1968" name="__codelineno-0-1968"></a><span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[untyped-decorator]</span>
+</span><span id="__span-0-1969"><a id="__codelineno-0-1969" name="__codelineno-0-1969"></a>    <span class="n">target</span><span class="o">=</span><span class="n">_oriented_box_soft_non_max_suppression</span><span class="p">,</span>
+</span><span id="__span-0-1970"><a id="__codelineno-0-1970" name="__codelineno-0-1970"></a>    <span class="o">**</span><span class="n">_ARRAY_KERNEL_DEPRECATED_DETAILS</span><span class="p">,</span>
+</span><span id="__span-0-1971"><a id="__codelineno-0-1971" name="__codelineno-0-1971"></a>    <span class="o">**</span><span class="p">{</span>
+</span><span id="__span-0-1972"><a id="__codelineno-0-1972" name="__codelineno-0-1972"></a>        <span class="n">_DEPRECATION_TEMPLATE_KEYWORD</span><span class="p">:</span> <span class="n">_array_kernel_deprecation</span><span class="p">(</span>
+</span><span id="__span-0-1973"><a id="__codelineno-0-1973" name="__codelineno-0-1973"></a>            <span class="s2">&quot;`sv.Detections(..., data={&#39;xyxyxyxy&#39;: corners}).with_soft_nms(&quot;</span>
+</span><span id="__span-0-1974"><a id="__codelineno-0-1974" name="__codelineno-0-1974"></a>            <span class="s2">&quot;sigma=..., overlap_metric=..., overlap_on=&#39;box&#39;)`&quot;</span>
+</span><span id="__span-0-1975"><a id="__codelineno-0-1975" name="__codelineno-0-1975"></a>        <span class="p">)</span>
+</span><span id="__span-0-1976"><a id="__codelineno-0-1976" name="__codelineno-0-1976"></a>    <span class="p">},</span>
+</span><span id="__span-0-1977"><a id="__codelineno-0-1977" name="__codelineno-0-1977"></a><span class="p">)</span>
+</span><span id="__span-0-1978"><a id="__codelineno-0-1978" name="__codelineno-0-1978"></a><span class="k">def</span><span class="w"> </span><span class="nf">oriented_box_soft_non_max_suppression</span><span class="p">(</span>
+</span><span id="__span-0-1979"><a id="__codelineno-0-1979" name="__codelineno-0-1979"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
+</span><span id="__span-0-1980"><a id="__codelineno-0-1980" name="__codelineno-0-1980"></a>    <span class="n">oriented_boxes</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
+</span><span id="__span-0-1981"><a id="__codelineno-0-1981" name="__codelineno-0-1981"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-1982"><a id="__codelineno-0-1982" name="__codelineno-0-1982"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
+</span><span id="__span-0-1983"><a id="__codelineno-0-1983" name="__codelineno-0-1983"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
+</span><span id="__span-0-1984"><a id="__codelineno-0-1984" name="__codelineno-0-1984"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform Soft Non-Maximum Suppression on oriented bounding box predictions.&quot;&quot;&quot;</span>
+</span><span id="__span-0-1985"><a id="__codelineno-0-1985" name="__codelineno-0-1985"></a>    <span class="k">return</span> <span class="n">void</span><span class="p">(</span>  <span class="c1"># type: ignore[no-any-return]</span>
+</span><span id="__span-0-1986"><a id="__codelineno-0-1986" name="__codelineno-0-1986"></a>        <span class="n">predictions</span><span class="p">,</span> <span class="n">oriented_boxes</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">overlap_metric</span>
+</span><span id="__span-0-1987"><a id="__codelineno-0-1987" name="__codelineno-0-1987"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8619,12 +8619,7 @@ mismatched lengths.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/detection/utils/nms.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2018">2018</a></span>
-<span class="normal"><a href="#__codelineno-0-2019">2019</a></span>
-<span class="normal"><a href="#__codelineno-0-2020">2020</a></span>
-<span class="normal"><a href="#__codelineno-0-2021">2021</a></span>
-<span class="normal"><a href="#__codelineno-0-2022">2022</a></span>
-<span class="normal"><a href="#__codelineno-0-2023">2023</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2023">2023</a></span>
 <span class="normal"><a href="#__codelineno-0-2024">2024</a></span>
 <span class="normal"><a href="#__codelineno-0-2025">2025</a></span>
 <span class="normal"><a href="#__codelineno-0-2026">2026</a></span>
@@ -8715,103 +8710,108 @@ mismatched lengths.</p>
 <span class="normal"><a href="#__codelineno-0-2111">2111</a></span>
 <span class="normal"><a href="#__codelineno-0-2112">2112</a></span>
 <span class="normal"><a href="#__codelineno-0-2113">2113</a></span>
-<span class="normal"><a href="#__codelineno-0-2114">2114</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2018"><a id="__codelineno-0-2018" name="__codelineno-0-2018"></a><span class="k">def</span><span class="w"> </span><span class="nf">oriented_box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-2019"><a id="__codelineno-0-2019" name="__codelineno-0-2019"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
-</span><span id="__span-0-2020"><a id="__codelineno-0-2020" name="__codelineno-0-2020"></a>    <span class="n">oriented_boxes</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
-</span><span id="__span-0-2021"><a id="__codelineno-0-2021" name="__codelineno-0-2021"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-2022"><a id="__codelineno-0-2022" name="__codelineno-0-2022"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
-</span><span id="__span-0-2023"><a id="__codelineno-0-2023" name="__codelineno-0-2023"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-</span><span id="__span-0-2024"><a id="__codelineno-0-2024" name="__codelineno-0-2024"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform Non-Maximum Merging on oriented bounding box predictions, grouped per</span>
-</span><span id="__span-0-2025"><a id="__codelineno-0-2025" name="__codelineno-0-2025"></a><span class="sd">    category.</span>
-</span><span id="__span-0-2026"><a id="__codelineno-0-2026" name="__codelineno-0-2026"></a>
-</span><span id="__span-0-2027"><a id="__codelineno-0-2027" name="__codelineno-0-2027"></a><span class="sd">    Mirrors :func:`~supervision.detection.utils.nms.box_non_max_merge`</span>
-</span><span id="__span-0-2028"><a id="__codelineno-0-2028" name="__codelineno-0-2028"></a><span class="sd">    but uses oriented-box IoU, so groups of rotated detections sharing the same</span>
-</span><span id="__span-0-2029"><a id="__codelineno-0-2029" name="__codelineno-0-2029"></a><span class="sd">    body — rather than the same</span>
-</span><span id="__span-0-2030"><a id="__codelineno-0-2030" name="__codelineno-0-2030"></a><span class="sd">    axis-aligned bounding box — are merged.</span>
+<span class="normal"><a href="#__codelineno-0-2114">2114</a></span>
+<span class="normal"><a href="#__codelineno-0-2115">2115</a></span>
+<span class="normal"><a href="#__codelineno-0-2116">2116</a></span>
+<span class="normal"><a href="#__codelineno-0-2117">2117</a></span>
+<span class="normal"><a href="#__codelineno-0-2118">2118</a></span>
+<span class="normal"><a href="#__codelineno-0-2119">2119</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2023"><a id="__codelineno-0-2023" name="__codelineno-0-2023"></a><span class="k">def</span><span class="w"> </span><span class="nf">oriented_box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-2024"><a id="__codelineno-0-2024" name="__codelineno-0-2024"></a>    <span class="n">predictions</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
+</span><span id="__span-0-2025"><a id="__codelineno-0-2025" name="__codelineno-0-2025"></a>    <span class="n">oriented_boxes</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">],</span>
+</span><span id="__span-0-2026"><a id="__codelineno-0-2026" name="__codelineno-0-2026"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-2027"><a id="__codelineno-0-2027" name="__codelineno-0-2027"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
+</span><span id="__span-0-2028"><a id="__codelineno-0-2028" name="__codelineno-0-2028"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+</span><span id="__span-0-2029"><a id="__codelineno-0-2029" name="__codelineno-0-2029"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform Non-Maximum Merging on oriented bounding box predictions, grouped per</span>
+</span><span id="__span-0-2030"><a id="__codelineno-0-2030" name="__codelineno-0-2030"></a><span class="sd">    category.</span>
 </span><span id="__span-0-2031"><a id="__codelineno-0-2031" name="__codelineno-0-2031"></a>
-</span><span id="__span-0-2032"><a id="__codelineno-0-2032" name="__codelineno-0-2032"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-2033"><a id="__codelineno-0-2033" name="__codelineno-0-2033"></a><span class="sd">        predictions: An array of shape ``(n, 5)`` or ``(n, 6)`` containing</span>
-</span><span id="__span-0-2034"><a id="__codelineno-0-2034" name="__codelineno-0-2034"></a><span class="sd">            the axis-aligned coordinates ``[x1, y1, x2, y2]``, confidence</span>
-</span><span id="__span-0-2035"><a id="__codelineno-0-2035" name="__codelineno-0-2035"></a><span class="sd">            scores, and optionally class ids. Only the score and optional</span>
-</span><span id="__span-0-2036"><a id="__codelineno-0-2036" name="__codelineno-0-2036"></a><span class="sd">            class are used by the grouping logic; overlap is computed on</span>
-</span><span id="__span-0-2037"><a id="__codelineno-0-2037" name="__codelineno-0-2037"></a><span class="sd">            ``oriented_boxes``.</span>
-</span><span id="__span-0-2038"><a id="__codelineno-0-2038" name="__codelineno-0-2038"></a><span class="sd">        oriented_boxes: Array of shape ``(N, 4, 2)`` containing the four</span>
-</span><span id="__span-0-2039"><a id="__codelineno-0-2039" name="__codelineno-0-2039"></a><span class="sd">            ``(x, y)`` corners of each oriented box.</span>
-</span><span id="__span-0-2040"><a id="__codelineno-0-2040" name="__codelineno-0-2040"></a><span class="sd">        iou_threshold: The intersection-over-union threshold to use for</span>
-</span><span id="__span-0-2041"><a id="__codelineno-0-2041" name="__codelineno-0-2041"></a><span class="sd">            non-maximum merging.</span>
-</span><span id="__span-0-2042"><a id="__codelineno-0-2042" name="__codelineno-0-2042"></a><span class="sd">        overlap_metric: Metric used to compute the degree of overlap</span>
-</span><span id="__span-0-2043"><a id="__codelineno-0-2043" name="__codelineno-0-2043"></a><span class="sd">            between pairs of oriented boxes (e.g., IoU, IoS).</span>
-</span><span id="__span-0-2044"><a id="__codelineno-0-2044" name="__codelineno-0-2044"></a>
-</span><span id="__span-0-2045"><a id="__codelineno-0-2045" name="__codelineno-0-2045"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-2046"><a id="__codelineno-0-2046" name="__codelineno-0-2046"></a><span class="sd">        Groups of prediction indices to be merged. Each group may have 1</span>
-</span><span id="__span-0-2047"><a id="__codelineno-0-2047" name="__codelineno-0-2047"></a><span class="sd">            or more elements.</span>
-</span><span id="__span-0-2048"><a id="__codelineno-0-2048" name="__codelineno-0-2048"></a>
-</span><span id="__span-0-2049"><a id="__codelineno-0-2049" name="__codelineno-0-2049"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-2050"><a id="__codelineno-0-2050" name="__codelineno-0-2050"></a><span class="sd">        ValueError: If ``iou_threshold`` is not within the closed range</span>
-</span><span id="__span-0-2051"><a id="__codelineno-0-2051" name="__codelineno-0-2051"></a><span class="sd">            from 0 to 1.</span>
-</span><span id="__span-0-2052"><a id="__codelineno-0-2052" name="__codelineno-0-2052"></a><span class="sd">        ValueError: If ``predictions`` and ``oriented_boxes`` have</span>
-</span><span id="__span-0-2053"><a id="__codelineno-0-2053" name="__codelineno-0-2053"></a><span class="sd">            mismatched lengths.</span>
-</span><span id="__span-0-2054"><a id="__codelineno-0-2054" name="__codelineno-0-2054"></a><span class="sd">        ValueError: If ``predictions`` or ``oriented_boxes`` has an invalid shape.</span>
-</span><span id="__span-0-2055"><a id="__codelineno-0-2055" name="__codelineno-0-2055"></a>
-</span><span id="__span-0-2056"><a id="__codelineno-0-2056" name="__codelineno-0-2056"></a><span class="sd">    Examples:</span>
-</span><span id="__span-0-2057"><a id="__codelineno-0-2057" name="__codelineno-0-2057"></a><span class="sd">        ```pycon</span>
-</span><span id="__span-0-2058"><a id="__codelineno-0-2058" name="__codelineno-0-2058"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
-</span><span id="__span-0-2059"><a id="__codelineno-0-2059" name="__codelineno-0-2059"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
-</span><span id="__span-0-2060"><a id="__codelineno-0-2060" name="__codelineno-0-2060"></a><span class="sd">        &gt;&gt;&gt; oriented_boxes = np.array([</span>
-</span><span id="__span-0-2061"><a id="__codelineno-0-2061" name="__codelineno-0-2061"></a><span class="sd">        ...     [[10, 10], [50, 10], [50, 30], [10, 30]],</span>
-</span><span id="__span-0-2062"><a id="__codelineno-0-2062" name="__codelineno-0-2062"></a><span class="sd">        ...     [[11, 11], [51, 11], [51, 31], [11, 31]],</span>
-</span><span id="__span-0-2063"><a id="__codelineno-0-2063" name="__codelineno-0-2063"></a><span class="sd">        ... ], dtype=np.float32)</span>
-</span><span id="__span-0-2064"><a id="__codelineno-0-2064" name="__codelineno-0-2064"></a><span class="sd">        &gt;&gt;&gt; predictions = np.array([</span>
-</span><span id="__span-0-2065"><a id="__codelineno-0-2065" name="__codelineno-0-2065"></a><span class="sd">        ...     [10, 10, 50, 30, 0.9, 0],</span>
-</span><span id="__span-0-2066"><a id="__codelineno-0-2066" name="__codelineno-0-2066"></a><span class="sd">        ...     [11, 11, 51, 31, 0.8, 0],</span>
-</span><span id="__span-0-2067"><a id="__codelineno-0-2067" name="__codelineno-0-2067"></a><span class="sd">        ... ], dtype=np.float32)</span>
-</span><span id="__span-0-2068"><a id="__codelineno-0-2068" name="__codelineno-0-2068"></a><span class="sd">        &gt;&gt;&gt; groups = sv.oriented_box_non_max_merge(</span>
-</span><span id="__span-0-2069"><a id="__codelineno-0-2069" name="__codelineno-0-2069"></a><span class="sd">        ...     predictions=predictions,</span>
-</span><span id="__span-0-2070"><a id="__codelineno-0-2070" name="__codelineno-0-2070"></a><span class="sd">        ...     oriented_boxes=oriented_boxes,</span>
-</span><span id="__span-0-2071"><a id="__codelineno-0-2071" name="__codelineno-0-2071"></a><span class="sd">        ...     iou_threshold=0.5,</span>
-</span><span id="__span-0-2072"><a id="__codelineno-0-2072" name="__codelineno-0-2072"></a><span class="sd">        ... )</span>
-</span><span id="__span-0-2073"><a id="__codelineno-0-2073" name="__codelineno-0-2073"></a><span class="sd">        &gt;&gt;&gt; len(groups)</span>
-</span><span id="__span-0-2074"><a id="__codelineno-0-2074" name="__codelineno-0-2074"></a><span class="sd">        1</span>
-</span><span id="__span-0-2075"><a id="__codelineno-0-2075" name="__codelineno-0-2075"></a>
-</span><span id="__span-0-2076"><a id="__codelineno-0-2076" name="__codelineno-0-2076"></a><span class="sd">        ```</span>
-</span><span id="__span-0-2077"><a id="__codelineno-0-2077" name="__codelineno-0-2077"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-2078"><a id="__codelineno-0-2078" name="__codelineno-0-2078"></a>    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">&quot;predictions&quot;</span><span class="p">,</span> <span class="n">predictions</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;oriented_boxes&quot;</span><span class="p">,</span> <span class="n">oriented_boxes</span><span class="p">)):</span>
-</span><span id="__span-0-2079"><a id="__codelineno-0-2079" name="__codelineno-0-2079"></a>        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;predictions&quot;</span><span class="p">:</span>
-</span><span id="__span-0-2080"><a id="__codelineno-0-2080" name="__codelineno-0-2080"></a>            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
-</span><span id="__span-0-2081"><a id="__codelineno-0-2081" name="__codelineno-0-2081"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-2082"><a id="__codelineno-0-2082" name="__codelineno-0-2082"></a>                    <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">` has shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">; expected (N, 5) or (N, 6).&quot;</span>
-</span><span id="__span-0-2083"><a id="__codelineno-0-2083" name="__codelineno-0-2083"></a>                <span class="p">)</span>
-</span><span id="__span-0-2084"><a id="__codelineno-0-2084" name="__codelineno-0-2084"></a>            <span class="k">continue</span>
-</span><span id="__span-0-2085"><a id="__codelineno-0-2085" name="__codelineno-0-2085"></a>        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
-</span><span id="__span-0-2086"><a id="__codelineno-0-2086" name="__codelineno-0-2086"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-2087"><a id="__codelineno-0-2087" name="__codelineno-0-2087"></a>                <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">` has shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">; expected (N, 4, 2) &quot;</span>
-</span><span id="__span-0-2088"><a id="__codelineno-0-2088" name="__codelineno-0-2088"></a>                <span class="sa">f</span><span class="s2">&quot;— each box must have exactly 4 corners with (x, y) coordinates.&quot;</span>
-</span><span id="__span-0-2089"><a id="__codelineno-0-2089" name="__codelineno-0-2089"></a>            <span class="p">)</span>
-</span><span id="__span-0-2090"><a id="__codelineno-0-2090" name="__codelineno-0-2090"></a>        <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">8</span><span class="p">:</span>
+</span><span id="__span-0-2032"><a id="__codelineno-0-2032" name="__codelineno-0-2032"></a><span class="sd">    Mirrors :func:`~supervision.detection.utils.nms.box_non_max_merge`</span>
+</span><span id="__span-0-2033"><a id="__codelineno-0-2033" name="__codelineno-0-2033"></a><span class="sd">    but uses oriented-box IoU, so groups of rotated detections sharing the same</span>
+</span><span id="__span-0-2034"><a id="__codelineno-0-2034" name="__codelineno-0-2034"></a><span class="sd">    body — rather than the same</span>
+</span><span id="__span-0-2035"><a id="__codelineno-0-2035" name="__codelineno-0-2035"></a><span class="sd">    axis-aligned bounding box — are merged.</span>
+</span><span id="__span-0-2036"><a id="__codelineno-0-2036" name="__codelineno-0-2036"></a>
+</span><span id="__span-0-2037"><a id="__codelineno-0-2037" name="__codelineno-0-2037"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-2038"><a id="__codelineno-0-2038" name="__codelineno-0-2038"></a><span class="sd">        predictions: An array of shape ``(n, 5)`` or ``(n, 6)`` containing</span>
+</span><span id="__span-0-2039"><a id="__codelineno-0-2039" name="__codelineno-0-2039"></a><span class="sd">            the axis-aligned coordinates ``[x1, y1, x2, y2]``, confidence</span>
+</span><span id="__span-0-2040"><a id="__codelineno-0-2040" name="__codelineno-0-2040"></a><span class="sd">            scores, and optionally class ids. Only the score and optional</span>
+</span><span id="__span-0-2041"><a id="__codelineno-0-2041" name="__codelineno-0-2041"></a><span class="sd">            class are used by the grouping logic; overlap is computed on</span>
+</span><span id="__span-0-2042"><a id="__codelineno-0-2042" name="__codelineno-0-2042"></a><span class="sd">            ``oriented_boxes``.</span>
+</span><span id="__span-0-2043"><a id="__codelineno-0-2043" name="__codelineno-0-2043"></a><span class="sd">        oriented_boxes: Array of shape ``(N, 4, 2)`` containing the four</span>
+</span><span id="__span-0-2044"><a id="__codelineno-0-2044" name="__codelineno-0-2044"></a><span class="sd">            ``(x, y)`` corners of each oriented box.</span>
+</span><span id="__span-0-2045"><a id="__codelineno-0-2045" name="__codelineno-0-2045"></a><span class="sd">        iou_threshold: The intersection-over-union threshold to use for</span>
+</span><span id="__span-0-2046"><a id="__codelineno-0-2046" name="__codelineno-0-2046"></a><span class="sd">            non-maximum merging.</span>
+</span><span id="__span-0-2047"><a id="__codelineno-0-2047" name="__codelineno-0-2047"></a><span class="sd">        overlap_metric: Metric used to compute the degree of overlap</span>
+</span><span id="__span-0-2048"><a id="__codelineno-0-2048" name="__codelineno-0-2048"></a><span class="sd">            between pairs of oriented boxes (e.g., IoU, IoS).</span>
+</span><span id="__span-0-2049"><a id="__codelineno-0-2049" name="__codelineno-0-2049"></a>
+</span><span id="__span-0-2050"><a id="__codelineno-0-2050" name="__codelineno-0-2050"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-2051"><a id="__codelineno-0-2051" name="__codelineno-0-2051"></a><span class="sd">        Groups of prediction indices to be merged. Each group may have 1</span>
+</span><span id="__span-0-2052"><a id="__codelineno-0-2052" name="__codelineno-0-2052"></a><span class="sd">            or more elements.</span>
+</span><span id="__span-0-2053"><a id="__codelineno-0-2053" name="__codelineno-0-2053"></a>
+</span><span id="__span-0-2054"><a id="__codelineno-0-2054" name="__codelineno-0-2054"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-2055"><a id="__codelineno-0-2055" name="__codelineno-0-2055"></a><span class="sd">        ValueError: If ``iou_threshold`` is not within the closed range</span>
+</span><span id="__span-0-2056"><a id="__codelineno-0-2056" name="__codelineno-0-2056"></a><span class="sd">            from 0 to 1.</span>
+</span><span id="__span-0-2057"><a id="__codelineno-0-2057" name="__codelineno-0-2057"></a><span class="sd">        ValueError: If ``predictions`` and ``oriented_boxes`` have</span>
+</span><span id="__span-0-2058"><a id="__codelineno-0-2058" name="__codelineno-0-2058"></a><span class="sd">            mismatched lengths.</span>
+</span><span id="__span-0-2059"><a id="__codelineno-0-2059" name="__codelineno-0-2059"></a><span class="sd">        ValueError: If ``predictions`` or ``oriented_boxes`` has an invalid shape.</span>
+</span><span id="__span-0-2060"><a id="__codelineno-0-2060" name="__codelineno-0-2060"></a>
+</span><span id="__span-0-2061"><a id="__codelineno-0-2061" name="__codelineno-0-2061"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-2062"><a id="__codelineno-0-2062" name="__codelineno-0-2062"></a><span class="sd">        ```pycon</span>
+</span><span id="__span-0-2063"><a id="__codelineno-0-2063" name="__codelineno-0-2063"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-2064"><a id="__codelineno-0-2064" name="__codelineno-0-2064"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-2065"><a id="__codelineno-0-2065" name="__codelineno-0-2065"></a><span class="sd">        &gt;&gt;&gt; oriented_boxes = np.array([</span>
+</span><span id="__span-0-2066"><a id="__codelineno-0-2066" name="__codelineno-0-2066"></a><span class="sd">        ...     [[10, 10], [50, 10], [50, 30], [10, 30]],</span>
+</span><span id="__span-0-2067"><a id="__codelineno-0-2067" name="__codelineno-0-2067"></a><span class="sd">        ...     [[11, 11], [51, 11], [51, 31], [11, 31]],</span>
+</span><span id="__span-0-2068"><a id="__codelineno-0-2068" name="__codelineno-0-2068"></a><span class="sd">        ... ], dtype=np.float32)</span>
+</span><span id="__span-0-2069"><a id="__codelineno-0-2069" name="__codelineno-0-2069"></a><span class="sd">        &gt;&gt;&gt; predictions = np.array([</span>
+</span><span id="__span-0-2070"><a id="__codelineno-0-2070" name="__codelineno-0-2070"></a><span class="sd">        ...     [10, 10, 50, 30, 0.9, 0],</span>
+</span><span id="__span-0-2071"><a id="__codelineno-0-2071" name="__codelineno-0-2071"></a><span class="sd">        ...     [11, 11, 51, 31, 0.8, 0],</span>
+</span><span id="__span-0-2072"><a id="__codelineno-0-2072" name="__codelineno-0-2072"></a><span class="sd">        ... ], dtype=np.float32)</span>
+</span><span id="__span-0-2073"><a id="__codelineno-0-2073" name="__codelineno-0-2073"></a><span class="sd">        &gt;&gt;&gt; groups = sv.oriented_box_non_max_merge(</span>
+</span><span id="__span-0-2074"><a id="__codelineno-0-2074" name="__codelineno-0-2074"></a><span class="sd">        ...     predictions=predictions,</span>
+</span><span id="__span-0-2075"><a id="__codelineno-0-2075" name="__codelineno-0-2075"></a><span class="sd">        ...     oriented_boxes=oriented_boxes,</span>
+</span><span id="__span-0-2076"><a id="__codelineno-0-2076" name="__codelineno-0-2076"></a><span class="sd">        ...     iou_threshold=0.5,</span>
+</span><span id="__span-0-2077"><a id="__codelineno-0-2077" name="__codelineno-0-2077"></a><span class="sd">        ... )</span>
+</span><span id="__span-0-2078"><a id="__codelineno-0-2078" name="__codelineno-0-2078"></a><span class="sd">        &gt;&gt;&gt; len(groups)</span>
+</span><span id="__span-0-2079"><a id="__codelineno-0-2079" name="__codelineno-0-2079"></a><span class="sd">        1</span>
+</span><span id="__span-0-2080"><a id="__codelineno-0-2080" name="__codelineno-0-2080"></a>
+</span><span id="__span-0-2081"><a id="__codelineno-0-2081" name="__codelineno-0-2081"></a><span class="sd">        ```</span>
+</span><span id="__span-0-2082"><a id="__codelineno-0-2082" name="__codelineno-0-2082"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-2083"><a id="__codelineno-0-2083" name="__codelineno-0-2083"></a>    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">&quot;predictions&quot;</span><span class="p">,</span> <span class="n">predictions</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;oriented_boxes&quot;</span><span class="p">,</span> <span class="n">oriented_boxes</span><span class="p">)):</span>
+</span><span id="__span-0-2084"><a id="__codelineno-0-2084" name="__codelineno-0-2084"></a>        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;predictions&quot;</span><span class="p">:</span>
+</span><span id="__span-0-2085"><a id="__codelineno-0-2085" name="__codelineno-0-2085"></a>            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
+</span><span id="__span-0-2086"><a id="__codelineno-0-2086" name="__codelineno-0-2086"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-2087"><a id="__codelineno-0-2087" name="__codelineno-0-2087"></a>                    <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">` has shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">; expected (N, 5) or (N, 6).&quot;</span>
+</span><span id="__span-0-2088"><a id="__codelineno-0-2088" name="__codelineno-0-2088"></a>                <span class="p">)</span>
+</span><span id="__span-0-2089"><a id="__codelineno-0-2089" name="__codelineno-0-2089"></a>            <span class="k">continue</span>
+</span><span id="__span-0-2090"><a id="__codelineno-0-2090" name="__codelineno-0-2090"></a>        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
 </span><span id="__span-0-2091"><a id="__codelineno-0-2091" name="__codelineno-0-2091"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-2092"><a id="__codelineno-0-2092" name="__codelineno-0-2092"></a>                <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">` has shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">; expected (N, 8) for flat &quot;</span>
-</span><span id="__span-0-2093"><a id="__codelineno-0-2093" name="__codelineno-0-2093"></a>                <span class="sa">f</span><span class="s2">&quot;YOLO format or (N, 4, 2) for corner format.&quot;</span>
+</span><span id="__span-0-2092"><a id="__codelineno-0-2092" name="__codelineno-0-2092"></a>                <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">` has shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">; expected (N, 4, 2) &quot;</span>
+</span><span id="__span-0-2093"><a id="__codelineno-0-2093" name="__codelineno-0-2093"></a>                <span class="sa">f</span><span class="s2">&quot;— each box must have exactly 4 corners with (x, y) coordinates.&quot;</span>
 </span><span id="__span-0-2094"><a id="__codelineno-0-2094" name="__codelineno-0-2094"></a>            <span class="p">)</span>
-</span><span id="__span-0-2095"><a id="__codelineno-0-2095" name="__codelineno-0-2095"></a>        <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+</span><span id="__span-0-2095"><a id="__codelineno-0-2095" name="__codelineno-0-2095"></a>        <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">8</span><span class="p">:</span>
 </span><span id="__span-0-2096"><a id="__codelineno-0-2096" name="__codelineno-0-2096"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-2097"><a id="__codelineno-0-2097" name="__codelineno-0-2097"></a>                <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">.&quot;</span>
-</span><span id="__span-0-2098"><a id="__codelineno-0-2098" name="__codelineno-0-2098"></a>            <span class="p">)</span>
-</span><span id="__span-0-2099"><a id="__codelineno-0-2099" name="__codelineno-0-2099"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">oriented_boxes</span><span class="p">):</span>
-</span><span id="__span-0-2100"><a id="__codelineno-0-2100" name="__codelineno-0-2100"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-2101"><a id="__codelineno-0-2101" name="__codelineno-0-2101"></a>            <span class="sa">f</span><span class="s2">&quot;`predictions` and `oriented_boxes` must have the same length, &quot;</span>
-</span><span id="__span-0-2102"><a id="__codelineno-0-2102" name="__codelineno-0-2102"></a>            <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">oriented_boxes</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
-</span><span id="__span-0-2103"><a id="__codelineno-0-2103" name="__codelineno-0-2103"></a>        <span class="p">)</span>
-</span><span id="__span-0-2104"><a id="__codelineno-0-2104" name="__codelineno-0-2104"></a>    <span class="n">_validate_iou_threshold</span><span class="p">(</span><span class="n">iou_threshold</span><span class="p">)</span>
-</span><span id="__span-0-2105"><a id="__codelineno-0-2105" name="__codelineno-0-2105"></a>
-</span><span id="__span-0-2106"><a id="__codelineno-0-2106" name="__codelineno-0-2106"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">group_within</span><span class="p">(</span><span class="n">global_indices</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-</span><span id="__span-0-2107"><a id="__codelineno-0-2107" name="__codelineno-0-2107"></a>        <span class="k">return</span> <span class="n">_group_overlapping_oriented_boxes</span><span class="p">(</span>
-</span><span id="__span-0-2108"><a id="__codelineno-0-2108" name="__codelineno-0-2108"></a>            <span class="n">predictions</span><span class="p">[</span><span class="n">global_indices</span><span class="p">],</span>
-</span><span id="__span-0-2109"><a id="__codelineno-0-2109" name="__codelineno-0-2109"></a>            <span class="n">oriented_boxes</span><span class="p">[</span><span class="n">global_indices</span><span class="p">],</span>
-</span><span id="__span-0-2110"><a id="__codelineno-0-2110" name="__codelineno-0-2110"></a>            <span class="n">iou_threshold</span><span class="p">,</span>
-</span><span id="__span-0-2111"><a id="__codelineno-0-2111" name="__codelineno-0-2111"></a>            <span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-2112"><a id="__codelineno-0-2112" name="__codelineno-0-2112"></a>        <span class="p">)</span>
-</span><span id="__span-0-2113"><a id="__codelineno-0-2113" name="__codelineno-0-2113"></a>
-</span><span id="__span-0-2114"><a id="__codelineno-0-2114" name="__codelineno-0-2114"></a>    <span class="k">return</span> <span class="n">_non_max_merge_per_category</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">group_within</span><span class="p">)</span>
+</span><span id="__span-0-2097"><a id="__codelineno-0-2097" name="__codelineno-0-2097"></a>                <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">` has shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">; expected (N, 8) for flat &quot;</span>
+</span><span id="__span-0-2098"><a id="__codelineno-0-2098" name="__codelineno-0-2098"></a>                <span class="sa">f</span><span class="s2">&quot;YOLO format or (N, 4, 2) for corner format.&quot;</span>
+</span><span id="__span-0-2099"><a id="__codelineno-0-2099" name="__codelineno-0-2099"></a>            <span class="p">)</span>
+</span><span id="__span-0-2100"><a id="__codelineno-0-2100" name="__codelineno-0-2100"></a>        <span class="k">elif</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+</span><span id="__span-0-2101"><a id="__codelineno-0-2101" name="__codelineno-0-2101"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-2102"><a id="__codelineno-0-2102" name="__codelineno-0-2102"></a>                <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span id="__span-0-2103"><a id="__codelineno-0-2103" name="__codelineno-0-2103"></a>            <span class="p">)</span>
+</span><span id="__span-0-2104"><a id="__codelineno-0-2104" name="__codelineno-0-2104"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">oriented_boxes</span><span class="p">):</span>
+</span><span id="__span-0-2105"><a id="__codelineno-0-2105" name="__codelineno-0-2105"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-2106"><a id="__codelineno-0-2106" name="__codelineno-0-2106"></a>            <span class="sa">f</span><span class="s2">&quot;`predictions` and `oriented_boxes` must have the same length, &quot;</span>
+</span><span id="__span-0-2107"><a id="__codelineno-0-2107" name="__codelineno-0-2107"></a>            <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">oriented_boxes</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span id="__span-0-2108"><a id="__codelineno-0-2108" name="__codelineno-0-2108"></a>        <span class="p">)</span>
+</span><span id="__span-0-2109"><a id="__codelineno-0-2109" name="__codelineno-0-2109"></a>    <span class="n">_validate_iou_threshold</span><span class="p">(</span><span class="n">iou_threshold</span><span class="p">)</span>
+</span><span id="__span-0-2110"><a id="__codelineno-0-2110" name="__codelineno-0-2110"></a>
+</span><span id="__span-0-2111"><a id="__codelineno-0-2111" name="__codelineno-0-2111"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">group_within</span><span class="p">(</span><span class="n">global_indices</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+</span><span id="__span-0-2112"><a id="__codelineno-0-2112" name="__codelineno-0-2112"></a>        <span class="k">return</span> <span class="n">_group_overlapping_oriented_boxes</span><span class="p">(</span>
+</span><span id="__span-0-2113"><a id="__codelineno-0-2113" name="__codelineno-0-2113"></a>            <span class="n">predictions</span><span class="p">[</span><span class="n">global_indices</span><span class="p">],</span>
+</span><span id="__span-0-2114"><a id="__codelineno-0-2114" name="__codelineno-0-2114"></a>            <span class="n">oriented_boxes</span><span class="p">[</span><span class="n">global_indices</span><span class="p">],</span>
+</span><span id="__span-0-2115"><a id="__codelineno-0-2115" name="__codelineno-0-2115"></a>            <span class="n">iou_threshold</span><span class="p">,</span>
+</span><span id="__span-0-2116"><a id="__codelineno-0-2116" name="__codelineno-0-2116"></a>            <span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-2117"><a id="__codelineno-0-2117" name="__codelineno-0-2117"></a>        <span class="p">)</span>
+</span><span id="__span-0-2118"><a id="__codelineno-0-2118" name="__codelineno-0-2118"></a>
+</span><span id="__span-0-2119"><a id="__codelineno-0-2119" name="__codelineno-0-2119"></a>    <span class="k">return</span> <span class="n">_non_max_merge_per_category</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">group_within</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
