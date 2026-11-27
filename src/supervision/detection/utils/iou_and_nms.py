@@ -124,6 +124,58 @@ class OverlapMetric(Enum):
         )
 
 
+class OverlapOn(Enum):
+    """Enum specifying the geometry used to measure overlap between detections.
+
+    Attributes:
+        BOX: The detection's own box: its oriented box when
+            `data["xyxyxyxy"]` is set, otherwise its axis-aligned `xyxy`.
+            Masks are carried through the operation but not used for overlap.
+        MASK: The detection's mask. Requires `Detections.mask` on nonempty inputs.
+
+    Example:
+        ```pycon
+        >>> OverlapOn.from_value("MASK")
+        <OverlapOn.MASK: 'mask'>
+
+        ```
+    """
+
+    BOX = "box"
+    MASK = "mask"
+
+    @classmethod
+    def list(cls) -> list[str]:
+        """Return the string values of all members."""
+        return list(map(lambda member: member.value, cls))
+
+    @classmethod
+    def from_value(cls, value: OverlapOn | str) -> OverlapOn:
+        """Return the member for an enum member or a case-insensitive string.
+
+        Args:
+            value: A member of this enum or its string value.
+
+        Returns:
+            The matching member.
+
+        Raises:
+            ValueError: If `value` is not a member, a known string or a string.
+        """
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )
+
+
 def _validate_iou_threshold(iou_threshold: float) -> None:
     """Raise `ValueError` when an IoU threshold falls outside `[0, 1]`."""
     if not 0 <= iou_threshold <= 1:
