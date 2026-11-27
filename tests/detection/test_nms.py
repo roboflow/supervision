@@ -6,15 +6,40 @@ import numpy as np
 import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection import core
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import (
     Detections,
 )
+from supervision.detection.utils import iou_and_nms
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
     OverlapOn,
 )
 from tests.detection.helpers import _make_obb_detections, _rotated_rect
+
+
+class TestDetectionCoreCompatibility:
+    """Legacy utility imports resolve to the original overlap kernels."""
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "mask_non_max_merge",
+            "mask_non_max_suppression",
+            "mask_soft_non_max_suppression",
+            "oriented_box_non_max_merge",
+            "oriented_box_non_max_suppression",
+            "oriented_box_soft_non_max_suppression",
+        ],
+    )
+    def test_legacy_overlap_kernel_is_a_direct_alias(self, name: str) -> None:
+        """An existing import from detection.core resolves to the original kernel."""
+        expected = getattr(iou_and_nms, name)
+
+        actual = getattr(core, name)
+
+        assert actual is expected
 
 
 class TestDetectionsOverlapValidation:
@@ -1111,6 +1136,15 @@ def _x_pattern_obb_detections() -> Detections:
     )
 
 
+def _masked_x_pattern_obb_detections() -> Detections:
+    """Give crossed oriented boxes identical masks inside their coincident envelopes."""
+    detections = _x_pattern_obb_detections()
+    masks = np.zeros((2, 100, 100), dtype=bool)
+    masks[:, 45:55, 45:55] = True
+    detections.mask = masks
+    return detections
+
+
 def _nested_detections(kind: str) -> Detections:
     """A 5x5 box inside a 10x10 box, as boxes, masks or oriented boxes."""
     arguments: dict[str, object] = {
@@ -1207,16 +1241,44 @@ class TestOverlapOn:
 
         assert len(result) == 2
 
-    def test_soft_nms_box_overlap_matches_default_for_obb_data(self) -> None:
-        """Explicit box overlap on oriented boxes equals the default dispatch."""
-        detections = _x_pattern_obb_detections()
+    @pytest.mark.parametrize("method", ["with_nms", "with_nmm"])
+    @pytest.mark.parametrize(
+        ("overlap_on", "expected_count"),
+        [
+            pytest.param(None, 1, id="auto-uses-mask"),
+            pytest.param("mask", 1, id="mask-ignores-boxes"),
+            pytest.param("box", 2, id="box-uses-oriented-boxes"),
+        ],
+    )
+    def test_mixed_geometry_selection_keeps_expected_detections(
+        self, method: str, overlap_on: str | None, expected_count: int
+    ) -> None:
+        """Only oriented overlap keeps both when masks and envelopes coincide."""
+        detections = _masked_x_pattern_obb_detections()
 
-        result = detections.with_soft_nms(overlap_on="box")
+        result = getattr(detections, method)(threshold=0.5, overlap_on=overlap_on)
+
+        assert len(result) == expected_count
+
+    @pytest.mark.parametrize(
+        ("overlap_on", "overlap"),
+        [
+            pytest.param(None, 1.0, id="auto-uses-mask"),
+            pytest.param("mask", 1.0, id="mask-ignores-boxes"),
+            pytest.param("box", 1 / 19, id="box-uses-oriented-boxes"),
+        ],
+    )
+    def test_mixed_geometry_selection_decays_scores_by_expected_overlap(
+        self, overlap_on: str | None, overlap: float
+    ) -> None:
+        """Crossed 100-by-10 boxes share a 10-by-10 square and identical masks."""
+        detections = _masked_x_pattern_obb_detections()
+        expected_scores = [0.9, 0.85 * np.exp(-(overlap**2) / 0.5)]
+
+        result = detections.with_soft_nms(overlap_on=overlap_on)
 
         assert result.confidence is not None
-        np.testing.assert_array_equal(
-            result.confidence, detections.with_soft_nms().confidence
-        )
+        np.testing.assert_allclose(result.confidence, expected_scores, rtol=1e-5)
 
     @pytest.mark.parametrize("method", ["with_nms", "with_soft_nms", "with_nmm"])
     @pytest.mark.parametrize("overlap_on", ["mask", OverlapOn.MASK])

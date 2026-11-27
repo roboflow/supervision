@@ -131,7 +131,7 @@ class OverlapOn(Enum):
         BOX: The detection's own box: its oriented box when
             `data["xyxyxyxy"]` is set, otherwise its axis-aligned `xyxy`.
             Masks are carried through the operation but not used for overlap.
-        MASK: The detection's mask. Requires `Detections.mask` to be set.
+        MASK: The detection's mask. Requires `Detections.mask` on nonempty inputs.
 
     Example:
         ```pycon

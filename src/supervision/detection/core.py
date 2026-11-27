@@ -62,6 +62,12 @@ from supervision.detection.utils.iou_and_nms import (
     box_non_max_merge,  # noqa: F401  (re-exported for existing imports from this module)
     box_non_max_suppression,  # noqa: F401
     box_soft_non_max_suppression,  # noqa: F401
+    mask_non_max_merge,  # noqa: F401
+    mask_non_max_suppression,  # noqa: F401
+    mask_soft_non_max_suppression,  # noqa: F401
+    oriented_box_non_max_merge,  # noqa: F401
+    oriented_box_non_max_suppression,  # noqa: F401
+    oriented_box_soft_non_max_suppression,  # noqa: F401
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -3053,13 +3059,14 @@ class Detections:
 
         Returns:
             A new Detections object containing the subset of detections
-                after non-maximum suppression.
+                after non-maximum suppression. Empty input is returned unchanged
+                after validating the `overlap_on` value.
 
         Raises:
             ValueError: If `confidence` is None and class_agnostic is False.
             ValueError: If `class_id` is None and class_agnostic is False.
             ValueError: If `overlap_on` is not a valid value, or is `"mask"`
-                and the detections have no mask.
+                and nonempty detections have no mask.
         """
         overlap_on = None if overlap_on is None else OverlapOn.from_value(overlap_on)
 
@@ -3088,16 +3095,15 @@ class Detections:
     ) -> Detections:
         """Performs Gaussian Soft Non-Maximum Suppression on detection set.
 
-        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
-        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
-        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
-        Pass `overlap_on` to choose the geometry explicitly.
+        By default, overlap is measured on masks, then oriented boxes if present,
+        then axis-aligned boxes. Pass `overlap_on` to choose the geometry explicitly.
 
         Unlike :meth:`~supervision.detection.core.Detections.with_nms`, which
         discards overlapping detections outright,
         Soft-NMS keeps every detection and instead rescales its confidence by
-        `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
-        overlap. By default (`score_threshold=None`) nothing is dropped — the
+        `score *= exp(-overlap**2 / sigma)` for each higher-scoring, same-category
+        overlap. The selected `overlap_metric` supplies the overlap value and
+        defaults to IoU. By default (`score_threshold=None`) nothing is dropped — the
         method only rescales confidence, despite the "suppression" name; pass
         `score_threshold` to additionally filter the decayed scores into a real
         subset, matching
@@ -3130,14 +3136,15 @@ class Detections:
             A new Detections object with decayed confidence scores and,
                 if `score_threshold` is given, filtered to a real subset.
                 The original :class:`~supervision.detection.core.Detections`
-                instance is never modified.
+                instance is never modified. Empty input is returned unchanged
+                after validating the `overlap_on` value.
 
         Raises:
             ValueError: If `confidence` is None.
             ValueError: If `class_id` is None and class_agnostic is False.
             ValueError: If `sigma` is not greater than `0`.
             ValueError: If `overlap_on` is not a valid value, or is `"mask"`
-                and the detections have no mask.
+                and nonempty detections have no mask.
 
         Example:
             Two identical boxes show that Soft-NMS decays the lower score but
@@ -3224,7 +3231,8 @@ class Detections:
 
         Returns:
             A new Detections object containing the subset of detections
-                after non-maximum merging.
+                after non-maximum merging. Empty input is returned unchanged
+                after validating the `overlap_on` value.
 
         Note:
             For detections carrying oriented bounding box data
@@ -3241,7 +3249,7 @@ class Detections:
             ValueError: If `confidence` is None.
             ValueError: If `class_id` is None and class_agnostic is False.
             ValueError: If `overlap_on` is not a valid value, or is `"mask"`
-                and the detections have no mask.
+                and nonempty detections have no mask.
 
         ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width="800" }
         """  # noqa: E501 // docs
