@@ -21,6 +21,57 @@ def _pair(**overrides: object) -> Detections:
     return Detections(**fields)  # type: ignore[arg-type]
 
 
+def _axis_corners(xyxy: np.ndarray) -> np.ndarray:
+    """Corners (top-left, top-right, bottom-right, bottom-left) of axis-aligned
+    boxes."""
+    x1, y1, x2, y2 = xyxy.T
+    return np.stack(
+        [
+            np.stack([x1, y1], axis=1),
+            np.stack([x2, y1], axis=1),
+            np.stack([x2, y2], axis=1),
+            np.stack([x1, y2], axis=1),
+        ],
+        axis=1,
+    )
+
+
+def _rotated_box(
+    width: float,
+    height: float,
+    degrees: float,
+    origin: tuple[float, float],
+    shift: float = 0.0,
+) -> np.ndarray:
+    """Corners of a `width` x `height` box turned by `degrees` around `origin`.
+
+    `shift` moves the box along its own first edge before the rotation.
+    """
+    angle = np.deg2rad(degrees)
+    rotation = np.array(
+        [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+    )
+    base = np.array([[0, 0], [width, 0], [width, height], [0, height]], dtype=float)
+    shifted = base + np.array([shift, 0.0])
+    return shifted @ rotation.T + np.asarray(origin)
+
+
+def _oriented(
+    corners: np.ndarray, confidence: list[float], **overrides: object
+) -> Detections:
+    """Oriented-box detections of class 0 whose `xyxy` is the corners' envelope."""
+    points = corners.reshape(len(corners), 4, 2)
+    xyxy = np.concatenate([points.min(axis=1), points.max(axis=1)], axis=1)
+    fields: dict[str, object] = {
+        "xyxy": xyxy,
+        "confidence": np.array(confidence),
+        "class_id": np.zeros(len(corners), dtype=int),
+        "data": {ORIENTED_BOX_COORDINATES: corners},
+    }
+    fields.update(overrides)
+    return Detections(**fields)  # type: ignore[arg-type]
+
+
 def _masked_pair() -> Detections:
     """Two overlapping boxes with rectangular masks on a 20x20 image."""
     masks = np.zeros((2, 20, 20), dtype=bool)
@@ -298,21 +349,6 @@ class TestWithFusionGeometry:
         with pytest.raises(ValueError, match=r"requires `Detections\.mask`"):
             _pair().with_fusion(overlap_on="mask")
 
-    @pytest.mark.parametrize("overlap_on", [None, "box"])
-    def test_oriented_boxes_raise(self, overlap_on: str | None) -> None:
-        """Oriented-box detections cannot be fused yet."""
-        corners = np.array(
-            [
-                [[0, 0], [10, 0], [10, 10], [0, 10]],
-                [[1, 1], [11, 1], [11, 11], [1, 11]],
-            ],
-            dtype=np.float64,
-        )
-        detections = _pair(data={ORIENTED_BOX_COORDINATES: corners})
-
-        with pytest.raises(ValueError, match="oriented boxes"):
-            detections.with_fusion(overlap_on=overlap_on)
-
     def test_masks_and_oriented_boxes_together_raise(self) -> None:
         """Carrying both geometries is ambiguous and always rejected."""
         corners = np.zeros((2, 4, 2), dtype=np.float64)
@@ -415,3 +451,254 @@ class TestWithFusionMasks:
         np.testing.assert_allclose(fused.confidence, [0.8, 0.7])
         np.testing.assert_array_equal(output_masks, [masks[2], masks[0] | masks[1]])
         np.testing.assert_array_equal(input_masks, masks)
+
+
+class TestWithFusionOrientedBoxes:
+    """Oriented boxes fuse in the frame of each cluster's highest-confidence member."""
+
+    @pytest.mark.parametrize("threshold", [0.3, 0.5, 0.7])
+    def test_angle_zero_boxes_match_axis_aligned_fusion(self, threshold: float) -> None:
+        """Unrotated boxes fuse to the same boxes and scores as without corners."""
+        rng = np.random.default_rng(0)
+        centers = rng.uniform(0, 300, (40, 2))
+        sizes = rng.uniform(30, 90, (40, 2))
+        # Duplicate each box with a small jitter so clusters have 2 or more members.
+        xyxy = np.concatenate([centers - sizes / 2, centers + sizes / 2], axis=1)
+        xyxy = np.concatenate([xyxy, xyxy + rng.normal(0, 2, xyxy.shape)])
+        confidence = rng.uniform(0.1, 1.0, len(xyxy))
+        class_id = np.zeros(len(xyxy), dtype=int)
+        axis = Detections(xyxy=xyxy, confidence=confidence, class_id=class_id)
+        oriented = _oriented(_axis_corners(xyxy), list(confidence))
+
+        expected = axis.with_fusion(threshold=threshold)
+        result = oriented.with_fusion(threshold=threshold)
+
+        np.testing.assert_allclose(result.xyxy, expected.xyxy, rtol=1e-6, atol=1e-6)
+        np.testing.assert_allclose(result.confidence, expected.confidence)
+
+    def test_threshold_tie_follows_the_float32_polygon_overlap(self) -> None:
+        """A pair whose overlap equals the threshold in float64 fuses as oriented boxes.
+
+        Oriented overlap runs in float32 polygon arithmetic, so a pair that the axis-
+        aligned float64 path leaves apart (overlap equal to the threshold) can end just
+        above it. The fusion of the two paths is only equal away from ties.
+        """
+        xyxy = np.array([[27.2, 0.1, 41.8, 47.8], [36.5, 1.7, 43.9, 9.8]])
+        threshold = 0.06017408855809258
+        axis = Detections(
+            xyxy=xyxy, confidence=np.array([0.9, 0.8]), class_id=np.array([0, 0])
+        )
+        oriented = _oriented(_axis_corners(xyxy), [0.9, 0.8])
+
+        axis_count = len(axis.with_fusion(threshold=threshold))
+        oriented_count = len(oriented.with_fusion(threshold=threshold))
+
+        assert (axis_count, oriented_count) == (2, 1)
+
+    def test_rotated_boxes_are_fused_in_the_seed_frame(self) -> None:
+        """The fused box is the weighted mean of the extremes along the seed's axes."""
+        seed = _rotated_box(100, 40, 30, (500, 500))
+        other = _rotated_box(100, 40, 30, (500, 500), shift=6)
+        detections = _oriented(np.stack([seed, other]), [0.9, 0.6])
+        angle = np.deg2rad(30)
+        rotation = np.array(
+            [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+        )
+        # Local x extremes: (0 * 0.9 + 6 * 0.6) / 1.5 and (100 * 0.9 + 106 * 0.6) / 1.5.
+        local = np.array([[2.4, 0], [102.4, 0], [102.4, 40], [2.4, 40]])
+        expected = local @ rotation.T + 500
+
+        result = detections.with_fusion()
+
+        assert len(result) == 1
+        np.testing.assert_allclose(
+            result.data[ORIENTED_BOX_COORDINATES][0], expected, atol=1e-9
+        )
+        np.testing.assert_allclose(result.confidence, [0.75])
+        envelope = np.concatenate([expected.min(axis=0), expected.max(axis=0)])
+        np.testing.assert_allclose(result.xyxy[0], envelope)
+
+    def test_fused_corners_form_a_rectangle(self) -> None:
+        """A cluster of rotated boxes fuses into a rectangle with right angles."""
+        corners = np.stack(
+            [
+                _rotated_box(80, 30, 20, (100, 100)),
+                _rotated_box(84, 28, 20, (102, 99), shift=3),
+                _rotated_box(78, 32, 20, (99, 101), shift=-2),
+            ]
+        )
+        detections = _oriented(corners, [0.9, 0.7, 0.5])
+
+        fused = detections.with_fusion().data[ORIENTED_BOX_COORDINATES][0]
+
+        edges = np.roll(fused, -1, axis=0) - fused
+        dots = (edges * np.roll(edges, -1, axis=0)).sum(axis=1)
+        np.testing.assert_allclose(dots, 0, atol=1e-9)
+
+    @pytest.mark.parametrize(
+        "corners",
+        [
+            pytest.param(_rotated_box(60, 20, 35, (50, 50)), id="rotated"),
+            pytest.param(
+                np.array([[40, 10], [40, 50], [10, 50], [10, 10]], dtype=float),
+                id="unrotated-other-corner-order",
+            ),
+            pytest.param(
+                np.array([[0, 0], [30, 0], [24, 10], [6, 10]], dtype=float),
+                id="non-rectangular-quad",
+            ),
+        ],
+    )
+    def test_unfused_box_comes_back_unchanged(self, corners: np.ndarray) -> None:
+        """A detection that joins no cluster keeps its corners and `xyxy`."""
+        far_away = _axis_corners(np.array([[500.0, 500, 520, 520]]))[0]
+        detections = _oriented(np.stack([corners, far_away]), [0.9, 0.8])
+
+        result = detections.with_fusion()
+
+        np.testing.assert_array_equal(result.data[ORIENTED_BOX_COORDINATES][0], corners)
+        np.testing.assert_array_equal(result.xyxy[0], detections.xyxy[0])
+
+    @pytest.mark.parametrize(
+        ("dtype", "offset"),
+        [
+            pytest.param(np.float32, 1000, id="float32"),
+            pytest.param(np.float64, 10**9, id="float64-large"),
+            pytest.param(np.int64, 2**53 - 1000, id="int64-near-2-pow-53"),
+        ],
+    )
+    def test_unfused_corners_keep_their_value_in_float64(
+        self, dtype: type, offset: int
+    ) -> None:
+        """Float inputs and integers up to 2**53 round-trip into a float64 array."""
+        corners = (_axis_corners(np.array([[0.0, 0, 40, 30]])) + offset).astype(dtype)
+        xyxy = np.concatenate([corners.min(axis=1), corners.max(axis=1)], axis=1)
+        detections = Detections(
+            xyxy=xyxy.astype(np.float64),
+            confidence=np.array([0.9]),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+        result = detections.with_fusion()
+
+        fused = result.data[ORIENTED_BOX_COORDINATES]
+        assert fused.dtype == np.float64
+        np.testing.assert_array_equal(fused, corners.astype(np.float64))
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((4, 2), id="corner-layout"),
+            pytest.param((8,), id="flat-layout"),
+        ],
+    )
+    def test_fused_corners_keep_the_input_layout(self, shape: tuple[int, ...]) -> None:
+        """Corners come back as `(N, 4, 2)` or flat `(N, 8)`, as they went in."""
+        corners = np.stack(
+            [
+                _rotated_box(80, 30, 20, (100, 100)),
+                _rotated_box(80, 30, 20, (101, 100)),
+                _rotated_box(80, 30, 20, (400, 400)),
+            ]
+        )
+        detections = _oriented(corners.reshape(3, *shape), [0.9, 0.8, 0.7])
+
+        result = detections.with_fusion()
+
+        assert result.data[ORIENTED_BOX_COORDINATES].shape == (2, *shape)
+
+    def test_large_coordinates_stay_finite_and_match_the_local_result(self) -> None:
+        """Coordinates near 1e9 give the same fused box as near the origin."""
+        local = np.stack(
+            [_rotated_box(80, 30, 20, (0, 0)), _rotated_box(80, 30, 20, (2, 1))]
+        )
+        near_origin = _oriented(local, [0.9, 0.8]).with_fusion()
+
+        far = _oriented(local + 1e9, [0.9, 0.8]).with_fusion()
+
+        fused = far.data[ORIENTED_BOX_COORDINATES]
+        assert np.isfinite(fused).all()
+        np.testing.assert_allclose(
+            fused - 1e9, near_origin.data[ORIENTED_BOX_COORDINATES], atol=1e-6
+        )
+
+    def test_zero_confidence_cluster_uses_the_plain_average(self) -> None:
+        """When every confidence is zero the extents are averaged without weights."""
+        xyxy = np.array([[0.0, 0, 100, 100], [4, 2, 104, 98], [2, 6, 102, 106]])
+        detections = _oriented(_axis_corners(xyxy), [0.0, 0.0, 0.0])
+
+        result = detections.with_fusion()
+
+        assert len(result) == 1
+        np.testing.assert_allclose(result.xyxy[0], xyxy.mean(axis=0))
+
+    def test_winner_metadata_and_class_handling(self) -> None:
+        """The fused detection takes class, tracker and data from the best member."""
+        corners = np.stack(
+            [_rotated_box(80, 30, 20, (100, 100)), _rotated_box(80, 30, 20, (101, 100))]
+        )
+        detections = _oriented(
+            corners,
+            [0.5, 0.9],
+            class_id=np.array([3, 7]),
+            tracker_id=np.array([11, 22]),
+        )
+        detections.data["name"] = np.array(["low", "high"])
+
+        class_agnostic = detections.with_fusion(class_agnostic=True)
+        class_aware = detections.with_fusion()
+
+        assert class_agnostic.class_id.tolist() == [7]
+        assert class_agnostic.tracker_id.tolist() == [22]
+        assert class_agnostic.data["name"].tolist() == ["high"]
+        assert len(class_aware) == 2
+
+    def test_num_models_rescales_the_confidence(self) -> None:
+        """A cluster backed by fewer detections than models is demoted."""
+        corners = np.stack(
+            [_rotated_box(80, 30, 20, (100, 100)), _rotated_box(80, 30, 20, (101, 100))]
+        )
+        detections = _oriented(corners, [0.9, 0.7])
+
+        result = detections.with_fusion(num_models=4)
+
+        np.testing.assert_allclose(result.confidence, [0.8 * 2 / 4])
+
+    def test_explicit_box_overlap_matches_the_default(self) -> None:
+        """`overlap_on="box"` fuses oriented detections the same way as `None`."""
+        corners = np.stack(
+            [_rotated_box(80, 30, 20, (100, 100)), _rotated_box(80, 30, 20, (101, 100))]
+        )
+        detections = _oriented(corners, [0.9, 0.7])
+
+        default = detections.with_fusion()
+        explicit = detections.with_fusion(overlap_on="box")
+
+        np.testing.assert_array_equal(
+            default.data[ORIENTED_BOX_COORDINATES],
+            explicit.data[ORIENTED_BOX_COORDINATES],
+        )
+
+    @pytest.mark.parametrize(
+        ("corners", "message"),
+        [
+            pytest.param(
+                np.full((2, 4, 2), np.nan),
+                "finite corner coordinates",
+                id="nan",
+            ),
+            pytest.param(
+                np.full((2, 4, 2), np.inf),
+                "finite corner coordinates",
+                id="inf",
+            ),
+            pytest.param(np.zeros((2, 3, 2)), r"shape \(n, 4, 2\)", id="three-corners"),
+        ],
+    )
+    def test_invalid_corners_raise(self, corners: np.ndarray, message: str) -> None:
+        """Non-finite or wrongly shaped corners are rejected."""
+        detections = _pair(data={ORIENTED_BOX_COORDINATES: corners})
+
+        with pytest.raises(ValueError, match=message):
+            detections.with_fusion()

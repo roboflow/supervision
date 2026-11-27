@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 
@@ -15,6 +16,7 @@ from supervision.detection.utils.nms import (
     _group_overlapping_boxes,
     _mask_non_max_suppression,
     _mask_soft_non_max_suppression,
+    _oriented_box_weighted_fusion_clusters,
     box_non_max_merge,
     mask_non_max_merge,
     oriented_box_non_max_merge,
@@ -2030,3 +2032,92 @@ class TestMaskNonMaxMergeDenseInputs:
 
         with pytest.raises(ValueError, match="3D"):
             mask_non_max_merge(predictions, masks, iou_threshold=0.5)
+
+
+def _corners_of(xyxy: Sequence[Sequence[float]]) -> np.ndarray:
+    """Corners (top-left, top-right, bottom-right, bottom-left) of axis-aligned
+    boxes."""
+    boxes = np.asarray(xyxy, dtype=np.float64)
+    x1, y1, x2, y2 = boxes.T
+    return np.stack(
+        [
+            np.stack([x1, y1], axis=1),
+            np.stack([x2, y1], axis=1),
+            np.stack([x2, y2], axis=1),
+            np.stack([x1, y2], axis=1),
+        ],
+        axis=1,
+    )
+
+
+class TestOrientedBoxWeightedFusionClusters:
+    """The oriented cluster kernel mirrors the axis-aligned one on unrotated boxes."""
+
+    def test_labels_and_scores_match_the_axis_aligned_kernel(self) -> None:
+        """Two classes with tied scores give the same rows and labels as the boxes."""
+        xyxy = [[0, 0, 10, 10], [1, 1, 11, 11], [0, 0, 10, 10], [50, 50, 60, 60]]
+        scores = np.array([0.9, 0.8, 0.9, 0.9])
+        class_ids = np.array([0, 0, 1, 0])
+        _, expected_scores, expected_labels = _box_weighted_fusion_clusters(
+            np.asarray(xyxy, dtype=np.float64),
+            scores,
+            class_ids,
+            0.5,
+            OverlapMetric.IOU,
+        )
+
+        fused, fused_scores, labels = _oriented_box_weighted_fusion_clusters(
+            _corners_of(xyxy), scores, class_ids, 0.5, OverlapMetric.IOU
+        )
+
+        assert fused.shape == (3, 4, 2)
+        assert np.allclose(fused_scores, expected_scores)
+        assert np.array_equal(labels, expected_labels)
+
+    def test_one_box_per_source_in_a_cluster(self) -> None:
+        """A box never joins a cluster that already holds a box of its source."""
+        corners = _corners_of([[0, 0, 10, 10], [1, 1, 11, 11], [2, 2, 12, 12]])
+        scores = np.array([0.9, 0.8, 0.7])
+        sources = np.array([0, 0, 1])
+
+        _, _, labels = _oriented_box_weighted_fusion_clusters(
+            corners, scores, None, 0.5, OverlapMetric.IOU, sources=sources
+        )
+
+        assert labels[0] != labels[1]
+        assert labels[2] in (labels[0], labels[1])
+
+    def test_uniform_weights_average_the_extents_but_keep_the_score(self) -> None:
+        """Uniform box weights give the plain mean box, leaving the score unchanged."""
+        corners = _corners_of([[0, 0, 10, 10], [2, 0, 12, 10]])
+        scores = np.array([0.9, 0.1])
+
+        fused, fused_scores, _ = _oriented_box_weighted_fusion_clusters(
+            corners, scores, None, 0.5, OverlapMetric.IOU, box_weights="uniform"
+        )
+
+        assert np.allclose(fused[0].min(axis=0), [1, 0])
+        assert np.allclose(fused[0].max(axis=0), [11, 10])
+        assert np.allclose(fused_scores, [0.5])
+
+    def test_empty_input_returns_empty_arrays(self) -> None:
+        """No boxes give empty fused corners, scores and labels."""
+        fused, fused_scores, labels = _oriented_box_weighted_fusion_clusters(
+            np.empty((0, 4, 2)), np.empty(0), None, 0.5, OverlapMetric.IOU
+        )
+
+        assert fused.shape == (0, 4, 2)
+        assert len(fused_scores) == 0
+        assert len(labels) == 0
+
+    def test_unknown_box_weights_raise(self) -> None:
+        """Only `confidence` and `uniform` weightings exist."""
+        with pytest.raises(ValueError, match="box_weights must be"):
+            _oriented_box_weighted_fusion_clusters(
+                _corners_of([[0, 0, 10, 10]]),
+                np.array([0.9]),
+                None,
+                0.5,
+                OverlapMetric.IOU,
+                box_weights="median",  # type: ignore[arg-type]
+            )

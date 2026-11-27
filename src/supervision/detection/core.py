@@ -24,6 +24,11 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
+from supervision.detection.utils._obb_frame import (
+    corners_to_frame,
+    frame_to_corners,
+    seed_frame,
+)
 from supervision.detection.utils._typing import (
     _DetectionDataType,
     _DetectionDataValueType,
@@ -3324,6 +3329,19 @@ class Detections:
         fused detection carries the union of its members' masks, as
         :meth:`~supervision.detection.core.Detections.with_nmm` does.
 
+        Detections that carry oriented boxes (`data["xyxyxyxy"]`) are fused as
+        oriented boxes: overlap is measured between the rotated boxes, and each
+        cluster is fused in the frame of its highest-confidence member, whose first
+        edge gives the x axis. Every member's corners are projected onto that frame
+        and the fused box is the rectangle whose per-axis extremes are the
+        confidence-weighted means of the members' extremes, rotated back. The fused
+        corners go to `data["xyxyxyxy"]` in the input's layout (`(N, 4, 2)` or
+        `(N, 8)`) as float64, and `xyxy` is their envelope. A detection that
+        joins no cluster keeps its corners and `xyxy`. Its overlap is exact for
+        rotated boxes, but computed in float32, so a detection whose overlap sits
+        within rounding of `threshold` can cluster differently from the
+        axis-aligned path.
+
         Fusion runs in float64. The fused `xyxy` and `confidence` use the dtype
         that stacking `xyxy`, `confidence` and, unless `class_agnostic=True`,
         `class_id` into one array would give, widened to at least float32; a
@@ -3344,10 +3362,11 @@ class Detections:
                 together. If True, `class_id` is ignored. Defaults to False.
             overlap_metric: Metric used to compute the degree of overlap between
                 pairs of boxes (e.g., IoU, IoS).
-            overlap_on: Geometry to measure overlap on. `"box"` fuses axis-aligned
-                boxes and ignores masks for overlap. `None` (default) picks the
-                richest geometry present. Fusion by mask or by oriented box is
-                not supported yet, so those raise.
+            overlap_on: Geometry to measure overlap on. `"box"` fuses the detections'
+                own boxes (oriented when oriented-box coordinates are present,
+                else axis-aligned) and ignores masks for overlap. `None` (default)
+                picks the richest geometry present. Fusion by mask is not
+                supported yet, so it raises.
             num_models: Number of models (or test-time augmentations) whose
                 detections were concatenated. When set, each fused confidence is
                 multiplied by `min(T, num_models) / num_models`, where `T` is the
@@ -3369,7 +3388,9 @@ class Detections:
             ValueError: If `overlap_on` is not a valid value, or is `"mask"` and
                 nonempty detections have no mask.
             ValueError: If the detections carry masks and `overlap_on` is not
-                `"box"`, or oriented-box coordinates (`data["xyxyxyxy"]`).
+                `"box"`.
+            ValueError: If oriented-box coordinates do not have shape `(N, 4, 2)` or
+                `(N, 8)`, or have nonfinite values.
             ValueError: If the detections carry both masks and oriented-box
                 coordinates.
 
@@ -3414,6 +3435,30 @@ class Detections:
             [0.85, 0.35]
 
             ```
+
+            Fuse oriented boxes. The fused corners go to `data["xyxyxyxy"]`:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> corners = np.array(
+            ...     [
+            ...         [[0, 0], [10, 0], [10, 10], [0, 10]],
+            ...         [[1, 0], [11, 0], [11, 10], [1, 10]],
+            ...     ],
+            ...     dtype=float,
+            ... )
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10], [1, 0, 11, 10]], dtype=float),
+            ...     confidence=np.array([0.9, 0.6]),
+            ...     class_id=np.array([0, 0]),
+            ...     data={"xyxyxyxy": corners},
+            ... )
+            >>> fused = detections.with_fusion()
+            >>> fused.data["xyxyxyxy"].round(2).tolist()
+            [[[0.4, 0.0], [10.4, 0.0], [10.4, 10.0], [0.4, 10.0]]]
+
+            ```
         """
         overlap_on = None if overlap_on is None else OverlapOn.from_value(overlap_on)
         _validate_iou_threshold(threshold)
@@ -3434,7 +3479,7 @@ class Detections:
             )
 
         strategy = resolve_overlap_strategy(self, overlap_on)
-        fused_xyxy, fused_confidence, labels = strategy.fusion_clusters(
+        fused_geometry, fused_confidence, labels = strategy.fusion_clusters(
             self, class_agnostic, threshold, overlap_metric, num_models
         )
 
@@ -3468,9 +3513,47 @@ class Detections:
             # Keep the union independent of a subclass's selection behavior and
             # preserve the output dtype rules for deprecated non-boolean masks.
             result.mask = _union_cluster_masks(mask, labels, len(winner_rows))
-        result.xyxy = fused_xyxy
+        if fused_geometry.ndim == 3:
+            self._set_fused_oriented_boxes(
+                result, fused_geometry, winner_rows, labels, fused_confidence.dtype
+            )
+        else:
+            result.xyxy = fused_geometry
         result.confidence = fused_confidence
         return result
+
+    def _set_fused_oriented_boxes(
+        self,
+        result: Detections,
+        fused_corners: npt.NDArray[np.float64],
+        winner_rows: npt.NDArray[np.intp],
+        labels: npt.NDArray[np.int64],
+        output_dtype: npt.DTypeLike,
+    ) -> None:
+        """Write fused oriented boxes into the result of `with_fusion`.
+
+        The corners go to `data[ORIENTED_BOX_COORDINATES]` in the layout of the
+        input, `(N, 4, 2)` or flat `(N, 8)`, and `xyxy` is their envelope. A cluster
+        of one detection keeps its input `xyxy`, so an unfused detection comes back
+        value-identical (its corners already are, as float64).
+
+        Args:
+            result: The selected winners, modified in place.
+            fused_corners: Fused corners `(m, 4, 2)` in float64, one per cluster.
+            winner_rows: Input row of each cluster's winner.
+            labels: Fused row of each input row.
+            output_dtype: Floating dtype of the result's `xyxy`.
+        """
+        input_corners = np.asarray(self.data[ORIENTED_BOX_COORDINATES])
+        envelope = np.concatenate(
+            [fused_corners.min(axis=1), fused_corners.max(axis=1)], axis=1
+        )
+        unfused = np.bincount(labels, minlength=len(fused_corners)) == 1
+        envelope[unfused] = self.xyxy[winner_rows[unfused]]
+        result.xyxy = envelope.astype(output_dtype)
+        if input_corners.ndim == 2:
+            fused_corners = fused_corners.reshape(len(fused_corners), 8)
+        result.data[ORIENTED_BOX_COORDINATES] = fused_corners
 
     def remap_classes(
         self,
@@ -3647,43 +3730,27 @@ def _merge_obb_corners(
     )
     origin = corners_list[0][0]
     stacked = np.concatenate(corners_list, axis=0)
-    # Translate to the winner's first corner before any float math so large
-    # integer coordinates (e.g. geospatial or stitched frames) are reduced to
-    # local extents. Object arithmetic keeps those integer differences exact
-    # and avoids unsigned wrap-around for corners lying below the origin.
-    if np.issubdtype(input_dtype, np.integer):
-        all_corners = np.asarray(
-            stacked.astype(object) - origin.astype(object), dtype=np.float64
-        )
-    else:
-        all_corners = stacked.astype(np.float64, copy=False) - origin.astype(
-            np.float64, copy=False
-        )
-    # Use winner's first edge to derive orientation angle -- avoids
-    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects). Read it
-    # off the translated corners so it inherits the same wrap-safety.
-    winner_edge = all_corners[1] - all_corners[0]
-    angle = float(np.arctan2(float(winner_edge[1]), float(winner_edge[0])))
-    cos, sin = float(np.cos(angle)), float(np.sin(angle))
-
-    # De-rotate all corners into the winner's local frame
-    to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float64)
-    local_corners = all_corners @ to_local
+    # The frame is read off the winner's first edge, and every corner is
+    # translated to the winner's first corner before any float math, so large
+    # integer coordinates stay exact (see `_obb_frame`).
+    cos, sin = seed_frame(corners_list[0])
+    local_corners = corners_to_frame(stacked, origin, cos, sin)
     x_min = float(local_corners[:, 0].min())
     x_max = float(local_corners[:, 0].max())
     y_min = float(local_corners[:, 1].min())
     y_max = float(local_corners[:, 1].max())
 
     # Rotate the enclosing AABB back to world frame
-    to_world = np.array([[cos, sin], [-sin, cos]], dtype=np.float64)
-    merged: npt.NDArray[np.floating] = (
+    merged = frame_to_corners(
         np.array(
             [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]],
             dtype=np.float64,
-        )
-        @ to_world
+        ),
+        origin,
+        cos,
+        sin,
     )
-    return cast(npt.NDArray[np.floating], (merged + origin).astype(output_dtype))
+    return cast(npt.NDArray[np.floating], merged.astype(output_dtype))
 
 
 def _merge_detection_group(detections: list[Detections]) -> Detections:
