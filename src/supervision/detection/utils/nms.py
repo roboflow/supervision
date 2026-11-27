@@ -11,6 +11,12 @@ import numpy.typing as npt
 from deprecate import deprecated, void
 
 from supervision.detection.compact_mask import CompactMask, _compact_mask_union
+from supervision.detection.utils._obb_frame import (
+    _offsets_from_origin,
+    corners_to_frame,
+    frame_to_corners,
+    seed_frame,
+)
 from supervision.detection.utils.iou import (
     OverlapMetric,
     _box_overlap_float64,
@@ -1089,6 +1095,27 @@ def _best_matching_cluster(
     overlaps = _box_overlap_float64(fused_boxes, box[np.newaxis, :], overlap_metric)[
         :, 0
     ]
+    return _pick_cluster(overlaps, iou_threshold, eligible)
+
+
+def _pick_cluster(
+    overlaps: npt.NDArray[np.floating],
+    iou_threshold: float,
+    eligible: npt.NDArray[np.bool_] | None = None,
+) -> int:
+    """Pick the best overlapping cluster that a box may join.
+
+    Args:
+        overlaps: Overlap of the box with every existing cluster's fused box,
+            shape `(k,)` with `k >= 1`.
+        iou_threshold: Overlap that the best match must strictly exceed.
+        eligible: Optional mask of shape `(k,)` of the clusters the box may join,
+            applied before the best match is picked.
+
+    Returns:
+        Index of the cluster to join, the first one on ties, or `-1` when no
+            eligible overlap exceeds `iou_threshold`.
+    """
     if eligible is not None:
         overlaps = np.where(eligible, overlaps, -np.inf)
     best_cluster = int(overlaps.argmax())
@@ -1326,13 +1353,68 @@ def _box_weighted_fusion_clusters(
         )
     _validate_fusion_confidences(scores)
     _validate_fusion_boxes(boxes)
+    return _fuse_by_class(
+        boxes,
+        scores,
+        categories,
+        iou_threshold,
+        overlap_metric,
+        num_models,
+        output_dtype,
+        output_dtype,
+        sources,
+        box_weights,
+        _fuse_single_class_boxes,
+    )
+
+
+def _fuse_by_class(
+    geometry: npt.NDArray[np.number],
+    scores: npt.NDArray[np.number],
+    categories: npt.NDArray[np.number] | None,
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+    num_models: int | None,
+    score_dtype: npt.DTypeLike,
+    geometry_dtype: npt.DTypeLike,
+    sources: npt.NDArray[np.integer] | None,
+    box_weights: _FusionBoxWeights,
+    fuse_single_class: Callable[..., Any],
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64]]:
+    """Run a single-class fusion kernel per class and order the fused rows.
+
+    Shared by the axis-aligned and the oriented fusion: `fuse_single_class` fuses
+    the rows of one class and returns `(fused_geometry, mean_scores, cluster_sizes,
+    box_clusters)`. The fused rows are cast, concatenated and stably sorted by
+    descending fused score, and `labels` is remapped to the sorted rows.
+
+    Args:
+        geometry: Validated boxes `(n, 4)` or corners `(n, 4, 2)` with `n >= 1`.
+        scores: Validated confidence scores, shape `(n,)`.
+        categories: Class ids, shape `(n,)`, or `None` to fuse across classes.
+        iou_threshold: Overlap that a box must strictly exceed to join a cluster.
+        overlap_metric: Metric used to compute the overlap.
+        num_models: When set, rescales each fused score by
+            `min(cluster_size, num_models) / num_models`.
+        score_dtype: Floating dtype of the returned scores.
+        geometry_dtype: Floating dtype of the returned fused geometry.
+        sources: Optional source id per row, shape `(n,)`.
+        box_weights: `"confidence"` or `"uniform"` member weighting.
+        fuse_single_class: Fusion kernel of one class.
+
+    Returns:
+        A tuple `(fused_geometry, fused_scores, labels)` sorted by descending fused
+            score; `labels[i]` is the returned row of the cluster input row `i`
+            joined.
+    """
+    box_count = len(geometry)
     if categories is None:
         categories = np.zeros(box_count)
     else:
         _validate_fusion_class_ids(categories)
     unique_class_ids, class_positions = np.unique(categories, return_inverse=True)
 
-    boxes_per_class: list[npt.NDArray[np.float64]] = []
+    geometry_per_class: list[npt.NDArray[np.float64]] = []
     scores_per_class: list[npt.NDArray[np.float64]] = []
     # Cluster index across all classes, in class-then-creation order, per input row.
     cluster_of_box = np.empty(box_count, dtype=np.int64)
@@ -1340,15 +1422,13 @@ def _box_weighted_fusion_clusters(
     for class_position in range(len(unique_class_ids)):
         in_class = np.flatnonzero(class_positions == class_position)
         class_sources = None if sources is None else sources[in_class]
-        fused_boxes, fused_scores, cluster_sizes, local_clusters = (
-            _fuse_single_class_boxes(
-                boxes[in_class],
-                scores[in_class],
-                iou_threshold,
-                overlap_metric,
-                class_sources,
-                box_weights,
-            )
+        fused_geometry, fused_scores, cluster_sizes, local_clusters = fuse_single_class(
+            geometry[in_class],
+            scores[in_class],
+            iou_threshold,
+            overlap_metric,
+            class_sources,
+            box_weights,
         )
         if num_models is not None:
             # Paper rescale: a cluster backed by fewer boxes than there are
@@ -1357,13 +1437,15 @@ def _box_weighted_fusion_clusters(
             fused_scores = fused_scores * rescale
         cluster_of_box[in_class] = cluster_offset + local_clusters
         cluster_offset += len(fused_scores)
-        boxes_per_class.append(fused_boxes)
+        geometry_per_class.append(fused_geometry)
         scores_per_class.append(fused_scores)
 
     # The cast comes before sorting, so scores that only become equal when rounded
     # (e.g. to float32) still follow the tie order.
-    cast_boxes = np.concatenate(boxes_per_class).astype(output_dtype, copy=False)
-    cast_scores = np.concatenate(scores_per_class).astype(output_dtype, copy=False)
+    cast_geometry = np.concatenate(geometry_per_class).astype(
+        geometry_dtype, copy=False
+    )
+    cast_scores = np.concatenate(scores_per_class).astype(score_dtype, copy=False)
     # A stable sort on the negated score keeps equal scores in matching order
     # (class id ascending, then cluster creation order), so ties come back
     # deterministic instead of reversed or scrambled by an unstable sort.
@@ -1371,9 +1453,303 @@ def _box_weighted_fusion_clusters(
     rank_of_cluster = np.empty(len(descending_score), dtype=np.int64)
     rank_of_cluster[descending_score] = np.arange(len(descending_score))
     return (
-        cast_boxes[descending_score],
+        cast_geometry[descending_score],
         cast_scores[descending_score],
         rank_of_cluster[cluster_of_box],
+    )
+
+
+def _validate_fusion_oriented_boxes(corners: npt.NDArray[np.number]) -> None:
+    """Reject oriented boxes with a wrong shape or non-finite corners.
+
+    A NaN corner overlaps nothing, so it would come back unfused as a NaN box, and an
+    infinite corner makes the overlap arithmetic NaN.
+
+    Args:
+        corners: Oriented boxes as `((x1, y1), (x2, y2), (x3, y3), (x4, y4))`,
+            shape `(n, 4, 2)`.
+
+    Raises:
+        ValueError: If `corners` does not have shape `(n, 4, 2)`.
+        ValueError: If any corner coordinate is NaN or infinite.
+    """
+    if corners.ndim != 3 or corners.shape[1:] != (4, 2):
+        raise ValueError(
+            "Oriented boxes passed to Weighted Box Fusion must have shape "
+            f"(n, 4, 2), got {corners.shape}."
+        )
+    invalid = ~np.isfinite(corners).all(axis=(1, 2))
+    if invalid.any():
+        invalid_rows = np.flatnonzero(invalid)
+        raise ValueError(
+            "Oriented boxes passed to Weighted Box Fusion must have finite "
+            f"corner coordinates, got {corners[invalid_rows[:5]].tolist()} at rows "
+            f"{invalid_rows[:5].tolist()}. Drop those predictions or fix their "
+            "corners before fusing them."
+        )
+
+
+def _fuse_single_class_oriented_boxes(
+    corners: npt.NDArray[np.number],
+    scores: npt.NDArray[np.number],
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+    sources: npt.NDArray[np.integer] | None = None,
+    box_weights: _FusionBoxWeights = "confidence",
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.int64],
+    npt.NDArray[np.int64],
+]:
+    """Cluster and fuse the oriented boxes of one class with Weighted Box Fusion.
+
+    Follows :func:`~supervision.detection.utils.nms._fuse_single_class_boxes`: boxes
+    are visited in descending score order, each joins the cluster whose current
+    fused box it overlaps most (when above the threshold) or starts a new one, and
+    the overlap is measured with
+    :func:`~supervision.detection.utils.iou.oriented_box_iou_batch` against the
+    running fused polygon.
+
+    Each cluster has the frame of its seed, the first and highest-scoring member
+    (see :mod:`supervision.detection.utils._obb_frame`). Every member's corners are
+    projected onto the seed's axes, and the fused box is the rectangle whose
+    per-axis minima and maxima are the confidence-weighted means of the members'
+    minima and maxima, or their plain means when the weights sum to zero, rotated
+    back. A cluster of one box keeps its input corners.
+
+    Scores are scaled by the power of two that brings the seed's score into
+    `[0.5, 1)`, as in the axis-aligned kernel, so sums of finite scores stay finite.
+    Unlike that kernel there is no exact-arithmetic path for coordinates or scores
+    near the float64 limits: coordinates are offsets from the seed's first corner,
+    so ordinary large coordinates (such as 1e9) are safe.
+
+    Args:
+        corners: Oriented boxes of a single class, shape `(n, 4, 2)` with `n >= 1`.
+        scores: Confidence scores aligned with `corners`, shape `(n,)`.
+        iou_threshold: Overlap that a box must strictly exceed to join a cluster.
+        overlap_metric: Metric used to compute the overlap.
+        sources: Optional source id per box, shape `(n,)`; a cluster holds at most one
+            box per source, checked before the best match is picked.
+        box_weights: `"confidence"` weights the member extents by their scores,
+            `"uniform"` gives every member the same weight; the mean score is the
+            same in both cases.
+
+    Returns:
+        A tuple `(fused_corners, mean_scores, cluster_sizes, box_clusters)` with
+            shapes `(k, 4, 2)`, `(k,)`, `(k,)` and `(n,)`, in float64 except for the
+            integer sizes and clusters. The first three hold one entry per cluster
+            in creation order; `box_clusters[i]` is the cluster input box `i` joined.
+    """
+    corners_float = corners.astype(np.float64)
+    # At this scale even float64 spacing reaches one pixel. Match in each
+    # seed's translated coordinate system so absolute rounding cannot change IoU.
+    use_local_overlap = np.issubdtype(corners.dtype, np.integer) and (
+        np.any(corners >= 2**52) or np.any(corners <= -(2**52))
+    )
+    scores_float = scores.astype(np.float64)
+    box_count = len(corners)
+    box_clusters = np.empty(box_count, dtype=np.int64)
+    fused_corners = np.empty((box_count, 4, 2), dtype=np.float64)
+    cluster_origins = np.empty((box_count, 2), dtype=corners.dtype)
+    frame_cos = np.zeros(box_count, dtype=np.float64)
+    frame_sin = np.zeros(box_count, dtype=np.float64)
+    cluster_exponents = np.zeros(box_count, dtype=np.int32)
+    weighted_min_sums = np.zeros((box_count, 2), dtype=np.float64)
+    weighted_max_sums = np.zeros((box_count, 2), dtype=np.float64)
+    min_sums = np.zeros((box_count, 2), dtype=np.float64)
+    max_sums = np.zeros((box_count, 2), dtype=np.float64)
+    # The score accumulator drives the mean score; the geometry accumulator drives
+    # the fused box, so uniform weights cannot change the score.
+    weight_sums = np.zeros(box_count, dtype=np.float64)
+    geometry_weight_sums = np.zeros(box_count, dtype=np.float64)
+    uniform_boxes = box_weights == "uniform"
+    cluster_sizes = np.zeros(box_count, dtype=np.int64)
+    cluster_count = 0
+    zero_origin = np.zeros(2, dtype=np.float64)
+    if sources is None:
+        source_codes = None
+        source_in_cluster = None
+    else:
+        _, source_codes = np.unique(sources, return_inverse=True)
+        source_in_cluster = np.zeros((box_count, source_codes.max() + 1), dtype=bool)
+
+    # Like the axis-aligned kernel, the visit is sequential because every box is
+    # matched against fused boxes that earlier boxes have already moved.
+    for box_index in np.argsort(-scores_float, kind="stable"):
+        box = corners[box_index]
+        score = scores_float[box_index]
+        cluster = -1
+        overlaps: npt.NDArray[np.floating]
+        if cluster_count and use_local_overlap:
+            candidates = _offsets_from_origin(
+                box, cluster_origins[:cluster_count, np.newaxis, :]
+            )
+            overlaps = np.zeros(cluster_count, dtype=np.float64)
+            running = fused_corners[:cluster_count]
+            # Only compare pairs whose local envelopes have positive overlap.
+            possible = np.all(
+                np.minimum(running.max(axis=1), candidates.max(axis=1))
+                > np.maximum(running.min(axis=1), candidates.min(axis=1)),
+                axis=1,
+            )
+            for index in np.flatnonzero(possible):
+                overlaps[index] = oriented_box_iou_batch(
+                    running[index : index + 1],
+                    candidates[index : index + 1],
+                    overlap_metric,
+                )[0, 0]
+        elif cluster_count:
+            overlaps = oriented_box_iou_batch(
+                fused_corners[:cluster_count],
+                corners_float[box_index][np.newaxis],
+                overlap_metric,
+            )[:, 0]
+        if cluster_count:
+            eligible = None
+            if source_in_cluster is not None and source_codes is not None:
+                eligible = ~source_in_cluster[:cluster_count, source_codes[box_index]]
+            cluster = _pick_cluster(overlaps, iou_threshold, eligible)
+        if cluster < 0:
+            cluster = cluster_count
+            cluster_count += 1
+            # A new cluster starts exactly at its seed's corners, so an unfused box
+            # comes back value-identical and a later box whose overlap equals the
+            # threshold is not tipped over it by rounding.
+            cluster_origins[cluster] = box[0]
+            if use_local_overlap:
+                fused_corners[cluster] = _offsets_from_origin(box, box[0])
+            else:
+                fused_corners[cluster] = corners_float[box_index]
+            frame_cos[cluster], frame_sin[cluster] = seed_frame(box)
+            cluster_exponents[cluster] = np.frexp(score)[1]
+
+        box_clusters[box_index] = cluster
+        if source_in_cluster is not None and source_codes is not None:
+            source_in_cluster[cluster, source_codes[box_index]] = True
+        weight = np.ldexp(score, -cluster_exponents[cluster])
+        weight_sums[cluster] += weight
+        geometry_weight = 1.0 if uniform_boxes else weight
+        geometry_weight_sums[cluster] += geometry_weight
+        cluster_sizes[cluster] += 1
+
+        local = corners_to_frame(
+            box, cluster_origins[cluster], frame_cos[cluster], frame_sin[cluster]
+        )
+        lowest, highest = local.min(axis=0), local.max(axis=0)
+        weighted_min_sums[cluster] += geometry_weight * lowest
+        weighted_max_sums[cluster] += geometry_weight * highest
+        min_sums[cluster] += lowest
+        max_sums[cluster] += highest
+        if cluster_sizes[cluster] == 1:
+            continue
+
+        # Fall back to a plain average when the weights sum to zero (all-zero
+        # scores), so the weighted mean stays defined instead of dividing by 0.
+        if geometry_weight_sums[cluster] > 0:
+            mean_lowest = weighted_min_sums[cluster] / geometry_weight_sums[cluster]
+            mean_highest = weighted_max_sums[cluster] / geometry_weight_sums[cluster]
+        else:
+            mean_lowest = min_sums[cluster] / cluster_sizes[cluster]
+            mean_highest = max_sums[cluster] / cluster_sizes[cluster]
+        rectangle = np.array(
+            [
+                [mean_lowest[0], mean_lowest[1]],
+                [mean_highest[0], mean_lowest[1]],
+                [mean_highest[0], mean_highest[1]],
+                [mean_lowest[0], mean_highest[1]],
+            ]
+        )
+        origin = zero_origin if use_local_overlap else cluster_origins[cluster]
+        fused_corners[cluster] = frame_to_corners(
+            rectangle, origin, frame_cos[cluster], frame_sin[cluster]
+        )
+
+    sizes = cluster_sizes[:cluster_count]
+    mean_scores = np.ldexp(
+        weight_sums[:cluster_count] / sizes, cluster_exponents[:cluster_count]
+    )
+    output = fused_corners[:cluster_count]
+    if use_local_overlap:
+        origins = cluster_origins[:cluster_count, np.newaxis, :]
+        # Multiples of 2048 fit exactly in float64 throughout the 64-bit integer
+        # range. Add the low bits to the local offsets before the final rounding.
+        low_bits = origins % 2048
+        output += low_bits
+        output += origins - low_bits
+        # Use the original cast for singletons, avoiding a second rounding.
+        singleton_rows = sizes[box_clusters] == 1
+        output[box_clusters[singleton_rows]] = corners_float[singleton_rows]
+    return output, mean_scores, sizes, box_clusters
+
+
+def _oriented_box_weighted_fusion_clusters(
+    boxes: npt.NDArray[np.number],
+    scores: npt.NDArray[np.number],
+    categories: npt.NDArray[np.number] | None,
+    iou_threshold: float,
+    overlap_metric: OverlapMetric,
+    num_models: int | None = None,
+    output_dtype: npt.DTypeLike = np.float64,
+    sources: npt.NDArray[np.integer] | None = None,
+    box_weights: _FusionBoxWeights = "confidence",
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64]]:
+    """Cluster and fuse oriented boxes with Weighted Box Fusion and report membership.
+
+    The oriented counterpart of
+    :func:`~supervision.detection.utils.nms._box_weighted_fusion_clusters`: the same
+    per-class clustering, `num_models` rescale and stable descending-score order,
+    with each cluster fused in the frame of its seed.
+
+    Args:
+        boxes: Oriented boxes as corner arrays, shape `(n, 4, 2)`.
+        scores: Confidence scores aligned with `boxes`, shape `(n,)`.
+        categories: Class ids aligned with `boxes`, shape `(n,)`, or `None` to fuse
+            across classes.
+        iou_threshold: Overlap that a box must strictly exceed to join a cluster.
+        overlap_metric: Metric used to compute the overlap.
+        num_models: When set, each fused score is multiplied by
+            `min(cluster_size, num_models) / num_models`.
+        output_dtype: Floating dtype of the returned scores. The fused corners are
+            always float64.
+        sources: Optional source id per box, shape `(n,)`; a cluster holds at most
+            one box per source.
+        box_weights: `"confidence"` (default) or `"uniform"` weighting of the
+            member extents in the fused box; the fused score is unaffected.
+
+    Raises:
+        ValueError: If the box weights or any input values are invalid.
+
+    Returns:
+        A tuple `(fused_corners, fused_scores, labels)` with shapes `(m, 4, 2)`,
+            `(m,)` and `(n,)`, sorted by descending fused score. A cluster of one
+            box has its input corners, as float64. `labels[i]` is the row, in the
+            returned arrays, of the cluster that input box `i` joined.
+    """
+    if box_weights not in ("confidence", "uniform"):
+        raise ValueError(
+            f"box_weights must be 'confidence' or 'uniform', got {box_weights!r}."
+        )
+    if len(boxes) == 0:
+        return (
+            np.empty((0, 4, 2), dtype=np.float64),
+            np.empty(0, dtype=output_dtype),
+            np.empty(0, dtype=np.int64),
+        )
+    _validate_fusion_confidences(scores)
+    _validate_fusion_oriented_boxes(boxes)
+    return _fuse_by_class(
+        boxes,
+        scores,
+        categories,
+        iou_threshold,
+        overlap_metric,
+        num_models,
+        output_dtype,
+        np.float64,
+        sources,
+        box_weights,
+        _fuse_single_class_oriented_boxes,
     )
 
 
