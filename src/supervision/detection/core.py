@@ -69,6 +69,8 @@ from supervision.detection.utils.masks import (
     calculate_masks_centroids,
 )
 from supervision.detection.utils.nms import (
+    FusionBoxWeights,
+    _prepare_fusion_sources,
     _validate_num_models,
     box_non_max_merge,  # noqa: F401  (re-exported for existing imports from this module)
     box_non_max_suppression,  # noqa: F401
@@ -2430,6 +2432,116 @@ class Detections:
             metadata=metadata,
         )
 
+    @classmethod
+    def fuse(
+        cls,
+        detections_list: Sequence[Detections],
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+        overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+        overlap_on: OverlapOn | str | None = None,
+        box_weights: FusionBoxWeights | str = FusionBoxWeights.CONFIDENCE,
+        source_weights: Sequence[float] | None = None,
+    ) -> Detections:
+        """
+        Fuse the detections of several models or passes with Weighted Box Fusion.
+
+        Each element of `detections_list` is one source, such as one model or one
+        test-time augmentation pass. The inputs are concatenated, each detection is
+        labelled with the index of its input, and the result is
+        :meth:`~supervision.detection.core.Detections.with_fusion` with
+        `num_models=len(detections_list)`. A cluster holds at most one detection per
+        input, and an input that found nothing, even an empty one, still counts as a
+        source that missed the object, which lowers the fused confidence.
+
+        Unlike :meth:`~supervision.detection.core.Detections.merge`, `fuse` keeps
+        only the fields that every nonempty input has and drops the others: if some
+        input has no mask, `tracker_id`, `class_id` or `confidence`, that field is
+        dropped from all of them, and only the `data` keys present on every nonempty
+        input are kept. Fusion needs `confidence`, and `class_id` unless
+        `class_agnostic=True`, so it raises when one of them is missing.
+
+        Args:
+            detections_list: The detections of each source, at least one.
+            threshold: Overlap a detection must strictly exceed to join a cluster.
+            class_agnostic: Whether to fuse detections of different classes together.
+            overlap_metric: Metric used to measure overlap in the selected geometry.
+            overlap_on: Geometry to measure overlap on; see
+                :meth:`~supervision.detection.core.Detections.with_fusion`.
+            box_weights: Member weighting, `"confidence"` or `"uniform"`.
+            source_weights: One positive finite weight per input, or `None`; see
+                :meth:`~supervision.detection.core.Detections.with_fusion`.
+
+        Returns:
+            One fused detection per cluster, ordered by descending confidence.
+
+        Raises:
+            ValueError: If `detections_list` is empty, or in the cases that
+                :meth:`~supervision.detection.core.Detections.with_fusion` lists.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> model_a = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+            ...     confidence=np.array([0.9]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> model_b = sv.Detections(
+            ...     xyxy=np.array([[1, 1, 11, 11], [50, 50, 60, 60]], dtype=float),
+            ...     confidence=np.array([0.8, 0.7]),
+            ...     class_id=np.array([0, 0]),
+            ... )
+            >>> fused = sv.Detections.fuse([model_a, model_b])
+            >>> fused.confidence.round(2).tolist()
+            [0.85, 0.35]
+
+            ```
+        """
+        if len(detections_list) == 0:
+            raise ValueError("fuse needs at least one Detections object.")
+        lengths = np.array([len(detections) for detections in detections_list])
+        sources = np.repeat(np.arange(len(detections_list)), lengths)
+
+        nonempty = [detections for detections in detections_list if len(detections)]
+        keep_mask = all(detections.mask is not None for detections in nonempty)
+        keep_confidence = all(d.confidence is not None for d in nonempty)
+        keep_class_id = all(d.class_id is not None for d in nonempty)
+        keep_tracker_id = all(d.tracker_id is not None for d in nonempty)
+        shared_keys: set[str] = set()
+        if nonempty:
+            shared_keys = set.intersection(*(set(d.data) for d in nonempty))
+        aligned = []
+        for detections in nonempty:
+            # Copy the detections, then drop what the other inputs lack, so that
+            # merge sees the same fields on every input.
+            aligned_detections = copy(detections)
+            if not keep_mask:
+                aligned_detections.mask = None
+            if not keep_confidence:
+                aligned_detections.confidence = None
+            if not keep_class_id:
+                aligned_detections.class_id = None
+            if not keep_tracker_id:
+                aligned_detections.tracker_id = None
+            aligned_detections.data = {
+                key: value
+                for key, value in detections.data.items()
+                if key in shared_keys
+            }
+            aligned.append(aligned_detections)
+        return cls.merge(aligned).with_fusion(
+            threshold,
+            class_agnostic,
+            overlap_metric,
+            overlap_on,
+            len(detections_list),
+            sources,
+            box_weights,
+            source_weights,
+        )
+
     def get_anchors_coordinates(self, anchor: Position) -> npt.NDArray[np.generic]:
         """Compute anchor-point coordinates for each detection.
 
@@ -3290,6 +3402,9 @@ class Detections:
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         overlap_on: OverlapOn | str | None = None,
         num_models: int | None = None,
+        sources: npt.ArrayLike | None = None,
+        box_weights: FusionBoxWeights | str = FusionBoxWeights.CONFIDENCE,
+        source_weights: npt.ArrayLike | None = None,
     ) -> Detections:
         """
         Fuse overlapping detections with Weighted Box Fusion (WBF).
@@ -3362,12 +3477,16 @@ class Detections:
         float32 input with `class_agnostic=True` therefore stays float32 and
         integer boxes become floating point.
 
-        To fuse the output of several models, concatenate their detections first
-        and pass the model count as `num_models`. `merge` raises when an optional
-        field is set on some inputs and not on others, or when the `data`
-        dictionaries have different keys, so drop mismatched fields such as
-        masks, `tracker_id` or extra `data` keys from every input first. It also
-        drops empty inputs, so pass `num_models=len(inputs)` explicitly.
+        To fuse the output of several models or test-time augmentation passes, use
+        :meth:`~supervision.detection.core.Detections.fuse`, which labels each
+        input as a source. To concatenate the inputs yourself, pass each row's
+        source as `sources` and the number of sources as `num_models`. With
+        `sources` a cluster holds at most one detection per source, so a source
+        that predicts several near-copies of one object counts once, and the fused
+        confidence is the sum of the members' confidences over `num_models`: a
+        source that missed the object counts as zero. Without `sources`, `T` counts
+        detections and the confidence of a cluster larger than `num_models` is the
+        plain mean.
 
         Args:
             threshold: Overlap a detection must strictly exceed to join a cluster,
@@ -3384,8 +3503,28 @@ class Detections:
                 detections were concatenated. When set, each fused confidence is
                 multiplied by `min(T, num_models) / num_models`, where `T` is the
                 number of detections in the cluster, so a box predicted by only
-                some of the models is demoted. `T` counts detections, not
-                distinct models. Defaults to `None`, which keeps the plain mean.
+                some of the models is demoted. Without `sources`, `T` counts
+                detections, not distinct models. Defaults to `None`, which keeps
+                the plain mean. Required when `sources` is given.
+            sources: One integer id per detection naming the model or pass that
+                produced it, each in `[0, num_models)`. A detection can join a
+                cluster only if the cluster holds no detection of its source, which
+                is checked before the best overlap is picked. Defaults to `None`.
+            box_weights: How the members of a cluster are weighted in the fused
+                geometry and, for masks, in the vote: `"confidence"` by their
+                confidence (the Weighted Box Fusion paper's rule), or `"uniform"`
+                equally. The fused confidence is the mean either way. Accepts a
+                :class:`~supervision.detection.utils.nms.FusionBoxWeights` member or
+                its string.
+            source_weights: One positive finite weight per source id, indexed by id,
+                with `len(source_weights) == num_models`; requires `sources`. A
+                member counts in the fused geometry and vote in proportion to its
+                confidence (or equally with `box_weights="uniform"`) times the
+                weight of its source, and the fused confidence is the weighted sum
+                of the members' confidences over the sum of all source weights, so
+                a source that missed the object still counts. The largest weight
+                can be at most `2**100` times the smallest. Equal weights give the
+                same result as none. Defaults to `None`.
 
         Returns:
             A new Detections object with one detection per cluster. Empty input is
@@ -3398,8 +3537,12 @@ class Detections:
                 are negative or nonfinite, or class-aware IDs are nonfinite.
             ValueError: If `threshold` is not within the closed range from 0 to 1.
             ValueError: If `num_models` is not `None` and not a positive integer.
-            ValueError: If `overlap_on` is not a valid value, or is `"mask"` and
-                nonempty detections have no mask.
+            ValueError: If `overlap_on` or `box_weights` is not a valid value, or
+                `overlap_on` is `"mask"` and nonempty detections have no mask.
+            ValueError: If `sources` is not one integer id in `[0, num_models)` per
+                detection or is given without `num_models`, or `source_weights` is
+                given without `sources`, or is not one finite positive weight per
+                source within the allowed ratio.
             ValueError: If oriented-box coordinates do not have shape `(N, 4, 2)` or
                 `(N, 8)`, or have nonfinite values.
             ValueError: If the detections carry both masks and oriented-box
@@ -3447,6 +3590,27 @@ class Detections:
 
             ```
 
+            Label each detection with its model through `sources`. The first model
+            also predicted a near-copy at `0.05`, which cannot join the cluster that
+            already holds that model's box, so it stays apart and counts for one
+            model out of two:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array(
+            ...         [[0, 0, 10, 10], [0, 0, 10, 10], [1, 1, 11, 11]], dtype=float
+            ...     ),
+            ...     confidence=np.array([0.9, 0.05, 0.8]),
+            ...     class_id=np.array([0, 0, 0]),
+            ... )
+            >>> fused = detections.with_fusion(sources=[0, 0, 1], num_models=2)
+            >>> fused.confidence.round(3).tolist()
+            [0.85, 0.025]
+
+            ```
+
             Fuse masks. Two members of unequal confidence give the winner's mask:
 
             ```pycon
@@ -3491,35 +3655,24 @@ class Detections:
 
             ```
         """
-        overlap_on = None if overlap_on is None else OverlapOn.from_value(overlap_on)
-        _validate_iou_threshold(threshold)
-        _validate_num_models(num_models)
-        overlap_metric = OverlapMetric.from_value(overlap_metric)
-
-        if len(self) == 0:
-            return self
-
-        if self.confidence is None:
-            raise ValueError(
-                "Detections confidence must be given for fusion to be executed."
-            )
-        if self.mask is not None and ORIENTED_BOX_COORDINATES in self.data:
-            raise ValueError(
-                "with_fusion cannot fuse detections that carry both masks and "
-                "oriented boxes; drop the masks or `data['xyxyxyxy']` first."
-            )
-
-        strategy = resolve_overlap_strategy(self, overlap_on)
-        fused_geometry, fused_confidence, labels, cluster_masks = (
-            strategy.fusion_clusters(
-                self, class_agnostic, threshold, overlap_metric, num_models
-            )
+        clusters = self._fusion_clusters(
+            threshold,
+            class_agnostic,
+            overlap_metric,
+            overlap_on,
+            num_models,
+            sources,
+            box_weights,
+            source_weights,
         )
+        if clusters is None:
+            return self
+        fused_geometry, fused_confidence, labels, cluster_masks = clusters
 
         # The winner of a cluster is its first member in stable descending
         # confidence order, which is also the member that seeds the cluster in the
         # fusion kernel.
-        visit_order = np.argsort(-self.confidence.astype(np.float64), kind="stable")
+        visit_order = self._fusion_visit_order()
         _, first_visited = np.unique(labels[visit_order], return_index=True)
         winner_rows = visit_order[first_visited]
 
@@ -3546,6 +3699,180 @@ class Detections:
             result.xyxy = fused_geometry
         result.confidence = fused_confidence
         return result
+
+    def _fusion_visit_order(self) -> npt.NDArray[np.intp]:
+        """Return the rows in the order fusion visits them: stable, best first.
+
+        Returns:
+            Row indices sorted by descending confidence, input order on ties.
+        """
+        confidence = cast(npt.NDArray[Any], self.confidence)
+        return np.argsort(-confidence.astype(np.float64), kind="stable")
+
+    def _fusion_clusters(
+        self,
+        threshold: float,
+        class_agnostic: bool,
+        overlap_metric: OverlapMetric | str,
+        overlap_on: OverlapOn | str | None,
+        num_models: int | None,
+        sources: npt.ArrayLike | None,
+        box_weights: FusionBoxWeights | str,
+        source_weights: npt.ArrayLike | None,
+    ) -> (
+        tuple[
+            npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64], list[Any] | None
+        ]
+        | None
+    ):
+        """Validate the fusion arguments and cluster the detections.
+
+        Shared by :meth:`with_fusion` and :meth:`fusion_groups`, so both see the same
+        validation and the same clusters.
+
+        Args:
+            threshold: Overlap a detection must strictly exceed to join a cluster.
+            class_agnostic: Whether class ids are ignored.
+            overlap_metric: Metric used to measure overlap.
+            overlap_on: Geometry to measure overlap on, or `None` for the richest.
+            num_models: Number of sources, or `None`.
+            sources: Source id of each detection, or `None`.
+            box_weights: Member weighting in the fused geometry.
+            source_weights: Weight of each source id, or `None`.
+
+        Returns:
+            `None` for empty detections, otherwise the fused geometry, the fused
+                confidence, the fused row of each detection and the fused masks, as
+                returned by `OverlapStrategy.fusion_clusters`.
+
+        Raises:
+            ValueError: If any argument or the detections are invalid for fusion.
+        """
+        overlap_on = None if overlap_on is None else OverlapOn.from_value(overlap_on)
+        _validate_iou_threshold(threshold)
+        _validate_num_models(num_models)
+        overlap_metric = OverlapMetric.from_value(overlap_metric)
+        box_weights = FusionBoxWeights.from_value(box_weights)
+        if sources is not None and num_models is None:
+            raise ValueError(
+                "num_models is required when sources is given: pass the number of "
+                "sources, which can exceed the number of distinct ids when a source "
+                "returned nothing."
+            )
+        source_ids, weights = _prepare_fusion_sources(
+            sources, source_weights, num_models, len(self)
+        )
+
+        if len(self) == 0:
+            return None
+
+        if self.confidence is None:
+            raise ValueError(
+                "Detections confidence must be given for fusion to be executed."
+            )
+        if self.mask is not None and ORIENTED_BOX_COORDINATES in self.data:
+            raise ValueError(
+                "with_fusion cannot fuse detections that carry both masks and "
+                "oriented boxes; drop the masks or `data['xyxyxyxy']` first."
+            )
+
+        strategy = resolve_overlap_strategy(self, overlap_on)
+        return strategy.fusion_clusters(
+            self,
+            class_agnostic,
+            threshold,
+            overlap_metric,
+            num_models,
+            source_ids,
+            box_weights,
+            weights,
+        )
+
+    def fusion_groups(
+        self,
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+        overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+        overlap_on: OverlapOn | str | None = None,
+        num_models: int | None = None,
+        sources: npt.ArrayLike | None = None,
+        box_weights: FusionBoxWeights | str = FusionBoxWeights.CONFIDENCE,
+        source_weights: npt.ArrayLike | None = None,
+    ) -> list[list[int]]:
+        """
+        Return the detections that :meth:`with_fusion` fuses into each detection.
+
+        Takes the same arguments as
+        :meth:`~supervision.detection.core.Detections.with_fusion` and clusters the
+        detections the same way, so `groups[i]` holds the rows of this object that
+        became row `i` of the fused result. Use it to combine the members yourself,
+        for example to vote the masks of a cluster at another resolution.
+
+        Each group starts with the cluster's highest-confidence member, the one
+        whose `class_id`, `tracker_id` and `data` the fused detection takes, then
+        lists the other members in the order fusion visits them: descending
+        confidence, input order on ties. This differs from the groups of
+        :func:`~supervision.detection.utils.nms.box_non_max_merge`, which takes the
+        later row as the seed on a tie and orders groups by class and seed
+        confidence, whereas the groups here follow the order of the fused rows,
+        which is descending fused confidence.
+
+        Args:
+            threshold: Overlap a detection must strictly exceed to join a cluster.
+            class_agnostic: Whether to cluster detections of different classes
+                together. If True, `class_id` is ignored.
+            overlap_metric: Metric used to measure overlap in the selected geometry.
+            overlap_on: Geometry to measure overlap on; see
+                :meth:`~supervision.detection.core.Detections.with_fusion`.
+            num_models: Number of sources; required when `sources` is given.
+            sources: One integer id per detection naming the model or pass that
+                produced it; a cluster holds at most one detection per source.
+            box_weights: Member weighting, `"confidence"` or `"uniform"`.
+            source_weights: One positive weight per source id; requires `sources`.
+
+        Returns:
+            One list of row indices per fused detection, in the order of the rows of
+                `with_fusion(...)`; an empty list for empty detections.
+
+        Raises:
+            ValueError: In the cases that
+                :meth:`~supervision.detection.core.Detections.with_fusion` lists.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array(
+            ...         [[0, 0, 10, 10], [50, 50, 60, 60], [1, 1, 11, 11]], dtype=float
+            ...     ),
+            ...     confidence=np.array([0.7, 0.9, 0.8]),
+            ...     class_id=np.array([0, 0, 0]),
+            ... )
+            >>> detections.fusion_groups()
+            [[1], [2, 0]]
+
+            ```
+        """
+        clusters = self._fusion_clusters(
+            threshold,
+            class_agnostic,
+            overlap_metric,
+            overlap_on,
+            num_models,
+            sources,
+            box_weights,
+            source_weights,
+        )
+        if clusters is None:
+            return []
+        labels = clusters[2]
+        # Members listed by fused row, each row's members in visit order. A stable
+        # sort by label keeps the visit order inside every label.
+        visit_order = self._fusion_visit_order()
+        by_row = visit_order[np.argsort(labels[visit_order], kind="stable")]
+        ends = np.cumsum(np.bincount(labels, minlength=len(clusters[0])))
+        return [group.tolist() for group in np.split(by_row, ends[:-1])]
 
     def _select_winners_with_united_masks(
         self, winner_rows: npt.NDArray[np.intp], labels: npt.NDArray[np.int64]

@@ -20,6 +20,7 @@ from supervision.detection.utils.iou import (
 )
 from supervision.detection.utils.masks import count_mask_pixels
 from supervision.detection.utils.nms import (
+    FusionBoxWeights,
     _box_non_max_merge_from_arrays,
     _box_non_max_suppression_from_arrays,
     _box_soft_non_max_suppression_from_arrays,
@@ -380,6 +381,9 @@ class OverlapStrategy:
         iou_threshold: float,
         overlap_metric: OverlapMetric | str,
         num_models: int | None,
+        sources: npt.NDArray[np.integer] | None = None,
+        box_weights: FusionBoxWeights | str = FusionBoxWeights.CONFIDENCE,
+        source_weights: npt.NDArray[np.float64] | None = None,
     ) -> tuple[
         npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64], list[Any] | None
     ]:
@@ -397,6 +401,11 @@ class OverlapStrategy:
             overlap_metric: Metric measuring the overlap.
             num_models: Number of models whose detections were concatenated, or
                 `None` to keep the plain mean confidence.
+            sources: Optional source id of each detection; a cluster holds at most one
+                detection per source.
+            box_weights: How the members of a cluster are weighted in the fused
+                geometry.
+            source_weights: Optional weight of each source id, indexed by id.
 
         Returns:
             Fused geometry, `(m, 4)` boxes or `(m, 4, 2)` corners, fused scores
@@ -416,6 +425,9 @@ class OverlapStrategy:
             overlap_metric=overlap_metric,
             num_models=num_models,
             output_dtype=np.result_type(*dtypes, np.float32),
+            sources=sources,
+            box_weights=FusionBoxWeights.from_value(box_weights).value,
+            source_weights=source_weights,
         )
         geometry, scores, labels, *fused_masks = fused
         return geometry, scores, labels, fused_masks[0] if fused_masks else None

@@ -10,7 +10,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou import OverlapMetric, OverlapOn
-from supervision.detection.utils.nms import _box_weighted_box_fusion
+from supervision.detection.utils.nms import FusionBoxWeights, _box_weighted_box_fusion
 
 
 def _pair(**overrides: object) -> Detections:
@@ -1100,3 +1100,442 @@ class TestWithFusionMaskOverlap:
 
         with pytest.raises(ValueError, match="both masks and oriented boxes"):
             detections.with_fusion(overlap_on="mask")
+
+
+def _fusion_detections(
+    kind: str,
+    rectangles: list[tuple[int, int, int, int]],
+    confidence: list[float],
+    **overrides: object,
+) -> Detections:
+    """Detections of one geometry (`box`, `oriented` or `mask`) from rectangles."""
+    boxes = np.array(rectangles, dtype=np.float64)
+    if kind == "oriented":
+        return _oriented(_axis_corners(boxes), confidence, **overrides)
+    if kind == "mask":
+        return _with_masks(_rect_masks((30, 30), rectangles), confidence, **overrides)
+    fields: dict[str, object] = {
+        "xyxy": boxes,
+        "confidence": np.array(confidence),
+        "class_id": np.zeros(len(boxes), dtype=int),
+    }
+    fields.update(overrides)
+    return Detections(**fields)  # type: ignore[arg-type]
+
+
+_GEOMETRIES = [
+    pytest.param("box", id="box"),
+    pytest.param("oriented", id="oriented"),
+    pytest.param("mask", id="mask"),
+]
+
+#: Two models: model 0 found the object twice, model 1 once; the second copy of
+#: model 0 cannot join the cluster that already holds model 0's box.
+_TWO_MODELS = [(0, 0, 10, 10), (1, 1, 11, 11), (0, 0, 10, 10)]
+
+
+class TestWithFusionSources:
+    """`sources` keeps one detection per model in a cluster."""
+
+    def test_near_copies_of_one_model_do_not_inflate_the_cluster(self) -> None:
+        """Four models with a 0.02 near-copy each fuse to 0.8, not the 0.41 mean."""
+        boxes = np.tile([0.0, 0.0, 10.0, 10.0], (8, 1))
+        confidence = np.array([0.8, 0.02] * 4)
+        detections = Detections(
+            xyxy=boxes, confidence=confidence, class_id=np.zeros(8, dtype=int)
+        )
+
+        without_sources = detections.with_fusion(num_models=4)
+        with_sources = detections.with_fusion(
+            num_models=4, sources=np.repeat(np.arange(4), 2)
+        )
+
+        np.testing.assert_allclose(without_sources.confidence, [0.41])
+        np.testing.assert_allclose(with_sources.confidence, [0.8, 0.02])
+
+    def test_a_model_that_missed_the_object_counts_as_zero(self) -> None:
+        """Three of four models seeing an object give the sum over four models."""
+        detections = Detections(
+            xyxy=np.tile([0.0, 0.0, 10.0, 10.0], (3, 1)),
+            confidence=np.array([0.9, 0.6, 0.3]),
+            class_id=np.zeros(3, dtype=int),
+        )
+
+        result = detections.with_fusion(sources=[0, 1, 2], num_models=4)
+
+        np.testing.assert_allclose(result.confidence, [0.45])
+
+    @pytest.mark.parametrize("kind", _GEOMETRIES)
+    def test_each_geometry_keeps_one_detection_per_model(self, kind: str) -> None:
+        """Boxes, oriented boxes and masks all leave the near-copy of a model apart."""
+        detections = _fusion_detections(kind, _TWO_MODELS, [0.9, 0.8, 0.05])
+
+        result = detections.with_fusion(sources=[0, 1, 0], num_models=2)
+
+        np.testing.assert_allclose(result.confidence, [0.85, 0.025])
+
+    def test_sources_may_be_a_list_and_class_agnostic(self) -> None:
+        """A plain list of ids works, and `class_agnostic` ignores class ids."""
+        detections = _pair(class_id=np.array([0, 1]))
+
+        result = detections.with_fusion(
+            class_agnostic=True, sources=[0, 1], num_models=2
+        )
+
+        assert len(result) == 1
+        np.testing.assert_allclose(result.confidence, [0.85])
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            pytest.param(
+                {"sources": [0, 1]}, "num_models is required", id="without-num-models"
+            ),
+            pytest.param(
+                {"sources": [0, 2], "num_models": 2},
+                "must lie in",
+                id="id-out-of-range",
+            ),
+            pytest.param(
+                {"sources": [-1, 0], "num_models": 2}, "must lie in", id="negative-id"
+            ),
+            pytest.param(
+                {"sources": [0, 1, 1], "num_models": 2},
+                "one id per detection",
+                id="wrong-length",
+            ),
+            pytest.param(
+                {"sources": [0.0, 1.0], "num_models": 2},
+                "must be integers",
+                id="float-ids",
+            ),
+        ],
+    )
+    def test_invalid_sources_raise(
+        self, kwargs: dict[str, object], message: str
+    ) -> None:
+        """Ids must be integers in `[0, num_models)`, one per detection."""
+        with pytest.raises(ValueError, match=message):
+            _pair().with_fusion(**kwargs)  # type: ignore[arg-type]
+
+    def test_sources_of_empty_detections_are_still_checked(self) -> None:
+        """An empty input still rejects a `sources` array that is not empty."""
+        with pytest.raises(ValueError, match="one id per detection"):
+            Detections.empty().with_fusion(sources=[0], num_models=1)
+
+
+class TestWithFusionBoxWeights:
+    """`box_weights` chooses how the members of a cluster are averaged."""
+
+    @pytest.mark.parametrize(
+        "box_weights",
+        [
+            pytest.param("uniform", id="string"),
+            pytest.param("UNIFORM", id="upper-case-string"),
+            pytest.param(FusionBoxWeights.UNIFORM, id="enum"),
+        ],
+    )
+    def test_uniform_weights_average_boxes_and_keep_the_mean_score(
+        self, box_weights: FusionBoxWeights | str
+    ) -> None:
+        """Equal weights give the plain mean box, and the score stays the mean."""
+        detections = _fusion_detections(
+            "box", [(0, 0, 10, 10), (2, 0, 12, 10)], [0.9, 0.1]
+        )
+
+        result = detections.with_fusion(box_weights=box_weights)
+
+        np.testing.assert_allclose(result.xyxy, [[1, 0, 11, 10]])
+        np.testing.assert_allclose(result.confidence, [0.5])
+
+    def test_confidence_weights_are_the_default(self) -> None:
+        """Without `box_weights` the boxes are averaged by their confidence."""
+        detections = _fusion_detections(
+            "box", [(0, 0, 10, 10), (2, 0, 12, 10)], [0.9, 0.1]
+        )
+
+        result = detections.with_fusion()
+
+        np.testing.assert_allclose(result.xyxy, [[0.2, 0, 10.2, 10]])
+
+    def test_unknown_box_weights_raise(self) -> None:
+        """A string that names no member is rejected, even for empty input."""
+        with pytest.raises(ValueError, match="Invalid value"):
+            Detections.empty().with_fusion(box_weights="median")
+
+    def test_enum_members_are_listed(self) -> None:
+        """The enum lists its string values."""
+        assert FusionBoxWeights.list() == ["confidence", "uniform"]
+
+
+class TestWithFusionSourceWeights:
+    """`source_weights` makes a model count more or less in the fused result."""
+
+    @pytest.mark.parametrize("kind", _GEOMETRIES)
+    def test_weights_scale_the_confidence(self, kind: str) -> None:
+        """The fused confidence is the weighted sum over the sum of the weights."""
+        detections = _fusion_detections(kind, _TWO_MODELS, [0.9, 0.8, 0.05])
+
+        result = detections.with_fusion(
+            sources=[0, 1, 0], num_models=2, source_weights=[3.0, 1.0]
+        )
+
+        np.testing.assert_allclose(result.confidence, [0.875, 0.0375])
+
+    def test_weights_scale_the_box_mean(self) -> None:
+        """Each member counts by its confidence times its source's weight."""
+        detections = _pair()
+
+        result = detections.with_fusion(
+            sources=[0, 1], num_models=2, source_weights=[3.0, 1.0]
+        )
+
+        # weights 0.9 and 0.8 / 3: x1 = (0.8 / 3) / (0.9 + 0.8 / 3)
+        np.testing.assert_allclose(result.xyxy[0, 0], 0.8 / 3 / (0.9 + 0.8 / 3))
+
+    def test_uniform_boxes_use_only_the_source_weights(self) -> None:
+        """With uniform weights the box mean is weighted by the source weights."""
+        result = _pair().with_fusion(
+            sources=[0, 1],
+            num_models=2,
+            box_weights="uniform",
+            source_weights=[3.0, 1.0],
+        )
+
+        np.testing.assert_allclose(result.xyxy[0, 0], 0.25)
+        np.testing.assert_allclose(result.confidence, [0.875])
+
+    @pytest.mark.parametrize("kind", _GEOMETRIES)
+    def test_equal_weights_match_no_weights(self, kind: str) -> None:
+        """Equal weights, whatever their size, give the unweighted result."""
+        detections = _fusion_detections(kind, _TWO_MODELS, [0.9, 0.8, 0.05])
+        expected = detections.with_fusion(sources=[0, 1, 0], num_models=2)
+
+        result = detections.with_fusion(
+            sources=[0, 1, 0], num_models=2, source_weights=[2.5, 2.5]
+        )
+
+        np.testing.assert_array_equal(result.xyxy, expected.xyxy)
+        np.testing.assert_array_equal(result.confidence, expected.confidence)
+
+    def test_a_down_weighted_model_loses_its_mask_pixels(self) -> None:
+        """A weak model's own pixels leave the vote, so the fused mask is the strong
+        one."""
+        masks = _rect_masks((20, 20), [(0, 0, 10, 10), (2, 0, 12, 10)])
+        detections = _with_masks(masks, [0.6, 0.6])
+
+        union = detections.with_fusion(sources=[0, 1], num_models=2)
+        weighted = detections.with_fusion(
+            sources=[0, 1], num_models=2, source_weights=[1.0, 0.2]
+        )
+
+        np.testing.assert_array_equal(union.mask[0], masks.any(axis=0))
+        np.testing.assert_array_equal(weighted.mask[0], masks[0])
+
+    def test_oriented_boxes_match_axis_aligned_boxes_at_angle_zero(self) -> None:
+        """Unrotated oriented boxes fuse like boxes under source weights."""
+        rectangles = [(0, 0, 10, 10), (2, 0, 12, 10), (1, 1, 11, 11)]
+        confidence = [0.9, 0.7, 0.4]
+        options = {
+            "sources": [0, 1, 2],
+            "num_models": 3,
+            "source_weights": [1.0, 4.0, 2.0],
+        }
+
+        boxes = _fusion_detections("box", rectangles, confidence).with_fusion(**options)
+        oriented = _fusion_detections("oriented", rectangles, confidence).with_fusion(
+            **options
+        )
+
+        np.testing.assert_allclose(oriented.xyxy, boxes.xyxy, atol=1e-9)
+        np.testing.assert_allclose(oriented.confidence, boxes.confidence)
+
+    @pytest.mark.parametrize("kind", _GEOMETRIES)
+    def test_zero_confidence_clusters_ignore_the_weights(self, kind: str) -> None:
+        """Members that all have zero confidence stay equal, so the box is their
+        mean."""
+        detections = _fusion_detections(
+            kind, [(0, 0, 10, 10), (2, 0, 12, 10)], [0.0, 0.0]
+        )
+
+        result = detections.with_fusion(
+            sources=[0, 1], num_models=2, source_weights=[3.0, 1.0]
+        )
+
+        np.testing.assert_allclose(result.xyxy, [[1, 0, 11, 10]])
+        np.testing.assert_allclose(result.confidence, [0.0])
+
+    def test_the_widest_allowed_ratio_stays_finite(self) -> None:
+        """A weight 2**100 times smaller barely moves the result and stays finite."""
+        result = _pair().with_fusion(
+            sources=[0, 1], num_models=2, source_weights=[1.0, 2.0**-100]
+        )
+
+        assert np.isfinite(result.xyxy).all()
+        np.testing.assert_allclose(result.xyxy, [[0, 0, 10, 10]], atol=1e-9)
+        np.testing.assert_allclose(result.confidence, [0.9])
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            pytest.param(
+                {"sources": None, "source_weights": [1.0, 2.0]},
+                "requires sources",
+                id="without-sources",
+            ),
+            pytest.param(
+                {"source_weights": [1.0]}, "one weight per source", id="wrong-length"
+            ),
+            pytest.param(
+                {"source_weights": [1.0, 0.0]}, "strictly positive", id="zero"
+            ),
+            pytest.param(
+                {"source_weights": [1.0, -1.0]}, "strictly positive", id="negative"
+            ),
+            pytest.param({"source_weights": [1.0, np.nan]}, "finite", id="nan"),
+            pytest.param({"source_weights": [1.0, np.inf]}, "finite", id="infinite"),
+            pytest.param(
+                {"source_weights": [1.0, 2.0**-101]}, "2\\*\\*100", id="ratio-too-large"
+            ),
+        ],
+    )
+    def test_invalid_source_weights_raise(
+        self, kwargs: dict[str, object], message: str
+    ) -> None:
+        """Weights must be one finite positive value per source, within the ratio."""
+        options: dict[str, object] = {"sources": [0, 1], "num_models": 2}
+        options.update(kwargs)
+
+        with pytest.raises(ValueError, match=message):
+            _pair().with_fusion(**options)  # type: ignore[arg-type]
+
+
+class TestFusionGroups:
+    """`fusion_groups` lists the members of each fused detection, seed first."""
+
+    def test_groups_follow_the_fused_rows_with_the_seed_first(self) -> None:
+        """Each group lists its seed, then the other members best first."""
+        detections = _fusion_detections(
+            "box", [(0, 0, 10, 10), (50, 50, 60, 60), (1, 1, 11, 11)], [0.7, 0.9, 0.8]
+        )
+
+        assert detections.fusion_groups() == [[1], [2, 0]]
+
+    def test_equal_confidence_keeps_the_input_order(self) -> None:
+        """On a confidence tie the earlier row is the seed."""
+        detections = _fusion_detections("box", [(0, 0, 10, 10)] * 3, [0.5, 0.5, 0.5])
+
+        assert detections.fusion_groups() == [[0, 1, 2]]
+
+    def test_empty_detections_have_no_groups(self) -> None:
+        """Nothing to fuse gives no groups."""
+        assert Detections.empty().fusion_groups() == []
+
+    @pytest.mark.parametrize("kind", _GEOMETRIES)
+    @pytest.mark.parametrize(
+        "options",
+        [
+            pytest.param({}, id="default"),
+            pytest.param({"box_weights": "uniform"}, id="uniform"),
+            pytest.param({"sources": [0, 1, 0], "num_models": 2}, id="sources"),
+            pytest.param(
+                {"sources": [0, 1, 0], "num_models": 2, "source_weights": [3.0, 1.0]},
+                id="source-weights",
+            ),
+        ],
+    )
+    def test_groups_describe_the_rows_that_with_fusion_returns(
+        self, kind: str, options: dict[str, object]
+    ) -> None:
+        """Group `i` holds the members of fused row `i`, led by its winner."""
+        detections = _fusion_detections(
+            kind, _TWO_MODELS, [0.9, 0.8, 0.05], tracker_id=np.arange(3)
+        )
+
+        groups = detections.fusion_groups(**options)  # type: ignore[arg-type]
+        fused = detections.with_fusion(**options)  # type: ignore[arg-type]
+
+        assert len(groups) == len(fused)
+        assert [group[0] for group in groups] == fused.tracker_id.tolist()
+        assert sorted(row for group in groups for row in group) == [0, 1, 2]
+
+    def test_groups_reject_what_with_fusion_rejects(self) -> None:
+        """Both methods share one validation."""
+        with pytest.raises(ValueError, match="requires sources"):
+            _pair().fusion_groups(source_weights=[1.0, 2.0])
+
+
+class TestDetectionsFuse:
+    """`Detections.fuse` labels each input as a source and fuses them."""
+
+    def test_matches_merging_with_explicit_sources(self) -> None:
+        """Fusing the list equals `merge` plus `with_fusion` with the sources."""
+        model_a = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
+        model_b = _fusion_detections(
+            "box", [(1, 1, 11, 11), (50, 50, 60, 60)], [0.8, 0.7]
+        )
+        expected = Detections.merge([model_a, model_b]).with_fusion(
+            sources=[0, 1, 1], num_models=2
+        )
+
+        result = Detections.fuse([model_a, model_b])
+
+        np.testing.assert_array_equal(result.xyxy, expected.xyxy)
+        np.testing.assert_array_equal(result.confidence, expected.confidence)
+
+    def test_an_empty_input_counts_as_a_model_that_found_nothing(self) -> None:
+        """An empty input still lowers the confidence, unlike in `merge`."""
+        model = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
+
+        result = Detections.fuse([model, Detections.empty()])
+
+        np.testing.assert_allclose(result.confidence, [0.45])
+
+    def test_source_weights_are_given_per_input(self) -> None:
+        """One weight per input list reaches the fusion."""
+        model_a = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
+        model_b = _fusion_detections("box", [(1, 1, 11, 11)], [0.8])
+
+        result = Detections.fuse([model_a, model_b], source_weights=[3.0, 1.0])
+
+        np.testing.assert_allclose(result.confidence, [0.875])
+
+    def test_fields_missing_from_one_input_are_dropped_from_all(self) -> None:
+        """Optional fields and `data` keys survive only if every input has them."""
+        model_a = _fusion_detections(
+            "box",
+            [(0, 0, 10, 10)],
+            [0.9],
+            tracker_id=np.array([7]),
+            data={"name": np.array(["a"]), "extra": np.array([1])},
+        )
+        model_b = _fusion_detections(
+            "box", [(1, 1, 11, 11)], [0.8], data={"name": np.array(["b"])}
+        )
+
+        result = Detections.fuse([model_a, model_b])
+
+        assert result.tracker_id is None
+        assert list(result.data) == ["name"]
+        assert result.data["name"].tolist() == ["a"]
+
+    def test_masks_are_fused_when_every_input_has_them(self) -> None:
+        """Mask detections fuse by mask overlap."""
+        masks = _rect_masks((20, 20), [(0, 0, 10, 10), (2, 0, 12, 10)])
+        model_a = _with_masks(masks[:1], [0.6])
+        model_b = _with_masks(masks[1:], [0.6])
+
+        result = Detections.fuse([model_a, model_b])
+
+        np.testing.assert_array_equal(result.mask[0], masks.any(axis=0))
+
+    def test_all_empty_inputs_give_empty_detections(self) -> None:
+        """Nothing to fuse is empty, after the arguments were validated."""
+        result = Detections.fuse([Detections.empty(), Detections.empty()])
+
+        assert len(result) == 0
+
+    def test_an_empty_list_raises(self) -> None:
+        """At least one input is needed to count the models."""
+        with pytest.raises(ValueError, match="at least one"):
+            Detections.fuse([])
