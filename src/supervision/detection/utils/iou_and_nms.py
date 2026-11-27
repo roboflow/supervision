@@ -32,12 +32,17 @@ _Candidate = TypeVar("_Candidate")
 #: (the paper's rule) or equally.
 _FusionBoxWeights = Literal["confidence", "uniform"]
 
-#: Release that deprecates the array-level NMS, soft-NMS and Weighted Box Fusion
-#: kernels in favour of the `Detections` methods.
-_ARRAY_KERNEL_DEPRECATED_IN = "0.33.0"
-
-#: Release that removes them, three minor releases after the next minor release.
-_ARRAY_KERNEL_REMOVE_IN = "0.36.0"
+#: Arguments shared by every deprecated array-level NMS, soft-NMS and Weighted Box
+#: Fusion kernel: the release that deprecates them in favour of the `Detections`
+#: methods, the release that removes them (three minor releases after the next
+#: minor), the warning stream, and the docstring notice pydeprecate injects.
+_ARRAY_KERNEL_DEPRECATED_DETAILS: dict[str, Any] = {
+    "deprecated_in": "0.33.0",
+    "remove_in": "0.36.0",
+    "stream": _DEPRECATION_WARNING_STREAM,
+    "update_docstring": True,
+    "docstring_style": "mkdocs",
+}
 
 
 #: Recipe appended to the NMS kernels' warning, which returned a keep mask that
@@ -1753,9 +1758,7 @@ def _mask_non_max_suppression(
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=_mask_non_max_suppression,
-    deprecated_in=_ARRAY_KERNEL_DEPRECATED_IN,
-    remove_in=_ARRAY_KERNEL_REMOVE_IN,
-    stream=_DEPRECATION_WARNING_STREAM,
+    **_ARRAY_KERNEL_DEPRECATED_DETAILS,
     args_mapping={"mask_dimension": None},
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
@@ -1774,10 +1777,8 @@ def mask_non_max_suppression(
 ) -> npt.NDArray[np.bool_]:
     """Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
-    !!! warning "Deprecated"
-
-        Use :meth:`~supervision.detection.core.Detections.with_nms` with
-        `overlap_on="mask"` instead.
+    Use :meth:`~supervision.detection.core.Detections.with_nms` with `overlap_on="mask"`
+    instead.
 
     IoU is computed exactly on the full-resolution masks for both dense and
     :class:`~supervision.detection.compact_mask.CompactMask` inputs.  The
@@ -1876,9 +1877,7 @@ def _mask_soft_non_max_suppression(
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=_mask_soft_non_max_suppression,
-    deprecated_in=_ARRAY_KERNEL_DEPRECATED_IN,
-    remove_in=_ARRAY_KERNEL_REMOVE_IN,
-    stream=_DEPRECATION_WARNING_STREAM,
+    **_ARRAY_KERNEL_DEPRECATED_DETAILS,
     args_mapping={"mask_dimension": None},
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
@@ -1896,10 +1895,8 @@ def mask_soft_non_max_suppression(
 ) -> npt.NDArray[np.floating]:
     """Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
 
-    !!! warning "Deprecated"
-
-        Use :meth:`~supervision.detection.core.Detections.with_soft_nms` with
-        `overlap_on="mask"` instead.
+    Use :meth:`~supervision.detection.core.Detections.with_soft_nms` with
+    `overlap_on="mask"` instead.
 
     Unlike
     :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`,
@@ -2103,9 +2100,7 @@ def _box_non_max_suppression(
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=_box_non_max_suppression,
-    deprecated_in=_ARRAY_KERNEL_DEPRECATED_IN,
-    remove_in=_ARRAY_KERNEL_REMOVE_IN,
-    stream=_DEPRECATION_WARNING_STREAM,
+    **_ARRAY_KERNEL_DEPRECATED_DETAILS,
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
             "`sv.Detections(xyxy=..., confidence=..., class_id=...)"
@@ -2121,9 +2116,7 @@ def box_non_max_suppression(
 ) -> npt.NDArray[np.bool_]:
     """Perform Non-Maximum Suppression (NMS) on object detection predictions.
 
-    !!! warning "Deprecated"
-
-        Use :meth:`~supervision.detection.core.Detections.with_nms` instead.
+    Use :meth:`~supervision.detection.core.Detections.with_nms` instead.
 
     Args:
         predictions: An array of object detection predictions in
@@ -2220,9 +2213,7 @@ def _box_soft_non_max_suppression(
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=_box_soft_non_max_suppression,
-    deprecated_in=_ARRAY_KERNEL_DEPRECATED_IN,
-    remove_in=_ARRAY_KERNEL_REMOVE_IN,
-    stream=_DEPRECATION_WARNING_STREAM,
+    **_ARRAY_KERNEL_DEPRECATED_DETAILS,
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
             "`sv.Detections(xyxy=..., confidence=..., class_id=...)"
@@ -2237,9 +2228,7 @@ def box_soft_non_max_suppression(
 ) -> npt.NDArray[np.floating]:
     """Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
 
-    !!! warning "Deprecated"
-
-        Use :meth:`~supervision.detection.core.Detections.with_soft_nms` instead.
+    Use :meth:`~supervision.detection.core.Detections.with_soft_nms` instead.
 
     Unlike
     :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
@@ -3283,9 +3272,7 @@ def _box_weighted_box_fusion(
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=_box_weighted_box_fusion,
-    deprecated_in=_ARRAY_KERNEL_DEPRECATED_IN,
-    remove_in=_ARRAY_KERNEL_REMOVE_IN,
-    stream=_DEPRECATION_WARNING_STREAM,
+    **_ARRAY_KERNEL_DEPRECATED_DETAILS,
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
             "`sv.Detections(xyxy=..., confidence=..., class_id=...)"
@@ -3302,9 +3289,7 @@ def box_weighted_box_fusion(
     """
     Fuse overlapping object detection boxes with Weighted Box Fusion (WBF).
 
-    !!! warning "Deprecated"
-
-        Use :meth:`~supervision.detection.core.Detections.with_fusion` instead.
+    Use :meth:`~supervision.detection.core.Detections.with_fusion` instead.
 
     Unlike :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
     which discards overlapping boxes, and
@@ -3485,9 +3470,7 @@ def _oriented_box_non_max_suppression(
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=_oriented_box_non_max_suppression,
-    deprecated_in=_ARRAY_KERNEL_DEPRECATED_IN,
-    remove_in=_ARRAY_KERNEL_REMOVE_IN,
-    stream=_DEPRECATION_WARNING_STREAM,
+    **_ARRAY_KERNEL_DEPRECATED_DETAILS,
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
             "`sv.Detections(..., data={'xyxyxyxy': corners}).with_nms("
@@ -3504,10 +3487,8 @@ def oriented_box_non_max_suppression(
 ) -> npt.NDArray[np.bool_]:
     """Perform Non-Maximum Suppression on oriented bounding box predictions.
 
-    !!! warning "Deprecated"
-
-        Use :meth:`~supervision.detection.core.Detections.with_nms` on detections
-        carrying `data["xyxyxyxy"]` instead.
+    Use :meth:`~supervision.detection.core.Detections.with_nms` on detections carrying
+    `data["xyxyxyxy"]` instead.
 
     Overlap is computed via
     :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch` on
@@ -3604,9 +3585,7 @@ def _oriented_box_soft_non_max_suppression(
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=_oriented_box_soft_non_max_suppression,
-    deprecated_in=_ARRAY_KERNEL_DEPRECATED_IN,
-    remove_in=_ARRAY_KERNEL_REMOVE_IN,
-    stream=_DEPRECATION_WARNING_STREAM,
+    **_ARRAY_KERNEL_DEPRECATED_DETAILS,
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
             "`sv.Detections(..., data={'xyxyxyxy': corners}).with_soft_nms("
@@ -3622,10 +3601,8 @@ def oriented_box_soft_non_max_suppression(
 ) -> npt.NDArray[np.floating]:
     """Perform Soft Non-Maximum Suppression on oriented bounding box predictions.
 
-    !!! warning "Deprecated"
-
-        Use :meth:`~supervision.detection.core.Detections.with_soft_nms` on
-        detections carrying `data["xyxyxyxy"]` instead.
+    Use :meth:`~supervision.detection.core.Detections.with_soft_nms` on detections
+    carrying `data["xyxyxyxy"]` instead.
 
     Same Gaussian decay as
     :func:`~supervision.detection.utils.iou_and_nms.box_soft_non_max_suppression`,
