@@ -1,6 +1,9 @@
+"""Exercise the public detection fusion API across supported geometries."""
+
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
@@ -804,6 +807,17 @@ class TestWithFusionOrientedBoxes:
         np.testing.assert_allclose(result.xyxy, [[-extent, -extent, extent, extent]])
 
 
+class EncodedMasks(CompactMask):
+    """Count materializations of the original stored masks."""
+
+    decodes = 0
+
+    def crop(self, index: int) -> npt.NDArray[np.bool_]:
+        """Count reads through the decoded crop API."""
+        self.decodes += 1
+        return super().crop(index)
+
+
 class TestWithFusionMaskOverlap:
     """Masks are fused by overlap of the masks, with a confidence-weighted vote."""
 
@@ -838,6 +852,135 @@ class TestWithFusionMaskOverlap:
 
         assert len(result) == 1
         np.testing.assert_array_equal(result.mask[0], masks.any(axis=0))
+
+    @pytest.mark.parametrize("compact", [False, True])
+    @pytest.mark.parametrize(
+        ("scores", "expected"),
+        [
+            pytest.param([0.75, 0.75, 0.1, 0.1], [True, True, True], id="tie"),
+            pytest.param(
+                [0.75, 0.75, 0.1, 0.1, 0.05],
+                [True, True, False],
+                id="later-member-joins",
+            ),
+        ],
+    )
+    def test_rounded_total_does_not_drop_exact_ties(
+        self, compact: bool, scores: list[float], expected: list[bool]
+    ) -> None:
+        """Equal weighted fringes survive and admit a later mask by overlap."""
+        masks = _rect_masks((1, 3), [(0, 0, 2, 1), (1, 0, 3, 1)] * 2 + [(0, 0, 1, 1)])[
+            : len(scores)
+        ]
+        stored_masks = (
+            CompactMask.from_dense(
+                masks, np.tile([0, 0, 2, 0], (len(scores), 1)), (1, 3)
+            )
+            if compact
+            else masks
+        )
+        detections = _with_masks(masks, scores, mask=stored_masks)
+
+        result = detections.with_fusion(threshold=0.25)
+
+        np.testing.assert_array_equal(np.asarray(result.mask), [[expected]])
+
+    def test_adjacent_confidences_do_not_create_a_false_tie(self) -> None:
+        """A runner-up-only pixel stays below half even for adjacent floats."""
+        masks = _rect_masks((1, 3), [(0, 0, 2, 1), (1, 0, 3, 1)])
+        detections = _with_masks(masks, [float(np.nextafter(0.75, 1.0)), 0.75])
+
+        result = detections.with_fusion(threshold=0.25)
+
+        np.testing.assert_array_equal(result.mask, masks[:1])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_subnormal_confidence_can_break_a_half_weight_tie(
+        self, compact: bool
+    ) -> None:
+        """A positive subnormal vote breaks a tie across multiple vote batches."""
+        masks = _rect_masks((70, 100), [(0, 0, 70, 70)] + [(30, 0, 100, 70)] * 3)
+        stored_masks = (
+            CompactMask.from_dense(masks, np.tile([0, 0, 99, 69], (4, 1)), (70, 100))
+            if compact
+            else masks
+        )
+        scores = [1.0, 0.5, 0.5, float(np.nextafter(0.0, 1.0))]
+        detections = _with_masks(masks, scores, mask=stored_masks)
+
+        result = detections.with_fusion(threshold=0.25)
+
+        np.testing.assert_array_equal(np.asarray(result.mask), masks[1:2])
+
+    def test_finite_extreme_boxes_have_a_finite_weighted_mean(self) -> None:
+        """Mask overlap allows finite boxes whose coordinate difference overflows."""
+        masks = np.ones((2, 1, 1), dtype=bool)
+        detections = _with_masks(
+            masks,
+            [1.0, 1.0],
+            xyxy=np.array([[-1e308, 0, -1e308, 1], [1e308, 0, 1e308, 1]]),
+        )
+
+        result = detections.with_fusion()
+
+        np.testing.assert_array_equal(result.xyxy, [[0.0, 0.0, 0.0, 1.0]])
+
+    def test_maximum_threshold_keeps_compact_singletons_without_decoding(self) -> None:
+        """A threshold of one admits no merge and needs no decoded masks."""
+        masks = np.ones((2, 4, 4), dtype=bool)
+        compact = EncodedMasks.from_dense(masks, np.tile([0, 0, 3, 3], (2, 1)), (4, 4))
+        detections = _with_masks(masks, [0.6, 0.8], mask=compact)
+
+        result = detections.with_fusion(threshold=1.0)
+
+        assert compact.decodes == 0
+        np.testing.assert_array_equal(result.confidence, [0.8, 0.6])
+        np.testing.assert_array_equal(np.asarray(result.mask), masks)
+
+    def test_compact_singleton_overlaps_do_not_redecode_seeds(self) -> None:
+        """Overlapping bounds with disjoint foreground keep independent encoded rows."""
+        masks = np.zeros((4, 10, 10), dtype=bool)
+        ids = np.arange(4)
+        masks[ids, ids, ids] = True
+        masks[ids, ids + 6, ids + 6] = True
+        compact = EncodedMasks.from_dense(
+            masks, np.tile([0, 0, 9, 9], (4, 1)), (10, 10)
+        )
+        detections = _with_masks(masks, [0.9, 0.8, 0.7, 0.6], mask=compact)
+
+        result = detections.with_fusion()
+
+        assert compact.decodes <= 4
+        np.testing.assert_array_equal(np.asarray(result.mask), masks)
+
+    def test_subclass_select_receives_original_masks(self) -> None:
+        """Selection overrides can use input masks and contribute metadata."""
+
+        class MaskAwareDetections(Detections):
+            """Record the source mask area during winner selection."""
+
+            def select(
+                self,
+                index: int | np.integer | slice | list[int] | npt.NDArray[np.generic],
+            ) -> Detections:
+                """Read masks before delegating to the base selection."""
+                assert self.mask is not None
+                result = super().select(index)
+                result.metadata["selected_mask_area"] = int(np.asarray(self.mask).sum())
+                return result
+
+        masks = np.ones((2, 4, 4), dtype=bool)
+        detections = MaskAwareDetections(
+            xyxy=np.tile([0, 0, 4, 4], (2, 1)),
+            mask=masks,
+            confidence=np.array([0.8, 0.6]),
+            class_id=np.zeros(2, dtype=int),
+        )
+
+        result = detections.with_fusion()
+
+        assert result.metadata["selected_mask_area"] == 32
+        np.testing.assert_array_equal(result.mask, masks[:1])
 
     def test_zero_confidence_members_vote_equally(self) -> None:
         """With every confidence zero a pixel needs at least half of the members."""

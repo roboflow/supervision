@@ -1,3 +1,5 @@
+"""Verify mask fusion clustering and mask painting."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -238,6 +240,7 @@ class TestMaskCluster:
         cluster.add(np.ones((3, 3), dtype=bool), 2, 1, 1.0)
 
         assert cluster.box == [2, 1, 7, 7]
+        assert cluster.votes is not None
         assert cluster.votes.shape == (6, 5)
         assert cluster.votes.sum() == 2 * 2 + 3 * 3
 

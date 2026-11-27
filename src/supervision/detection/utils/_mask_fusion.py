@@ -1,20 +1,22 @@
-"""Weighted Box Fusion of segmentation masks.
+"""Fuse detection masks using confidence-weighted votes.
 
-Each cluster keeps a running fused mask: a confidence-weighted vote of its members, held
-in a buffer that spans only the union of the members' bounding boxes. Memory therefore
-scales with the size of the objects, never with the image size or with the number of
-clusters times the image area.
+Vote grids are allocated only for merged clusters and span the union of their members'
+foreground bounds. This workspace can reach image size for large clusters. Compact
+singleton masks stay encoded between comparisons.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from fractions import Fraction
+from functools import partial
 from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
 
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask, _rle_to_column_intervals
 from supervision.detection.utils.converters import _mask_to_rle_counts
 from supervision.detection.utils.iou import OverlapMetric, _overlap_from_areas
 from supervision.detection.utils.nms import (
@@ -24,6 +26,92 @@ from supervision.detection.utils.nms import (
     _validate_fusion_boxes,
     _validate_fusion_confidences,
 )
+
+_MAX_INT64 = int(np.iinfo(np.int64).max)
+_VOTE_BATCH_SIZE = 4096
+
+
+def _binary_weight(weight: float) -> tuple[int, int]:
+    """Express a nonnegative float as an odd mantissa times a power of two."""
+    numerator, denominator = weight.as_integer_ratio()
+    if numerator == 0:
+        return 0, 0
+    trailing_zeros = (numerator & -numerator).bit_length() - 1
+    return numerator >> trailing_zeros, trailing_zeros - (denominator.bit_length() - 1)
+
+
+def _compact_runs(
+    masks: CompactMask, row: int
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+    """Express foreground intervals as half-open runs in the image's column order."""
+    columns, starts, stops = _rle_to_column_intervals(
+        masks._rles[row], int(masks._crop_shapes[row, 0]), masks.offsets[row]
+    ).T
+    origins = columns * masks.image_shape[0]
+    return origins + starts, origins + stops
+
+
+def _run_intersection(
+    candidate: tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]],
+    seed: tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]],
+) -> int:
+    """Count shared foreground pixels without decoding either compact crop."""
+    starts, stops = seed
+    if len(starts) == 0:
+        return 0
+    lengths = stops - starts
+    covered_before = np.cumsum(lengths) - lengths
+
+    def covered_before_pixel(pixels: npt.NDArray[np.int64]) -> npt.NDArray[np.int64]:
+        """Count foreground pixels strictly before each requested position."""
+        indices = np.maximum(np.searchsorted(starts, pixels, side="right") - 1, 0)
+        return cast(
+            npt.NDArray[np.int64],
+            covered_before[indices]
+            + np.clip(pixels - starts[indices], 0, lengths[indices]),
+        )
+
+    return int(
+        (covered_before_pixel(candidate[1]) - covered_before_pixel(candidate[0])).sum()
+    )
+
+
+def _wide_mask_vote(
+    masks: npt.NDArray[Any] | CompactMask,
+    members: list[tuple[int, float]],
+    box: list[int],
+) -> npt.NDArray[np.bool_]:
+    """Replay unusually wide exact votes in batches with bounded integer storage."""
+    weights = [_binary_weight(weight) for _, weight in members]
+    exponent = min(exp for mantissa, exp in weights if mantissa)
+    votes = [
+        mantissa << (exp - exponent) if mantissa else 0 for mantissa, exp in weights
+    ]
+    cutoff = (sum(votes) + 1) // 2
+    left, top, right, bottom = box
+    width = right - left
+    fused = np.empty((bottom - top, width), dtype=bool)
+    flat = fused.ravel()
+    compact_runs = []
+    if isinstance(masks, CompactMask):
+        for row, _ in members:
+            starts, stops = _compact_runs(masks, row)
+            compact_runs.append((np.append(starts, 0), stops))
+    for start in range(0, len(flat), _VOTE_BATCH_SIZE):
+        positions = np.arange(start, min(len(flat), start + _VOTE_BATCH_SIZE))
+        ys, xs = top + positions // width, left + positions % width
+        batch = np.zeros(len(positions), dtype=object)
+        for i, (row, _) in enumerate(members):
+            if isinstance(masks, CompactMask):
+                starts, stops = compact_runs[i]
+                pixels = xs * masks.image_shape[0] + ys
+                indices = np.searchsorted(stops, pixels, side="right")
+                foreground = (indices < len(stops)) & (pixels >= starts[indices])
+            else:
+                foreground = masks[row, ys, xs].astype(bool, copy=False)
+            np.add(batch, votes[i], out=batch, where=foreground)
+        flat[positions] = batch >= cutoff
+    return fused
 
 
 @dataclass(frozen=True)
@@ -48,8 +136,9 @@ class _MaskCluster:
     Attributes:
         box: `[x_min, y_min, x_max, y_max]` of the union of the members' crops, with
             exclusive maximum.
-        votes: Weighted votes per pixel of `box`.
-        total: Sum of the members' vote weights.
+        votes: Fixed-width integer votes per pixel, or None for wide replay.
+        total: Sum of the members' integer vote weights.
+        exponent: Common binary exponent of the vote weights.
         seed_crop: Crop of the seed, the first and highest-confidence member.
         seed_xy: Image position of `seed_crop`.
         fused: The cluster's current fused mask over `box`.
@@ -57,8 +146,9 @@ class _MaskCluster:
     """
 
     box: list[int]
-    votes: npt.NDArray[np.float64]
-    total: float
+    votes: npt.NDArray[np.int64] | None
+    total: int
+    exponent: int
     seed_crop: npt.NDArray[np.bool_]
     seed_xy: tuple[int, int]
     fused: npt.NDArray[np.bool_]
@@ -70,17 +160,26 @@ class _MaskCluster:
     ) -> _MaskCluster:
         """Start a cluster whose fused mask is exactly its seed's mask."""
         height, width = crop.shape
+        mantissa, exponent = _binary_weight(weight)
         return cls(
             box=[x, y, x + width, y + height],
-            votes=weight * crop.astype(np.float64),
-            total=weight,
+            votes=mantissa * crop.astype(np.int64),
+            total=mantissa,
+            exponent=exponent,
             seed_crop=crop,
             seed_xy=(x, y),
             fused=crop,
             area=int(np.count_nonzero(crop)),
         )
 
-    def add(self, crop: npt.NDArray[np.bool_], x: int, y: int, weight: float) -> None:
+    def add(
+        self,
+        crop: npt.NDArray[np.bool_],
+        x: int,
+        y: int,
+        weight: float,
+        wide_vote: Callable[[list[int]], npt.NDArray[np.bool_]] | None = None,
+    ) -> None:
         """Add a member and recompute the fused mask.
 
         A pixel is kept when its votes are at least half the total weight, so ties
@@ -91,26 +190,43 @@ class _MaskCluster:
             x: Column of the crop's left edge in the image.
             y: Row of the crop's top edge in the image.
             weight: The member's vote weight.
+            wide_vote: Replays all members when their exact weights exceed int64.
         """
+        mantissa, exponent = _binary_weight(weight)
+        if mantissa == 0:
+            return
+        common_exponent = min(self.exponent, exponent)
+        shift = self.exponent - common_exponent
+        vote = mantissa << (exponent - common_exponent)
+        total = (self.total << shift) + vote
         height, width = crop.shape
         left, top = min(self.box[0], x), min(self.box[1], y)
         right = max(self.box[2], x + width)
         bottom = max(self.box[3], y + height)
-        if [left, top, right, bottom] != self.box:
-            grown = np.zeros((bottom - top, right - left), dtype=np.float64)
-            old_top, old_left = self.box[1] - top, self.box[0] - left
-            old_height = self.box[3] - self.box[1]
-            old_width = self.box[2] - self.box[0]
-            grown[old_top : old_top + old_height, old_left : old_left + old_width] = (
-                self.votes
-            )
-            self.votes = grown
-            self.box = [left, top, right, bottom]
-        self.votes[y - top : y - top + height, x - left : x - left + width] += (
-            weight * crop
-        )
-        self.total += weight
-        self.fused = self.votes * 2 >= self.total
+        bounds = [left, top, right, bottom]
+        if self.votes is None or total > _MAX_INT64:
+            # Avoid retaining Python integers per pixel for wide score ranges.
+            assert wide_vote is not None
+            self.votes = None
+            self.fused = wide_vote(bounds)
+        else:
+            if shift and self.total:
+                self.votes *= 1 << shift
+            if bounds != self.box:
+                grown = np.zeros((bottom - top, right - left), dtype=np.int64)
+                old_top, old_left = self.box[1] - top, self.box[0] - left
+                old_height = self.box[3] - self.box[1]
+                old_width = self.box[2] - self.box[0]
+                grown[
+                    old_top : old_top + old_height, old_left : old_left + old_width
+                ] = self.votes
+                self.votes = grown
+            view = self.votes[y - top : y - top + height, x - left : x - left + width]
+            np.add(view, vote, out=view, where=crop)
+            self.fused = self.votes >= (total + 1) // 2
+        self.total = total
+        self.exponent = common_exponent
+        self.box = bounds
         if not self.fused.any():
             seed_height, seed_width = self.seed_crop.shape
             seed_x, seed_y = self.seed_xy
@@ -127,8 +243,7 @@ def _mask_crop(
 ) -> tuple[npt.NDArray[np.bool_], int, int]:
     """Return the tight boolean crop of one mask and the image position of its corner.
 
-    A `CompactMask` crop is decoded as stored. A dense mask is cropped to the
-    bounds of its true pixels; an empty mask gives a `0 x 0` crop.
+    Tight bounds exclude false padding, and an empty mask gives a `0 x 0` crop.
 
     Args:
         masks: Dense `(N, H, W)` masks or a `CompactMask`.
@@ -137,21 +252,31 @@ def _mask_crop(
     Returns:
         A tuple `(crop, x, y)` with the crop and its top-left corner.
     """
+    compact = isinstance(masks, CompactMask)
     if isinstance(masks, CompactMask):
         x, y = (int(value) for value in masks.offsets[index])
-        return masks.crop(index), x, y
-    mask = np.asarray(masks[index], dtype=np.bool_)
+        mask = masks.crop(index)
+    else:
+        x = y = 0
+        mask = np.asarray(masks[index], dtype=np.bool_)
     rows = np.flatnonzero(mask.any(axis=1))
     if len(rows) == 0:
         return np.zeros((0, 0), dtype=np.bool_), 0, 0
     columns = np.flatnonzero(mask.any(axis=0))
     crop = mask[rows[0] : rows[-1] + 1, columns[0] : columns[-1] + 1]
-    return crop, int(columns[0]), int(rows[0])
+    if compact and crop.shape != mask.shape:
+        # A merged cluster may retain the seed. Release the decoded padding.
+        crop = crop.copy()
+    return crop, x + int(columns[0]), y + int(rows[0])
 
 
 def _overlap_with_clusters(
-    clusters: list[_MaskCluster],
+    clusters: list[_MaskCluster | None],
     cluster_boxes: npt.NDArray[np.int64],
+    seed_rows: npt.NDArray[np.int64],
+    seed_areas: npt.NDArray[np.int64],
+    masks: npt.NDArray[Any] | CompactMask,
+    row: int,
     crop: npt.NDArray[np.bool_],
     x: int,
     y: int,
@@ -163,8 +288,12 @@ def _overlap_with_clusters(
     comparison reads just the intersection of the two crops.
 
     Args:
-        clusters: The existing clusters.
+        clusters: Merged clusters, with None for singletons.
         cluster_boxes: Bounds of the clusters, shape `(k, 4)`.
+        seed_rows: Source rows for singleton representatives.
+        seed_areas: Pixel counts of the seed masks.
+        masks: Source masks used to read singleton representatives.
+        row: Source row of the candidate mask.
         crop: The candidate's boolean crop.
         x: Column of the crop's left edge in the image.
         y: Row of the crop's top edge in the image.
@@ -184,20 +313,36 @@ def _overlap_with_clusters(
         & (cluster_boxes[:, 3] > y)
     )
     candidate_area = np.array([float(np.count_nonzero(crop))])
+    candidate_runs = None
     for index in np.flatnonzero(intersects):
         cluster = clusters[index]
-        left, top = max(cluster.box[0], x), max(cluster.box[1], y)
-        right = min(cluster.box[2], x + width)
-        bottom = min(cluster.box[3], y + height)
-        fused = cluster.fused[
-            top - cluster.box[1] : bottom - cluster.box[1],
-            left - cluster.box[0] : right - cluster.box[0],
-        ]
+        cx, cy, cx2, cy2 = cluster_boxes[index]
+        left, top = max(cx, x), max(cy, y)
+        right, bottom = min(cx2, x + width), min(cy2, y + height)
+        area = int(seed_areas[index]) if cluster is None else cluster.area
         member = crop[top - y : bottom - y, left - x : right - x]
-        intersection = np.array([[float(np.count_nonzero(fused & member))]])
+        if area == (cx2 - cx) * (cy2 - cy):
+            pixels = int(np.count_nonzero(member))
+        elif cluster is None and isinstance(masks, CompactMask):
+            if candidate_runs is None:
+                candidate_runs = _compact_runs(masks, row)
+            pixels = _run_intersection(
+                candidate_runs, _compact_runs(masks, int(seed_rows[index]))
+            )
+        else:
+            if cluster is None:
+                seed_row = int(seed_rows[index])
+                dense_masks = cast(npt.NDArray[Any], masks)
+                fused = dense_masks[seed_row, top:bottom, left:right].astype(
+                    bool, copy=False
+                )
+            else:
+                fused = cluster.fused[top - cy : bottom - cy, left - cx : right - cx]
+            pixels = int(np.count_nonzero(fused & member))
+        intersection = np.array([[float(pixels)]])
         overlaps[index] = _overlap_from_areas(
             intersection,
-            np.array([float(cluster.area)]),
+            np.array([float(area)]),
             candidate_area,
             overlap_metric,
         )[0, 0]
@@ -225,10 +370,9 @@ def _fuse_single_class_masks(
     Masks are visited in descending score order; a stable sort keeps equal scores in
     input order. Each mask joins the cluster whose current fused mask it overlaps
     most, when that overlap strictly exceeds the threshold, or starts a new one.
-    Weights are each score divided by the power of two that brings the seed's score
-    into `[0.5, 1)`; a cluster whose seed has a zero score weighs its members
-    equally. `box_weights="uniform"` also weighs every member equally in the vote
-    and in the `xyxy` mean, leaving the mean score unchanged.
+    Scores are normalized for the mean confidence and the ordinary box mean.
+    Pixel votes use the original scores. An all-zero cluster or
+    `box_weights="uniform"` gives members equal weight in the vote and box mean.
 
     Args:
         masks: Dense `(N, H, W)` masks or a `CompactMask`, for all classes.
@@ -250,8 +394,25 @@ def _fuse_single_class_masks(
     """
     scores_float = scores.astype(np.float64)
     count = len(row_ids)
-    clusters: list[_MaskCluster] = []
+    visit_order = np.argsort(-scores_float, kind="stable")
+    if iou_threshold == 1.0:
+        # Strict overlap cannot beat one. Preserve the usual singleton order
+        # and skip materializing masks, including full-frame compact crops.
+        labels = np.empty(count, dtype=np.int64)
+        labels[visit_order] = np.arange(count)
+        fused_masks.extend([None] * count)
+        return (
+            boxes[row_ids[visit_order]],
+            scores_float[visit_order],
+            np.ones(count, dtype=np.int64),
+            labels,
+        )
+
+    clusters: list[_MaskCluster | None] = []
+    cluster_members: list[list[tuple[int, float]]] = []
     cluster_boxes = np.empty((count, 4), dtype=np.int64)
+    seed_rows = np.empty(count, dtype=np.int64)
+    seed_areas = np.empty(count, dtype=np.int64)
     mask_clusters = np.empty(count, dtype=np.int64)
     origins = np.empty((count, 4), dtype=np.float64)
     exponents = np.zeros(count, dtype=np.int32)
@@ -261,6 +422,17 @@ def _fuse_single_class_masks(
     geometry_weight_sums = np.zeros(count, dtype=np.float64)
     sizes = np.zeros(count, dtype=np.int64)
     uniform = box_weights == "uniform"
+    limits = np.finfo(np.float64)
+    smallest_score = np.min(scores_float, where=scores_float > 0, initial=np.inf)
+    coordinates = np.abs(boxes[row_ids])
+    smallest_coordinate = np.min(coordinates, where=coordinates > 0, initial=np.inf)
+    # The offset sum can overflow or lose a weight before multiplication.
+    # Use the same conservative range guard as axis-aligned box fusion.
+    exact_boxes = (
+        np.max(coordinates) > limits.max / (2 * count)
+        or smallest_coordinate <= 2 * limits.tiny
+        or (not uniform and smallest_score <= (2 * limits.tiny) * scores_float.max())
+    )
     if sources is None:
         source_codes = None
         source_in_cluster = None
@@ -268,8 +440,9 @@ def _fuse_single_class_masks(
         _, source_codes = np.unique(sources, return_inverse=True)
         source_in_cluster = np.zeros((count, source_codes.max() + 1), dtype=bool)
 
-    for position in np.argsort(-scores_float, kind="stable"):
-        crop, x, y = _mask_crop(masks, int(row_ids[position]))
+    for position in visit_order:
+        row = int(row_ids[position])
+        crop, x, y = _mask_crop(masks, row)
         score = scores_float[position]
         cluster = -1
         if clusters:
@@ -277,7 +450,16 @@ def _fuse_single_class_masks(
             if source_in_cluster is not None and source_codes is not None:
                 eligible = ~source_in_cluster[: len(clusters), source_codes[position]]
             overlaps = _overlap_with_clusters(
-                clusters, cluster_boxes[: len(clusters)], crop, x, y, overlap_metric
+                clusters,
+                cluster_boxes[: len(clusters)],
+                seed_rows,
+                seed_areas,
+                masks,
+                row,
+                crop,
+                x,
+                y,
+                overlap_metric,
             )
             cluster = _pick_cluster(overlaps, iou_threshold, eligible)
         if cluster < 0:
@@ -287,30 +469,70 @@ def _fuse_single_class_masks(
             # The seed has the highest score, so a zero seed weight means every
             # member of the cluster has none and the vote becomes unweighted.
             unit_weights[cluster] = uniform or score == 0
-        weight = float(np.ldexp(score, -exponents[cluster]))
-        vote_weight = 1.0 if unit_weights[cluster] else weight
-        if cluster == len(clusters):
-            clusters.append(_MaskCluster.start(crop, x, y, vote_weight))
+            # Keep a reference to the input row instead of a decoded mask or
+            # vote grid. A singleton's pixels are only needed where bboxes meet.
+            height, width = crop.shape
+            cluster_boxes[cluster] = [x, y, x + width, y + height]
+            seed_rows[cluster] = row
+            seed_areas[cluster] = np.count_nonzero(crop)
+            clusters.append(None)
+            cluster_members.append(
+                [(row, 1.0 if unit_weights[cluster] else float(score))]
+            )
         else:
-            clusters[cluster].add(crop, x, y, vote_weight)
-        cluster_boxes[cluster] = clusters[cluster].box
+            members = cluster_members[cluster]
+            vote_weight = 1.0 if unit_weights[cluster] else float(score)
+            members.append((row, vote_weight))
+            merged = clusters[cluster]
+            if merged is None:
+                seed_row, seed_weight = members[0]
+                seed, sx, sy = _mask_crop(masks, seed_row)
+                merged = _MaskCluster.start(seed, sx, sy, seed_weight)
+                clusters[cluster] = merged
+            merged.add(
+                crop, x, y, vote_weight, partial(_wide_mask_vote, masks, members)
+            )
+            cluster_boxes[cluster] = merged.box
+        weight = float(np.ldexp(score, -exponents[cluster]))
         mask_clusters[position] = cluster
         if source_in_cluster is not None and source_codes is not None:
             source_in_cluster[cluster, source_codes[position]] = True
         weight_sums[cluster] += weight
-        geometry_weight_sums[cluster] += vote_weight
         sizes[cluster] += 1
-        weighted_offsets[cluster] += vote_weight * (
-            boxes[row_ids[position]] - origins[cluster]
-        )
+        if not exact_boxes:
+            geometry_weight = 1.0 if unit_weights[cluster] else weight
+            geometry_weight_sums[cluster] += geometry_weight
+            weighted_offsets[cluster] += geometry_weight * (
+                boxes[row] - origins[cluster]
+            )
 
     cluster_count = len(clusters)
-    fused_xyxy = origins[:cluster_count] + (
-        weighted_offsets[:cluster_count] / geometry_weight_sums[:cluster_count, None]
-    )
+    if exact_boxes:
+        fused_xyxy = origins[:cluster_count].copy()
+        by_cluster = np.argsort(mask_clusters, kind="stable")
+        cluster_ends = np.cumsum(sizes[:cluster_count])
+        for c in np.flatnonzero(sizes[:cluster_count] > 1):
+            member_positions = by_cluster[cluster_ends[c] - sizes[c] : cluster_ends[c]]
+            weights = [
+                Fraction(1) if unit_weights[c] else Fraction(float(scores_float[i]))
+                for i in member_positions
+            ]
+            total = sum(weights)
+            for column in range(4):
+                coordinates = boxes[row_ids[member_positions], column]
+                weighted_sum = sum(
+                    weight * Fraction(float(value))
+                    for weight, value in zip(weights, coordinates)
+                )
+                fused_xyxy[c, column] = float(weighted_sum / total)
+    else:
+        fused_xyxy = origins[:cluster_count] + (
+            weighted_offsets[:cluster_count]
+            / geometry_weight_sums[:cluster_count, None]
+        )
     fused_masks.extend(
-        None if sizes[c] == 1 else _FusedMask(x=cl.box[0], y=cl.box[1], crop=cl.fused)
-        for c, cl in enumerate(clusters)
+        None if cl is None else _FusedMask(x=cl.box[0], y=cl.box[1], crop=cl.fused)
+        for cl in clusters
     )
     mean_scores = np.ldexp(
         weight_sums[:cluster_count] / sizes[:cluster_count],
@@ -466,7 +688,7 @@ def _paint_fused_masks(
                 crop_shapes[row] = fused.crop.shape
                 offsets[row] = (fused.x, fused.y)
         return CompactMask(rles, crop_shapes, offsets, masks.image_shape)
-    result = np.array(masks[winner_rows])
+    result = masks[winner_rows]
     for row, fused in enumerate(fused_masks):
         if fused is not None:
             height, width = fused.crop.shape
