@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -421,6 +421,37 @@ class TestScaleImage:
 
         # then
         assert result.shape == (*expected_hw, 3)
+
+    @pytest.mark.parametrize(
+        "scale_factor",
+        [
+            pytest.param(np.float16(1), id="float16"),
+            pytest.param(np.float32(1), id="float32"),
+        ],
+    )
+    def test_preserves_size_at_numpy_unity(
+        self, scale_factor: np.float16 | np.float32
+    ) -> None:
+        """A NumPy scalar factor of one preserves each axis."""
+        # given
+        image = np.zeros((9, 13, 3), dtype=np.uint8)
+
+        # when
+        result = scale_image(image=image, scale_factor=cast(float, scale_factor))
+
+        # then
+        assert result.shape == (9, 13, 3)
+
+    def test_truncates_genuine_fraction_near_integer(self) -> None:
+        """A genuinely fractional size below a whole pixel is truncated."""
+        # given
+        image = np.zeros((720, 1280, 3), dtype=np.uint8)
+
+        # when
+        result = scale_image(image=image, scale_factor=0.9999999999999)
+
+        # then
+        assert result.shape == (719, 1279, 3)
 
 
 def test_letterbox_image_for_extreme_aspect_ratio() -> None:

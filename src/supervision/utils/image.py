@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import shutil
 import tempfile
@@ -280,6 +281,16 @@ def _resize_linear(
     return resized
 
 
+def _scaled_image_dimension(size: int, scale_factor: float) -> int:
+    """Truncate the scaled dimension to at least one pixel."""
+    scaled = size * scale_factor
+    # Recover an integer one binary64 step above a fractional product.
+    # Preserve multiplication and truncation for other NumPy scalar precisions.
+    if isinstance(scaled, float) and not scaled.is_integer():
+        scaled = math.nextafter(scaled, math.inf)
+    return max(1, int(scaled))
+
+
 @ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
@@ -297,11 +308,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         ValueError: If scale factor is non-positive.
 
     Note:
-        Each axis keeps at least one pixel, so a factor small enough to round an
-        axis of a small image down to zero returns a one-pixel-wide or
-        one-pixel-tall image rather than raising. A uint8 BGRA image whose alpha
-        varies is interpolated with alpha-weighted colors, so the color hidden
-        under a transparent pixel does not bleed into its visible neighbors.
+        Each axis is truncated to at least one pixel. A fractional binary64
+        product immediately below an integer is corrected to that integer.
+        A uint8 BGRA image whose alpha varies is interpolated with alpha-weighted
+        colors, so the color hidden under a transparent pixel does not bleed into
+        its visible neighbors.
 
     Examples:
         ```pycon
@@ -332,13 +343,8 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         raise ValueError("Scale factor must be positive.")
 
     width_old, height_old = image.shape[1], image.shape[0]
-    # A small factor on a small image truncates an axis to zero, and `cv2.resize`
-    # answers a zero-sized target with a bare assertion. One pixel is the smallest
-    # image that still exists, so clamp there instead. The product is rounded to
-    # 9 decimals first: `720 * 0.7` is 503.99999999999994, and `int()` alone
-    # dropped a pixel from an axis whose exact size is whole.
-    width_new = max(1, int(round(width_old * scale_factor, 9)))
-    height_new = max(1, int(round(height_old * scale_factor, 9)))
+    width_new = _scaled_image_dimension(width_old, scale_factor)
+    height_new = _scaled_image_dimension(height_old, scale_factor)
     resized = _resize_linear(image, (width_new, height_new))
     return cast(npt.NDArray[np.uint8], _keep_single_channel_axis(resized, image))
 
