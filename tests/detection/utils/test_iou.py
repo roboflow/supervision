@@ -13,18 +13,18 @@ import pytest
 from supervision.detection.utils import iou_and_nms
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
+    _box_non_max_suppression,
+    _box_weighted_box_fusion,
+    _mask_non_max_suppression,
+    _mask_soft_non_max_suppression,
+    _oriented_box_non_max_suppression,
     box_iou,
     box_iou_batch,
     box_iou_batch_with_jaccard,
     box_non_max_merge,
-    box_non_max_suppression,
-    box_weighted_box_fusion,
     mask_iou_batch,
     mask_non_max_merge,
-    mask_non_max_suppression,
-    mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
-    oriented_box_non_max_suppression,
 )
 from tests.helpers import _generate_random_boxes
 
@@ -884,7 +884,7 @@ class TestIouThresholdValidation:
         ("fn_function", "kwargs"),
         [
             pytest.param(
-                box_non_max_suppression,
+                _box_non_max_suppression,
                 {"predictions": np.empty((0, 5), dtype=np.float32)},
                 id="box-nms",
             ),
@@ -894,12 +894,12 @@ class TestIouThresholdValidation:
                 id="box-nmm",
             ),
             pytest.param(
-                box_weighted_box_fusion,
+                _box_weighted_box_fusion,
                 {"predictions": np.empty((0, 5), dtype=np.float32)},
                 id="box-weighted-box-fusion",
             ),
             pytest.param(
-                mask_non_max_suppression,
+                _mask_non_max_suppression,
                 {
                     "predictions": np.empty((0, 5), dtype=np.float32),
                     "masks": np.empty((0, 1, 1), dtype=bool),
@@ -915,7 +915,7 @@ class TestIouThresholdValidation:
                 id="mask-nmm",
             ),
             pytest.param(
-                oriented_box_non_max_suppression,
+                _oriented_box_non_max_suppression,
                 {
                     "predictions": np.empty((0, 5), dtype=np.float32),
                     "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
@@ -1055,8 +1055,8 @@ class TestMaskIouBatch:
             [[0, 0, 9, 0, 0.8, 0], [0, 0, 9, 0, 0.9, 0]], dtype=np.float32
         )
 
-        dense_keep = mask_non_max_suppression(predictions, masks, iou_threshold=0.1)
-        compact_keep = mask_non_max_suppression(
+        dense_keep = _mask_non_max_suppression(predictions, masks, iou_threshold=0.1)
+        compact_keep = _mask_non_max_suppression(
             predictions, compact_masks, iou_threshold=0.1
         )
 
@@ -1712,10 +1712,10 @@ class TestBitPackedMaskOverlap:
         predictions = np.zeros((12, 6))
         predictions[:, 4] = rng.random(12)
         predictions[:, 5] = rng.integers(0, 2, 12)
-        expected_keep = mask_non_max_suppression(
+        expected_keep = _mask_non_max_suppression(
             predictions, masks, 0.3, overlap_metric=overlap_metric
         )
-        expected_scores = mask_soft_non_max_suppression(
+        expected_scores = _mask_soft_non_max_suppression(
             predictions, masks, overlap_metric=overlap_metric
         )
 
@@ -1730,10 +1730,10 @@ class TestBitPackedMaskOverlap:
             return original(masks_true, masks_detection, overlap_metric, memory_limit=0)
 
         monkeypatch.setattr(iou_and_nms, "mask_iou_batch", packed_overlap)
-        keep = mask_non_max_suppression(
+        keep = _mask_non_max_suppression(
             predictions, masks, 0.3, overlap_metric=overlap_metric
         )
-        scores = mask_soft_non_max_suppression(
+        scores = _mask_soft_non_max_suppression(
             predictions, masks, overlap_metric=overlap_metric
         )
 

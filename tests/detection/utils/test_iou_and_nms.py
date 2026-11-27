@@ -8,14 +8,15 @@ import pytest
 
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
+    _box_non_max_suppression,
+    _box_soft_non_max_suppression,
+    _box_weighted_box_fusion,
+    _box_weighted_fusion_clusters,
     _group_overlapping_boxes,
+    _mask_non_max_suppression,
+    _mask_soft_non_max_suppression,
     box_non_max_merge,
-    box_non_max_suppression,
-    box_soft_non_max_suppression,
-    box_weighted_box_fusion,
     mask_non_max_merge,
-    mask_non_max_suppression,
-    mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
 )
 from supervision.utils.internal import SupervisionWarnings
@@ -247,7 +248,7 @@ def test_box_non_max_suppression(
     exception: AbstractContextManager[object],
 ) -> None:
     with exception:
-        result = box_non_max_suppression(
+        result = _box_non_max_suppression(
             predictions=predictions, iou_threshold=iou_threshold
         )
         assert expected_result is not None
@@ -260,7 +261,7 @@ def test_box_soft_non_max_suppression_preserves_agnostic_score_precision() -> No
         [[0, 0, 10, 10, 0.9], [0, 0, 10, 10, 0.01]], dtype=np.float32
     )
 
-    result = box_soft_non_max_suppression(predictions, sigma=0.01)
+    result = _box_soft_non_max_suppression(predictions, sigma=0.01)
 
     assert result.dtype == np.float64
     assert result[1] > 0.0
@@ -395,7 +396,7 @@ def test_box_soft_non_max_suppression(
     exception: AbstractContextManager[object],
 ) -> None:
     with exception:
-        result = box_soft_non_max_suppression(predictions=predictions, sigma=sigma)
+        result = _box_soft_non_max_suppression(predictions=predictions, sigma=sigma)
         assert expected_result is not None
         np.testing.assert_almost_equal(result, expected_result, decimal=5)
 
@@ -600,7 +601,7 @@ def test_mask_non_max_suppression(
     exception: AbstractContextManager[object],
 ) -> None:
     with exception:
-        result = mask_non_max_suppression(
+        result = _mask_non_max_suppression(
             predictions=predictions, masks=masks, iou_threshold=iou_threshold
         )
         assert expected_result is not None
@@ -700,7 +701,7 @@ def test_mask_non_max_suppression(
             DoesNotRaise(),
         ),  # two masks partially overlapping with no category — exact
         # full-resolution IoU (this module no longer resizes masks before
-        # computing IoU, matching mask_non_max_suppression's convention)
+        # computing IoU, matching _mask_non_max_suppression's convention)
         (
             np.array([[0, 0, 0, 0, 0.8, 0], [0, 0, 0, 0, 0.9, 1]]),
             np.array(
@@ -752,7 +753,7 @@ def test_mask_soft_non_max_suppression(
     exception: AbstractContextManager[object],
 ) -> None:
     with exception:
-        result = mask_soft_non_max_suppression(
+        result = _mask_soft_non_max_suppression(
             predictions=predictions, masks=masks, sigma=sigma
         )
         assert expected_result is not None
@@ -1115,7 +1116,8 @@ class TestBoxNonMaxMerge:
 
 
 class TestBoxWeightedBoxFusion:
-    """box_weighted_box_fusion fuses overlapping boxes into confidence-weighted ones."""
+    """_box_weighted_box_fusion fuses overlapping boxes into confidence-weighted
+    ones."""
 
     def test_fuses_overlap_just_above_threshold(self) -> None:
         """Fuse boxes whose float64 overlap rounds down to the threshold in float32."""
@@ -1124,7 +1126,7 @@ class TestBoxWeightedBoxFusion:
             dtype=np.float64,
         )
 
-        result = box_weighted_box_fusion(predictions)
+        result = _box_weighted_box_fusion(predictions)
 
         assert result.shape == (1, 6)
 
@@ -1143,7 +1145,7 @@ class TestBoxWeightedBoxFusion:
             dtype=np.float64,
         )
 
-        result = box_weighted_box_fusion(predictions)
+        result = _box_weighted_box_fusion(predictions)
 
         assert result.shape == (1, 6)
         assert np.allclose(result[0, 4], 0.8)
@@ -1169,7 +1171,7 @@ class TestBoxWeightedBoxFusion:
         """A contained box fuses under IOS but stays separate under IOU."""
         predictions = np.array([[0.0, 0.0, 10.0, 10.0, 0.9], [2.0, 2.0, 8.0, 8.0, 0.6]])
 
-        result = box_weighted_box_fusion(
+        result = _box_weighted_box_fusion(
             predictions, iou_threshold=0.5, overlap_metric=overlap_metric
         )
 
@@ -1214,7 +1216,7 @@ class TestBoxWeightedBoxFusion:
         """Endpoint thresholds accept only overlaps strictly above the threshold."""
         predictions = np.array([[0.0, 0.0, 10.0, 10.0, 0.9], second_box])
 
-        result = box_weighted_box_fusion(predictions, iou_threshold=iou_threshold)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=iou_threshold)
 
         assert result.shape == np.shape(expected_result)
         np.testing.assert_allclose(result, expected_result)
@@ -1354,7 +1356,7 @@ class TestBoxWeightedBoxFusion:
         expected_result: np.ndarray,
     ) -> None:
         """WBF fuses overlapping same-class boxes by confidence-weighted averaging."""
-        result = box_weighted_box_fusion(
+        result = _box_weighted_box_fusion(
             predictions=predictions, iou_threshold=iou_threshold
         )
 
@@ -1370,7 +1372,7 @@ class TestBoxWeightedBoxFusion:
             ]
         )
 
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
 
         assert result.shape == (1, 6)
         assert np.allclose(result[0, :4], [0.5, 0.5, 10.5, 10.5])
@@ -1386,7 +1388,7 @@ class TestBoxWeightedBoxFusion:
             ]
         )
 
-        fused_box = box_weighted_box_fusion(predictions, iou_threshold=0.2)[0, :4]
+        fused_box = _box_weighted_box_fusion(predictions, iou_threshold=0.2)[0, :4]
 
         assert np.all(np.abs(fused_box - high_box) < np.abs(fused_box - low_box))
 
@@ -1404,7 +1406,7 @@ class TestBoxWeightedBoxFusion:
                 [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
             ]
         )
-        result = box_weighted_box_fusion(
+        result = _box_weighted_box_fusion(
             predictions, iou_threshold=0.5, num_models=num_models
         )
         assert np.allclose(result[:, 4], [0.85, 0.45])
@@ -1418,7 +1420,7 @@ class TestBoxWeightedBoxFusion:
                 [0.0, 1.0, 10.0, 11.0, 0.7, 0.0],
             ]
         )
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5, num_models=2)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5, num_models=2)
         assert np.allclose(result[:, 4], [0.8])
 
     @pytest.mark.parametrize("num_models", [None, 1])
@@ -1442,7 +1444,7 @@ class TestBoxWeightedBoxFusion:
             ]
         )
 
-        result = box_weighted_box_fusion(
+        result = _box_weighted_box_fusion(
             predictions, iou_threshold=0.5, num_models=num_models
         )
 
@@ -1456,7 +1458,7 @@ class TestBoxWeightedBoxFusion:
         """A zero, negative, float or bool model count raises even for empty input."""
         predictions = np.empty((0, 6))
         with pytest.raises(ValueError, match="num_models must be a positive integer"):
-            box_weighted_box_fusion(predictions, num_models=num_models)
+            _box_weighted_box_fusion(predictions, num_models=num_models)
 
     def test_tied_classes_come_back_in_ascending_class_id(self) -> None:
         """Equal-score boxes of different classes come back in ascending class id."""
@@ -1474,7 +1476,7 @@ class TestBoxWeightedBoxFusion:
                 [40.0, 0.0, 50.0, 10.0, 0.5, 2.0],
             ]
         )
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.array_equal(result, expected_result)
 
     def test_tied_boxes_of_one_class_keep_input_order(self) -> None:
@@ -1490,7 +1492,7 @@ class TestBoxWeightedBoxFusion:
                 np.zeros(20),
             ]
         )
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.array_equal(result, predictions)
 
     @pytest.mark.parametrize("confidence", [-0.5, np.nan, np.inf, -np.inf])
@@ -1503,7 +1505,7 @@ class TestBoxWeightedBoxFusion:
             ]
         )
         with pytest.raises(ValueError, match="must be finite and non-negative"):
-            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+            _box_weighted_box_fusion(predictions, iou_threshold=0.5)
 
     def test_zero_confidence_box_adds_no_weight_to_cluster(self) -> None:
         """A zero-confidence box is accepted and joins without moving the cluster."""
@@ -1513,7 +1515,7 @@ class TestBoxWeightedBoxFusion:
                 [1.0, 1.0, 11.0, 11.0, 0.0, 0.0],
             ]
         )
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.allclose(result, [[0.0, 0.0, 10.0, 10.0, 0.4, 0.0]])
 
     @pytest.mark.parametrize(
@@ -1544,7 +1546,7 @@ class TestBoxWeightedBoxFusion:
     def test_rejects_invalid_overlap_metric(self, predictions: np.ndarray) -> None:
         """An unknown overlap metric raises even when no overlap is ever computed."""
         with pytest.raises(ValueError, match="Invalid value"):
-            box_weighted_box_fusion(
+            _box_weighted_box_fusion(
                 predictions,
                 overlap_metric="bogus",  # type: ignore[arg-type]
             )
@@ -1567,7 +1569,7 @@ class TestBoxWeightedBoxFusion:
     ) -> None:
         """Predictions not shaped (n, 5) or (n, 6) raise a clear ValueError."""
         with pytest.raises(ValueError, match=r"must have shape \(n, 5\) or \(n, 6\)"):
-            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+            _box_weighted_box_fusion(predictions, iou_threshold=0.5)
 
     @pytest.mark.parametrize("box_count", [0, 2])
     @pytest.mark.parametrize("column_count", [5, 6])
@@ -1581,7 +1583,7 @@ class TestBoxWeightedBoxFusion:
                 [1.0, 1.0, 11.0, 11.0, 0.8, 0.0],
             ]
         )[:box_count, :column_count]
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert result.shape[1] == column_count
 
     @pytest.mark.parametrize(
@@ -1605,7 +1607,7 @@ class TestBoxWeightedBoxFusion:
             ],
             dtype=dtype,
         )[:box_count]
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert result.dtype == expected_dtype
 
     def test_float32_input_fuses_to_weighted_box_and_mean_score(self) -> None:
@@ -1620,7 +1622,7 @@ class TestBoxWeightedBoxFusion:
         expected_result = np.array(
             [[0.8 / 1.7, 0.8 / 1.7, 17.8 / 1.7, 17.8 / 1.7, 0.85, 0.0]]
         )
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.allclose(result, expected_result)
 
     def test_float32_scores_tied_after_rounding_keep_class_order(self) -> None:
@@ -1642,7 +1644,7 @@ class TestBoxWeightedBoxFusion:
             ],
             dtype=np.float32,
         )
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
         assert np.array_equal(result, expected_result)
 
     @pytest.mark.parametrize(
@@ -1688,7 +1690,7 @@ class TestBoxWeightedBoxFusion:
         """Scores near the float64 limit fuse to the weighted box and mean score."""
         predictions_array = np.array(predictions, dtype=np.float64)
 
-        result = box_weighted_box_fusion(predictions_array, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions_array, iou_threshold=0.5)
 
         np.testing.assert_allclose(result, expected_result)
 
@@ -1714,7 +1716,7 @@ class TestBoxWeightedBoxFusion:
         self, predictions: list[list[float]], threshold: float, expected_x: float
     ) -> None:
         """A representable weighted coordinate neither overflows nor rounds to zero."""
-        result = box_weighted_box_fusion(
+        result = _box_weighted_box_fusion(
             np.array(predictions, dtype=np.float64), iou_threshold=threshold
         )
 
@@ -1733,9 +1735,9 @@ class TestBoxWeightedBoxFusion:
 
         with pytest.raises(
             ValueError,
-            match="Class ids passed to box_weighted_box_fusion must be finite",
+            match="Class ids passed to Weighted Box Fusion must be finite",
         ):
-            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+            _box_weighted_box_fusion(predictions, iou_threshold=0.5)
 
     @pytest.mark.parametrize(
         "invalid_box",
@@ -1758,9 +1760,9 @@ class TestBoxWeightedBoxFusion:
         )
 
         with pytest.raises(
-            ValueError, match="Boxes passed to box_weighted_box_fusion must have finite"
+            ValueError, match="Boxes passed to Weighted Box Fusion must have finite"
         ):
-            box_weighted_box_fusion(predictions, iou_threshold=0.5)
+            _box_weighted_box_fusion(predictions, iou_threshold=0.5)
 
     def test_keeps_zero_width_and_zero_height_boxes(self) -> None:
         """Degenerate boxes with equal corners are accepted and returned unfused."""
@@ -1771,9 +1773,155 @@ class TestBoxWeightedBoxFusion:
             ]
         )
 
-        result = box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        result = _box_weighted_box_fusion(predictions, iou_threshold=0.5)
 
         assert np.array_equal(result, predictions)
+
+
+class TestBoxWeightedFusionClusters:
+    """The private cluster kernel reports which fused row each input row joined."""
+
+    def test_labels_point_at_rows_sorted_by_fused_confidence(self) -> None:
+        """Labels index the returned rows, not creation order or input order."""
+        boxes = np.array(
+            [[0, 0, 10, 10], [1, 1, 11, 11], [0, 0, 10, 10]], dtype=np.float64
+        )
+        scores = np.array([0.9, 0.8, 0.95])
+        class_ids = np.array([0, 0, 1])
+
+        fused_boxes, fused_scores, labels = _box_weighted_fusion_clusters(
+            boxes, scores, class_ids, 0.5, OverlapMetric.IOU
+        )
+
+        assert np.allclose(fused_scores, [0.95, 0.85])
+        assert np.array_equal(labels, [1, 1, 0])
+        weighted_corner = 0.8 / 1.7
+        assert np.allclose(
+            fused_boxes[1],
+            [
+                weighted_corner,
+                weighted_corner,
+                10 + weighted_corner,
+                10 + weighted_corner,
+            ],
+        )
+
+    def test_tied_scores_keep_class_then_creation_order(self) -> None:
+        """Equal fused scores order by class id, then by cluster creation order."""
+        boxes = np.array(
+            [[0, 0, 10, 10], [0, 0, 10, 10], [50, 50, 60, 60]], dtype=np.float64
+        )
+        scores = np.array([0.9, 0.9, 0.9])
+        class_ids = np.array([0, 1, 0])
+
+        _, _, labels = _box_weighted_fusion_clusters(
+            boxes, scores, class_ids, 0.5, OverlapMetric.IOU
+        )
+
+        assert np.array_equal(labels, [0, 2, 1])
+
+    def test_without_class_ids_fuses_across_classes(self) -> None:
+        """Passing no class ids puts overlapping boxes of any class in one cluster."""
+        boxes = np.array([[0, 0, 10, 10], [1, 1, 11, 11]], dtype=np.float64)
+        scores = np.array([0.9, 0.8])
+
+        _, fused_scores, labels = _box_weighted_fusion_clusters(
+            boxes, scores, None, 0.5, OverlapMetric.IOU
+        )
+
+        assert np.allclose(fused_scores, [0.85])
+        assert np.array_equal(labels, [0, 0])
+
+    def test_output_dtype_applies_to_boxes_and_scores(self) -> None:
+        """The fused boxes and scores come back in the requested dtype."""
+        boxes = np.array([[0, 0, 10, 10]], dtype=np.float32)
+        scores = np.array([0.9], dtype=np.float32)
+
+        fused_boxes, fused_scores, _ = _box_weighted_fusion_clusters(
+            boxes, scores, None, 0.5, OverlapMetric.IOU, output_dtype=np.float32
+        )
+
+        assert fused_boxes.dtype == np.float32
+        assert fused_scores.dtype == np.float32
+
+    def test_sources_keep_one_box_per_source_in_a_cluster(self) -> None:
+        """A second box of the same source starts its own cluster."""
+        boxes = np.array(
+            [[0, 0, 10, 10], [1, 1, 11, 11], [0, 0, 10, 10]], dtype=np.float64
+        )
+        scores = np.array([0.9, 0.8, 0.6])
+        sources = np.array([0, 0, 1])
+
+        _, fused_scores, labels = _box_weighted_fusion_clusters(
+            boxes, scores, None, 0.5, OverlapMetric.IOU, sources=sources
+        )
+
+        assert np.allclose(fused_scores, [0.8, 0.75])
+        assert np.array_equal(labels, [1, 0, 1])
+
+    def test_sources_check_eligibility_before_picking_the_best_cluster(self) -> None:
+        """A full best cluster does not hide an eligible runner-up."""
+        boxes = np.array([[0, 0, 10, 10], [5, 0, 15, 10], [1, 0, 11, 10]], dtype=float)
+        scores = np.array([0.9, 0.8, 0.7])
+        sources = np.array([0, 1, 0])
+
+        _, fused_scores, labels = _box_weighted_fusion_clusters(
+            boxes, scores, None, 0.4, OverlapMetric.IOU, sources=sources
+        )
+
+        assert np.allclose(fused_scores, [0.9, 0.75])
+        assert np.array_equal(labels, [0, 1, 1])
+
+    def test_uniform_box_weights_average_boxes_without_changing_scores(self) -> None:
+        """Uniform weights give the plain mean box and the same mean score."""
+        boxes = np.array([[0, 0, 10, 10], [1, 1, 11, 11]], dtype=np.float64)
+        scores = np.array([0.9, 0.1])
+
+        uniform_boxes, uniform_scores, _ = _box_weighted_fusion_clusters(
+            boxes, scores, None, 0.5, OverlapMetric.IOU, box_weights="uniform"
+        )
+        confidence_boxes, confidence_scores, _ = _box_weighted_fusion_clusters(
+            boxes, scores, None, 0.5, OverlapMetric.IOU
+        )
+
+        assert np.allclose(uniform_boxes, [[0.5, 0.5, 10.5, 10.5]])
+        assert np.allclose(confidence_boxes, [[0.1, 0.1, 10.1, 10.1]])
+        assert np.allclose(uniform_scores, [0.5])
+        assert np.array_equal(uniform_scores, confidence_scores)
+
+    def test_uniform_box_weights_survive_a_subnormal_seed_score(self) -> None:
+        """A subnormal score with uniform weights neither overflows nor gives NaN."""
+        boxes = np.array([[0, 0, 10, 10], [1, 1, 11, 11]], dtype=np.float64)
+        scores = np.array([1e-310, 1e-310])
+
+        fused_boxes, fused_scores, _ = _box_weighted_fusion_clusters(
+            boxes, scores, None, 0.5, OverlapMetric.IOU, box_weights="uniform"
+        )
+
+        assert np.allclose(fused_boxes, [[0.5, 0.5, 10.5, 10.5]])
+        assert np.allclose(fused_scores, [1e-310], rtol=1e-6, atol=0)
+
+    def test_unknown_box_weights_raises(self) -> None:
+        """Only 'confidence' and 'uniform' are valid box weights."""
+        with pytest.raises(ValueError, match="box_weights must be"):
+            _box_weighted_fusion_clusters(
+                np.zeros((1, 4)),
+                np.ones(1),
+                None,
+                0.5,
+                OverlapMetric.IOU,
+                box_weights="median",  # type: ignore[arg-type]
+            )
+
+    def test_empty_input_returns_empty_arrays(self) -> None:
+        """No boxes yield no fused rows and no labels."""
+        fused_boxes, fused_scores, labels = _box_weighted_fusion_clusters(
+            np.empty((0, 4)), np.empty(0), None, 0.5, OverlapMetric.IOU
+        )
+
+        assert fused_boxes.shape == (0, 4)
+        assert fused_scores.shape == (0,)
+        assert labels.shape == (0,)
 
 
 def _nmm_groups(kind: str, rectangles: list[list[int]]) -> list[list[int]]:

@@ -4,7 +4,7 @@ These tests verify that:
 - compact_mask_iou_batch gives numerically identical results to the
   dense mask_iou_batch (raster IoU) for all overlap patterns.
 - mask_iou_batch dispatches correctly when given CompactMask inputs.
-- mask_non_max_suppression and mask_non_max_merge work with CompactMask
+- _mask_non_max_suppression and mask_non_max_merge work with CompactMask
   and produce the same keep-set as when given equivalent dense arrays.
 """
 
@@ -14,10 +14,10 @@ import pytest
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
+    _mask_non_max_suppression,
     compact_mask_iou_batch,
     mask_iou_batch,
     mask_non_max_merge,
-    mask_non_max_suppression,
 )
 
 # ---------------------------------------------------------------------------
@@ -275,8 +275,8 @@ class TestNmsWithCompactMask:
 
         cm = _cm_from_masks(masks, (img_h, img_w))
 
-        keep_dense = mask_non_max_suppression(predictions, masks, iou_threshold=0.3)
-        keep_compact = mask_non_max_suppression(predictions, cm, iou_threshold=0.3)
+        keep_dense = _mask_non_max_suppression(predictions, masks, iou_threshold=0.3)
+        keep_compact = _mask_non_max_suppression(predictions, cm, iou_threshold=0.3)
 
         np.testing.assert_array_equal(keep_compact, keep_dense)
 
@@ -297,8 +297,8 @@ class TestNmsWithCompactMask:
         predictions = np.column_stack([np.zeros((2, 4)), scores])
         cm = _cm_from_masks(masks, (img_h, img_w))
 
-        keep_dense = mask_non_max_suppression(predictions, masks, iou_threshold=0.5)
-        keep_compact = mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
+        keep_dense = _mask_non_max_suppression(predictions, masks, iou_threshold=0.5)
+        keep_compact = _mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
 
         np.testing.assert_array_equal(keep_compact, keep_dense)
 
@@ -314,7 +314,7 @@ class TestNmsWithCompactMask:
         predictions = np.column_stack([np.zeros((3, 4)), scores])
         cm = _cm_from_masks(masks, (img_h, img_w))
 
-        keep = mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
+        keep = _mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
         assert keep.all(), "All non-overlapping masks should be kept"
 
     def test_nms_compact_full_suppression(self) -> None:
@@ -328,7 +328,7 @@ class TestNmsWithCompactMask:
         predictions = np.column_stack([np.zeros((3, 4)), scores])
         cm = _cm_from_masks(masks, (img_h, img_w))
 
-        keep = mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
+        keep = _mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
         assert keep.sum() == 1
         assert keep[0], "Highest-confidence mask should survive"
 

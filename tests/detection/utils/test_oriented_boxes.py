@@ -13,11 +13,11 @@ from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
+    _oriented_box_non_max_suppression,
+    _oriented_box_soft_non_max_suppression,
     box_iou_batch,
     oriented_box_iou_batch,
     oriented_box_non_max_merge,
-    oriented_box_non_max_suppression,
-    oriented_box_soft_non_max_suppression,
 )
 
 
@@ -152,7 +152,7 @@ def test_oriented_box_soft_non_max_suppression(
 ) -> None:
     """Oriented-box soft-NMS decays by rotated-body IoU and rejects bad inputs."""
     with exception:
-        result = oriented_box_soft_non_max_suppression(
+        result = _oriented_box_soft_non_max_suppression(
             predictions=predictions, oriented_boxes=oriented_boxes, sigma=sigma
         )
         assert expected_result is not None
@@ -501,7 +501,7 @@ class TestOrientedBoxIouBatch:
 
 
 class TestOrientedBoxNonMaxSuppression:
-    """Tests for `oriented_box_non_max_suppression`."""
+    """Tests for `_oriented_box_non_max_suppression`."""
 
     @pytest.mark.parametrize(
         ("angle_deg", "shift", "expected_keep"),
@@ -519,7 +519,7 @@ class TestOrientedBoxNonMaxSuppression:
             [[*_aabb_of(box_a), 0.9, 0], [*_aabb_of(box_b), 0.8, 0]], dtype=np.float32
         )
 
-        keep = oriented_box_non_max_suppression(
+        keep = _oriented_box_non_max_suppression(
             predictions=predictions,
             oriented_boxes=np.stack([box_a, box_b]),
             iou_threshold=0.5,
@@ -547,7 +547,7 @@ class TestOrientedBoxNonMaxSuppression:
         assert box_iou_batch(predictions[:, :4], predictions[:, :4])[0, 1] > 0.95
         assert oriented_box_iou_batch(quad_a[None], quad_b[None])[0, 0] < 0.2
 
-        keep = oriented_box_non_max_suppression(
+        keep = _oriented_box_non_max_suppression(
             predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
         )
         assert np.array_equal(keep, np.array([True, True]))
@@ -579,7 +579,7 @@ class TestOrientedBoxNonMaxSuppression:
 
         assert oriented_box_iou_batch(quad[None], shifted[None])[0, 0] > 0.9
 
-        keep = oriented_box_non_max_suppression(
+        keep = _oriented_box_non_max_suppression(
             predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
         )
         assert np.array_equal(keep, np.array(expected_keep))
@@ -590,7 +590,7 @@ class TestOrientedBoxNonMaxSuppression:
         predictions = np.zeros((3, 5), dtype=np.float32)
         oriented_boxes = np.zeros((2, 4, 2), dtype=np.float32)
         with pytest.raises(ValueError, match="same length"):
-            oriented_box_non_max_suppression(
+            _oriented_box_non_max_suppression(
                 predictions=predictions, oriented_boxes=oriented_boxes
             )
 
@@ -599,7 +599,7 @@ class TestOrientedBoxNonMaxSuppression:
         predictions = np.empty((0, 5), dtype=np.float32)
         oriented_boxes = np.empty((0, 4, 2), dtype=np.float32)
 
-        keep = oriented_box_non_max_suppression(
+        keep = _oriented_box_non_max_suppression(
             predictions=predictions, oriented_boxes=oriented_boxes
         )
 
@@ -613,7 +613,7 @@ class TestOrientedBoxNonMaxSuppression:
         oriented_boxes = quad[None]
         predictions = np.array([[*_aabb_of(quad), 0.9, 0]], dtype=np.float32)
 
-        keep = oriented_box_non_max_suppression(
+        keep = _oriented_box_non_max_suppression(
             predictions=predictions,
             oriented_boxes=oriented_boxes,
             iou_threshold=iou_threshold,
@@ -647,7 +647,7 @@ class TestOrientedBoxNonMaxSuppression:
         overlap = oriented_box_iou_batch(quad_a[None], quad_b[None])[0, 0]
         assert 0.0 < overlap < 1.0
 
-        keep = oriented_box_non_max_suppression(
+        keep = _oriented_box_non_max_suppression(
             predictions=predictions,
             oriented_boxes=oriented_boxes,
             iou_threshold=iou_threshold,
@@ -677,7 +677,7 @@ class TestOrientedBoxNonMaxSuppression:
             dtype=np.float32,
         )
 
-        keep = oriented_box_non_max_suppression(
+        keep = _oriented_box_non_max_suppression(
             predictions=predictions,
             oriented_boxes=oriented_boxes,
             iou_threshold=0.5,
