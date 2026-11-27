@@ -15,10 +15,7 @@ from supervision.config import (
 )
 from supervision.detection._geometry_dispatch import (
     detection_area,
-    nmm_groups,
-    nms_keep_mask,
-    resolve_overlap_geometry,
-    soft_nms_confidence,
+    resolve_overlap_strategy,
 )
 from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.detection.tools.transformers import (
@@ -3078,9 +3075,9 @@ class Detections:
                 "Detections confidence must be given for NMS to be executed."
             )
 
-        geometry = resolve_overlap_geometry(self, overlap_on)
-        indices = nms_keep_mask(
-            self, geometry, class_agnostic, threshold, overlap_metric
+        strategy = resolve_overlap_strategy(self, overlap_on)
+        indices = strategy.nms_keep_mask(
+            self, class_agnostic, threshold, overlap_metric
         )
 
         return self.select(indices)
@@ -3178,9 +3175,9 @@ class Detections:
                 "Detections confidence must be given for Soft-NMS to be executed."
             )
 
-        geometry = resolve_overlap_geometry(self, overlap_on)
-        decayed_confidence = soft_nms_confidence(
-            self, geometry, class_agnostic, sigma, overlap_metric
+        strategy = resolve_overlap_strategy(self, overlap_on)
+        decayed_confidence = strategy.soft_nms_confidence(
+            self, class_agnostic, sigma, overlap_metric
         )
 
         result = self.select(np.arange(len(self)))
@@ -3263,9 +3260,9 @@ class Detections:
                 "Detections confidence must be given for NMM to be executed."
             )
 
-        geometry = resolve_overlap_geometry(self, overlap_on)
-        merge_groups = nmm_groups(
-            self, geometry, class_agnostic, threshold, overlap_metric
+        strategy = resolve_overlap_strategy(self, overlap_on)
+        merge_groups = strategy.nmm_groups(
+            self, class_agnostic, threshold, overlap_metric
         )
 
         result: list[Detections] = []
