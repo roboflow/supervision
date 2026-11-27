@@ -422,6 +422,20 @@ class TestFallbackMean:
 
         assert _mean(source, mask) == cv2.mean(source, mask)
 
+    @pytest.mark.parametrize(
+        "source",
+        [
+            pytest.param(np.full((7, 7), 100, dtype=np.uint8), id="uint8-7x7"),
+            pytest.param(np.full((7, 7, 3), 100, dtype=np.uint8), id="bgr-7x7"),
+            pytest.param(np.full((7, 7), -3000, dtype=np.int16), id="int16-7x7"),
+        ],
+    )
+    def test_matches_opencv_reciprocal_scaling_for_integers(
+        self, source: np.ndarray
+    ) -> None:
+        """Scale integer sums by the reciprocal count, bit for bit like OpenCV."""
+        assert _mean(source) == cv2.mean(source)
+
     def test_preserves_float32_precision(self) -> None:
         """Retain small values when averaging large float32 pixels."""
         source = np.array([[1e8, 1, -1e8]], dtype=np.float32)
