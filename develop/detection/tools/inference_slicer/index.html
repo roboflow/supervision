@@ -3835,7 +3835,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="n">slice_wh</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
 </span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="n">overlap_wh</span><span class="o">=</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">overlap_filter</span><span class="o">=</span><span class="n">sv</span><span class="o">.</span><span class="n">OverlapFilter</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">overlap_filter</span><span class="o">=</span><span class="n">sv</span><span class="o">.</span><span class="n">OverlapFilter</span><span class="o">.</span><span class="n">KEEP_ALL</span><span class="p">,</span>
 </span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="p">)</span>
 </span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>
 </span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;RGB.byte.tif&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">dataset</span><span class="p">:</span>
@@ -4049,16 +4049,16 @@ width and height are set to this value.</p>
 <h3 id="supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_filter)" class="doc doc-heading doc-heading-parameter">                  <code>overlap_filter</code>
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_filter)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.utils.iou_and_nms.OverlapFilter&lt;/code&gt;" href="../../utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.OverlapFilter">OverlapFilter</a> | <span title="str">str</span></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.utils.iou.OverlapFilter&lt;/code&gt;" href="../../utils/iou_and_nms/#supervision.detection.utils.iou.OverlapFilter">OverlapFilter</a> | <span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>Strategy to merge overlapping detections
-(<code>NON_MAX_SUPPRESSION</code>, <code>NON_MAX_MERGE</code>, or <code>NONE</code>).</p>
+(<code>NON_MAX_SUPPRESSION</code>, <code>NON_MAX_MERGE</code>, or <code>KEEP_ALL</code>).</p>
               </div>
             </td>
             <td>
-                  <code><span title="supervision.detection.utils.iou_and_nms.OverlapFilter.NON_MAX_SUPPRESSION">NON_MAX_SUPPRESSION</span></code>
+                  <code><span title="supervision.detection.utils.iou.OverlapFilter.NON_MAX_SUPPRESSION">NON_MAX_SUPPRESSION</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4082,7 +4082,7 @@ width and height are set to this value.</p>
 <h3 id="supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_metric)" class="doc doc-heading doc-heading-parameter">                  <code>overlap_metric</code>
 <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_metric)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.utils.iou_and_nms.OverlapMetric&lt;/code&gt;" href="../../utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.OverlapMetric">OverlapMetric</a> | <span title="str">str</span></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.utils.iou.OverlapMetric&lt;/code&gt;" href="../../utils/iou_and_nms/#supervision.detection.utils.iou.OverlapMetric">OverlapMetric</a> | <span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4090,7 +4090,7 @@ width and height are set to this value.</p>
               </div>
             </td>
             <td>
-                  <code><span title="supervision.detection.utils.iou_and_nms.OverlapMetric.IOU">IOU</span></code>
+                  <code><span title="supervision.detection.utils.iou.OverlapMetric.IOU">IOU</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -5162,7 +5162,7 @@ that benefit from batched forward passes:</p>
 </span><span id="__span-0-158"><a id="__codelineno-0-158" name="__codelineno-0-158"></a><span class="sd">        overlap_wh: Overlap size `(width, height)` between slices. If int, both</span>
 </span><span id="__span-0-159"><a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">            width and height are set to this value.</span>
 </span><span id="__span-0-160"><a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">        overlap_filter: Strategy to merge overlapping detections</span>
-</span><span id="__span-0-161"><a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">            (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `NONE`).</span>
+</span><span id="__span-0-161"><a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">            (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `KEEP_ALL`).</span>
 </span><span id="__span-0-162"><a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">        iou_threshold: IOU threshold used in merging overlap filtering.</span>
 </span><span id="__span-0-163"><a id="__codelineno-0-163" name="__codelineno-0-163"></a><span class="sd">        overlap_metric: Metric to compute overlap (`IOU` or `IOS`).</span>
 </span><span id="__span-0-164"><a id="__codelineno-0-164" name="__codelineno-0-164"></a><span class="sd">        thread_workers: Number of threads for concurrent slice inference.</span>
@@ -5614,7 +5614,7 @@ that benefit from batched forward passes:</p>
 </span><span id="__span-0-610"><a id="__codelineno-0-610" name="__codelineno-0-610"></a>
 </span><span id="__span-0-611"><a id="__codelineno-0-611" name="__codelineno-0-611"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_overlap_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">merged</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
 </span><span id="__span-0-612"><a id="__codelineno-0-612" name="__codelineno-0-612"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply the configured overlap filter strategy to merged detections.&quot;&quot;&quot;</span>
-</span><span id="__span-0-613"><a id="__codelineno-0-613" name="__codelineno-0-613"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_filter</span> <span class="o">==</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+</span><span id="__span-0-613"><a id="__codelineno-0-613" name="__codelineno-0-613"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_filter</span> <span class="o">==</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">KEEP_ALL</span><span class="p">:</span>
 </span><span id="__span-0-614"><a id="__codelineno-0-614" name="__codelineno-0-614"></a>            <span class="k">return</span> <span class="n">merged</span>
 </span><span id="__span-0-615"><a id="__codelineno-0-615" name="__codelineno-0-615"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_filter</span> <span class="o">==</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">NON_MAX_SUPPRESSION</span><span class="p">:</span>
 </span><span id="__span-0-616"><a id="__codelineno-0-616" name="__codelineno-0-616"></a>            <span class="k">return</span> <span class="n">merged</span><span class="o">.</span><span class="n">with_nms</span><span class="p">(</span>
@@ -6442,7 +6442,7 @@ geographic (non-projected). Reproject to a projected CRS
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 12:30:32 UTC">July 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 27, 2026 18:09:44 UTC">November 27, 2026</span>
   </span>
 
     

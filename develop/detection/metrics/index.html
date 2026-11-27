@@ -5432,9 +5432,9 @@ with identical <code>matrix</code>, <code>classes</code>, <code>conf_threshold</
 </span><span id="__span-0-1206"><a id="__codelineno-0-1206" name="__codelineno-0-1206"></a><span class="sd">                Detections with lower iou will be classified as `FP`.</span>
 </span><span id="__span-0-1207"><a id="__codelineno-0-1207" name="__codelineno-0-1207"></a><span class="sd">            metric_target: The type of detection data to use.</span>
 </span><span id="__span-0-1208"><a id="__codelineno-0-1208" name="__codelineno-0-1208"></a><span class="sd">                Determines IoU function</span>
-</span><span id="__span-0-1209"><a id="__codelineno-0-1209" name="__codelineno-0-1209"></a><span class="sd">                (:func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`</span>
+</span><span id="__span-0-1209"><a id="__codelineno-0-1209" name="__codelineno-0-1209"></a><span class="sd">                (:func:`~supervision.detection.utils.iou.box_iou_batch`</span>
 </span><span id="__span-0-1210"><a id="__codelineno-0-1210" name="__codelineno-0-1210"></a><span class="sd">                vs</span>
-</span><span id="__span-0-1211"><a id="__codelineno-0-1211" name="__codelineno-0-1211"></a><span class="sd">                :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`)</span>
+</span><span id="__span-0-1211"><a id="__codelineno-0-1211" name="__codelineno-0-1211"></a><span class="sd">                :func:`~supervision.detection.utils.iou.oriented_box_iou_batch`)</span>
 </span><span id="__span-0-1212"><a id="__codelineno-0-1212" name="__codelineno-0-1212"></a><span class="sd">                and coordinate column count. Masks</span>
 </span><span id="__span-0-1213"><a id="__codelineno-0-1213" name="__codelineno-0-1213"></a><span class="sd">                have no tensor row layout, so `MetricTarget.MASKS` is rejected</span>
 </span><span id="__span-0-1214"><a id="__codelineno-0-1214" name="__codelineno-0-1214"></a><span class="sd">                here; use</span>
@@ -6329,9 +6329,9 @@ Detections with lower iou will be classified as <code>FP</code>.</p>
               <div class="doc-md-description">
                 <p>The type of detection data to use.
 Determines IoU function
-(:func:<code>~supervision.detection.utils.iou_and_nms.box_iou_batch</code>
+(:func:<code>~supervision.detection.utils.iou.box_iou_batch</code>
 vs
-:func:<code>~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch</code>)
+:func:<code>~supervision.detection.utils.iou.oriented_box_iou_batch</code>)
 and coordinate column count. Masks
 have no tensor row layout, so <code>MetricTarget.MASKS</code> is rejected
 here; use
@@ -6522,9 +6522,9 @@ for masks.</p>
 </span><span id="__span-0-1206"><a id="__codelineno-0-1206" name="__codelineno-0-1206"></a><span class="sd">            Detections with lower iou will be classified as `FP`.</span>
 </span><span id="__span-0-1207"><a id="__codelineno-0-1207" name="__codelineno-0-1207"></a><span class="sd">        metric_target: The type of detection data to use.</span>
 </span><span id="__span-0-1208"><a id="__codelineno-0-1208" name="__codelineno-0-1208"></a><span class="sd">            Determines IoU function</span>
-</span><span id="__span-0-1209"><a id="__codelineno-0-1209" name="__codelineno-0-1209"></a><span class="sd">            (:func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`</span>
+</span><span id="__span-0-1209"><a id="__codelineno-0-1209" name="__codelineno-0-1209"></a><span class="sd">            (:func:`~supervision.detection.utils.iou.box_iou_batch`</span>
 </span><span id="__span-0-1210"><a id="__codelineno-0-1210" name="__codelineno-0-1210"></a><span class="sd">            vs</span>
-</span><span id="__span-0-1211"><a id="__codelineno-0-1211" name="__codelineno-0-1211"></a><span class="sd">            :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`)</span>
+</span><span id="__span-0-1211"><a id="__codelineno-0-1211" name="__codelineno-0-1211"></a><span class="sd">            :func:`~supervision.detection.utils.iou.oriented_box_iou_batch`)</span>
 </span><span id="__span-0-1212"><a id="__codelineno-0-1212" name="__codelineno-0-1212"></a><span class="sd">            and coordinate column count. Masks</span>
 </span><span id="__span-0-1213"><a id="__codelineno-0-1213" name="__codelineno-0-1213"></a><span class="sd">            have no tensor row layout, so `MetricTarget.MASKS` is rejected</span>
 </span><span id="__span-0-1214"><a id="__codelineno-0-1214" name="__codelineno-0-1214"></a><span class="sd">            here; use</span>
