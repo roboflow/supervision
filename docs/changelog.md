@@ -189,6 +189,8 @@ date_modified: 2026-11-26
 
 - The documentation site retries missing unversioned URLs under `/latest/` and preserves 404s for compact and dotted alpha and beta release tags. ([#3020](https://github.com/roboflow/supervision/pull/3020))
 
+- The NumPy fallback for `cv2.mean` now scales the sum by `1 / count` as OpenCV does, instead of dividing by the count. Integer images now get OpenCV's exact value: a flat 7x7 block of 100 averages to `99.99999999999999`, not `100.0`, so `sv.PixelateAnnotator` fills a box smaller than `pixel_size` with the same color on both backends. ([#2955](https://github.com/roboflow/supervision/pull/2955))
+
 ### 0.31.7 <small>Nov 11, 2026</small>
 
 - **Metrics**: `sv.metrics.MeanAveragePrecision` agrees with `pycocotools` on size buckets and crowd targets.
