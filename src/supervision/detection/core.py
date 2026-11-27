@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from collections import Counter
 from collections.abc import Callable, Iterator, Mapping, Sequence
+from copy import copy
 from dataclasses import dataclass, field
 from typing import Any, cast
 
@@ -3285,8 +3286,10 @@ class Detections:
         """
         Fuse overlapping detections with Weighted Box Fusion (WBF).
 
-        Unlike :meth:`with_nms`, which discards overlapping detections, and
-        :meth:`with_nmm`, which unions their boxes, WBF replaces each cluster of
+        Unlike :meth:`~supervision.detection.core.Detections.with_nms`, which
+        discards overlapping detections, and
+        :meth:`~supervision.detection.core.Detections.with_nmm`, which unions
+        their boxes, WBF replaces each cluster of
         overlapping detections with one detection whose box is the
         confidence-weighted average of the cluster and whose confidence is the
         cluster's mean confidence. This keeps information from every detection
@@ -3308,15 +3311,16 @@ class Detections:
             The fused confidence is the mean of the cluster, not its maximum, so it
             can be lower than the best detection's confidence. For example, `0.95`
             fused with an overlapping `0.15` gives `0.55`, where
-            :meth:`with_nms` would keep `0.95`. Revisit a confidence filter tuned
-            for NMS before switching.
+            :meth:`~supervision.detection.core.Detections.with_nms` would keep
+            `0.95`. Revisit a confidence filter tuned for NMS before switching.
 
         Each fused detection takes its `class_id`, `tracker_id` and `data` from
         the cluster's highest-confidence member (the first one on ties). Fused
-        detections come back ordered by descending confidence, with equal
-        confidences ordered by class id and then by cluster creation. When masks
-        are present and `overlap_on="box"`, a fused detection carries the union
-        of its members' masks, as :meth:`with_nmm` does.
+        detections come back ordered by descending confidence. Ties follow class
+        ID and then cluster creation order, or just cluster creation order with
+        `class_agnostic=True`. When masks are present and `overlap_on="box"`, a
+        fused detection carries the union of its members' masks, as
+        :meth:`~supervision.detection.core.Detections.with_nmm` does.
 
         Fusion runs in float64. The fused `xyxy` and `confidence` use the dtype
         that stacking `xyxy`, `confidence` and, unless `class_agnostic=True`,
@@ -3356,6 +3360,8 @@ class Detections:
         Raises:
             ValueError: If `confidence` is None.
             ValueError: If `class_id` is None and `class_agnostic` is False.
+            ValueError: If boxes have unordered or nonfinite coordinates, scores
+                are negative or nonfinite, or class-aware IDs are nonfinite.
             ValueError: If `threshold` is not within the closed range from 0 to 1.
             ValueError: If `num_models` is not `None` and not a positive integer.
             ValueError: If `overlap_on` is not a valid value, or is `"mask"` and
@@ -3437,11 +3443,31 @@ class Detections:
         _, first_visited = np.unique(labels[visit_order], return_index=True)
         winner_rows = visit_order[first_visited]
 
-        result = self.select(winner_rows)
+        mask = self.mask
+        if type(self) is Detections and isinstance(mask, CompactMask):
+            # Compact unions are built separately, so skip copying winner masks.
+            without_mask = copy(self)
+            without_mask.mask = None
+            result = without_mask.select(winner_rows)
+        else:
+            result = self.select(winner_rows)
+        if (
+            type(self) is Detections
+            and isinstance(mask, np.ndarray)
+            and mask.dtype == np.bool_
+            and isinstance(result.mask, np.ndarray)
+        ):
+            # select owns the winner masks. Read the other masks one at a time
+            # to avoid copying a dense cluster stack.
+            for row in np.flatnonzero(np.arange(len(self)) != winner_rows[labels]):
+                output_mask = result.mask[labels[row]]
+                np.logical_or(output_mask, mask[row], out=output_mask)
+        elif mask is not None:
+            # Keep the union independent of a subclass's selection behavior and
+            # preserve the output dtype rules for deprecated non-boolean masks.
+            result.mask = _union_cluster_masks(mask, labels, len(winner_rows))
         result.xyxy = fused_xyxy
         result.confidence = fused_confidence
-        if self.mask is not None:
-            result.mask = _union_cluster_masks(self.mask, labels, len(winner_rows))
         return result
 
     def remap_classes(
@@ -3568,20 +3594,15 @@ def _union_cluster_masks(
     labels: npt.NDArray[np.int64],
     cluster_count: int,
 ) -> npt.NDArray[np.bool_] | CompactMask:
-    """Union the masks of every fused cluster, one mask per cluster.
-
-    Used by :meth:`~supervision.detection.core.Detections.with_fusion` when
-    fusion ran on boxes but the detections carry masks. A cluster with one
-    member keeps its mask unchanged; a larger cluster gets the logical OR of its
-    members' masks. `CompactMask` inputs stay compressed.
+    """Union compact masks or preserve promotion for legacy dense masks.
 
     Args:
-        mask: Masks of all detections, dense `(N, H, W)` or a `CompactMask`.
+        mask: Compact or legacy dense masks of all detections.
         labels: Fused row of each detection, shape `(N,)`.
         cluster_count: Number of fused rows.
 
     Returns:
-        Masks aligned with the fused rows, in the input's mask type.
+        Masks aligned with the fused rows, with compact inputs kept compact.
     """
     members_by_cluster = np.split(
         np.argsort(labels, kind="stable"),

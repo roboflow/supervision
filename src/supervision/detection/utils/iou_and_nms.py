@@ -48,6 +48,8 @@ _KEEP_INDICES_NOTE = (
     "afterwards."
 )
 
+_CLASSLESS_ARRAY_NOTE = "For five-column predictions, pass class_agnostic=True."
+
 
 def _array_kernel_deprecation(replacement: str, note: str = "") -> str:
     """Build the warning template of a deprecated array-level kernel.
@@ -64,7 +66,7 @@ def _array_kernel_deprecation(replacement: str, note: str = "") -> str:
         "`%(source_name)s` is deprecated in `%(deprecated_in)s` and will be "
         f"removed in `%(remove_in)s`. Use {replacement} instead."
     )
-    return f"{template} {note}" if note else template
+    return " ".join(part for part in (template, _CLASSLESS_ARRAY_NOTE, note) if part)
 
 
 #: Upper bound, in bytes, of the temporary the packed intersection kernel builds
@@ -1758,7 +1760,7 @@ def _mask_non_max_suppression(
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
             "`sv.Detections(..., mask=masks).with_nms(threshold=..., "
-            "overlap_on='mask')`",
+            "overlap_metric=..., overlap_on='mask')`",
             _KEEP_INDICES_NOTE,
         )
     },
@@ -2107,7 +2109,7 @@ def _box_non_max_suppression(
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
             "`sv.Detections(xyxy=..., confidence=..., class_id=...)"
-            ".with_nms(threshold=...)`",
+            ".with_nms(threshold=..., overlap_metric=...)`",
             _KEEP_INDICES_NOTE,
         )
     },
@@ -3129,8 +3131,8 @@ def _box_weighted_fusion_clusters(
     order). `labels` is remapped after that sort, so it indexes the returned
     rows.
 
-    The inputs must already be validated: finite, ordered boxes, finite
-    non-negative scores and finite class ids.
+    Boxes must be finite and ordered, scores finite and non-negative, and any
+    class IDs finite.
 
     Args:
         boxes: Boxes in `[x1, y1, x2, y2]` format, shape `(n, 4)`.
@@ -3148,7 +3150,7 @@ def _box_weighted_fusion_clusters(
             member boxes in the fused box; the fused score is unaffected.
 
     Raises:
-        ValueError: If `box_weights` is not `"confidence"` or `"uniform"`.
+        ValueError: If the box weights or any input values are invalid.
 
     Returns:
         A tuple `(fused_boxes, fused_scores, labels)` with shapes `(m, 4)`, `(m,)`
@@ -3166,8 +3168,12 @@ def _box_weighted_fusion_clusters(
             np.empty(0, dtype=output_dtype),
             np.empty(0, dtype=np.int64),
         )
+    _validate_fusion_confidences(scores)
+    _validate_fusion_boxes(boxes)
     if categories is None:
         categories = np.zeros(box_count)
+    else:
+        _validate_fusion_class_ids(categories)
     unique_class_ids, class_positions = np.unique(categories, return_inverse=True)
 
     boxes_per_class: list[npt.NDArray[np.float64]] = []
@@ -3254,13 +3260,8 @@ def _box_weighted_box_fusion(
     if len(predictions) == 0:
         empty_result: npt.NDArray[np.floating] = predictions.astype(output_dtype)
         return empty_result
-    _validate_fusion_confidences(predictions[:, 4])
-    _validate_fusion_boxes(predictions[:, :4])
-
     has_class_column = predictions.shape[1] > 5
     class_ids = predictions[:, 5] if has_class_column else None
-    if class_ids is not None:
-        _validate_fusion_class_ids(class_ids)
     fused_boxes, fused_scores, labels = _box_weighted_fusion_clusters(
         predictions[:, :4],
         predictions[:, 4],
@@ -3489,7 +3490,8 @@ def _oriented_box_non_max_suppression(
     stream=_DEPRECATION_WARNING_STREAM,
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
-            "`sv.Detections(..., data={'xyxyxyxy': corners}).with_nms(threshold=...)`",
+            "`sv.Detections(..., data={'xyxyxyxy': corners}).with_nms("
+            "threshold=..., overlap_metric=..., overlap_on='box')`",
             _KEEP_INDICES_NOTE,
         )
     },
@@ -3608,7 +3610,7 @@ def _oriented_box_soft_non_max_suppression(
     **{
         _DEPRECATION_TEMPLATE_KEYWORD: _array_kernel_deprecation(
             "`sv.Detections(..., data={'xyxyxyxy': corners}).with_soft_nms("
-            "sigma=..., overlap_metric=...)`"
+            "sigma=..., overlap_metric=..., overlap_on='box')`"
         )
     },
 )

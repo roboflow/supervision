@@ -35,6 +35,40 @@ def _masked_pair() -> Detections:
 class TestWithFusion:
     """`Detections.with_fusion` fuses overlapping detections into one."""
 
+    @pytest.mark.parametrize(
+        ("overrides", "message"),
+        [
+            pytest.param(
+                {"confidence": np.array([0.9, -0.4])},
+                "Confidences .* must be finite and non-negative",
+                id="negative-confidence",
+            ),
+            pytest.param(
+                {"confidence": np.array([0.9, np.nan])},
+                "Confidences .* must be finite and non-negative",
+                id="nonfinite-confidence",
+            ),
+            pytest.param(
+                {"xyxy": np.array([[10.0, 0, 0, 10], [1.0, 1, 11, 11]])},
+                "Boxes .* must have finite",
+                id="reversed-corners",
+            ),
+            pytest.param(
+                {"class_id": np.array([0, np.nan])},
+                "Class ids .* must be finite",
+                id="nonfinite-class-id",
+            ),
+        ],
+    )
+    def test_rejects_invalid_operands(
+        self, overrides: dict[str, np.ndarray], message: str
+    ) -> None:
+        """Reject inputs the legacy array fusion API cannot cluster."""
+        detections = _pair(**overrides)
+
+        with pytest.raises(ValueError, match=message):
+            detections.with_fusion()
+
     def test_fuses_overlapping_boxes_with_confidence_weights(self) -> None:
         """The fused box is the confidence-weighted mean; the score is the mean."""
         detections = _pair()
@@ -316,6 +350,30 @@ class TestWithFusionMasks:
         expected = dense.with_fusion(overlap_on="box").mask
         assert np.array_equal(fused.mask.to_dense(), expected)
 
+    def test_compact_mask_subclass_keeps_its_selection_path(self) -> None:
+        """Fuse compact masks without reconstructing a Detections subclass."""
+
+        class CompactDetections(Detections):
+            def __init__(self, source: Detections) -> None:
+                """Initialize a compact detection subclass from existing rows."""
+                compact = source.to_compact_masks()
+                super().__init__(
+                    xyxy=compact.xyxy,
+                    mask=compact.mask,
+                    confidence=compact.confidence,
+                    class_id=compact.class_id,
+                )
+
+        dense = _masked_pair()
+        detections = CompactDetections(dense)
+
+        fused = detections.with_fusion(overlap_on="box")
+
+        assert isinstance(fused.mask, CompactMask)
+        assert np.array_equal(
+            fused.mask.to_dense(), dense.with_fusion(overlap_on="box").mask
+        )
+
     def test_unfused_detection_keeps_its_mask(self) -> None:
         """A detection that fuses with nothing keeps its mask unchanged."""
         masks = np.zeros((2, 20, 20), dtype=bool)
@@ -331,3 +389,32 @@ class TestWithFusionMasks:
         fused = detections.with_fusion(overlap_on="box")
 
         assert np.array_equal(fused.mask, masks)
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_reordered_clusters_keep_their_masks(self, compact: bool) -> None:
+        """Keep each union with its output row and leave input masks unchanged."""
+        masks = np.zeros((3, 20, 20), dtype=bool)
+        masks[0, :10, :10] = True
+        masks[1, 1:11, 1:11] = True
+        masks[2, 15:20, 15:20] = True
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [1, 1, 11, 11], [15, 15, 20, 20]]),
+            mask=masks.copy(),
+            confidence=np.array([0.9, 0.5, 0.8]),
+            class_id=np.zeros(3, dtype=int),
+        )
+        detections = detections.to_compact_masks() if compact else detections
+
+        fused = detections.with_fusion(overlap_on="box")
+
+        output_masks = (
+            fused.mask.to_dense() if isinstance(fused.mask, CompactMask) else fused.mask
+        )
+        input_masks = (
+            detections.mask.to_dense()
+            if isinstance(detections.mask, CompactMask)
+            else detections.mask
+        )
+        np.testing.assert_allclose(fused.confidence, [0.8, 0.7])
+        np.testing.assert_array_equal(output_masks, [masks[2], masks[0] | masks[1]])
+        np.testing.assert_array_equal(input_masks, masks)

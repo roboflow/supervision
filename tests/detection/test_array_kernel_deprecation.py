@@ -43,44 +43,43 @@ _NMS_CASES = [
         box_non_max_suppression,
         _box_non_max_suppression,
         (_PREDICTIONS,),
-        (0.1, OverlapMetric.IOS),
         id="box-nms",
     ),
     pytest.param(
         mask_non_max_suppression,
         _mask_non_max_suppression,
         (_PREDICTIONS, _MASKS),
-        (0.1, OverlapMetric.IOS),
         id="mask-nms",
     ),
     pytest.param(
         oriented_box_non_max_suppression,
         _oriented_box_non_max_suppression,
         (_PREDICTIONS, _CORNERS),
-        (0.1, OverlapMetric.IOS),
         id="oriented-nms",
     ),
     pytest.param(
         box_soft_non_max_suppression,
         _box_soft_non_max_suppression,
         (_PREDICTIONS,),
-        (0.1, OverlapMetric.IOS),
         id="box-soft-nms",
     ),
     pytest.param(
         mask_soft_non_max_suppression,
         _mask_soft_non_max_suppression,
         (_PREDICTIONS, _MASKS),
-        (0.1, OverlapMetric.IOS),
         id="mask-soft-nms",
     ),
     pytest.param(
         oriented_box_soft_non_max_suppression,
         _oriented_box_soft_non_max_suppression,
         (_PREDICTIONS, _CORNERS),
-        (0.1, OverlapMetric.IOS),
         id="oriented-soft-nms",
     ),
+]
+
+_NMS_TUNING = [
+    pytest.param((0.1, OverlapMetric.IOU), id="threshold-only"),
+    pytest.param((0.5, OverlapMetric.IOS), id="metric-only"),
 ]
 
 _THRESHOLD_NAMES = {"nms": "iou_threshold", "soft": "sigma"}
@@ -95,7 +94,8 @@ def _threshold_name(public: Callable[..., Any]) -> str:
 class TestDeprecatedKernelsDelegate:
     """Deprecated public kernels forward every argument to their private kernel."""
 
-    @pytest.mark.parametrize(("public", "private", "required", "tuning"), _NMS_CASES)
+    @pytest.mark.parametrize(("public", "private", "required"), _NMS_CASES)
+    @pytest.mark.parametrize("tuning", _NMS_TUNING)
     def test_positional_arguments_reach_the_kernel(
         self,
         public: Callable[..., Any],
@@ -111,7 +111,8 @@ class TestDeprecatedKernelsDelegate:
         assert np.array_equal(result, expected)
         assert not np.array_equal(result, private(*required))
 
-    @pytest.mark.parametrize(("public", "private", "required", "tuning"), _NMS_CASES)
+    @pytest.mark.parametrize(("public", "private", "required"), _NMS_CASES)
+    @pytest.mark.parametrize("tuning", _NMS_TUNING)
     def test_keyword_arguments_reach_the_kernel(
         self,
         public: Callable[..., Any],
@@ -127,6 +128,7 @@ class TestDeprecatedKernelsDelegate:
         result = public(*required, **keywords)
 
         assert np.array_equal(result, expected)
+        assert not np.array_equal(result, private(*required))
 
     @pytest.mark.parametrize(
         ("public", "private", "required"),
@@ -160,22 +162,34 @@ class TestDeprecatedKernelsDelegate:
         assert np.array_equal(by_position, expected)
         assert np.array_equal(by_keyword, expected)
 
-    def test_weighted_box_fusion_forwards_every_argument(self) -> None:
+    @pytest.mark.parametrize(
+        ("threshold", "metric", "num_models"),
+        [
+            pytest.param(0.1, OverlapMetric.IOU, None, id="threshold-only"),
+            pytest.param(0.5, OverlapMetric.IOS, None, id="metric-only"),
+            pytest.param(0.5, OverlapMetric.IOU, 2, id="model-count-only"),
+        ],
+    )
+    def test_weighted_box_fusion_forwards_every_argument(
+        self, threshold: float, metric: OverlapMetric, num_models: int | None
+    ) -> None:
         """`iou_threshold`, `overlap_metric` and `num_models` reach the kernel."""
         predictions = np.array(
             [[0, 0, 10, 10, 0.9, 0], [0, 0, 4, 4, 0.8, 0], [50, 50, 60, 60, 0.7, 0]],
             dtype=float,
         )
 
-        by_position = box_weighted_box_fusion(predictions, 0.1, OverlapMetric.IOS, 2)
+        by_position = box_weighted_box_fusion(
+            predictions, threshold, metric, num_models
+        )
         by_keyword = box_weighted_box_fusion(
             predictions,
-            iou_threshold=0.1,
-            overlap_metric=OverlapMetric.IOS,
-            num_models=2,
+            iou_threshold=threshold,
+            overlap_metric=metric,
+            num_models=num_models,
         )
 
-        expected = _box_weighted_box_fusion(predictions, 0.1, OverlapMetric.IOS, 2)
+        expected = _box_weighted_box_fusion(predictions, threshold, metric, num_models)
         assert np.array_equal(by_position, expected)
         assert np.array_equal(by_keyword, expected)
         assert not np.array_equal(expected, _box_weighted_box_fusion(predictions))
