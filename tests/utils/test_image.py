@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -393,6 +393,65 @@ def test_scale_image_keeps_at_least_one_pixel_per_axis(
 
     # then
     assert result.shape == (*expected_hw, 3)
+
+
+class TestScaleImage:
+    @pytest.mark.parametrize(
+        ("image_hw", "scale_factor", "expected_hw"),
+        [
+            pytest.param((720, 1280), 0.7, (504, 896), id="720p-at-0.7"),
+            pytest.param((720, 1280), 0.35, (252, 448), id="720p-at-0.35"),
+            pytest.param((100, 100), 0.29, (29, 29), id="square-at-0.29"),
+            pytest.param((600, 600), 0.57, (342, 342), id="square-at-0.57"),
+            pytest.param((100, 100), 0.255, (25, 25), id="fractional-rounds-down"),
+        ],
+    )
+    def test_keeps_whole_product_size(
+        self,
+        image_hw: tuple[int, int],
+        scale_factor: float,
+        expected_hw: tuple[int, int],
+    ) -> None:
+        """A whole product of size and factor is kept despite float error."""
+        # given
+        image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+        # when
+        result = scale_image(image=image, scale_factor=scale_factor)
+
+        # then
+        assert result.shape == (*expected_hw, 3)
+
+    @pytest.mark.parametrize(
+        "scale_factor",
+        [
+            pytest.param(np.float16(1), id="float16"),
+            pytest.param(np.float32(1), id="float32"),
+        ],
+    )
+    def test_preserves_size_at_numpy_unity(
+        self, scale_factor: np.float16 | np.float32
+    ) -> None:
+        """A NumPy scalar factor of one preserves each axis."""
+        # given
+        image = np.zeros((9, 13, 3), dtype=np.uint8)
+
+        # when
+        result = scale_image(image=image, scale_factor=cast(float, scale_factor))
+
+        # then
+        assert result.shape == (9, 13, 3)
+
+    def test_truncates_genuine_fraction_near_integer(self) -> None:
+        """A genuinely fractional size below a whole pixel is truncated."""
+        # given
+        image = np.zeros((720, 1280, 3), dtype=np.uint8)
+
+        # when
+        result = scale_image(image=image, scale_factor=0.9999999999999)
+
+        # then
+        assert result.shape == (719, 1279, 3)
 
 
 def test_letterbox_image_for_extreme_aspect_ratio() -> None:
