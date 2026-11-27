@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 import numpy.typing as npt
 
@@ -75,7 +77,7 @@ def frame_to_corners(
     origin: npt.NDArray[np.number],
     cos: float,
     sin: float,
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.floating]:
     """Map points from a seed frame back to the image: rotate, then translate.
 
     Args:
@@ -85,8 +87,7 @@ def frame_to_corners(
         sin: Sine of the frame angle, from :func:`seed_frame`.
 
     Returns:
-        The points in image coordinates, float64, same shape as `local`.
+        The points in image coordinates, at least float64, same shape as `local`.
     """
     to_world = np.array([[cos, sin], [-sin, cos]], dtype=np.float64)
-    world: npt.NDArray[np.float64] = local @ to_world + origin.astype(np.float64)
-    return world
+    return cast(npt.NDArray[np.floating], local @ to_world + origin)

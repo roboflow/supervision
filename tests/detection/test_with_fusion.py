@@ -702,3 +702,89 @@ class TestWithFusionOrientedBoxes:
 
         with pytest.raises(ValueError, match=message):
             detections.with_fusion()
+
+    @pytest.mark.parametrize(
+        ("width", "shift", "threshold", "expected"),
+        [
+            pytest.param(1, 0, 0.5, 1, id="identical-unit-boxes"),
+            pytest.param(2, 1, 0.4, 2, id="one-pixel-overlap"),
+            pytest.param(2, 1, 0.3, 1, id="overlap-above-threshold"),
+        ],
+    )
+    def test_integer_overlap_survives_large_origin(
+        self, width: int, shift: int, threshold: float, expected: int
+    ) -> None:
+        """Integer translation does not change cluster membership."""
+        local = np.array([[0, 0, width, 2], [shift, 0, width + shift, 2]])
+        corners = _axis_corners(local + np.array([2**53, 0, 2**53, 0]))
+
+        result = _oriented(corners, [0.9, 0.8]).with_fusion(threshold=threshold)
+
+        assert len(result) == expected
+
+    def test_reversed_oriented_bounds_raise(self) -> None:
+        """Oriented fusion rejects malformed axis-aligned bounds."""
+        corners = _axis_corners(np.array([[0, 0, 10, 10]]))
+        detections = _oriented(corners, [0.9], xyxy=np.array([[10, 0, 0, 10]]))
+
+        with pytest.raises(ValueError, match="x1 <= x2"):
+            detections.with_fusion()
+
+    def test_fused_integer_corners_keep_representable_edge(self) -> None:
+        """World coordinates round after the local offsets are added."""
+        origin = 2**53 + 1
+        xyxy = np.array([[origin, 0, origin + 1, 2]] * 2)
+        detections = _oriented(_axis_corners(xyxy), [0.9, 0.8])
+
+        result = detections.with_fusion()
+
+        assert len(result) == 1
+        assert result.xyxy[0, 2] == float(origin + 1)
+
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+        reason="requires extended precision",
+    )
+    def test_singleton_and_nmm_keep_extended_origin(self) -> None:
+        """The output cast and NMM frame preserve an extended-precision origin."""
+        origin = np.longdouble(2**53) + 1
+        xyxy = np.array([[origin, 0, origin + 8, 8]], dtype=np.longdouble)
+        corners = _axis_corners(xyxy)
+        singleton = _oriented(corners, [0.9])
+        pair = _oriented(np.repeat(corners, 2, axis=0), [0.9, 0.8])
+
+        fused = singleton.with_fusion()
+        merged = pair.with_nmm()
+
+        np.testing.assert_array_equal(fused.xyxy, xyxy)
+        np.testing.assert_array_equal(merged.data[ORIENTED_BOX_COORDINATES], corners)
+
+    @pytest.mark.parametrize(
+        ("winner", "extent", "expected"),
+        [
+            pytest.param(
+                0,
+                3.25,
+                [[-3.25, -3.25], [3.25, -3.25], [3.25, 3.25], [-3.25, 3.25]],
+                id="square-wins",
+            ),
+            pytest.param(
+                1, 4.5, [[0, -4.5], [4.5, 0], [0, 4.5], [-4.5, 0]], id="diamond-wins"
+            ),
+        ],
+    )
+    def test_mixed_angle_extrema_follow_the_winner(
+        self, winner: int, extent: float, expected: list[list[float]]
+    ) -> None:
+        """Mixed angles produce the weighted extents measured in the winner's frame."""
+        square = np.array([[-3, -3], [3, -3], [3, 3], [-3, 3]])
+        diamond = np.array([[0, -4], [4, 0], [0, 4], [-4, 0]])
+        corners = np.stack([square, diamond])[[1 - winner, winner]]
+
+        result = _oriented(corners, [0.25, 0.75]).with_fusion()
+
+        assert len(result) == 1
+        np.testing.assert_allclose(
+            result.data[ORIENTED_BOX_COORDINATES][0], expected, atol=1e-12
+        )
+        np.testing.assert_allclose(result.xyxy, [[-extent, -extent, extent, extent]])

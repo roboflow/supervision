@@ -12,6 +12,7 @@ from deprecate import deprecated, void
 
 from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.detection.utils._obb_frame import (
+    _offsets_from_origin,
     corners_to_frame,
     frame_to_corners,
     seed_frame,
@@ -1541,6 +1542,11 @@ def _fuse_single_class_oriented_boxes(
             in creation order; `box_clusters[i]` is the cluster input box `i` joined.
     """
     corners_float = corners.astype(np.float64)
+    # At this scale even float64 spacing reaches one pixel. Match in each
+    # seed's translated coordinate system so absolute rounding cannot change IoU.
+    use_local_overlap = np.issubdtype(corners.dtype, np.integer) and (
+        np.any(corners >= 2**52) or np.any(corners <= -(2**52))
+    )
     scores_float = scores.astype(np.float64)
     box_count = len(corners)
     box_clusters = np.empty(box_count, dtype=np.int64)
@@ -1560,6 +1566,7 @@ def _fuse_single_class_oriented_boxes(
     uniform_boxes = box_weights == "uniform"
     cluster_sizes = np.zeros(box_count, dtype=np.int64)
     cluster_count = 0
+    zero_origin = np.zeros(2, dtype=np.float64)
     if sources is None:
         source_codes = None
         source_in_cluster = None
@@ -1573,12 +1580,32 @@ def _fuse_single_class_oriented_boxes(
         box = corners[box_index]
         score = scores_float[box_index]
         cluster = -1
-        if cluster_count:
+        overlaps: npt.NDArray[np.floating]
+        if cluster_count and use_local_overlap:
+            candidates = _offsets_from_origin(
+                box, cluster_origins[:cluster_count, np.newaxis, :]
+            )
+            overlaps = np.zeros(cluster_count, dtype=np.float64)
+            running = fused_corners[:cluster_count]
+            # Only compare pairs whose local envelopes have positive overlap.
+            possible = np.all(
+                np.minimum(running.max(axis=1), candidates.max(axis=1))
+                > np.maximum(running.min(axis=1), candidates.min(axis=1)),
+                axis=1,
+            )
+            for index in np.flatnonzero(possible):
+                overlaps[index] = oriented_box_iou_batch(
+                    running[index : index + 1],
+                    candidates[index : index + 1],
+                    overlap_metric,
+                )[0, 0]
+        elif cluster_count:
             overlaps = oriented_box_iou_batch(
                 fused_corners[:cluster_count],
                 corners_float[box_index][np.newaxis],
                 overlap_metric,
             )[:, 0]
+        if cluster_count:
             eligible = None
             if source_in_cluster is not None and source_codes is not None:
                 eligible = ~source_in_cluster[:cluster_count, source_codes[box_index]]
@@ -1589,8 +1616,11 @@ def _fuse_single_class_oriented_boxes(
             # A new cluster starts exactly at its seed's corners, so an unfused box
             # comes back value-identical and a later box whose overlap equals the
             # threshold is not tipped over it by rounding.
-            fused_corners[cluster] = corners_float[box_index]
             cluster_origins[cluster] = box[0]
+            if use_local_overlap:
+                fused_corners[cluster] = _offsets_from_origin(box, box[0])
+            else:
+                fused_corners[cluster] = corners_float[box_index]
             frame_cos[cluster], frame_sin[cluster] = seed_frame(box)
             cluster_exponents[cluster] = np.frexp(score)[1]
 
@@ -1630,15 +1660,27 @@ def _fuse_single_class_oriented_boxes(
                 [mean_lowest[0], mean_highest[1]],
             ]
         )
+        origin = zero_origin if use_local_overlap else cluster_origins[cluster]
         fused_corners[cluster] = frame_to_corners(
-            rectangle, cluster_origins[cluster], frame_cos[cluster], frame_sin[cluster]
+            rectangle, origin, frame_cos[cluster], frame_sin[cluster]
         )
 
     sizes = cluster_sizes[:cluster_count]
     mean_scores = np.ldexp(
         weight_sums[:cluster_count] / sizes, cluster_exponents[:cluster_count]
     )
-    return fused_corners[:cluster_count], mean_scores, sizes, box_clusters
+    output = fused_corners[:cluster_count]
+    if use_local_overlap:
+        origins = cluster_origins[:cluster_count, np.newaxis, :]
+        # Multiples of 2048 fit exactly in float64 throughout the 64-bit integer
+        # range. Add the low bits to the local offsets before the final rounding.
+        low_bits = origins % 2048
+        output += low_bits
+        output += origins - low_bits
+        # Use the original cast for singletons, avoiding a second rounding.
+        singleton_rows = sizes[box_clusters] == 1
+        output[box_clusters[singleton_rows]] = corners_float[singleton_rows]
+    return output, mean_scores, sizes, box_clusters
 
 
 def _oriented_box_weighted_fusion_clusters(

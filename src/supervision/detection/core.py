@@ -3337,8 +3337,9 @@ class Detections:
         confidence-weighted means of the members' extremes, rotated back. The fused
         corners go to `data["xyxyxyxy"]` in the input's layout (`(N, 4, 2)` or
         `(N, 8)`) as float64, and `xyxy` is their envelope. A detection that
-        joins no cluster keeps its corners and `xyxy`. Its overlap is exact for
-        rotated boxes, but computed in float32, so a detection whose overlap sits
+        joins no cluster keeps its corners and `xyxy` to the precision of their
+        output dtypes. Its overlap is computed from the rotated polygons
+        in float32, so a detection whose overlap sits
         within rounding of `threshold` can cluster differently from the
         axis-aligned path.
 
@@ -3535,7 +3536,7 @@ class Detections:
         The corners go to `data[ORIENTED_BOX_COORDINATES]` in the layout of the
         input, `(N, 4, 2)` or flat `(N, 8)`, and `xyxy` is their envelope. A cluster
         of one detection keeps its input `xyxy`, so an unfused detection comes back
-        value-identical (its corners already are, as float64).
+        unchanged to the precision of the respective output dtypes.
 
         Args:
             result: The selected winners, modified in place.
@@ -3547,10 +3548,10 @@ class Detections:
         input_corners = np.asarray(self.data[ORIENTED_BOX_COORDINATES])
         envelope = np.concatenate(
             [fused_corners.min(axis=1), fused_corners.max(axis=1)], axis=1
-        )
+        ).astype(output_dtype)
         unfused = np.bincount(labels, minlength=len(fused_corners)) == 1
         envelope[unfused] = self.xyxy[winner_rows[unfused]]
-        result.xyxy = envelope.astype(output_dtype)
+        result.xyxy = envelope
         if input_corners.ndim == 2:
             fused_corners = fused_corners.reshape(len(fused_corners), 8)
         result.data[ORIENTED_BOX_COORDINATES] = fused_corners

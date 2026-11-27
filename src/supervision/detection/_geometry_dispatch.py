@@ -28,6 +28,7 @@ from supervision.detection.utils.nms import (
     _oriented_box_non_max_suppression,
     _oriented_box_soft_non_max_suppression,
     _oriented_box_weighted_fusion_clusters,
+    _validate_fusion_boxes,
     mask_non_max_merge,
     oriented_box_non_max_merge,
 )
@@ -203,6 +204,7 @@ def _oriented_box_fusion_operands(
         Keyword arguments for the oriented-box fusion kernel, with the corners
             as `(n, 4, 2)`; flat `(n, 8)` corners are reshaped.
     """
+    _validate_fusion_boxes(detections.xyxy)
     corners = np.asarray(detections.data[ORIENTED_BOX_COORDINATES])
     if corners.ndim == 2 and corners.shape[1] == 8:
         corners = corners.reshape(-1, 4, 2)
