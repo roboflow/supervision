@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from fractions import Fraction
+
 import numpy as np
 import pytest
 
-from supervision.detection.utils._fusion import _box_overlap_one_to_many
+from supervision.detection.utils._fusion import (
+    _box_overlap_one_to_many,
+    _box_weighted_fusion_clusters,
+)
 from supervision.detection.utils.iou import OverlapMetric, _box_overlap_float64
 
 
@@ -106,3 +111,73 @@ class TestBoxOverlapOneToMany:
 
         with pytest.raises(ValueError, match="not supported"):
             _box_overlap_one_to_many(boxes, box, "giou")  # type: ignore[arg-type]
+
+
+def _exact_mean(values: list[float]) -> float:
+    """Mean of floats computed in exact arithmetic, rounded once."""
+    return float(sum(Fraction(value) for value in values) / len(values))
+
+
+class TestExactArithmeticPath:
+    """Coordinates near the float64 limit take the exact path and stay finite."""
+
+    @staticmethod
+    def _huge_pair() -> np.ndarray:
+        """Two overlapping boxes near 6e307 whose areas are still finite."""
+        base = 6e307
+        step = float(np.spacing(base))
+        return np.array(
+            [
+                [base, 0.0, base + 8 * step, 100.0],
+                [base + step, 0.0, base + 9 * step, 100.0],
+            ]
+        )
+
+    def test_uniform_weights_give_the_exact_mean_box(self) -> None:
+        """Uniform members average with equal weight, without overflowing."""
+        boxes = self._huge_pair()
+
+        fused, _, labels = _box_weighted_fusion_clusters(
+            boxes,
+            np.array([0.9, 0.8]),
+            None,
+            0.5,
+            OverlapMetric.IOU,
+            box_weights="uniform",
+        )
+
+        assert labels.tolist() == [0, 0]
+        expected = [_exact_mean(boxes[:, column].tolist()) for column in range(4)]
+        assert fused[0].tolist() == expected
+
+    def test_an_all_zero_cluster_averages_its_boxes_equally(self) -> None:
+        """Confidence weights of zero fall back to the plain exact mean."""
+        boxes = self._huge_pair()
+
+        fused, scores, labels = _box_weighted_fusion_clusters(
+            boxes, np.array([0.0, 0.0]), None, 0.5, OverlapMetric.IOU
+        )
+
+        assert labels.tolist() == [0, 0]
+        assert scores.tolist() == [0.0]
+        expected = [_exact_mean(boxes[:, column].tolist()) for column in range(4)]
+        assert fused[0].tolist() == expected
+
+
+class TestSourceWeightsArguments:
+    """The private clustering kernels check source weights as the public methods do."""
+
+    def test_source_weights_without_num_models_raises(self) -> None:
+        """One weight per source needs the number of sources."""
+        boxes = np.array([[0.0, 0.0, 10.0, 10.0], [1.0, 1.0, 11.0, 11.0]])
+
+        with pytest.raises(ValueError, match="requires num_models"):
+            _box_weighted_fusion_clusters(
+                boxes,
+                np.array([0.9, 0.8]),
+                None,
+                0.5,
+                OverlapMetric.IOU,
+                sources=np.array([0, 1]),
+                source_weights=[1.0, 2.0],
+            )
