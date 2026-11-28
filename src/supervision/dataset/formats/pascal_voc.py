@@ -92,17 +92,22 @@ def object_to_pascal_voc(
     ymax.text = str(ymax_value)
 
     if polygon is not None:
-        # Rebind instead of `+= 1`: the caller's polygon must not be shifted.
-        polygon = polygon + 1
-        object_polygon = SubElement(root, "polygon")
-        for index, point in enumerate(polygon, start=1):
-            x_coordinate, y_coordinate = point
-            x = SubElement(object_polygon, f"x{index}")
-            x.text = str(x_coordinate)
-            y = SubElement(object_polygon, f"y{index}")
-            y.text = str(y_coordinate)
+        _append_polygon(root, polygon)
 
     return root
+
+
+def _append_polygon(root: Element, polygon: npt.NDArray[np.number]) -> None:
+    """Append a ``<polygon>`` child to ``root``, shifting vertices to 1-based."""
+    # Rebind instead of `+= 1`: the caller's polygon must not be shifted.
+    polygon = polygon + 1
+    object_polygon = SubElement(root, "polygon")
+    for index, point in enumerate(polygon, start=1):
+        x_coordinate, y_coordinate = point
+        x = SubElement(object_polygon, f"x{index}")
+        x.text = str(x_coordinate)
+        y = SubElement(object_polygon, f"y{index}")
+        y.text = str(y_coordinate)
 
 
 def detections_to_pascal_voc(
@@ -117,8 +122,10 @@ def detections_to_pascal_voc(
     """Converts a :class:`~supervision.detection.core.Detections` object to Pascal VOC
     XML format.
 
-    A mask is written as one polygon object per connected component, with each hole
-    joined to its outer contour by a zero-width seam.
+    A mask is written as one object with one polygon per connected component, which
+    :func:`~supervision.dataset.formats.pascal_voc.load_pascal_voc_annotations`
+    merges back into one mask. Each hole is joined to its outer contour by a
+    zero-width seam.
 
     Args:
         detections: A :class:`~supervision.detection.core.Detections` object
@@ -212,14 +219,22 @@ def detections_to_pascal_voc(
                 # Preserve area-filtered omissions; only invalid contours fall back.
                 annotation.append(object_to_pascal_voc(xyxy=xyxy, name=name))
                 continue
-            for polygon in polygons:
-                # Contour extrema are outermost mask pixels; the VOC maximum is
-                # the far edge immediately after the last covered pixel.
-                xyxy = polygon_to_xyxy(polygon=polygon) + np.array([0, 0, 1, 1])
-                next_object = object_to_pascal_voc(
-                    xyxy=xyxy, name=name, polygon=polygon
-                )
-                annotation.append(next_object)
+            if not polygons:
+                # Every contour fell outside the area filters: omit the object.
+                continue
+            # One detection stays one object: its disconnected parts become further
+            # <polygon> children, and the box spans all of them. Contour extrema
+            # are outermost mask pixels; the VOC maximum is the far edge
+            # immediately after the last covered pixel.
+            xyxy = polygon_to_xyxy(polygon=np.concatenate(polygons)) + np.array(
+                [0, 0, 1, 1]
+            )
+            next_object = object_to_pascal_voc(
+                xyxy=xyxy, name=name, polygon=polygons[0]
+            )
+            for polygon in polygons[1:]:
+                _append_polygon(next_object, polygon)
+            annotation.append(next_object)
         else:
             next_object = object_to_pascal_voc(xyxy=xyxy, name=name)
             annotation.append(next_object)
