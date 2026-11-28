@@ -1553,7 +1553,7 @@ class TestDetectionsFuse:
             sources=[0, 1, 1], num_models=2
         )
 
-        result = Detections.fuse([model_a, model_b])
+        result = Detections.fuse(model_a, model_b)
 
         np.testing.assert_array_equal(result.xyxy, expected.xyxy)
         np.testing.assert_array_equal(result.confidence, expected.confidence)
@@ -1562,7 +1562,7 @@ class TestDetectionsFuse:
         """An empty input still lowers the confidence, unlike in `merge`."""
         model = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
 
-        result = Detections.fuse([model, Detections.empty()])
+        result = Detections.fuse(model, Detections.empty())
 
         np.testing.assert_allclose(result.confidence, [0.45])
 
@@ -1571,7 +1571,7 @@ class TestDetectionsFuse:
         model_a = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
         model_b = _fusion_detections("box", [(1, 1, 11, 11)], [0.8])
 
-        result = Detections.fuse([model_a, model_b], source_weights=[3.0, 1.0])
+        result = Detections.fuse(model_a, model_b, source_weights=[3.0, 1.0])
 
         np.testing.assert_allclose(result.confidence, [0.875])
 
@@ -1588,7 +1588,7 @@ class TestDetectionsFuse:
             "box", [(1, 1, 11, 11)], [0.8], data={"name": np.array(["b"])}
         )
 
-        result = Detections.fuse([model_a, model_b])
+        result = Detections.fuse(model_a, model_b)
 
         assert result.tracker_id is None
         assert list(result.data) == ["name"]
@@ -1600,7 +1600,7 @@ class TestDetectionsFuse:
         model_a = _with_masks(masks[:1], [0.6])
         model_b = _with_masks(masks[1:], [0.6])
 
-        result = Detections.fuse([model_a, model_b])
+        result = Detections.fuse(model_a, model_b)
 
         np.testing.assert_array_equal(result.mask[0], masks.any(axis=0))
 
@@ -1610,7 +1610,7 @@ class TestDetectionsFuse:
         dense = _with_masks(masks, [1.0], xyxy=np.array([[0.0, 0.0, 1.0, 1.0]]))
         compact = dense.to_compact_masks()
 
-        result = Detections.fuse([dense, compact])
+        result = Detections.fuse(dense, compact)
 
         assert isinstance(result.mask, CompactMask)
         np.testing.assert_array_equal(result.mask.to_dense(), masks)
@@ -1633,7 +1633,7 @@ class TestDetectionsFuse:
             data={ORIENTED_BOX_COORDINATES: second, "name": np.array(["b"])},
         )
 
-        result = Detections.fuse([a, b])
+        result = Detections.fuse(a, b)
 
         actual_corners = np.asarray(result.data[ORIENTED_BOX_COORDINATES])
         assert actual_corners.shape == first.shape
@@ -1645,7 +1645,7 @@ class TestDetectionsFuse:
         a = _pair(metadata={"image": "scene", "model": "a", "extra": 1})
         b = _pair(metadata={"image": "scene", "model": "b"})
 
-        result = Detections.fuse([a, b])
+        result = Detections.fuse(a, b)
 
         assert result.metadata == {"image": "scene"}
         assert a.metadata == {"image": "scene", "model": "a", "extra": 1}
@@ -1653,11 +1653,36 @@ class TestDetectionsFuse:
 
     def test_all_empty_inputs_give_empty_detections(self) -> None:
         """Nothing to fuse is empty, after the arguments were validated."""
-        result = Detections.fuse([Detections.empty(), Detections.empty()])
+        result = Detections.fuse(Detections.empty(), Detections.empty())
 
         assert len(result) == 0
 
-    def test_an_empty_list_raises(self) -> None:
+    def test_no_inputs_raises(self) -> None:
         """At least one input is needed to count the models."""
         with pytest.raises(ValueError, match="at least one"):
-            Detections.fuse([])
+            Detections.fuse()
+
+    def test_unpacking_a_list_equals_listing_the_inputs(self) -> None:
+        """`fuse(*inputs)` is the way to fuse a list, with the keyword arguments."""
+        model_a = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
+        model_b = _fusion_detections("box", [(1, 1, 11, 11)], [0.8])
+        expected = Detections.fuse(model_a, model_b, threshold=0.7)
+
+        result = Detections.fuse(*[model_a, model_b], threshold=0.7)
+
+        np.testing.assert_array_equal(result.xyxy, expected.xyxy)
+        np.testing.assert_array_equal(result.confidence, expected.confidence)
+
+    @pytest.mark.parametrize(
+        "argument",
+        [
+            pytest.param([Detections.empty()], id="list"),
+            pytest.param(0.6, id="positional-threshold"),
+        ],
+    )
+    def test_a_non_detections_argument_raises_with_a_hint(
+        self, argument: object
+    ) -> None:
+        """A list or a positional option is rejected, naming how to unpack a list."""
+        with pytest.raises(TypeError, match=r"fuse\(\*detections_list\)"):
+            Detections.fuse(Detections.empty(), argument)  # type: ignore[arg-type]
