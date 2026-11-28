@@ -24,7 +24,6 @@ from supervision.detection.utils._obb_frame import (
 )
 from supervision.detection.utils.iou import (
     OverlapMetric,
-    _box_overlap_float64,
     _validate_iou_threshold,
     oriented_box_iou_batch,
 )
@@ -245,6 +244,62 @@ def _validate_fusion_class_ids(class_ids: npt.NDArray[np.number]) -> None:
         )
 
 
+def _box_overlap_one_to_many(
+    boxes: npt.NDArray[np.float64],
+    box: npt.NDArray[np.float64],
+    overlap_metric: OverlapMetric,
+) -> npt.NDArray[np.float64]:
+    """Return the overlap of one box with every row of `boxes`.
+
+    Equal to `_box_overlap_float64(boxes, box[np.newaxis, :], overlap_metric)[:, 0]`,
+    bit for bit, for float64 input: it runs the same float64 operations in the same
+    order. It is the one-against-many form that Weighted Box Fusion calls once per
+    visited box, so it skips the general function's per-call setup (metric
+    parsing, dtype checks, transposes and temporary allocations), which costs more
+    than the arithmetic when the number of clusters is small.
+
+    Args:
+        boxes: Boxes in `[x1, y1, x2, y2]` format, shape `(k, 4)` and float64;
+            `k` may be `0`.
+        box: The candidate box, shape `(4,)` and float64.
+        overlap_metric: `OverlapMetric.IOU` or `OverlapMetric.IOS`.
+
+    Returns:
+        The overlaps, shape `(k,)`; zero where the normalising area is not
+            positive.
+
+    Raises:
+        ValueError: If `overlap_metric` is neither IOU nor IOS.
+    """
+    x_min, y_min, x_max, y_max = boxes.T
+    box_x_min, box_y_min, box_x_max, box_y_max = box
+    # Intersection extents, clipped at zero. `np.maximum(..., 0.0)` returns what
+    # `np.clip(..., 0.0, None)` does and avoids its Python-level wrapper.
+    width = np.minimum(x_max, box_x_max)
+    width -= np.maximum(x_min, box_x_min)
+    np.maximum(width, 0.0, out=width)
+    height = np.minimum(y_max, box_y_max)
+    height -= np.maximum(y_min, box_y_min)
+    np.maximum(height, 0.0, out=height)
+    area_inter = width * height
+    area_true = (x_max - x_min) * (y_max - y_min)
+    area_det = (box_x_max - box_x_min) * (box_y_max - box_y_min)
+    if overlap_metric == OverlapMetric.IOU:
+        # Same order as the general function: (a + b) - intersection.
+        area_norm = area_true + area_det
+        area_norm -= area_inter
+    elif overlap_metric == OverlapMetric.IOS:
+        area_norm = np.minimum(area_true, area_det)
+    else:
+        raise ValueError(
+            f"overlap_metric {overlap_metric} is not supported, "
+            "only 'IOU' and 'IOS' are supported"
+        )
+    overlaps: npt.NDArray[np.float64] = np.zeros_like(area_inter)
+    np.divide(area_inter, area_norm, out=overlaps, where=area_norm > 0)
+    return overlaps
+
+
 def _best_matching_cluster(
     fused_boxes: npt.NDArray[np.float64],
     box: npt.NDArray[np.float64],
@@ -255,8 +310,8 @@ def _best_matching_cluster(
     """Pick the cluster a box should join during Weighted Box Fusion.
 
     The box is compared with every cluster's current fused box in one batched
-    overlap call, and the cluster with the highest overlap wins (the first one
-    on ties). The box joins it only when that overlap is strictly greater than
+    overlap computation, and the cluster with the highest overlap wins (the first
+    one on ties). The box joins it only when that overlap is strictly greater than
     ``iou_threshold``, as in the WBF paper and its reference implementation.
 
     Args:
@@ -275,9 +330,7 @@ def _best_matching_cluster(
     """
     if len(fused_boxes) == 0:
         return -1
-    overlaps = _box_overlap_float64(fused_boxes, box[np.newaxis, :], overlap_metric)[
-        :, 0
-    ]
+    overlaps = _box_overlap_one_to_many(fused_boxes, box, overlap_metric)
     return _pick_cluster(overlaps, iou_threshold, eligible)
 
 
