@@ -56,7 +56,9 @@ class FusionBoxWeights(Enum):
         CONFIDENCE: Each member counts in proportion to its confidence, as in the
             Weighted Box Fusion paper. A cluster whose members all have zero
             confidence counts them equally.
-        UNIFORM: Every member counts the same. The fused confidence is not affected.
+        UNIFORM: Members have equal geometry weights before source weighting.
+            The confidence formula for a fixed cluster is unchanged, but the
+            geometry can change its membership.
 
     Example:
         ```pycon
@@ -1396,7 +1398,11 @@ def _fuse_single_class_boxes(
             source_in_cluster[cluster, source_codes[box_index]] = True
         weight = np.ldexp(score, -cluster_exponents[cluster])
         weight_sums[cluster] += weight
-        factor = 1.0 if source_factors is None else float(source_factors[box_index])
+        factor = 1.0
+        # The seed has the highest score. A zero total means the entire cluster
+        # votes equally, even in uniform mode with unequal source weights.
+        if source_factors is not None and weight_sums[cluster] > 0:
+            factor = float(source_factors[box_index])
         geometry_weight = factor if uniform_boxes else weight * factor
         geometry_weight_sums[cluster] += geometry_weight
         cluster_sizes[cluster] += 1
@@ -1618,17 +1624,33 @@ def _fuse_by_class(
             box_weights,
             class_factors,
         )
-        if class_factors is not None:
-            # Each member contributes `factor / total` of its score, so the sum over
-            # a cluster, which holds one member per source, cannot exceed its largest
-            # score.
-            fused_scores = np.bincount(
-                local_clusters,
-                weights=scores[in_class].astype(np.float64)
-                * class_factors
-                / factor_total,
-                minlength=len(fused_scores),
-            )
+        if (
+            class_factors is not None
+            and source_weights is not None
+            and class_sources is not None
+        ):
+            class_scores = scores[in_class].astype(np.float64)
+            contributions = class_scores * (class_factors / factor_total)
+            limits = np.finfo(np.float64)
+            if class_scores.max() > limits.max / 2 or np.any(
+                (class_scores > 0) & (contributions <= limits.tiny)
+            ):
+                # Rounded terms can overflow in the sum or vanish individually.
+                # Accumulate the original dyadic weights and round once per cluster.
+                exact_weights = [Fraction(float(weight)) for weight in source_weights]
+                total_weight = sum(exact_weights, Fraction())
+                totals = [Fraction() for _ in fused_scores]
+                for cluster, score, source in zip(
+                    local_clusters, class_scores, class_sources
+                ):
+                    totals[cluster] += Fraction(float(score)) * exact_weights[source]
+                fused_scores = np.array(
+                    [float(total / total_weight) for total in totals]
+                )
+            else:
+                fused_scores = np.bincount(
+                    local_clusters, weights=contributions, minlength=len(fused_scores)
+                )
         elif num_models is not None:
             # Paper rescale: a cluster backed by fewer boxes than there are
             # models is demoted in proportion to the models that missed it.
@@ -1833,7 +1855,11 @@ def _fuse_single_class_oriented_boxes(
             source_in_cluster[cluster, source_codes[box_index]] = True
         weight = np.ldexp(score, -cluster_exponents[cluster])
         weight_sums[cluster] += weight
-        factor = 1.0 if source_factors is None else float(source_factors[box_index])
+        factor = 1.0
+        # The seed has the highest score. A zero total means the entire cluster
+        # votes equally, even in uniform mode with unequal source weights.
+        if source_factors is not None and weight_sums[cluster] > 0:
+            factor = float(source_factors[box_index])
         geometry_weight = factor if uniform_boxes else weight * factor
         geometry_weight_sums[cluster] += geometry_weight
         cluster_sizes[cluster] += 1

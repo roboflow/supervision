@@ -79,11 +79,11 @@ def _run_intersection(
 
 def _wide_mask_vote(
     masks: npt.NDArray[Any] | CompactMask,
-    members: list[tuple[int, float]],
+    members: list[tuple[int, tuple[int, int]]],
     box: list[int],
 ) -> npt.NDArray[np.bool_]:
     """Replay unusually wide exact votes in batches with bounded integer storage."""
-    weights = [_binary_weight(weight) for _, weight in members]
+    weights = [weight for _, weight in members]
     exponent = min(exp for mantissa, exp in weights if mantissa)
     votes = [
         mantissa << (exp - exponent) if mantissa else 0 for mantissa, exp in weights
@@ -157,14 +157,20 @@ class _MaskCluster:
 
     @classmethod
     def start(
-        cls, crop: npt.NDArray[np.bool_], x: int, y: int, weight: float
+        cls,
+        crop: npt.NDArray[np.bool_],
+        x: int,
+        y: int,
+        weight: float | tuple[int, int],
     ) -> _MaskCluster:
         """Start a cluster whose fused mask is exactly its seed's mask."""
         height, width = crop.shape
-        mantissa, exponent = _binary_weight(weight)
+        mantissa, exponent = (
+            weight if isinstance(weight, tuple) else _binary_weight(weight)
+        )
         return cls(
             box=[x, y, x + width, y + height],
-            votes=mantissa * crop.astype(np.int64),
+            votes=mantissa * crop.astype(np.int64) if mantissa <= _MAX_INT64 else None,
             total=mantissa,
             exponent=exponent,
             seed_crop=crop,
@@ -178,7 +184,7 @@ class _MaskCluster:
         crop: npt.NDArray[np.bool_],
         x: int,
         y: int,
-        weight: float,
+        weight: float | tuple[int, int],
         wide_vote: Callable[[list[int]], npt.NDArray[np.bool_]] | None = None,
     ) -> None:
         """Add a member and recompute the fused mask.
@@ -190,10 +196,12 @@ class _MaskCluster:
             crop: The member's boolean crop.
             x: Column of the crop's left edge in the image.
             y: Row of the crop's top edge in the image.
-            weight: The member's vote weight.
+            weight: The member's vote weight, as a float or exact mantissa and exponent.
             wide_vote: Replays all members when their exact weights exceed int64.
         """
-        mantissa, exponent = _binary_weight(weight)
+        mantissa, exponent = (
+            weight if isinstance(weight, tuple) else _binary_weight(weight)
+        )
         if mantissa == 0:
             return
         common_exponent = min(self.exponent, exponent)
@@ -361,6 +369,7 @@ def _fuse_single_class_masks(
     box_weights: _FusionBoxWeights,
     fused_masks: list[_FusedMask | None],
     source_factors: npt.NDArray[np.float64] | None = None,
+    source_weights: npt.NDArray[np.float64] | None = None,
 ) -> tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
@@ -375,8 +384,8 @@ def _fuse_single_class_masks(
     Scores are normalized for the mean confidence and the ordinary box mean.
     Pixel votes use the original scores. An all-zero cluster or
     `box_weights="uniform"` gives members equal weight in the vote and box mean.
-    With `source_factors` every member's vote and box weight is multiplied by the
-    factor of its source, except in an all-zero cluster, whose members stay equal.
+    In a positive-score cluster, box weights use the normalized source factors.
+    Votes use original source weights so normalization cannot break a true tie.
 
     Args:
         masks: Dense `(N, H, W)` masks or a `CompactMask`, for all classes.
@@ -393,6 +402,7 @@ def _fuse_single_class_masks(
         source_factors: Optional weight in `(0, 1]` of the source of each of those
             rows. The returned mean score ignores it, and the caller weights the
             score itself.
+        source_weights: Original per-row source weights used for exact mask votes.
 
     Returns:
         A tuple `(fused_xyxy, mean_scores, cluster_sizes, mask_clusters)` with shapes
@@ -416,7 +426,7 @@ def _fuse_single_class_masks(
         )
 
     clusters: list[_MaskCluster | None] = []
-    cluster_members: list[list[tuple[int, float]]] = []
+    cluster_members: list[list[tuple[int, tuple[int, int]]]] = []
     cluster_boxes = np.empty((count, 4), dtype=np.int64)
     seed_rows = np.empty(count, dtype=np.int64)
     seed_areas = np.empty(count, dtype=np.int64)
@@ -467,6 +477,17 @@ def _fuse_single_class_masks(
             return 1.0
         return float(source_factors[position])
 
+    def member_vote(position: int, cluster: int) -> tuple[int, int]:
+        """Multiply the vote's dyadic weights without rounding the product."""
+        score = 1.0 if unit_weights[cluster] else float(scores_float[position])
+        mantissa, exponent = _binary_weight(score)
+        if source_weights is None or not applies_factor[cluster] or not mantissa:
+            return mantissa, exponent
+        source_mantissa, source_exponent = _binary_weight(
+            float(source_weights[position])
+        )
+        return mantissa * source_mantissa, exponent + source_exponent
+
     if sources is None:
         source_codes = None
         source_in_cluster = None
@@ -504,7 +525,7 @@ def _fuse_single_class_masks(
             # The seed has the highest score, so a zero seed weight means every
             # member of the cluster has none and the vote becomes unweighted.
             unit_weights[cluster] = uniform or score == 0
-            applies_factor[cluster] = uniform or score > 0
+            applies_factor[cluster] = score > 0
             factor = member_factor(position, cluster)
             # Keep a reference to the input row instead of a decoded mask or
             # vote grid. A singleton's pixels are only needed where bboxes meet.
@@ -513,13 +534,11 @@ def _fuse_single_class_masks(
             seed_rows[cluster] = row
             seed_areas[cluster] = np.count_nonzero(crop)
             clusters.append(None)
-            cluster_members.append(
-                [(row, (1.0 if unit_weights[cluster] else float(score)) * factor)]
-            )
+            cluster_members.append([(row, member_vote(position, cluster))])
         else:
             members = cluster_members[cluster]
             factor = member_factor(position, cluster)
-            vote_weight = (1.0 if unit_weights[cluster] else float(score)) * factor
+            vote_weight = member_vote(position, cluster)
             members.append((row, vote_weight))
             merged = clusters[cluster]
             if merged is None:
@@ -679,6 +698,9 @@ def _mask_weighted_fusion_clusters(
         class_factors: npt.NDArray[np.float64] | None,
     ) -> Any:
         """Fuse the rows of one class, collecting their fused masks in order."""
+        class_weights = (
+            None if weights is None or class_sources is None else weights[class_sources]
+        )
         return _fuse_single_class_masks(
             masks,
             boxes_float,
@@ -690,6 +712,7 @@ def _mask_weighted_fusion_clusters(
             member_weights,
             per_class_masks,
             class_factors,
+            class_weights,
         )
 
     fused_xyxy, fused_scores, labels, order = _fuse_by_class(

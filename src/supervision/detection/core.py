@@ -56,6 +56,7 @@ from supervision.detection.utils.internal import (
     is_metadata_equal,
     merge_data,
     merge_metadata,
+    merge_metadata_lenient,
     process_roboflow_result,
     process_semantic_segmentation,
     read_semantic_result,
@@ -2457,9 +2458,13 @@ class Detections:
         Unlike :meth:`~supervision.detection.core.Detections.merge`, `fuse` keeps
         only the fields that every nonempty input has and drops the others: if some
         input has no mask, `tracker_id`, `class_id` or `confidence`, that field is
-        dropped from all of them, and only the `data` keys present on every nonempty
-        input are kept. Fusion needs `confidence`, and `class_id` unless
-        `class_agnostic=True`, so it raises when one of them is missing.
+        dropped from all of them. Only `data` keys present in every nonempty input
+        are kept. Compatible list and array values are combined as arrays, and
+        oriented corners use the first nonempty input's layout. When dense and
+        compact masks are mixed, the output uses compact masks without discarding
+        foreground. Collection metadata is retained only when every nonempty input
+        has the same value for the key. Fusion requires `confidence` and, unless
+        `class_agnostic=True`, `class_id`.
 
         Args:
             detections_list: The detections of each source, at least one.
@@ -2512,11 +2517,28 @@ class Detections:
         shared_keys: set[str] = set()
         if nonempty:
             shared_keys = set.intersection(*(set(d.data) for d in nonempty))
+        array_keys = {
+            key
+            for key in shared_keys
+            if any(isinstance(d.data[key], np.ndarray) for d in nonempty)
+        }
+        oriented_shape = None
+        if ORIENTED_BOX_COORDINATES in shared_keys:
+            oriented_shape = np.asarray(
+                nonempty[0].data[ORIENTED_BOX_COORDINATES]
+            ).shape[1:]
+        convert_dense = keep_mask and any(
+            isinstance(d.mask, CompactMask) for d in nonempty
+        )
+        metadata, _ = merge_metadata_lenient([d.metadata for d in nonempty])
         aligned = []
         for detections in nonempty:
-            # Copy the detections, then drop what the other inputs lack, so that
-            # merge sees the same fields on every input.
-            aligned_detections = copy(detections)
+            # The lossless conversion uses actual foreground bounds. Mixed-mask
+            # merge would otherwise crop dense masks to their detector boxes.
+            if convert_dense and isinstance(detections.mask, np.ndarray):
+                aligned_detections = detections.to_compact_masks()
+            else:
+                aligned_detections = copy(detections)
             if not keep_mask:
                 aligned_detections.mask = None
             if not keep_confidence:
@@ -2526,10 +2548,20 @@ class Detections:
             if not keep_tracker_id:
                 aligned_detections.tracker_id = None
             aligned_detections.data = {
-                key: value
+                key: np.asarray(value) if key in array_keys else value
                 for key, value in detections.data.items()
                 if key in shared_keys
             }
+            if oriented_shape is not None:
+                corners = np.asarray(detections.data[ORIENTED_BOX_COORDINATES])
+                if corners.shape[1:] not in ((8,), (4, 2)):
+                    raise ValueError(
+                        "Oriented box coordinates must have shape (N, 8) or (N, 4, 2)."
+                    )
+                aligned_detections.data[ORIENTED_BOX_COORDINATES] = corners.reshape(
+                    len(detections), *oriented_shape
+                )
+            aligned_detections.metadata = metadata
             aligned.append(aligned_detections)
         return cls.merge(aligned).with_fusion(
             threshold,
@@ -3444,15 +3476,15 @@ class Detections:
 
         Detections that carry masks are fused by mask overlap (`overlap_on=None` or
         `"mask"`): each detection is compared with the current fused mask of every
-        cluster. The fused mask of a cluster is the confidence-weighted vote of its
-        members: a pixel is kept when its votes are at least half the cluster's total
-        confidence. Ties keep the pixel, and members of all-zero clusters vote
-        equally. The winner's mask is used if no pixel survives. For two members of
-        unequal confidence the vote gives the winner's mask. Equal confidence
-        gives their union. The fused `xyxy` is the confidence-weighted mean of the
-        members' boxes. A detection that joins no cluster keeps its mask
-        and `xyxy`. This extends published WBF, which fuses boxes only. With
-        `overlap_on="box"` clustering uses box overlap and a fused detection carries
+        cluster. A pixel is kept when its effective vote weight reaches half the
+        cluster's total. Ties keep the pixel, and members of all-zero clusters vote
+        equally. The winner's mask is used if no pixel survives. Under default
+        weighting, with no source weights, two members of unequal confidence give
+        the winner's mask, and equal confidence gives their union. The fused `xyxy`
+        averages the members' boxes using the same effective weights. A detection
+        that joins no cluster keeps its mask and `xyxy`. This extends published WBF,
+        which fuses boxes only. With `overlap_on="box"` clustering uses box overlap
+        and a fused detection carries
         the union of its members' masks, as
         :meth:`~supervision.detection.core.Detections.with_nmm` does.
 
@@ -3513,7 +3545,9 @@ class Detections:
             box_weights: How the members of a cluster are weighted in the fused
                 geometry and, for masks, in the vote: `"confidence"` by their
                 confidence (the Weighted Box Fusion paper's rule), or `"uniform"`
-                equally. The fused confidence is the mean either way. Accepts a
+                equally before any source weighting. The confidence formula for a
+                fixed cluster is the same either way, but moving the running
+                geometry can change which detections join. Accepts a
                 :class:`~supervision.detection.utils.nms.FusionBoxWeights` member or
                 its string.
             source_weights: One positive finite weight per source id, indexed by id,
@@ -3727,8 +3761,9 @@ class Detections:
     ):
         """Validate the fusion arguments and cluster the detections.
 
-        Shared by :meth:`with_fusion` and :meth:`fusion_groups`, so both see the same
-        validation and the same clusters.
+        Shared by :meth:`~supervision.detection.core.Detections.with_fusion` and
+        :meth:`~supervision.detection.core.Detections.fusion_groups`, so both see
+        the same validation and clusters.
 
         Args:
             threshold: Overlap a detection must strictly exceed to join a cluster.
@@ -3742,8 +3777,7 @@ class Detections:
 
         Returns:
             `None` for empty detections, otherwise the fused geometry, the fused
-                confidence, the fused row of each detection and the fused masks, as
-                returned by `OverlapStrategy.fusion_clusters`.
+                confidence, the fused row of each detection and the fused masks.
 
         Raises:
             ValueError: If any argument or the detections are invalid for fusion.
@@ -3800,7 +3834,7 @@ class Detections:
         source_weights: npt.ArrayLike | None = None,
     ) -> list[list[int]]:
         """
-        Return the detections that :meth:`with_fusion` fuses into each detection.
+        Return the input row indexes grouped into each fused detection.
 
         Takes the same arguments as
         :meth:`~supervision.detection.core.Detections.with_fusion` and clusters the
@@ -3812,10 +3846,9 @@ class Detections:
         whose `class_id`, `tracker_id` and `data` the fused detection takes, then
         lists the other members in the order fusion visits them: descending
         confidence, input order on ties. This differs from the groups of
-        :func:`~supervision.detection.utils.nms.box_non_max_merge`, which takes the
-        later row as the seed on a tie and orders groups by class and seed
-        confidence, whereas the groups here follow the order of the fused rows,
-        which is descending fused confidence.
+        :func:`~supervision.detection.utils.nms.box_non_max_merge`, which orders by
+        class and seed confidence and does not specify an input order for ties.
+        Fusion groups follow the order of the fused rows by descending confidence.
 
         Args:
             threshold: Overlap a detection must strictly exceed to join a cluster.

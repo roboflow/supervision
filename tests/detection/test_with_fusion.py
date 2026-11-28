@@ -1365,6 +1365,81 @@ class TestWithFusionSourceWeights:
         np.testing.assert_allclose(result.xyxy, [[1, 0, 11, 10]])
         np.testing.assert_allclose(result.confidence, [0.0])
 
+    @pytest.mark.parametrize("kind", _GEOMETRIES)
+    @pytest.mark.parametrize(
+        ("score", "weights"),
+        [
+            pytest.param(
+                float(np.finfo(np.float64).max), [2.0, 1.0], id="finite-maximum"
+            ),
+            pytest.param(float(np.nextafter(0.0, 1.0)), [1.0, 0.75], id="subnormal"),
+        ],
+    )
+    def test_equal_extreme_confidences_keep_their_value(
+        self, kind: str, score: float, weights: list[float]
+    ) -> None:
+        """A weighted mean of equal confidences keeps their exact value."""
+        detections = _fusion_detections(kind, [(0, 0, 10, 10)] * 2, [score] * 2)
+
+        result = detections.with_fusion(
+            sources=[0, 1], num_models=2, source_weights=weights
+        )
+
+        np.testing.assert_array_equal(result.confidence, [score])
+
+    @pytest.mark.parametrize("kind", _GEOMETRIES)
+    def test_uniform_zero_confidence_clusters_vote_equally(self, kind: str) -> None:
+        """A zero-score seed makes both geometry and mask votes uniform."""
+        rectangles = [(0, 0, 10, 10), (2, 0, 12, 10)]
+        detections = _fusion_detections(kind, rectangles, [0.0, 0.0])
+
+        result = detections.with_fusion(
+            sources=[0, 1],
+            num_models=2,
+            source_weights=[3.0, 1.0],
+            box_weights="uniform",
+        )
+
+        np.testing.assert_allclose(result.xyxy, [[1, 0, 11, 10]])
+        if_mask = _rect_masks((30, 30), [(0, 0, 12, 10)]) if kind == "mask" else None
+        np.testing.assert_array_equal(result.mask, if_mask)
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_exact_weight_tie_keeps_pixels_and_attracts_a_later_member(
+        self, compact: bool
+    ) -> None:
+        """Tied fringe pixels participate in overlap with the next detection."""
+        masks = np.array(
+            [[[1, 1, 0]], [[1, 1, 0]], [[0, 1, 1]], [[1, 0, 0]]], dtype=bool
+        )
+        detections = _with_masks(masks, [1.0, 1.0, 1.0, 0.5])
+        detections = detections.to_compact_masks() if compact else detections
+        options = {
+            "threshold": 0.3,
+            "sources": [0, 1, 2, 3],
+            "num_models": 4,
+            "source_weights": [1, 2, 3, 1],
+        }
+
+        groups = detections.fusion_groups(**options)  # type: ignore[arg-type]
+        fused = detections.with_fusion(**options)  # type: ignore[arg-type]
+
+        assert groups == [[0, 1, 2, 3]]
+        np.testing.assert_array_equal(np.asarray(fused.mask), [[[True, True, False]]])
+
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_wide_vote_preserves_exact_ties(self, compact: bool) -> None:
+        """Two exact products wider than int64 keep both masks' fringes."""
+        masks = _rect_masks((12, 14), [(0, 0, 10, 10), (2, 0, 12, 10)])
+        detections = _with_masks(masks, [0.9, 0.8])
+        detections = detections.to_compact_masks() if compact else detections
+
+        result = detections.with_fusion(
+            sources=[0, 1], num_models=2, source_weights=[0.8, 0.9]
+        )
+
+        np.testing.assert_array_equal(np.asarray(result.mask), masks.any(axis=0)[None])
+
     def test_the_widest_allowed_ratio_stays_finite(self) -> None:
         """A weight 2**100 times smaller barely moves the result and stays finite."""
         result = _pair().with_fusion(
@@ -1528,6 +1603,53 @@ class TestDetectionsFuse:
         result = Detections.fuse([model_a, model_b])
 
         np.testing.assert_array_equal(result.mask[0], masks.any(axis=0))
+
+    def test_mixed_masks_preserve_foreground_outside_detector_boxes(self) -> None:
+        """The representation does not affect pixels, membership, or confidence."""
+        masks = np.array([[[False, False, True]]])
+        dense = _with_masks(masks, [1.0], xyxy=np.array([[0.0, 0.0, 1.0, 1.0]]))
+        compact = dense.to_compact_masks()
+
+        result = Detections.fuse([dense, compact])
+
+        assert isinstance(result.mask, CompactMask)
+        np.testing.assert_array_equal(result.mask.to_dense(), masks)
+        np.testing.assert_array_equal(result.confidence, [1.0])
+
+    @pytest.mark.parametrize("flat_first", [False, True])
+    def test_fuse_aligns_shared_data_and_oriented_corner_layouts(
+        self, flat_first: bool
+    ) -> None:
+        """Both oriented layouts can be mixed while preserving the first layout."""
+        corners = _axis_corners(np.array([[0.0, 0.0, 10.0, 10.0]]))
+        flat = corners.reshape(1, 8)
+        first, second = (flat, corners) if flat_first else (corners, flat)
+        a = _oriented(
+            first, [0.9], data={ORIENTED_BOX_COORDINATES: first, "name": ["a"]}
+        )
+        b = _oriented(
+            second,
+            [0.8],
+            data={ORIENTED_BOX_COORDINATES: second, "name": np.array(["b"])},
+        )
+
+        result = Detections.fuse([a, b])
+
+        actual_corners = np.asarray(result.data[ORIENTED_BOX_COORDINATES])
+        assert actual_corners.shape == first.shape
+        np.testing.assert_allclose(actual_corners, first, atol=1e-12)
+        np.testing.assert_array_equal(result.data["name"], ["a"])
+
+    def test_fuse_retains_only_shared_equal_collection_metadata(self) -> None:
+        """Unequal or one-sided metadata is dropped without modifying the inputs."""
+        a = _pair(metadata={"image": "scene", "model": "a", "extra": 1})
+        b = _pair(metadata={"image": "scene", "model": "b"})
+
+        result = Detections.fuse([a, b])
+
+        assert result.metadata == {"image": "scene"}
+        assert a.metadata == {"image": "scene", "model": "a", "extra": 1}
+        assert b.metadata == {"image": "scene", "model": "b"}
 
     def test_all_empty_inputs_give_empty_detections(self) -> None:
         """Nothing to fuse is empty, after the arguments were validated."""
