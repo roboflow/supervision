@@ -446,6 +446,45 @@ class TestBoxCornerAnnotator:
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.95)
 
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([50, 40, 58, 46], id="shorter-on-both-axes"),
+            pytest.param([50, 40, 58, 90], id="narrow"),
+            pytest.param([50, 40, 100, 46], id="flat"),
+            pytest.param([50.2, 40, 50.9, 60], id="sub-pixel-width"),
+        ],
+    )
+    def test_corners_stay_inside_box_shorter_than_corner_length(
+        self, xyxy: list[float]
+    ) -> None:
+        """Corner lines of a box shorter than `corner_length` stop at its edges."""
+        scene = np.zeros((140, 200, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        annotator = BoxCornerAnnotator(color=Color.WHITE, thickness=4, corner_length=15)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        rows, columns = np.nonzero(result.any(axis=-1))
+        x1, y1, x2, y2 = np.asarray(xyxy).astype(int)
+        half_thickness = 2
+        assert columns.min() >= x1 - half_thickness
+        assert columns.max() <= x2 + half_thickness
+        assert rows.min() >= y1 - half_thickness
+        assert rows.max() <= y2 + half_thickness
+
+    def test_keeps_corner_length_for_box_longer_than_it(self) -> None:
+        """A box longer than `corner_length` keeps full lines and the gap between."""
+        scene = np.zeros((140, 200, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[20, 20, 120, 90]], class_id=[0])
+        annotator = BoxCornerAnnotator(color=Color.WHITE, thickness=1, corner_length=15)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        top_edge_columns = np.nonzero(result[20].any(axis=-1))[0]
+        expected = np.r_[np.arange(20, 36), np.arange(105, 121)]
+        np.testing.assert_array_equal(top_edge_columns, expected)
+
 
 class TestCircleAnnotator:
     """Tests for CircleAnnotator class."""
