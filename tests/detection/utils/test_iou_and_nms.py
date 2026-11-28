@@ -9,6 +9,7 @@ import pytest
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
     _group_overlapping_boxes,
+    box_iou_batch,
     box_non_max_merge,
     box_non_max_suppression,
     box_soft_non_max_suppression,
@@ -17,6 +18,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_suppression,
     mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
+    oriented_box_soft_non_max_suppression,
 )
 from supervision.utils.internal import SupervisionWarnings
 
@@ -1850,3 +1852,111 @@ class TestNonMaxMergeZeroThreshold:
         groups = _nmm_groups(kind, rectangles)
 
         assert sorted(sorted(group) for group in groups) == expected_groups
+
+
+class TestSoftNmsRescoringOrder:
+    """Soft-NMS selects highest current score at each step (Bodla et al., ICCV 2017)."""
+
+    @pytest.mark.parametrize("kind", ["box", "mask", "oriented-box"])
+    def test_decayed_detection_does_not_penalize_higher_remaining_neighbor(
+        self, kind: str
+    ) -> None:
+        """Decaying B below C lets C stay undecayed and decay B instead."""
+        # A=[0,0,10,10] (0.90), B=[0,4,10,14] (0.80), C=[0,10,10,20] (0.75)
+        # IoU(A, B) = 60/140, IoU(B, C) = 40/160 = 0.25, IoU(A, C) = 0
+        boxes = np.array(
+            [[0, 0, 10, 10], [0, 4, 10, 14], [0, 10, 10, 20]], dtype=np.float32
+        )
+        scores = np.array([0.90, 0.80, 0.75], dtype=np.float64)
+        predictions = np.column_stack([boxes, scores, np.zeros(3)])
+        b_after_a = 0.80 * np.exp(-((60 / 140) ** 2) / 0.5)
+        b_after_c = b_after_a * np.exp(-((40 / 160) ** 2) / 0.5)
+        expected = np.array([0.90, b_after_c, 0.75])
+
+        if kind == "box":
+            result = box_soft_non_max_suppression(predictions, sigma=0.5)
+        elif kind == "mask":
+            masks = np.zeros((3, 22, 12), dtype=bool)
+            for idx, (x1, y1, x2, y2) in enumerate(boxes.astype(int)):
+                masks[idx, y1:y2, x1:x2] = True
+            result = mask_soft_non_max_suppression(predictions, masks, sigma=0.5)
+        else:
+            x1, y1, x2, y2 = boxes.T
+            corners = np.stack(
+                [
+                    np.stack([x1, y1], axis=1),
+                    np.stack([x2, y1], axis=1),
+                    np.stack([x2, y2], axis=1),
+                    np.stack([x1, y2], axis=1),
+                ],
+                axis=1,
+            )
+            result = oriented_box_soft_non_max_suppression(
+                predictions, corners, sigma=0.5
+            )
+
+        np.testing.assert_allclose(result, expected, rtol=1e-6)
+
+    def test_duplicate_cluster_decays_neighbor_only_through_cluster_winner(
+        self,
+    ) -> None:
+        """Eight exact duplicates decay each other before reaching a weaker neighbor."""
+        # Duplicate boxes [0,0,10,10] all at 0.90; neighbor [0,5,10,15] (IoU=50/150=1/3)
+        dup_boxes = np.tile([0.0, 0.0, 10.0, 10.0], (8, 1))
+        neighbor = np.array([[0.0, 5.0, 10.0, 15.0]])
+        boxes = np.vstack([dup_boxes, neighbor])
+        scores = np.array([0.90] * 8 + [0.78], dtype=np.float64)
+        predictions = np.column_stack([boxes, scores, np.zeros(9)])
+
+        result = box_soft_non_max_suppression(predictions, sigma=0.5)
+
+        # Only the first winner among duplicates remains above 0.78; the other 7
+        # drop to 0.90 * exp(-1/0.5) ~= 0.1218, so neighbor is decayed once.
+        expected_neighbor = 0.78 * np.exp(-((1.0 / 3.0) ** 2) / 0.5)
+        assert result[-1] == pytest.approx(expected_neighbor, rel=1e-6)
+
+    def test_box_soft_nms_matches_greedy_paper_reference_on_random_scenes(
+        self,
+    ) -> None:
+        """Random multi-class box scenes match the greedy Soft-NMS paper reference."""
+        rng = np.random.default_rng(2950)
+        for _ in range(100):
+            count = int(rng.integers(2, 10))
+            xy = rng.uniform(0.0, 20.0, size=(count, 2))
+            wh = rng.uniform(2.0, 15.0, size=(count, 2))
+            boxes = np.hstack([xy, xy + wh])
+            scores = rng.uniform(0.1, 1.0, size=count)
+            categories = rng.integers(0, 3, size=count)
+            predictions = np.column_stack([boxes, scores, categories])
+
+            actual = box_soft_non_max_suppression(predictions, sigma=0.5)
+
+            # Live reference implementation of Bodla et al. Figure 2 loop.
+            ious = box_iou_batch(boxes, boxes)
+            ref_scores = scores.copy()
+            remaining = list(range(count))
+            while remaining:
+                best = max(remaining, key=lambda idx: ref_scores[idx])
+                remaining.remove(best)
+                for idx in remaining:
+                    if categories[idx] == categories[best]:
+                        ref_scores[idx] *= np.exp(-(ious[best, idx] ** 2) / 0.5)
+
+            np.testing.assert_allclose(actual, ref_scores, rtol=1e-12)
+
+    def test_negative_inf_scores_stay_finite_free_without_revisiting_processed(
+        self,
+    ) -> None:
+        """Negative-infinity scores do not collide with the loop sentinel."""
+        predictions = np.array(
+            [
+                [0.0, 0.0, 10.0, 10.0, 0.9, 0.0],
+                [0.0, 0.0, 10.0, 10.0, -np.inf, 0.0],
+                [0.0, 0.0, 10.0, 10.0, -np.inf, 0.0],
+            ]
+        )
+
+        result = box_soft_non_max_suppression(predictions, sigma=0.5)
+
+        assert result[0] == 0.9
+        assert np.all(result[1:] == -np.inf)
