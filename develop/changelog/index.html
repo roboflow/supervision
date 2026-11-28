@@ -4749,6 +4749,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Added mask support to <code>sv.Detections.with_fusion</code>: detections that carry masks are fused by mask overlap with <code>overlap_on=None</code> or <code>"mask"</code>, instead of raising <code>ValueError</code>. Each cluster keeps a running fused mask, and the fused mask is a confidence-weighted vote in which a pixel is kept when its votes reach half of the total weight (a tie keeps the pixel). Clusters whose members all have zero confidence vote equally, and the winner's mask is used if no pixel survives. The fused <code>xyxy</code> is the confidence-weighted mean of the members' boxes, and a detection that joins no cluster keeps its mask and box. Only merged clusters allocate vote buffers, which span their members' foreground bounds. Compact singleton masks stay encoded between overlap comparisons, and <code>sv.CompactMask</code> input gives <code>sv.CompactMask</code> output. <code>overlap_on="box"</code> still fuses the boxes and unites the masks, and detections carrying both masks and oriented boxes still raise <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/3093">#3093</a>)</p>
 </li>
 <li>
+<p>Added <code>sources</code>, <code>box_weights</code> and <code>source_weights</code> to <code>sv.Detections.with_fusion</code>, and <code>sv.Detections.fusion_groups</code> and <code>sv.Detections.fuse</code>, to fuse the output of several models or test-time augmentation passes with one box per model, on axis-aligned boxes, oriented boxes and masks. <code>sources</code> gives the model or pass of each detection, and a cluster then holds at most one detection per source, so near-copies from one model no longer inflate it; <code>num_models</code> is required with it, and a model that found nothing counts as zero in the fused confidence. <code>box_weights</code> is <code>"confidence"</code> (default) or <code>"uniform"</code>, as a string or the new <code>sv.FusionBoxWeights</code> enum, and sets how the members are weighted in the fused box and the mask vote. <code>source_weights</code> gives each model a positive weight (the largest at most <code>2**100</code> times the smallest, equal weights are the same as none): a member counts in proportion to its weight, and the fused confidence is the weighted sum of the members' confidences over the sum of all weights. <code>fusion_groups</code> returns the input rows behind each fused detection, seed first, in the order of the fused rows. <code>fuse</code> takes one <code>sv.Detections</code> per model, keeps only the fields that every nonempty input has, retains only common equal collection metadata, and counts an empty input as a model that found nothing. It aligns compatible list and array data and preserves mask pixels when mixing dense and compact inputs. Without the new arguments <code>with_fusion</code> is unchanged. (<a href="https://github.com/roboflow/supervision/pull/3094">#3094</a>)</p>
+</li>
+<li>
 <p>Deprecated <code>sv.box_non_max_suppression</code>, <code>sv.mask_non_max_suppression</code>, <code>sv.oriented_box_non_max_suppression</code>, <code>sv.box_soft_non_max_suppression</code>, <code>sv.mask_soft_non_max_suppression</code>, <code>sv.oriented_box_soft_non_max_suppression</code> and <code>sv.box_weighted_box_fusion</code> in <code>0.33.0</code>, to be removed in <code>0.36.0</code>. Use <code>sv.Detections.with_nms</code>, <code>with_soft_nms</code> or <code>with_fusion</code>. Pass the original <code>overlap_metric</code>, and use <code>overlap_on="box"</code> to retain oriented-box suppression when masks are also present. To keep the surviving row indices, set <code>detections.data["index"] = np.arange(len(detections))</code> before <code>with_nms</code> and read <code>data["index"]</code> afterwards. The <code>*_non_max_merge</code> functions stay public. (<a href="https://github.com/roboflow/supervision/pull/3091">#3091</a>)</p>
 </li>
 <li>
@@ -7380,7 +7383,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 27, 2026 22:12:04 UTC">November 27, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 28, 2026 13:19:54 UTC">November 28, 2026</span>
   </span>
 
     
@@ -7432,7 +7435,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/blob/develop/docs/changelog.md" class="md-author md-author--more">
-            +39
+            +38
           </a>
         
       
