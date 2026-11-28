@@ -2438,7 +2438,7 @@ class Detections:
     @classmethod
     def fuse(
         cls,
-        detections_list: Sequence[Detections],
+        *detections: Detections,
         threshold: float = 0.5,
         class_agnostic: bool = False,
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
@@ -2449,13 +2449,14 @@ class Detections:
         """
         Fuse the detections of several models or passes with Weighted Box Fusion.
 
-        Each element of `detections_list` is one source, such as one model or one
-        test-time augmentation pass. The inputs are concatenated, each detection is
-        labelled with the index of its input, and the result is
+        Each positional argument is one source, such as one model or one test-time
+        augmentation pass. The inputs are concatenated, each detection is labelled
+        with the position of its input, and the result is
         :meth:`~supervision.detection.core.Detections.with_fusion` with
-        `num_models=len(detections_list)`. A cluster holds at most one detection per
-        input, and an input that found nothing, even an empty one, still counts as a
-        source that missed the object, which lowers the fused confidence.
+        `num_models` equal to the number of inputs. A cluster holds at most one
+        detection per input, and an input that found nothing, even an empty one,
+        still counts as a source that missed the object, which lowers the fused
+        confidence. To fuse a list, unpack it: `Detections.fuse(*detections_list)`.
 
         Unlike :meth:`~supervision.detection.core.Detections.merge`, `fuse` keeps
         only the fields that every nonempty input has and drops the others: if some
@@ -2469,21 +2470,25 @@ class Detections:
         `class_agnostic=True`, `class_id`.
 
         Args:
-            detections_list: The detections of each source, at least one.
+            *detections: The detections of each source, at least one.
             threshold: Overlap a detection must strictly exceed to join a cluster.
+                Keyword-only, like every argument after `*detections`.
             class_agnostic: Whether to fuse detections of different classes together.
             overlap_metric: Metric used to measure overlap in the selected geometry.
             overlap_on: Geometry to measure overlap on; see
                 :meth:`~supervision.detection.core.Detections.with_fusion`.
             box_weights: Member weighting, `"confidence"` or `"uniform"`.
-            source_weights: One positive finite weight per input, or `None`; see
+            source_weights: One positive finite weight per input, in the order of
+                the positional arguments, or `None`; see
                 :meth:`~supervision.detection.core.Detections.with_fusion`.
 
         Returns:
             One fused detection per cluster, ordered by descending confidence.
 
         Raises:
-            ValueError: If `detections_list` is empty, or in the cases that
+            TypeError: If an argument is not a `Detections`, for example a list that
+                was not unpacked.
+            ValueError: If no detections are given, or in the cases that
                 :meth:`~supervision.detection.core.Detections.with_fusion` lists.
 
         Examples:
@@ -2500,19 +2505,29 @@ class Detections:
             ...     confidence=np.array([0.8, 0.7]),
             ...     class_id=np.array([0, 0]),
             ... )
-            >>> fused = sv.Detections.fuse([model_a, model_b])
+            >>> fused = sv.Detections.fuse(model_a, model_b)
+            >>> fused.confidence.round(2).tolist()
+            [0.85, 0.35]
+            >>> fused = sv.Detections.fuse(*[model_a, model_b], threshold=0.6)
             >>> fused.confidence.round(2).tolist()
             [0.85, 0.35]
 
             ```
         """
-        if len(detections_list) == 0:
+        if len(detections) == 0:
             raise ValueError("fuse needs at least one Detections object.")
-        lengths = np.array([len(detections) for detections in detections_list])
-        sources = np.repeat(np.arange(len(detections_list)), lengths)
+        for position, item in enumerate(detections):
+            if not isinstance(item, Detections):
+                raise TypeError(
+                    "fuse takes Detections objects as positional arguments, got "
+                    f"{type(item).__name__} at position {position}. To fuse a list, "
+                    "unpack it with `Detections.fuse(*detections_list)`."
+                )
+        lengths = np.array([len(item) for item in detections])
+        sources = np.repeat(np.arange(len(detections)), lengths)
 
-        nonempty = [detections for detections in detections_list if len(detections)]
-        keep_mask = all(detections.mask is not None for detections in nonempty)
+        nonempty = [item for item in detections if len(item)]
+        keep_mask = all(item.mask is not None for item in nonempty)
         keep_confidence = all(d.confidence is not None for d in nonempty)
         keep_class_id = all(d.class_id is not None for d in nonempty)
         keep_tracker_id = all(d.tracker_id is not None for d in nonempty)
@@ -2534,13 +2549,13 @@ class Detections:
         )
         metadata, _ = merge_metadata_lenient([d.metadata for d in nonempty])
         aligned = []
-        for detections in nonempty:
+        for item in nonempty:
             # The lossless conversion uses actual foreground bounds. Mixed-mask
             # merge would otherwise crop dense masks to their detector boxes.
-            if convert_dense and isinstance(detections.mask, np.ndarray):
-                aligned_detections = detections.to_compact_masks()
+            if convert_dense and isinstance(item.mask, np.ndarray):
+                aligned_detections = item.to_compact_masks()
             else:
-                aligned_detections = copy(detections)
+                aligned_detections = copy(item)
             if not keep_mask:
                 aligned_detections.mask = None
             if not keep_confidence:
@@ -2551,17 +2566,17 @@ class Detections:
                 aligned_detections.tracker_id = None
             aligned_detections.data = {
                 key: np.asarray(value) if key in array_keys else value
-                for key, value in detections.data.items()
+                for key, value in item.data.items()
                 if key in shared_keys
             }
             if oriented_shape is not None:
-                corners = np.asarray(detections.data[ORIENTED_BOX_COORDINATES])
+                corners = np.asarray(item.data[ORIENTED_BOX_COORDINATES])
                 if corners.shape[1:] not in ((8,), (4, 2)):
                     raise ValueError(
                         "Oriented box coordinates must have shape (N, 8) or (N, 4, 2)."
                     )
                 aligned_detections.data[ORIENTED_BOX_COORDINATES] = corners.reshape(
-                    len(detections), *oriented_shape
+                    len(item), *oriented_shape
                 )
             aligned_detections.metadata = metadata
             aligned.append(aligned_detections)
@@ -2570,7 +2585,7 @@ class Detections:
             class_agnostic,
             overlap_metric,
             overlap_on,
-            len(detections_list),
+            len(detections),
             sources,
             box_weights,
             source_weights,
