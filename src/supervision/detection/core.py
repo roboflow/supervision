@@ -24,6 +24,10 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
+from supervision.detection.utils._fusion import (
+    _prepare_fusion_sources,
+    _validate_num_models,
+)
 from supervision.detection.utils._mask_fusion import _paint_fused_masks
 from supervision.detection.utils._obb_frame import (
     corners_to_frame,
@@ -71,8 +75,6 @@ from supervision.detection.utils.masks import (
 )
 from supervision.detection.utils.nms import (
     FusionBoxWeights,
-    _prepare_fusion_sources,
-    _validate_num_models,
     box_non_max_merge,  # noqa: F401  (re-exported for existing imports from this module)
     box_non_max_suppression,  # noqa: F401
     box_soft_non_max_suppression,  # noqa: F401

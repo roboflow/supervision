@@ -17,9 +17,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.compact_mask import CompactMask, _rle_to_column_intervals
-from supervision.detection.utils.converters import _mask_to_rle_counts
-from supervision.detection.utils.iou import OverlapMetric, _overlap_from_areas
-from supervision.detection.utils.nms import (
+from supervision.detection.utils._fusion import (
     _fuse_by_class,
     _FusionBoxWeights,
     _pick_cluster,
@@ -27,6 +25,8 @@ from supervision.detection.utils.nms import (
     _validate_fusion_boxes,
     _validate_fusion_confidences,
 )
+from supervision.detection.utils.converters import _mask_to_rle_counts
+from supervision.detection.utils.iou import OverlapMetric, _overlap_from_areas
 
 _MAX_INT64 = int(np.iinfo(np.int64).max)
 _VOTE_BATCH_SIZE = 4096
@@ -620,7 +620,7 @@ def _mask_weighted_fusion_clusters(
     """Cluster and fuse segmentation masks with Weighted Box Fusion.
 
     The mask counterpart of
-    :func:`~supervision.detection.utils.nms._box_weighted_fusion_clusters`: masks
+    :func:`~supervision.detection.utils._fusion._box_weighted_fusion_clusters`: masks
     are clustered within their class by overlap with the cluster's running fused
     mask, the mean score is rescaled by `num_models` as for boxes, and the fused
     rows are ordered by descending fused score. The fused mask of a cluster of two
