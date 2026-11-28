@@ -9,8 +9,9 @@ import pytest
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.utils._fusion import _box_weighted_box_fusion
 from supervision.detection.utils.iou import OverlapMetric, OverlapOn
-from supervision.detection.utils.nms import FusionBoxWeights, _box_weighted_box_fusion
+from supervision.detection.utils.nms import FusionBoxWeights
 
 
 def _pair(**overrides: object) -> Detections:

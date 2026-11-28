@@ -9,6 +9,11 @@ import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
+from supervision.detection.utils._fusion import (
+    _box_weighted_fusion_clusters,
+    _oriented_box_weighted_fusion_clusters,
+    _validate_fusion_boxes,
+)
 from supervision.detection.utils._mask_fusion import _mask_weighted_fusion_clusters
 from supervision.detection.utils.boxes import obb_polygon_area
 from supervision.detection.utils.iou import (
@@ -24,13 +29,10 @@ from supervision.detection.utils.nms import (
     _box_non_max_merge_from_arrays,
     _box_non_max_suppression_from_arrays,
     _box_soft_non_max_suppression_from_arrays,
-    _box_weighted_fusion_clusters,
     _mask_non_max_suppression,
     _mask_soft_non_max_suppression,
     _oriented_box_non_max_suppression,
     _oriented_box_soft_non_max_suppression,
-    _oriented_box_weighted_fusion_clusters,
-    _validate_fusion_boxes,
     mask_non_max_merge,
     oriented_box_non_max_merge,
 )

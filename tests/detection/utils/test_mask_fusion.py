@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from supervision.detection.compact_mask import CompactMask
+from supervision.detection.utils._fusion import _box_weighted_fusion_clusters
 from supervision.detection.utils._mask_fusion import (
     _FusedMask,
     _mask_weighted_fusion_clusters,
@@ -13,7 +14,6 @@ from supervision.detection.utils._mask_fusion import (
     _paint_fused_masks,
 )
 from supervision.detection.utils.iou import OverlapMetric
-from supervision.detection.utils.nms import _box_weighted_fusion_clusters
 
 
 def _rect_masks(
