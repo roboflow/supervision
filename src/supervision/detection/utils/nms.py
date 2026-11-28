@@ -335,24 +335,46 @@ def _soft_nms_decay_from_iou_matrix(
     scores: npt.NDArray[np.number],
     sigma: float,
 ) -> npt.NDArray[np.floating]:
-    """Vectorized Gaussian Soft-NMS confidence decay given a precomputed IoU matrix.
+    """Gaussian Soft-NMS confidence decay given a precomputed IoU matrix.
 
-    Assumes `ious`, `categories`, and `scores` are all sorted by descending score
-    (as produced by
-    :func:`~supervision.detection.utils.nms._prepare_predictions_for_nms`),
-    and that `ious` is square with
-    row/column order matching `categories`. Each detection's score is decayed once
-    per higher-scoring, same-category detection that precedes it — equivalent to
-    the reference single-pass (no re-sort) Soft-NMS loop, computed as a single
-    vectorized closed form: `decayed[j] = scores[j] * exp(-sum_i(ious[i, j]**2) /
-    sigma)` summed over same-category `i < j`.
+    Implements the iterative greedy Soft-NMS loop (Bodla et al., ICCV 2017): at each
+    step, selects the remaining detection with the highest current score and decays
+    remaining same-category detections with positive overlap by ``exp(-(iou ** 2) /
+    sigma)``. Because decayed scores are updated before each subsequent selection, a
+    detection whose score falls below a neighbor's does not penalize that neighbor.
+
+    Assumes ``ious`` is square with row and column order matching ``categories`` and
+    ``scores``, and that ``scores`` are initially ordered descending so tie-breaking
+    favors earlier entries.
     """
-    rows = len(ious)
-    same_category = categories[:, None] == categories[None, :]
-    precedes = np.triu(np.ones((rows, rows), dtype=bool), k=1)
-    weighted_iou_sq = np.where(precedes & same_category, ious**2, 0.0)
-    decay_exponent = weighted_iou_sq.sum(axis=0)
-    return cast(npt.NDArray[np.floating], scores * np.exp(-decay_exponent / sigma))
+    score_dtype = np.result_type(scores.dtype, ious.dtype, np.float64)
+    decayed: npt.NDArray[np.floating] = np.array(scores, dtype=score_dtype, copy=True)
+    rows = len(decayed)
+    if rows <= 1:
+        return decayed
+
+    remaining = np.ones(rows, dtype=bool)
+    work_scores = decayed.copy()
+    for _ in range(rows - 1):
+        max_idx = int(np.argmax(work_scores))
+        if not remaining[max_idx]:
+            # Only reachable if remaining scores are -inf and tie the sentinel.
+            active = np.flatnonzero(remaining)
+            max_idx = int(active[int(np.argmax(decayed[active]))])
+        remaining[max_idx] = False
+        work_scores[max_idx] = -np.inf
+
+        decay_mask = (
+            remaining & (categories == categories[max_idx]) & (ious[max_idx] > 0)
+        )
+        if np.any(decay_mask):
+            updated = decayed[decay_mask] * np.exp(
+                -(ious[max_idx, decay_mask] ** 2) / sigma
+            )
+            decayed[decay_mask] = updated
+            work_scores[decay_mask] = updated
+
+    return decayed
 
 
 def _box_non_max_suppression_from_arrays(
