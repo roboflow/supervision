@@ -1084,6 +1084,71 @@ class TestAsPascalVocMaskWithHole:
         np.testing.assert_array_equal(result.mask, mask)
 
 
+class TestAsPascalVocMaskWithDisconnectedParts:
+    """Tests for exporting a mask made of disconnected parts to Pascal VOC."""
+
+    @staticmethod
+    def _two_part_mask() -> np.ndarray:
+        """Return one object split into two parts, as an occluder would leave it."""
+        mask = np.zeros((1, 100, 120), dtype=bool)
+        mask[0, 10:31, 70:81] = True
+        mask[0, 60:91, 90:111] = True
+        return mask
+
+    def test_writes_parts_as_polygons_of_one_object(self) -> None:
+        """Both parts are polygons of one object whose box spans them."""
+        detections = Detections(
+            xyxy=np.array([[70, 10, 111, 91]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=self._two_part_mask(),
+        )
+
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["person"],
+            filename="image.png",
+            image_shape=(100, 120, 3),
+        )
+
+        objects = ElementTree.fromstring(xml_string).findall("object")
+        assert len(objects) == 1
+        assert len(objects[0].findall("polygon")) == 2
+        box = _find(objects[0], "bndbox")
+        actual = [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
+        assert actual == ["71", "11", "111", "91"]
+
+    def test_round_trip_keeps_one_instance(self, tmp_path: Path) -> None:
+        """A mask with two disconnected parts reloads as one detection."""
+        image_path = str(tmp_path / "source" / "occluded.png")
+        Path(image_path).parent.mkdir()
+        cv2.imwrite(image_path, np.zeros((100, 120, 3), dtype=np.uint8))
+        mask = self._two_part_mask()
+        detections = Detections(
+            xyxy=np.array([[70, 10, 111, 91]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["person"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+
+        dataset.as_pascal_voc(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "annotations"),
+        )
+        reloaded = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "annotations"),
+            force_masks=True,
+        )
+
+        result = next(iter(reloaded.annotations.values()))
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.mask, mask)
+
+
 class TestPascalVocDevkitBndbox:
     """Pascal VOC boxes use the devkit's 1-based, inclusive pixel indices."""
 
