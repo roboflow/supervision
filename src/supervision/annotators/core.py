@@ -1230,7 +1230,9 @@ class BoxCornerAnnotator(BaseAnnotator):
             color: The color or color palette to use for
                 annotating detections.
             thickness: Thickness of the corner lines.
-            corner_length: Length of each corner line.
+            corner_length: Length of each corner line. A box shorter than this
+                along an axis gets lines that end at its opposite edge, so the
+                corners never extend past the box.
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
@@ -1286,10 +1288,14 @@ class BoxCornerAnnotator(BaseAnnotator):
             detections, self.color, self.color_lookup, custom_color_lookup
         ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            # A line longer than its edge would run past the opposite corner and
+            # draw outside a small box, so it stops at that corner instead.
+            corner_length_x = min(self.corner_length, x2 - x1)
+            corner_length_y = min(self.corner_length, y2 - y1)
             corners = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
 
             for x, y in corners:
-                x_end = x + self.corner_length if x == x1 else x - self.corner_length
+                x_end = x + corner_length_x if x == x1 else x - corner_length_x
                 cv2.line(
                     scene,
                     (x, y),
@@ -1298,7 +1304,7 @@ class BoxCornerAnnotator(BaseAnnotator):
                     thickness=self.thickness,
                 )
 
-                y_end = y + self.corner_length if y == y1 else y - self.corner_length
+                y_end = y + corner_length_y if y == y1 else y - corner_length_y
                 cv2.line(
                     scene,
                     (x, y),
