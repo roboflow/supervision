@@ -276,3 +276,61 @@ class TestPaintFusedMasks:
         expected[0, 1:3, 1:4] = True
         expected[1] = masks[1]
         np.testing.assert_array_equal(result.to_dense(), expected)
+
+
+def _bounding_boxes(masks: np.ndarray) -> np.ndarray:
+    """Tight `xyxy` boxes (exclusive max) of boolean masks, as floats."""
+    boxes = []
+    for mask in masks:
+        rows, columns = np.where(mask)
+        boxes.append([columns.min(), rows.min(), columns.max() + 1, rows.max() + 1])
+    return np.array(boxes, dtype=np.float64)
+
+
+class TestMaskFusionEdgeCases:
+    """Dense non-rectangular masks and zero-weight members cluster by their pixels."""
+
+    @pytest.mark.parametrize(
+        ("second_mask", "expected_clusters"),
+        [
+            pytest.param(
+                np.tril(np.ones((10, 10), dtype=bool), k=1), 1, id="overlapping-pixels"
+            ),
+            pytest.param(
+                np.triu(np.ones((10, 10), dtype=bool), k=1), 2, id="disjoint-pixels"
+            ),
+        ],
+    )
+    def test_non_rectangular_dense_masks_cluster_by_pixel_overlap(
+        self, second_mask: np.ndarray, expected_clusters: int
+    ) -> None:
+        """Boxes that nearly coincide still stay apart when the pixels do not."""
+        first = np.tril(np.ones((10, 10), dtype=bool))
+        masks = np.stack([first, second_mask])
+        boxes = _bounding_boxes(masks)
+
+        _, _, labels, _ = _mask_weighted_fusion_clusters(
+            boxes, np.array([0.9, 0.8]), None, 0.5, OverlapMetric.IOU, masks
+        )
+
+        assert len(set(labels.tolist())) == expected_clusters
+
+    def test_a_zero_score_member_joins_without_voting(self) -> None:
+        """A member with score zero adds no vote, so the fused mask is unchanged."""
+        rectangles = [(2, 2, 12, 12)] * 3
+        masks = _rect_masks((20, 20), rectangles)
+
+        _, scores, labels, fused_masks = _mask_weighted_fusion_clusters(
+            _boxes_of(rectangles),
+            np.array([0.9, 0.8, 0.0]),
+            None,
+            0.5,
+            OverlapMetric.IOU,
+            masks,
+        )
+
+        assert labels.tolist() == [0, 0, 0]
+        assert scores.tolist() == pytest.approx([(0.9 + 0.8 + 0.0) / 3])
+        fused = fused_masks[0]
+        assert fused is not None
+        assert np.array_equal(_paint(fused, (20, 20)), masks[0])
