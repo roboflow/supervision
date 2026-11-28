@@ -1662,6 +1662,39 @@ class TestDetectionsFuse:
         with pytest.raises(ValueError, match="at least one"):
             Detections.fuse()
 
+    def test_an_input_without_confidence_drops_it_for_all_and_fusion_raises(
+        self,
+    ) -> None:
+        """Confidence kept only when every input has it, and fusion needs it."""
+        with_confidence = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
+        without_confidence = Detections(
+            xyxy=np.array([[0.0, 0.0, 10.0, 10.0]]), class_id=np.array([0])
+        )
+
+        with pytest.raises(ValueError, match="confidence must be given"):
+            Detections.fuse(with_confidence, without_confidence)
+
+    def test_an_input_without_class_id_drops_it_for_all(self) -> None:
+        """Class ids kept only when every input has them; class-agnostic fusion runs."""
+        with_class = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
+        without_class = _fusion_detections(
+            "box", [(1, 1, 11, 11)], [0.8], class_id=None
+        )
+
+        result = Detections.fuse(with_class, without_class, class_agnostic=True)
+
+        assert len(result) == 1
+        assert result.class_id is None
+
+    def test_oriented_corners_of_the_wrong_shape_raise(self) -> None:
+        """Corners that are neither `(N, 8)` nor `(N, 4, 2)` are rejected."""
+        corners = {ORIENTED_BOX_COORDINATES: np.zeros((1, 3))}
+        first = _fusion_detections("box", [(0, 0, 10, 10)], [0.9], data=dict(corners))
+        second = _fusion_detections("box", [(1, 1, 11, 11)], [0.8], data=dict(corners))
+
+        with pytest.raises(ValueError, match=r"\(N, 8\) or \(N, 4, 2\)"):
+            Detections.fuse(first, second)
+
     def test_unpacking_a_list_equals_listing_the_inputs(self) -> None:
         """`fuse(*inputs)` is the way to fuse a list, with the keyword arguments."""
         model_a = _fusion_detections("box", [(0, 0, 10, 10)], [0.9])
