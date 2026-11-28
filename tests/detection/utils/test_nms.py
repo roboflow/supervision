@@ -7,16 +7,18 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision.detection.utils._fusion import (
+    _box_weighted_box_fusion,
+    _box_weighted_fusion_clusters,
+    _oriented_box_weighted_fusion_clusters,
+)
 from supervision.detection.utils.iou import OverlapMetric
 from supervision.detection.utils.nms import (
     _box_non_max_suppression,
     _box_soft_non_max_suppression,
-    _box_weighted_box_fusion,
-    _box_weighted_fusion_clusters,
     _group_overlapping_boxes,
     _mask_non_max_suppression,
     _mask_soft_non_max_suppression,
-    _oriented_box_weighted_fusion_clusters,
     box_non_max_merge,
     mask_non_max_merge,
     oriented_box_non_max_merge,
