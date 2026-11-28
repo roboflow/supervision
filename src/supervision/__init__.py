@@ -118,6 +118,7 @@ from supervision.detection.utils.masks import (
 )
 from supervision.detection.utils.matching import match_detections
 from supervision.detection.utils.nms import (
+    FusionBoxWeights,
     box_non_max_merge,
     box_non_max_suppression,
     box_soft_non_max_suppression,
@@ -221,6 +222,7 @@ __all__ = [
     "EdgeAnnotator",
     "EllipseAnnotator",
     "FPSMonitor",
+    "FusionBoxWeights",
     "GradientMapAnnotator",
     "HaloAnnotator",
     "HeatMapAnnotator",

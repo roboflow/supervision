@@ -23,6 +23,7 @@ from supervision.detection.utils.nms import (
     _fuse_by_class,
     _FusionBoxWeights,
     _pick_cluster,
+    _prepare_fusion_sources,
     _validate_fusion_boxes,
     _validate_fusion_confidences,
 )
@@ -78,11 +79,11 @@ def _run_intersection(
 
 def _wide_mask_vote(
     masks: npt.NDArray[Any] | CompactMask,
-    members: list[tuple[int, float]],
+    members: list[tuple[int, tuple[int, int]]],
     box: list[int],
 ) -> npt.NDArray[np.bool_]:
     """Replay unusually wide exact votes in batches with bounded integer storage."""
-    weights = [_binary_weight(weight) for _, weight in members]
+    weights = [weight for _, weight in members]
     exponent = min(exp for mantissa, exp in weights if mantissa)
     votes = [
         mantissa << (exp - exponent) if mantissa else 0 for mantissa, exp in weights
@@ -156,14 +157,20 @@ class _MaskCluster:
 
     @classmethod
     def start(
-        cls, crop: npt.NDArray[np.bool_], x: int, y: int, weight: float
+        cls,
+        crop: npt.NDArray[np.bool_],
+        x: int,
+        y: int,
+        weight: float | tuple[int, int],
     ) -> _MaskCluster:
         """Start a cluster whose fused mask is exactly its seed's mask."""
         height, width = crop.shape
-        mantissa, exponent = _binary_weight(weight)
+        mantissa, exponent = (
+            weight if isinstance(weight, tuple) else _binary_weight(weight)
+        )
         return cls(
             box=[x, y, x + width, y + height],
-            votes=mantissa * crop.astype(np.int64),
+            votes=mantissa * crop.astype(np.int64) if mantissa <= _MAX_INT64 else None,
             total=mantissa,
             exponent=exponent,
             seed_crop=crop,
@@ -177,7 +184,7 @@ class _MaskCluster:
         crop: npt.NDArray[np.bool_],
         x: int,
         y: int,
-        weight: float,
+        weight: float | tuple[int, int],
         wide_vote: Callable[[list[int]], npt.NDArray[np.bool_]] | None = None,
     ) -> None:
         """Add a member and recompute the fused mask.
@@ -189,10 +196,12 @@ class _MaskCluster:
             crop: The member's boolean crop.
             x: Column of the crop's left edge in the image.
             y: Row of the crop's top edge in the image.
-            weight: The member's vote weight.
+            weight: The member's vote weight, as a float or exact mantissa and exponent.
             wide_vote: Replays all members when their exact weights exceed int64.
         """
-        mantissa, exponent = _binary_weight(weight)
+        mantissa, exponent = (
+            weight if isinstance(weight, tuple) else _binary_weight(weight)
+        )
         if mantissa == 0:
             return
         common_exponent = min(self.exponent, exponent)
@@ -359,6 +368,8 @@ def _fuse_single_class_masks(
     sources: npt.NDArray[np.integer] | None,
     box_weights: _FusionBoxWeights,
     fused_masks: list[_FusedMask | None],
+    source_factors: npt.NDArray[np.float64] | None = None,
+    source_weights: npt.NDArray[np.float64] | None = None,
 ) -> tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
@@ -373,6 +384,8 @@ def _fuse_single_class_masks(
     Scores are normalized for the mean confidence and the ordinary box mean.
     Pixel votes use the original scores. An all-zero cluster or
     `box_weights="uniform"` gives members equal weight in the vote and box mean.
+    In a positive-score cluster, box weights use the normalized source factors.
+    Votes use original source weights so normalization cannot break a true tie.
 
     Args:
         masks: Dense `(N, H, W)` masks or a `CompactMask`, for all classes.
@@ -386,6 +399,10 @@ def _fuse_single_class_masks(
         box_weights: `"confidence"` or `"uniform"` member weighting.
         fused_masks: Output list that receives, per cluster in creation order, its
             fused mask, or `None` for a cluster of one mask.
+        source_factors: Optional weight in `(0, 1]` of the source of each of those
+            rows. The returned mean score ignores it, and the caller weights the
+            score itself.
+        source_weights: Original per-row source weights used for exact mask votes.
 
     Returns:
         A tuple `(fused_xyxy, mean_scores, cluster_sizes, mask_clusters)` with shapes
@@ -409,7 +426,7 @@ def _fuse_single_class_masks(
         )
 
     clusters: list[_MaskCluster | None] = []
-    cluster_members: list[list[tuple[int, float]]] = []
+    cluster_members: list[list[tuple[int, tuple[int, int]]]] = []
     cluster_boxes = np.empty((count, 4), dtype=np.int64)
     seed_rows = np.empty(count, dtype=np.int64)
     seed_areas = np.empty(count, dtype=np.int64)
@@ -421,18 +438,56 @@ def _fuse_single_class_masks(
     weighted_offsets = np.zeros((count, 4), dtype=np.float64)
     geometry_weight_sums = np.zeros(count, dtype=np.float64)
     sizes = np.zeros(count, dtype=np.int64)
+    # Whether a cluster's members take their source factor: an all-zero cluster
+    # votes equally and ignores it.
+    applies_factor = np.zeros(count, dtype=bool)
     uniform = box_weights == "uniform"
     limits = np.finfo(np.float64)
-    smallest_score = np.min(scores_float, where=scores_float > 0, initial=np.inf)
+    effective_scores = (
+        scores_float if source_factors is None else scores_float * source_factors
+    )
+    smallest_score = np.min(
+        effective_scores, where=effective_scores > 0, initial=np.inf
+    )
+    weight_underflowed = bool(np.any((scores_float > 0) & (effective_scores == 0)))
     coordinates = np.abs(boxes[row_ids])
     smallest_coordinate = np.min(coordinates, where=coordinates > 0, initial=np.inf)
     # The offset sum can overflow or lose a weight before multiplication.
     # Use the same conservative range guard as axis-aligned box fusion.
-    exact_boxes = (
+    exact_boxes = bool(
         np.max(coordinates) > limits.max / (2 * count)
         or smallest_coordinate <= 2 * limits.tiny
-        or (not uniform and smallest_score <= (2 * limits.tiny) * scores_float.max())
+        or (
+            not uniform
+            and (
+                smallest_score <= (2 * limits.tiny) * scores_float.max()
+                or weight_underflowed
+            )
+        )
+        or (
+            uniform
+            and source_factors is not None
+            and source_factors.min() <= 2 * limits.tiny
+        )
     )
+
+    def member_factor(position: int, cluster: int) -> float:
+        """Return the source factor of a member, 1 when its cluster ignores it."""
+        if source_factors is None or not applies_factor[cluster]:
+            return 1.0
+        return float(source_factors[position])
+
+    def member_vote(position: int, cluster: int) -> tuple[int, int]:
+        """Multiply the vote's dyadic weights without rounding the product."""
+        score = 1.0 if unit_weights[cluster] else float(scores_float[position])
+        mantissa, exponent = _binary_weight(score)
+        if source_weights is None or not applies_factor[cluster] or not mantissa:
+            return mantissa, exponent
+        source_mantissa, source_exponent = _binary_weight(
+            float(source_weights[position])
+        )
+        return mantissa * source_mantissa, exponent + source_exponent
+
     if sources is None:
         source_codes = None
         source_in_cluster = None
@@ -445,6 +500,7 @@ def _fuse_single_class_masks(
         crop, x, y = _mask_crop(masks, row)
         score = scores_float[position]
         cluster = -1
+        factor = 1.0
         if clusters:
             eligible = None
             if source_in_cluster is not None and source_codes is not None:
@@ -469,6 +525,8 @@ def _fuse_single_class_masks(
             # The seed has the highest score, so a zero seed weight means every
             # member of the cluster has none and the vote becomes unweighted.
             unit_weights[cluster] = uniform or score == 0
+            applies_factor[cluster] = score > 0
+            factor = member_factor(position, cluster)
             # Keep a reference to the input row instead of a decoded mask or
             # vote grid. A singleton's pixels are only needed where bboxes meet.
             height, width = crop.shape
@@ -476,12 +534,11 @@ def _fuse_single_class_masks(
             seed_rows[cluster] = row
             seed_areas[cluster] = np.count_nonzero(crop)
             clusters.append(None)
-            cluster_members.append(
-                [(row, 1.0 if unit_weights[cluster] else float(score))]
-            )
+            cluster_members.append([(row, member_vote(position, cluster))])
         else:
             members = cluster_members[cluster]
-            vote_weight = 1.0 if unit_weights[cluster] else float(score)
+            factor = member_factor(position, cluster)
+            vote_weight = member_vote(position, cluster)
             members.append((row, vote_weight))
             merged = clusters[cluster]
             if merged is None:
@@ -500,7 +557,7 @@ def _fuse_single_class_masks(
         weight_sums[cluster] += weight
         sizes[cluster] += 1
         if not exact_boxes:
-            geometry_weight = 1.0 if unit_weights[cluster] else weight
+            geometry_weight = (1.0 if unit_weights[cluster] else weight) * factor
             geometry_weight_sums[cluster] += geometry_weight
             weighted_offsets[cluster] += geometry_weight * (
                 boxes[row] - origins[cluster]
@@ -514,7 +571,8 @@ def _fuse_single_class_masks(
         for c in np.flatnonzero(sizes[:cluster_count] > 1):
             member_positions = by_cluster[cluster_ends[c] - sizes[c] : cluster_ends[c]]
             weights = [
-                Fraction(1) if unit_weights[c] else Fraction(float(scores_float[i]))
+                (Fraction(1) if unit_weights[c] else Fraction(float(scores_float[i])))
+                * Fraction(member_factor(int(i), int(c)))
                 for i in member_positions
             ]
             total = sum(weights)
@@ -552,6 +610,7 @@ def _mask_weighted_fusion_clusters(
     output_dtype: npt.DTypeLike = np.float64,
     sources: npt.NDArray[np.integer] | None = None,
     box_weights: _FusionBoxWeights = "confidence",
+    source_weights: npt.ArrayLike | None = None,
 ) -> tuple[
     npt.NDArray[Any],
     npt.NDArray[Any],
@@ -585,9 +644,14 @@ def _mask_weighted_fusion_clusters(
             one mask per source.
         box_weights: `"confidence"` (default) or `"uniform"` weighting of the
             members in the vote and the box mean; the fused score is unaffected.
+        source_weights: Optional weight of each source id, indexed by id, with one
+            weight per model (`num_models` is required). It scales each member's
+            vote and box weight, and the fused score becomes the weighted sum of
+            the members' scores over the sum of all source weights.
 
     Raises:
-        ValueError: If the box weights, masks or any input values are invalid.
+        ValueError: If the box weights, sources, masks or any input values are
+            invalid.
 
     Returns:
         A tuple `(fused_xyxy, fused_scores, labels, fused_masks)`. The first two have
@@ -609,6 +673,9 @@ def _mask_weighted_fusion_clusters(
             f"CompactMask with one mask per box, got {count} boxes and "
             f"{len(masks)} masks."
         )
+    sources, weights = _prepare_fusion_sources(
+        sources, source_weights, num_models, count
+    )
     if count == 0:
         return (
             np.empty((0, 4), dtype=output_dtype),
@@ -627,9 +694,13 @@ def _mask_weighted_fusion_clusters(
         threshold: float,
         metric: OverlapMetric,
         class_sources: npt.NDArray[np.integer] | None,
-        weights: _FusionBoxWeights,
+        member_weights: _FusionBoxWeights,
+        class_factors: npt.NDArray[np.float64] | None,
     ) -> Any:
         """Fuse the rows of one class, collecting their fused masks in order."""
+        class_weights = (
+            None if weights is None or class_sources is None else weights[class_sources]
+        )
         return _fuse_single_class_masks(
             masks,
             boxes_float,
@@ -638,8 +709,10 @@ def _mask_weighted_fusion_clusters(
             threshold,
             metric,
             class_sources,
-            weights,
+            member_weights,
             per_class_masks,
+            class_factors,
+            class_weights,
         )
 
     fused_xyxy, fused_scores, labels, order = _fuse_by_class(
@@ -654,6 +727,7 @@ def _mask_weighted_fusion_clusters(
         sources,
         box_weights,
         fuse_class,
+        weights,
     )
     return fused_xyxy, fused_scores, labels, [per_class_masks[i] for i in order]
 

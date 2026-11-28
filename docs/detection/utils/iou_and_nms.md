@@ -23,6 +23,12 @@ comments: true
 :::supervision.detection.utils.iou.OverlapOn
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.nms.FusionBoxWeights">FusionBoxWeights</a></h2>
+</div>
+
+:::supervision.detection.utils.nms.FusionBoxWeights
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.iou.box_iou">box_iou</a></h2>
 </div>
 

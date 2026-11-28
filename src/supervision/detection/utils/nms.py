@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from enum import Enum
 from fractions import Fraction
 from typing import Any, Literal, TypeVar, cast
 
@@ -42,6 +43,65 @@ _Candidate = TypeVar("_Candidate")
 #: Weighting of the member boxes in the Weighted Box Fusion mean: by confidence
 #: (the paper's rule) or equally.
 _FusionBoxWeights = Literal["confidence", "uniform"]
+
+#: Largest ratio between the biggest and the smallest source weight. Beyond it a
+#: weighted confidence can underflow, so the weights are rejected.
+_MAX_SOURCE_WEIGHT_RATIO = 2.0**100
+
+
+class FusionBoxWeights(Enum):
+    """Enum specifying how members of a cluster are weighted when fusing them.
+
+    Attributes:
+        CONFIDENCE: Each member counts in proportion to its confidence, as in the
+            Weighted Box Fusion paper. A cluster whose members all have zero
+            confidence counts them equally.
+        UNIFORM: Members have equal geometry weights before source weighting.
+            The confidence formula for a fixed cluster is unchanged, but the
+            geometry can change its membership.
+
+    Example:
+        ```pycon
+        >>> FusionBoxWeights.from_value("UNIFORM")
+        <FusionBoxWeights.UNIFORM: 'uniform'>
+
+        ```
+    """
+
+    CONFIDENCE = "confidence"
+    UNIFORM = "uniform"
+
+    @classmethod
+    def list(cls) -> list[str]:
+        """Return the string values of all members."""
+        return list(map(lambda member: member.value, cls))
+
+    @classmethod
+    def from_value(cls, value: FusionBoxWeights | str) -> FusionBoxWeights:
+        """Return the member for an enum member or a case-insensitive string.
+
+        Args:
+            value: A member of this enum or its string value.
+
+        Returns:
+            The matching member.
+
+        Raises:
+            ValueError: If `value` is not a member, a known string or a string.
+        """
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )
+
 
 #: Arguments shared by every deprecated array-level NMS, soft-NMS and Weighted Box
 #: Fusion kernel: the release that deprecates them in favour of the `Detections`
@@ -951,6 +1011,75 @@ def _validate_num_models(num_models: int | None) -> None:
         )
 
 
+def _prepare_fusion_sources(
+    sources: npt.ArrayLike | None,
+    source_weights: npt.ArrayLike | None,
+    num_models: int | None,
+    count: int,
+) -> tuple[npt.NDArray[np.integer] | None, npt.NDArray[np.float64] | None]:
+    """Validate the source ids and source weights of a Weighted Box Fusion.
+
+    Args:
+        sources: Source (model or pass) id of each row, or `None` to keep the
+            clustering free of sources.
+        source_weights: Weight of each source id, indexed by id, or `None`.
+        num_models: Number of sources. Ids are checked against it when it is given,
+            and `source_weights` needs it.
+        count: Number of rows that `sources` must label.
+
+    Returns:
+        The ids as an integer array, and the weights as a float64 array, or `None`
+            for each that is not given. Weights that are all equal give the same
+            fusion as no weights, so they come back as `None`.
+
+    Raises:
+        ValueError: If `source_weights` is given without `sources` or `num_models`,
+            `sources` is not one integer id per row (in `[0, num_models)` when
+            `num_models` is given), or `source_weights` is not one finite positive
+            weight per source whose largest value is at most `2**100` times the
+            smallest.
+    """
+    if sources is None:
+        if source_weights is not None:
+            raise ValueError("source_weights requires sources to be given.")
+        return None, None
+    source_ids = np.asarray(sources)
+    if source_ids.shape != (count,):
+        raise ValueError(
+            f"sources must hold one id per detection, shape ({count},), got "
+            f"shape {source_ids.shape}."
+        )
+    if count:
+        if not np.issubdtype(source_ids.dtype, np.integer):
+            raise ValueError(f"sources must be integers, got {source_ids.dtype}.")
+        if num_models is not None and (
+            source_ids.min() < 0 or source_ids.max() >= num_models
+        ):
+            raise ValueError(
+                f"sources must lie in [0, num_models) = [0, {num_models}), got "
+                f"values from {source_ids.min()} to {source_ids.max()}."
+            )
+    if source_weights is None:
+        return source_ids, None
+    if num_models is None:
+        raise ValueError("source_weights requires num_models, one weight per source.")
+    weights = np.asarray(source_weights, dtype=np.float64)
+    if weights.shape != (num_models,):
+        raise ValueError(
+            f"source_weights must hold one weight per source, shape ({num_models},), "
+            f"got shape {weights.shape}."
+        )
+    if not np.all(np.isfinite(weights)) or np.any(weights <= 0):
+        raise ValueError("source_weights must be finite and strictly positive.")
+    if weights.max() / weights.min() > _MAX_SOURCE_WEIGHT_RATIO:
+        raise ValueError(
+            "The largest source weight must be at most 2**100 times the smallest."
+        )
+    if np.all(weights == weights[0]):
+        return source_ids, None
+    return source_ids, weights
+
+
 def _validate_fusion_predictions_shape(predictions: npt.NDArray[np.number]) -> None:
     """Reject Weighted Box Fusion predictions not shaped `(n, 5)` or `(n, 6)`.
 
@@ -1131,6 +1260,7 @@ def _fuse_single_class_boxes(
     overlap_metric: OverlapMetric,
     sources: npt.NDArray[np.integer] | None = None,
     box_weights: _FusionBoxWeights = "confidence",
+    source_factors: npt.NDArray[np.float64] | None = None,
 ) -> tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
@@ -1167,6 +1297,9 @@ def _fuse_single_class_boxes(
         box_weights: `"confidence"` averages the member boxes weighted by their
             scores, `"uniform"` gives every member the same weight. The mean score
             is the same in both cases.
+        source_factors: Optional weight in `(0, 1]` of the source of each box,
+            shape `(n,)`. It multiplies the member's box weight; the returned mean
+            score ignores it, and the caller weights the score itself.
 
     Returns:
         A tuple `(fused_boxes, mean_scores, cluster_sizes, box_clusters)` with
@@ -1201,15 +1334,36 @@ def _fuse_single_class_boxes(
         _, source_codes = np.unique(sources, return_inverse=True)
         source_in_cluster = np.zeros((box_count, source_codes.max() + 1), dtype=bool)
     limits = np.finfo(np.float64)
-    smallest_score = np.min(scores_float, where=scores_float > 0, initial=np.inf)
+    # A box's weight is its score times its source factor (the factor is 1 without
+    # source weights), so the smallest effective weight drives the range check.
+    effective_scores = (
+        scores_float if source_factors is None else scores_float * source_factors
+    )
+    smallest_score = np.min(
+        effective_scores, where=effective_scores > 0, initial=np.inf
+    )
+    weight_underflowed = bool(np.any((scores_float > 0) & (effective_scores == 0)))
     # Differences can span twice the largest magnitude, and all offsets can
     # add in the same direction. Scaling can also round a small positive weight
     # before it is multiplied by a large offset. Keep the existing float
     # accumulation for ordinary ranges to preserve rounding at IoU thresholds.
-    # Uniform weights are exactly 1, so only the coordinate range can trigger it.
+    # Uniform weights equal the source factor, which is 1 without source weights,
+    # so only a small factor or the coordinate range can trigger it.
     exact_totals: dict[int, tuple[Fraction, list[Fraction]]] | None = None
-    if np.max(np.abs(boxes_float)) > limits.max / (2 * box_count) or (
-        not uniform_boxes and smallest_score <= (2 * limits.tiny) * scores_float.max()
+    if (
+        np.max(np.abs(boxes_float)) > limits.max / (2 * box_count)
+        or (
+            not uniform_boxes
+            and (
+                smallest_score <= (2 * limits.tiny) * scores_float.max()
+                or weight_underflowed
+            )
+        )
+        or (
+            uniform_boxes
+            and source_factors is not None
+            and source_factors.min() <= 2 * limits.tiny
+        )
     ):
         exact_totals = {}
 
@@ -1244,18 +1398,24 @@ def _fuse_single_class_boxes(
             source_in_cluster[cluster, source_codes[box_index]] = True
         weight = np.ldexp(score, -cluster_exponents[cluster])
         weight_sums[cluster] += weight
-        geometry_weight = 1.0 if uniform_boxes else weight
+        factor = 1.0
+        # The seed has the highest score. A zero total means the entire cluster
+        # votes equally, even in uniform mode with unequal source weights.
+        if source_factors is not None and weight_sums[cluster] > 0:
+            factor = float(source_factors[box_index])
+        geometry_weight = factor if uniform_boxes else weight * factor
         geometry_weight_sums[cluster] += geometry_weight
         cluster_sizes[cluster] += 1
         if exact_totals is not None:
             # Divide the exact weighted coordinates before converting to
             # float64. A cluster that starts with zero weight can only receive
             # other zero-score boxes because scores are visited in descending order.
-            exact_weight = (
-                Fraction(float(score))
-                if geometry_weight_sums[cluster] and not uniform_boxes
-                else Fraction(1)
-            )
+            if uniform_boxes:
+                exact_weight = Fraction(factor)
+            elif geometry_weight_sums[cluster]:
+                exact_weight = Fraction(float(score)) * Fraction(factor)
+            else:
+                exact_weight = Fraction(1)
             total, sums = exact_totals.get(cluster, (Fraction(), [Fraction()] * 4))
             total += exact_weight
             sums = [
@@ -1303,6 +1463,7 @@ def _box_weighted_fusion_clusters(
     output_dtype: npt.DTypeLike = np.float64,
     sources: npt.NDArray[np.integer] | None = None,
     box_weights: _FusionBoxWeights = "confidence",
+    source_weights: npt.ArrayLike | None = None,
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64]]:
     """Cluster and fuse boxes with Weighted Box Fusion and report the membership.
 
@@ -1331,9 +1492,13 @@ def _box_weighted_fusion_clusters(
             one box per source. With `None` the clustering is unchanged.
         box_weights: `"confidence"` (default) or `"uniform"` weighting of the
             member boxes in the fused box; the fused score is unaffected.
+        source_weights: Optional weight of each source id, indexed by id, with one
+            weight per model (`num_models` is required). It scales each member's
+            weight in the fused box, and the fused score becomes the weighted sum of
+            the members' scores over the sum of all source weights.
 
     Raises:
-        ValueError: If the box weights or any input values are invalid.
+        ValueError: If the box weights, sources or any input values are invalid.
 
     Returns:
         A tuple `(fused_boxes, fused_scores, labels)` with shapes `(m, 4)`, `(m,)`
@@ -1345,6 +1510,9 @@ def _box_weighted_fusion_clusters(
             f"box_weights must be 'confidence' or 'uniform', got {box_weights!r}."
         )
     box_count = len(boxes)
+    sources, weights = _prepare_fusion_sources(
+        sources, source_weights, num_models, box_count
+    )
     if box_count == 0:
         return (
             np.empty((0, 4), dtype=output_dtype),
@@ -1365,6 +1533,7 @@ def _box_weighted_fusion_clusters(
         sources,
         box_weights,
         _fuse_single_class_boxes,
+        weights,
     )[:3]
 
 
@@ -1380,15 +1549,23 @@ def _fuse_by_class(
     sources: npt.NDArray[np.integer] | None,
     box_weights: _FusionBoxWeights,
     fuse_single_class: Callable[..., Any],
+    source_weights: npt.NDArray[np.float64] | None = None,
 ) -> tuple[
     npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64], npt.NDArray[np.intp]
 ]:
     """Run a single-class fusion kernel per class and order the fused rows.
 
-    Shared by the axis-aligned and the oriented fusion: `fuse_single_class` fuses
+    Shared by the axis-aligned, oriented and mask fusion: `fuse_single_class` fuses
     the rows of one class and returns `(fused_geometry, mean_scores, cluster_sizes,
     box_clusters)`. The fused rows are cast, concatenated and stably sorted by
     descending fused score, and `labels` is remapped to the sorted rows.
+
+    With `source_weights` the kernel receives each row's source weight, scaled so the
+    largest is 1, as an extra argument that multiplies the member weight, and the
+    fused score of a cluster is the weighted sum of its members' scores divided by
+    the sum of all source weights. That replaces the `num_models` rescale, which it
+    equals when every weight is 1. A cluster holds at most one row per source, so
+    the sum never exceeds the largest member score and stays finite.
 
     Args:
         geometry: Validated boxes `(n, 4)` or corners `(n, 4, 2)` with `n >= 1`.
@@ -1403,6 +1580,8 @@ def _fuse_by_class(
         sources: Optional source id per row, shape `(n,)`.
         box_weights: `"confidence"` or `"uniform"` member weighting.
         fuse_single_class: Fusion kernel of one class.
+        source_weights: Optional weight per source id, indexed by id; needs `sources`
+            and `num_models` equal to its length (see `_prepare_fusion_sources`).
 
     Returns:
         A tuple `(fused_geometry, fused_scores, labels, order)` sorted by descending
@@ -1417,6 +1596,11 @@ def _fuse_by_class(
     else:
         _validate_fusion_class_ids(categories)
     unique_class_ids, class_positions = np.unique(categories, return_inverse=True)
+    source_factors = None
+    factor_total = 1.0
+    if source_weights is not None and sources is not None:
+        source_factors = source_weights / source_weights.max()
+        factor_total = float(source_factors.sum())
 
     geometry_per_class: list[npt.NDArray[np.float64]] = []
     scores_per_class: list[npt.NDArray[np.float64]] = []
@@ -1426,6 +1610,11 @@ def _fuse_by_class(
     for class_position in range(len(unique_class_ids)):
         in_class = np.flatnonzero(class_positions == class_position)
         class_sources = None if sources is None else sources[in_class]
+        class_factors = (
+            None
+            if source_factors is None or class_sources is None
+            else source_factors[class_sources]
+        )
         fused_geometry, fused_scores, cluster_sizes, local_clusters = fuse_single_class(
             geometry[in_class],
             scores[in_class],
@@ -1433,8 +1622,36 @@ def _fuse_by_class(
             overlap_metric,
             class_sources,
             box_weights,
+            class_factors,
         )
-        if num_models is not None:
+        if (
+            class_factors is not None
+            and source_weights is not None
+            and class_sources is not None
+        ):
+            class_scores = scores[in_class].astype(np.float64)
+            contributions = class_scores * (class_factors / factor_total)
+            limits = np.finfo(np.float64)
+            if class_scores.max() > limits.max / 2 or np.any(
+                (class_scores > 0) & (contributions <= limits.tiny)
+            ):
+                # Rounded terms can overflow in the sum or vanish individually.
+                # Accumulate the original dyadic weights and round once per cluster.
+                exact_weights = [Fraction(float(weight)) for weight in source_weights]
+                total_weight = sum(exact_weights, Fraction())
+                totals = [Fraction() for _ in fused_scores]
+                for cluster, score, source in zip(
+                    local_clusters, class_scores, class_sources
+                ):
+                    totals[cluster] += Fraction(float(score)) * exact_weights[source]
+                fused_scores = np.array(
+                    [float(total / total_weight) for total in totals]
+                )
+            else:
+                fused_scores = np.bincount(
+                    local_clusters, weights=contributions, minlength=len(fused_scores)
+                )
+        elif num_models is not None:
             # Paper rescale: a cluster backed by fewer boxes than there are
             # models is demoted in proportion to the models that missed it.
             rescale = np.minimum(cluster_sizes, num_models) / num_models
@@ -1501,6 +1718,7 @@ def _fuse_single_class_oriented_boxes(
     overlap_metric: OverlapMetric,
     sources: npt.NDArray[np.integer] | None = None,
     box_weights: _FusionBoxWeights = "confidence",
+    source_factors: npt.NDArray[np.float64] | None = None,
 ) -> tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
@@ -1539,6 +1757,9 @@ def _fuse_single_class_oriented_boxes(
         box_weights: `"confidence"` weights the member extents by their scores,
             `"uniform"` gives every member the same weight; the mean score is the
             same in both cases.
+        source_factors: Optional weight in `(0, 1]` of the source of each box, shape
+            `(n,)`, that multiplies the member's extent weight. The returned mean
+            score ignores it, and the caller weights the score itself.
 
     Returns:
         A tuple `(fused_corners, mean_scores, cluster_sizes, box_clusters)` with
@@ -1634,7 +1855,12 @@ def _fuse_single_class_oriented_boxes(
             source_in_cluster[cluster, source_codes[box_index]] = True
         weight = np.ldexp(score, -cluster_exponents[cluster])
         weight_sums[cluster] += weight
-        geometry_weight = 1.0 if uniform_boxes else weight
+        factor = 1.0
+        # The seed has the highest score. A zero total means the entire cluster
+        # votes equally, even in uniform mode with unequal source weights.
+        if source_factors is not None and weight_sums[cluster] > 0:
+            factor = float(source_factors[box_index])
+        geometry_weight = factor if uniform_boxes else weight * factor
         geometry_weight_sums[cluster] += geometry_weight
         cluster_sizes[cluster] += 1
 
@@ -1698,6 +1924,7 @@ def _oriented_box_weighted_fusion_clusters(
     output_dtype: npt.DTypeLike = np.float64,
     sources: npt.NDArray[np.integer] | None = None,
     box_weights: _FusionBoxWeights = "confidence",
+    source_weights: npt.ArrayLike | None = None,
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[np.int64]]:
     """Cluster and fuse oriented boxes with Weighted Box Fusion and report membership.
 
@@ -1721,9 +1948,12 @@ def _oriented_box_weighted_fusion_clusters(
             one box per source.
         box_weights: `"confidence"` (default) or `"uniform"` weighting of the
             member extents in the fused box; the fused score is unaffected.
+        source_weights: Optional weight of each source id, indexed by id, with one
+            weight per model (`num_models` is required); see
+            :func:`~supervision.detection.utils.nms._box_weighted_fusion_clusters`.
 
     Raises:
-        ValueError: If the box weights or any input values are invalid.
+        ValueError: If the box weights, sources or any input values are invalid.
 
     Returns:
         A tuple `(fused_corners, fused_scores, labels)` with shapes `(m, 4, 2)`,
@@ -1735,6 +1965,9 @@ def _oriented_box_weighted_fusion_clusters(
         raise ValueError(
             f"box_weights must be 'confidence' or 'uniform', got {box_weights!r}."
         )
+    sources, weights = _prepare_fusion_sources(
+        sources, source_weights, num_models, len(boxes)
+    )
     if len(boxes) == 0:
         return (
             np.empty((0, 4, 2), dtype=np.float64),
@@ -1755,6 +1988,7 @@ def _oriented_box_weighted_fusion_clusters(
         sources,
         box_weights,
         _fuse_single_class_oriented_boxes,
+        weights,
     )[:3]
 
 
