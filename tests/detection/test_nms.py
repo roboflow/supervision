@@ -296,6 +296,21 @@ class TestDetectionsWithSoftNms:
         assert result.confidence.dtype == np.float64
         assert result.confidence[1] > 0.0
 
+    @pytest.mark.parametrize("kind", ["box", "dense-mask", "compact-mask", "obb"])
+    def test_decayed_bridge_detection_does_not_suppress_higher_neighbor(
+        self, kind: str
+    ) -> None:
+        """Decaying B below C keeps C above score_threshold across geometries."""
+        rectangles = [[0, 0, 10, 10], [0, 4, 10, 14], [0, 10, 10, 20]]
+        detections = _make_rectangle_detections(kind, rectangles)
+        detections.confidence = np.array([0.90, 0.80, 0.75], dtype=np.float32)
+
+        result = detections.with_soft_nms(sigma=0.5, score_threshold=0.7)
+
+        assert len(result) == 2
+        assert result.confidence is not None
+        np.testing.assert_allclose(result.confidence, [0.90, 0.75], rtol=1e-6)
+
 
 class TestDetectionsWithNMS:
     """NMS behaviour tests for 64-bit integer coordinates."""
